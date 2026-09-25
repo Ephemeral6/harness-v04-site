@@ -1,0 +1,92 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · 对象</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class="card gap"><h2>缺口（摆在最上面）</h2><ul></ul><details><summary>全部缺口与「这批语料说不了的」</summary><pre>s5i5 · 明写的缺口与「这批语料说不了的」（每条：为什么做不到 / 试过什么 / 哪一步实验能分开）
+
+一、这批语料分不开的说法（规则里取了一种，另一种也对得上全部语料）
+  1. 伸出去压着别的条：「顶得开（被压的整根沿推力方向走 3 格）」 vs 「顶不开，整步作废」
+     语料：31 次压人，每一次在原型模拟器里「顶开」之后也都因别的原因作废 → 两种读法判决完全同步。
+     现行：作废（rule/作废/landing_blocked_refuses）；「顶开」撤册，源码 analysis/history/round2/retired/。
+     分开它的实验：伸出去压一根身后空着、自由端上不挂东西、被顶之后帽不出盘的条。
+  2. 墙被带上靶：「伸才作废」 vs 「墙沿自己长轴被带才作废」
+     语料：4 次作废全是「伸 + 沿长轴」，15 次照走全是「缩 + 横着」。现行取「伸」。
+     分开它的实验：伸的时候把一面墙横着带上靶（或缩的时候沿长轴拖上靶）。
+  3. 赢面：「尖集合 = 靶心集合」 vs 「尖 ⊆ 靶心」 vs 「靶心 ⊆ 尖」
+     语料：每关带尖条数 = 靶数（反向测试 M8 / M8b 没红，见 reverse.txt）。
+     分开它的实验：一张带尖条数 ≠ 靶数的盘——本游戏 8 关里没有，语料够不着。
+  4. 点图例转动「第一档出盘照转、跳档后出盘作废」只有 5 次撑着（照转 3 次、作废 2 次）。
+
+二、语料里 0 次的情形（规则没被检验过的部分）
+  · 点在面板框里、但不在图标中心上（`panel` 那一支）：0 次；点在一切框外：3 次。
+  · 缩到身体恰好 2 条以下以外的「最短长度」：语料里条长全是 3k+2。
+  · 一种颜色有两根条又没有枢纽时点它的图例：0 次（模型在这一支说不出话）。
+  · 被拖的墙再拖别的墙：0 次（chain_follows_free_end 的「不主张」）。
+  · 预算见底（GAME_OVER）：0 次。计费行只做了「单调、一步 ≤ 2 格」。
+
+三、读得成但说不清的帧
+  · 12 帧 World.unsure = {split}：同色两根条首尾相顶，分界帧上读不出（历史才知道）。
+    规则在这些帧上闭嘴（记 U 或按理由记 N），不判对也不判错。
+  · 伸出盘外的条：帧上只知道长度下界（Bar.clipped）；要动它的步规则闭嘴，比对只比看得见的那一截。
+
+四、形式化
+  · 逐条那一层：原先单文件 Obs/Corpus.lean 两次没编成（第一次被内存回收；第二次单进程峰值工作集 21.9 GB、
+    跑到 1279 s 仍未完，为不压垮共机由我手动终止）。改成 24 块（lean2/Obs/Corpus/C00..C23，每块 ≤ 50 条）后
+    全部编过：每块约 13 s、峰值约 2.5 GB。**已关闭，不再是缺口**（记录留在这里）。
+  · 没有一关宣告「走不通」：八关都在认证段里走通了，所以没有钥匙、没有防线（Proof/Reachable.lean 只留骨架）。
+
+五、判错的那一条（归因）
+  · seq 1423（非认证段，第 4 关）：点色 12「伸」，模型预测两根色 12 伸长、挂着的色 14 与墙被带走；
+    世界整步作废（帧一格不动）。现有任何一条作废规则都不覆盖它；原型里试过「墙被横着带走时，墙的另一端顶着别的条的自由端就作废」，
+    该条件同时把 69 次照走的步判成作废，退回（probe runs/_wb-s5i5/held.py）。
+    归因：对象层可能少一位（墙与条之间的「粘」关系是否只在某个方向成立），语料里与它同形的步只有这 1 次，定不下来。
+</pre></details></div><div class=card><h1>对象（10 个文件，按子文件夹分组）</h1>
+<select onchange="location.href=this.value"><option>跳到…</option><optgroup label="board"><option value="obj-board-board.html">board/board — `Board` —— 盘面：一关之内一格都不动的全部东西。</option><option value="obj-board-diamond.html">board/diamond — `Diamond` —— 菱形靶：四个色 13 的点围成十字，中心格就是靶位。</option><option value="obj-board-hub.html">board/hub — `Hub` —— 枢纽：一块 3×3 的条色方块，**没有自己的帽**，四周贴着</option><option value="obj-board-legend.html">board/legend — `Legend` —— 图例框：色 2 描边的框，里面**只有一颗**十字图标。</option><option value="obj-board-panel.html">board/panel — `Panel` —— 面板：一个色 2 描边的框，里面两颗同色图标，中间一道色 </option></optgroup><optgroup label="geometry"><option value="obj-geometry-grid.html">geometry/grid — 格与方向。格就是 `(行, 列)` 两个整数，从 0 数起。</option></optgroup><optgroup label="piece"><option value="obj-piece-bar.html">piece/bar — `Bar` —— 条：一排三格色 3 的「帽」，加上从帽往外的一段 3 格宽的实</option><option value="obj-piece-wall.html">piece/wall — `Wall` —— 推得动的墙：一块**长方形**、一边恰好 3 格厚的死物（不</option></optgroup><optgroup label="（根）"><option value="obj-parse.html">parse — 帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的</option><option value="obj-world.html">world — `World` —— 这一局一帧的全部状态。字段就是这一局的对象。</option></optgroup></select><table><tr><th colspan=2>board<div class=mut>盘面：**一关之内一格都不动的东西**——面板、图例框、菱形靶、枢纽、钉死的墙。</div></th></tr><tr><td><a href="obj-board-board.html">board/board</a></td><td>`Board` —— 盘面：一关之内一格都不动的全部东西。</td></tr><tr><td><a href="obj-board-diamond.html">board/diamond</a></td><td>`Diamond` —— 菱形靶：四个色 13 的点围成十字，中心格就是靶位。</td></tr><tr><td><a href="obj-board-hub.html">board/hub</a></td><td>`Hub` —— 枢纽：一块 3×3 的条色方块，**没有自己的帽**，四周贴着别的条的帽。</td></tr><tr><td><a href="obj-board-legend.html">board/legend</a></td><td>`Legend` —— 图例框：色 2 描边的框，里面**只有一颗**十字图标。</td></tr><tr><td><a href="obj-board-panel.html">board/panel</a></td><td>`Panel` —— 面板：一个色 2 描边的框，里面两颗同色图标，中间一道色 3 分隔线。</td></tr><tr><th colspan=2>geometry<div class=mut>几何：格、方向、三格宽的「条带」、绕一格逆时针转。**这一类里没有任何世界断言**——</div></th></tr><tr><td><a href="obj-geometry-grid.html">geometry/grid</a></td><td>格与方向。格就是 `(行, 列)` 两个整数，从 0 数起。</td></tr><tr><th colspan=2>piece<div class=mut>会动的东西：条、推得动的墙。**`step` 改的只有这一组**。</div></th></tr><tr><td><a href="obj-piece-bar.html">piece/bar</a></td><td>`Bar` —— 条：一排三格色 3 的「帽」，加上从帽往外的一段 3 格宽的实心身体。</td></tr><tr><td><a href="obj-piece-wall.html">piece/wall</a></td><td>`Wall` —— 推得动的墙：一块**长方形**、一边恰好 3 格厚的死物（不是任何面板管的颜色）。</td></tr><tr><th colspan=2>（根）<div class=mut>唯一碰像素的那一份，与 World 本身</div></th></tr><tr><td><a href="obj-parse.html">parse</a></td><td>帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的字段。</td></tr><tr><td><a href="obj-world.html">world</a></td><td>`World` —— 这一局一帧的全部状态。字段就是这一局的对象。</td></tr></table></div>
+<div class=card><h2>World 的每个字段：删不删得掉</h2><details><summary>字段 bars：消融读数与为什么</summary><pre># ===== 装置读数（每次结算重写，别手改这一段）=====
+字段 `bars`　消融读数（分母：320 条转移）
+
+抹掉之后判决变了 **700** 处。**有规则在用这一位**。
+# ===== 以上由装置写；下面是你的 =====
+
+必要。见证：分离表第 3 / 1715 帧只差 bars。读者：伸缩 / 转动 / 作废 / 过关 全部。全语料子字段消融：Bar.tip 抹掉变 1000 个判决，Bar.clipped 变 51。三个读数一致。
+</pre></details><details><summary>字段 board：消融读数与为什么</summary><pre># ===== 装置读数（每次结算重写，别手改这一段）=====
+字段 `board`　消融读数（分母：320 条转移）
+
+抹掉之后判决变了 **1082** 处。**有规则在用这一位**。
+# ===== 以上由装置写；下面是你的 =====
+
+必要。分离表「分不开」是因为它只随关变（而换关时 bars 也变），不是没人读：消融变 1082 处（最多），读者 click / box_stops / fixed_blocks / landing / wall_onto_target / goal / rotate。一对只差它的世界：同一组条，钉死的墙压在某根条伸出去的落点上 vs 不压——前者那一下作废。
+</pre></details><details><summary>字段 spent：消融读数与为什么</summary><pre># ===== 装置读数（每次结算重写，别手改这一段）=====
+字段 `spent`　消融读数（分母：320 条转移）
+
+抹掉之后判决变了 **56** 处。**有规则在用这一位**。
+# ===== 以上由装置写；下面是你的 =====
+
+留在 World、不进模型。见证第 3 / 7 帧。温和扰动（抹成 0）全语料 0 处变——扰动太温柔（唯一读它的规则只看前后差）；狠扰动（64-spent）变 1198。它的下一格取决于帧上没有的已用步数与预算，所以形式化不比它。
+</pre></details><details><summary>字段 unsure：消融读数与为什么</summary><pre># ===== 装置读数（每次结算重写，别手改这一段）=====
+字段 `unsure`　消融读数（分母：320 条转移）
+
+**判决一个字都没变** ⇒ 没有任何一条规则用到这一位信息。
+按判据 1 / 2 它**不必要**——要么删掉，要么在下面写清「哪一对世界状态靠它才分得开」，并说明为什么还没有规则用它。
+# ===== 以上由装置写；下面是你的 =====
+
+留。卡 03 倾向删掉，被第 3 轮读数推翻：装置抽样消融 0 处是抽样没抽到那 12 帧；全语料抹成恒空变 30 个判决，其中 seq 1090 / 1096 会从「读不清」变成判错（分界取错一种）。它挡的是拿一位读不出的信息去判。
+</pre></details><details><summary>字段 walls：消融读数与为什么</summary><pre># ===== 装置读数（每次结算重写，别手改这一段）=====
+字段 `walls`　消融读数（分母：320 条转移）
+
+抹掉之后判决变了 **35** 处。**有规则在用这一位**。
+# ===== 以上由装置写；下面是你的 =====
+
+必要。分离表没有见证（墙只在某根条动的那一步跟着动，从不单独变）；规则侧抽样消融 35、全语料 346，读者 7 条。一对只差它的世界：条的自由端外面贴着一面墙 vs 没贴——前者缩的时候墙被拖走。这一对语料里没有「只差这一位」的现成两帧，写进欠账。
+</pre></details></div></main></body></html>

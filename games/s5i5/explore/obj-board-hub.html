@@ -1,0 +1,51 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · board/hub</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>board/hub</h1><pre>`Hub` —— 枢纽：一块 3×3 的条色方块，**没有自己的帽**，四周贴着别的条的帽。
+
+**人话**：几根条的帽都焊在它身上；点它那一色的图例，挂在它身上的整串绕它的中心格
+逆时针转。它自己不伸、不缩、不挪。
+
+它是解析被逼出来的一类（判据 7 分化）：按「条 = 帽 + 身体」去覆盖这一色的格子，
+有一关总剩下一块 3×3 盖不上，而那块四周有两边以上贴着帽。
+
+**为什么住在 board/ 而不是 piece/**（第 1 轮简化，`analysis/record.txt`）：
+分离表说它和面板、菱形「同生共死」（整批语料里它只随关变）；
+而且没有任何一步动过它——绕自己的中心转 90° 的 3×3 方块还是它自己。
+一样一关之内不动的东西，就是盘面。</pre>
+<details><summary>源码</summary><pre>&quot;&quot;&quot;`Hub` —— 枢纽：一块 3×3 的条色方块，**没有自己的帽**，四周贴着别的条的帽。
+
+**人话**：几根条的帽都焊在它身上；点它那一色的图例，挂在它身上的整串绕它的中心格
+逆时针转。它自己不伸、不缩、不挪。
+
+它是解析被逼出来的一类（判据 7 分化）：按「条 = 帽 + 身体」去覆盖这一色的格子，
+有一关总剩下一块 3×3 盖不上，而那块四周有两边以上贴着帽。
+
+**为什么住在 board/ 而不是 piece/**（第 1 轮简化，`analysis/record.txt`）：
+分离表说它和面板、菱形「同生共死」（整批语料里它只随关变）；
+而且没有任何一步动过它——绕自己的中心转 90° 的 3×3 方块还是它自己。
+一样一关之内不动的东西，就是盘面。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Hub:
+    color: int
+    r: int                 # 左上格
+    c: int
+</pre></details></div></main></body></html>

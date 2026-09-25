@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Obs/Corpus.lean</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Lean · Obs/Corpus.lean</h1><div class="sub">源码原样</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class='card'><pre>/-
+# Obs/Corpus —— 逐条：每一步都从**观测到的那一帧**重新起算（**自动生成**）
+
+用例从 `Replay.steps` 切：第 k 步的前一帧取第 k−1 步的 `full`（读全了的那几帧才有；
+每关第一步取整关口径的开局），下一帧取第 k 步的 `seen`；过关那一步是 `won = true` 的用例。
+前一帧读不全的那几步**不造用例**——那几步只在每关那一层（`Proof/Levels`）里被核。
+
+三值：`some true` 对上 / `some false` 被这一帧证伪 / `none` 模型这一步说不出话。
+
+## 和 Python 规则层的逐条对账
+
+`pyVerdicts` 是 Python 规则层（`rule/move/*`、`rule/switch/cycle`、`rule/goal/level_up` 的预测，
+拿 `derive/fiber.py` 比）在**同一批用例**上的判决。两份各自独立写：Python 用格子集合，
+这里用算术。`reconcile` 要求两份逐条相同——**不许靠「它们应该一样」**。
+-/
+
+import Obj.World
+import Obs.Replay
+
+namespace Game
+namespace Corpus
+
+def build : Option World → Nat → List Replay.Step → List Case
+  | _, _, [] =&gt; []
+  | prev, lvl, s :: rest =&gt;
+      let p := if s.lvl == lvl then prev else some (Replay.startOf s.lvl)
+      let tail := build s.full s.lvl rest
+      match p with
+      | some w =&gt; { row := s.seq, lvl := s.lvl, prev := w, act := s.act, next := s.seen, won := s.won } :: tail
+      | none   =&gt; tail
+
+def cases : List Case := build none 999 Replay.steps
+
+def pyVerdicts : List (Option Bool) := [some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true, some true]
+
+end Corpus
+end Game
+
+-- 定理放在顶层：装置的 lean_check 用不带命名空间的名字打 `#print axioms`
+open Game Game.Corpus
+
+set_option maxRecDepth 100000
+
+theorem cases_len : (cases.map (fun c =&gt; stepJudge (Replay.boardOf c.lvl) c)).length = 303 := by
+  decide +kernel
+
+/-- 逐条：没有一条被证伪（`some false` 的条数是 0）。 -/
+theorem no_false :
+    ((cases.map (fun c =&gt; stepJudge (Replay.boardOf c.lvl) c)).filter (· == some false)).length = 0 := by
+  decide +kernel
+
+/-- 对上的条数与说不出话的条数，写成定理（不是 `#eval`）。 -/
+theorem n_true :
+    ((cases.map (fun c =&gt; stepJudge (Replay.boardOf c.lvl) c)).filter (· == some true)).length = 303 := by
+  decide +kernel
+theorem n_na :
+    ((cases.map (fun c =&gt; stepJudge (Replay.boardOf c.lvl) c)).filter (· == none)).length = 0 := by
+  decide +kernel
+
+/-- **两份现役的判决逐条对账**：Lean 的 `step` 与 Python 的规则层在每一条上都说同一句话。 -/
+theorem reconcile : cases.map (fun c =&gt; stepJudge (Replay.boardOf c.lvl) c) = pyVerdicts := by
+  decide +kernel
+
+#eval &quot;CORPUS cases=&quot; ++ toString cases.length
+
+#print axioms cases_len
+#print axioms no_false
+#print axioms n_true
+#print axioms n_na
+#print axioms reconcile
+</pre></div>
+</div></body></html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Proof/Reachable.lean</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Lean · Proof/Reachable.lean</h1><div class="sub">源码原样</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class='card'><pre>/-
+# Proof/Reachable —— 这个**局面**做不做得了
+
+    Winnable   b s  :=  ∃ as, 照着走中途赢过
+    Unsolvable b s  :=  ∀ as, 照着走从没赢过
+
+## 一句必须写在明处的削弱
+
+`step` 有一支 `na`（模型说不出下一帧：斜叉 / 菱形撞挡块——语料里 0 次）。`everWon` 碰到它返回 `false`。
+所以 `Unsolvable` 的准确意思是：**不经过模型说不出话的那一支，就赢不了**。
+`∀ as` 这个形状一个字都看不出这一点，所以写在这里、写在页面上。
+RESET 不在动作里：「重来一次回到哪」不进模型（`notmodel/reset_restarts`）。
+
+## 骨架
+
+`unsolvable_of_invariant`：找一个每一步都保持、且与「赢」矛盾的性质 Φ，挂上去就是不可做。
+全文唯一做归纳的地方，与盘面大小、动作串长短都无关，不枚举任何状态。
+这一局语料里八关全部走通，所以**这一局没有用到它**——没有哪一关需要证「走不通」。
+-/
+
+import Obj.World
+import Step
+
+namespace Game
+
+def everWon (b : Board) : World → List Act → Bool
+  | _, [] =&gt; false
+  | s, a :: as =&gt; match step b s a with
+    | .won _ =&gt; true
+    | .ok s&#x27; =&gt; everWon b s&#x27; as
+    | .na =&gt; false
+
+def Winnable (b : Board) (s : World) : Prop := ∃ as : List Act, everWon b s as = true
+def Unsolvable (b : Board) (s : World) : Prop := ∀ as : List Act, everWon b s as = false
+
+end Game
+
+-- 定理放在顶层（`open Game`）：装置的 `ledger/lean_check.py` 用**不带命名空间的名字**
+-- 打 `#print axioms`，放在命名空间里它会报 unknown constant（装置事故，见 UNIFY-REPORT）。
+open Game
+
+theorem not_both (b : Board) (s : World) : Winnable b s → Unsolvable b s → False := by
+  intro ⟨as, h⟩ hu
+  rw [hu as] at h
+  exact Bool.false_ne_true h
+
+theorem unsolvable_of_invariant (b : Board) (P : World → Prop)
+    (hkeep : ∀ s s&#x27; a, P s → step b s a = .ok s&#x27; → P s&#x27;)
+    (hwin : ∀ s s&#x27; a, P s → step b s a ≠ .won s&#x27;) :
+    ∀ s, P s → Unsolvable b s := by
+  intro s hp as
+  induction as generalizing s with
+  | nil =&gt; rfl
+  | cons a t ih =&gt;
+    simp only [everWon]
+    cases hs : step b s a with
+    | won s&#x27; =&gt; exact absurd hs (hwin s s&#x27; a hp)
+    | ok s&#x27; =&gt; exact ih s&#x27; (hkeep s s&#x27; a hp hs)
+    | na =&gt; rfl
+
+#print axioms not_both
+#print axioms unsolvable_of_invariant
+</pre></div>
+</div></body></html>

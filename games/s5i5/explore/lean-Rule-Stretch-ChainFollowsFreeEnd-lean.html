@@ -1,0 +1,68 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Rule/Stretch/ChainFollowsFreeEnd.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Rule/Stretch/ChainFollowsFreeEnd.lean</h1><p></p><details><summary>公理表（0 条）</summary><ul></ul></details><pre>/-
+# Rule/Stretch/ChainFollowsFreeEnd —— 定义（对应 `rule/伸缩/chain_follows_free_end.py`）
+
+一根条的自由端动了（往 `d` 走 3 格），挂在它自由端外那一条上的东西——别色条的帽、任何墙——
+整体往 `d` 走 3 格；被这样拖动的条，它自己自由端上挂的东西也一样，一路传下去。
+
+实现是一个栈（和 Python 那一份一样后进先出）：每处理一张「脸」，把新挂上的条压回栈顶。
+-/
+
+import Rule.Stretch.Mark
+import Obj.Derive.Attach
+
+namespace Game
+
+/-- 一张脸 `f`（来自 `col` 色的条，位移 `d`）：把挂上来的、还没动的条标成被拖，并交出它们的脸。 -/
+def dragBars (col : Nat) (d : Dir) (f : Rect) :
+    List (Bar × Mark) → List (Bar × Mark) × List (Dir × Rect × Nat)
+  | [] =&gt; ([], [])
+  | (b, m) :: rest =&gt;
+    let r := dragBars col d f rest
+    if m.isStill &amp;&amp; b.color != col &amp;&amp; b.cap.meets f then
+      ((b, .moved d) :: r.1, (d, b.face, b.color) :: r.2)
+    else ((b, m) :: r.1, r.2)
+
+def dragWalls (d : Dir) (f : Rect) : List (Wall × Option Dir) → List (Wall × Option Dir)
+  | [] =&gt; []
+  | (w, m) :: rest =&gt;
+    (if m.isNone &amp;&amp; w.rect.meets f then (w, some d) else (w, m)) :: dragWalls d f rest
+
+/-- 栈跑到空（`fuel` 够条数 + 1 就一定跑完：每根条最多进栈一次）。 -/
+def follow : Nat → List (Dir × Rect × Nat) → List (Bar × Mark) → List (Wall × Option Dir) →
+    List (Bar × Mark) × List (Wall × Option Dir)
+  | 0, _, bs, ws =&gt; (bs, ws)
+  | _ + 1, [], bs, ws =&gt; (bs, ws)
+  | n + 1, (d, f, col) :: st, bs, ws =&gt;
+    let r := dragBars col d f bs
+    follow n (r.2.reverse ++ st) r.1 (dragWalls d f ws)
+
+/-- 每根正在伸缩的条（按条表的顺序）各跑一遍。 -/
+def followFrom (fuel : Nat) : List (Bar × Mark) → List (Bar × Mark) → List (Wall × Option Dir) →
+    List (Bar × Mark) × List (Wall × Option Dir)
+  | [], bs, ws =&gt; (bs, ws)
+  | (b, .grown d) :: rest, bs, ws =&gt;
+    let r := follow fuel [(d, b.face, b.color)] bs ws
+    followFrom fuel rest r.1 r.2
+  | _ :: rest, bs, ws =&gt; followFrom fuel rest bs ws
+
+def followAll (marks : List (Bar × Mark)) (walls : List Wall) :
+    List (Bar × Mark) × List (Wall × Option Dir) :=
+  followFrom (marks.length + 1) marks marks (walls.map (fun w =&gt; (w, none)))
+
+end Game
+</pre></div></main></body></html>

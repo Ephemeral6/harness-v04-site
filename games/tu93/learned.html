@@ -1,0 +1,3204 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>tu93 是怎么学出来的 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← tu93 的世界模型</a></div><h1>它是怎么学出来的</h1><p class="lede">agent 边玩边把看到的规律写成可检验的代码：每条都对接下来的每一步自动判对错，一被画面驳倒就改写。它一共写过 17 条说法，前后改了 38 版；通关之后，这些说法合并成首页的规则。</p><h2>每条规则的来历</h2><ul class="origin"><li><b>往有桥的方向走一格，记号转过去；没桥就不动</b><div class="from">由这些早期说法合并而来：<code>bridge_gate</code>、<code>move_shift</code>、<code>mark_faces</code></div></li><li><b>哨兵永远站在原地、朝着原来那边</b><div class="from">由这些早期说法合并而来：<code>foe_walks</code></div></li><li><b>玩家真走了一步，每只巡逻就沿桥走一步</b><div class="from">由这些早期说法合并而来：<code>patrol_steps</code>、<code>patrol_turns</code></div></li><li><b>追兵被惊醒后，每步沿最短路扑向玩家原来那格</b><div class="from">由这些早期说法合并而来：<code>chaser_alarm</code>、<code>chaser_wakes</code>、<code>chaser_steps</code>、<code>chaser_hunts</code></div></li><li><b>守卫不会凭空出现，被踩掉的不会回来</b><div class="from">由这些早期说法合并而来：<code>chaser_hidden</code></div></li><li><b>落到目标上，当且仅当这一步过关</b><div class="from">由这些早期说法合并而来：<code>reach_goal</code></div></li><li><b>输掉，当且仅当撞上下面任何一种情况</b><div class="from">由这些早期说法合并而来：<code>game_over</code></div></li><li><b>每按一下方向键，预算带就短一截，走没走动都一样</b><div class="from">由这些早期说法合并而来：<code>hud_drain</code></div></li><li><b>摆出新的一关，预算带回到满格</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>hud_reset</code></div></li><li><b>同一关里，桥和目标不变</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：—</div></li></ul><h2>被推翻的说法</h2><div class="stories"><article class="story"><h3>哨兵其实从来不走</h3><div class="sub"><code>foe_walks</code></div><ol class="tl"><li><b>原来以为</b><p>画面里出现了红色的守卫，身上也有一个朝向记号。agent 照玩家的样子写下：它每步沿记号方向走一格，前面没桥才停下。</p></li><li class="hit"><b>画面打脸</b><p>第一遍游玩的第 25 到第 27 步，它面前明明是桥，却一连几步纹丝不动。</p></li><li class="fix"><b>后来改成</b><p>先退成一句只在出生点成立的否定式，最后改成正面的一句：哨兵永远不走，只盯着正前方那一格。曾经看上去的那次「动」，是它扑向走进它正前方的玩家，那一步是输局。</p></li></ol></article><article class="story"><h3>巡逻不是每按一下都走</h3><div class="sub"><code>patrol_steps</code></div><ol class="tl"><li><b>原来以为</b><p>后来出现了橙色的巡逻，看上去每按一下方向键，它就沿朝向走一格。</p></li><li class="hit"><b>画面打脸</b><p>第一遍游玩的第 77 步，玩家朝一个没有桥的方向按键，没挪动；巡逻也原地没动，只有预算带短了一截。</p></li><li class="fix"><b>后来改成</b><p>改成：只有玩家真走了一步，巡逻才走一步；玩家被挡住，整个世界都停着。这就是首页的核心概念。</p></li></ol></article></div><h2 id="appendix">附录</h2><p class="intro">附录保留仓库里的原始叫法，关号从 0 开始（L0 = 正文第 1 关）。</p><details class="apx"><summary>另外 2 个改写的故事</summary><div class="apxb stories"><article class="story"><h3>过关不等于新的一关</h3><div class="sub"><code>hud_reset</code></div><ol class="tl"><li><b>原来以为</b><p>过关那一步，预算带回到满格。</p></li><li class="hit"><b>画面打脸</b><p>第二遍游玩的第 373 步通掉了最后一关，后面没有新关，预算带停在原处，没有回满。</p></li><li class="fix"><b>后来改成</b><p>改成：只有下一帧摆出了新的一关（画面上有目标），预算带才回满。</p></li></ol></article><article class="story"><h3>记号不跟着身子平移，而是转向</h3><div class="sub"><code>move_shift</code><code>mark_faces</code></div><ol class="tl"><li><b>原来以为</b><p>玩家走一步，整块连同身上的记号一起平移。</p></li><li class="hit"><b>画面打脸</b><p>第 10 步向右走，新位置上的记号没有留在原来的相对位置，而是转到了朝右的那条边上。</p></li><li class="fix"><b>后来改成</b><p>位置和朝向分开说：身子平移一格，记号转向这一步的方向。</p></li></ol></article></div></details><details class="apx"><summary>全部 17 条早期说法的每一版与源码</summary><div class="apxb"><div class="list"><details class="item"><summary><div class="top"><span class="name">bridge_gate</span><span class="chip c-lv">L2 · 什么时候没效果</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">中间那块是桥才走得动</div></summary><div class="body"><div class="doc">移动生效 iff 玩家与落点之间的那个中间块是桥（色2）；不是桥就整帧活动区不动。
+
+玩家块 3x3 站在阵列的一个块角上，一次移动跨 PITCH*2 = CELL 格，正好越过一个中间块。
+主张：中间块是纯色2 才走得动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T18:31:38 · L2</span><div>移动生效 iff 玩家与落点之间的那个中间块是桥（色2）；不是桥就整帧活动区不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;移动生效 iff 玩家与落点之间的那个中间块是桥（色2）；不是桥就整帧活动区不动。
+
+玩家块 3x3 站在阵列的一个块角上，一次移动跨 PITCH*2 = CELL 格，正好越过一个中间块。
+主张：中间块是纯色2 才走得动。
+&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 读不出来返回 NA；&quot;
+         &quot;me() 不在阵列块角上返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;, &quot;18294bff9809c4a2&quot;]
+
+from _lib import me, DELTA, block_color, on_grid, BRIDGE, PITCH
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None or not on_grid(*a):
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    mid = block_color(prev, a[0] + dr // 2, a[1] + dc // 2)
+    moved = me(nxt) != a
+    return &quot;TRUE&quot; if (mid == BRIDGE) == moved else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T18:49:28 · L2</span><div>移动生效 iff 玩家与落点之间的那个中间块是桥（色2）；不是桥就整帧活动区不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;移动生效 iff 玩家与落点之间的那个中间块是桥（色2）；不是桥就整帧活动区不动。
+
+玩家块 3x3 站在阵列的一个块角上，一次移动跨 PITCH*2 = CELL 格，正好越过一个中间块。
+主张：中间块是纯色2 才走得动。
+&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 读不出来返回 NA；&quot;
+         &quot;me() 不在阵列块角上返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;, &quot;18294bff9809c4a2&quot;]
+
+from _lib import me, DELTA, block_color, on_grid, BRIDGE, PITCH
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    mid = block_color(prev, a[0] + dr // 2, a[1] + dc // 2)
+    moved = me(nxt) != a
+    return &quot;TRUE&quot; if (mid == BRIDGE) == moved else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;移动生效 iff 玩家与落点之间的那个中间块是桥（色2）；不是桥就整帧活动区不动。
+
+玩家块 3x3 站在阵列的一个块角上，一次移动跨 PITCH*2 = CELL 格，正好越过一个中间块。
+主张：中间块是纯色2 才走得动。
+&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 读不出来返回 NA；&quot;
+         &quot;me() 不在阵列块角上返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;, &quot;18294bff9809c4a2&quot;]
+
+from _lib import me, DELTA, block_color, on_grid, BRIDGE, PITCH
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    mid = block_color(prev, a[0] + dr // 2, a[1] + dc // 2)
+    moved = me(nxt) != a
+    return &quot;TRUE&quot; if (mid == BRIDGE) == moved else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">chaser_alarm</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">玩家走近，追兵的记号变色</div></summary><div class="body"><div class="doc">色13 块的记号从休眠色15 翻成唤醒色11，就发生在玩家走进它 2 格以内的那一步；翻过就不再翻回。
+
+这是扳机本身。实测第 6 关：玩家在 3~5 格外来回走了 6 步，记号一直是15；
+走到 2 格的那一步记号变 11，此后 11 步一直是 11，一次也没变回 15。
+
+对规划的意思：<b>2 格是安全线</b>。路线只要不进它 2 格以内，它就是一块布景，
+可以当墙绕过去；一旦碰线，它就永久跟着走，只能靠不回头甩开（它每步一格，和我同速）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T02:16:11 · L6</span><div>色13 块的记号从休眠色15 翻成唤醒色11，就发生在玩家走进它 2 格以内的那一步；翻过就不再翻回。</div><div>v1：把 chaser_wakes v1 的距离规则从「动不动」挪到「记号翻不翻」，各归各位。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块的记号从休眠色15 翻成唤醒色11，就发生在玩家走进它 2 格以内的那一步；翻过就不再翻回。
+
+这是扳机本身。实测第 6 关：玩家在 3~5 格外来回走了 6 步，记号一直是15；
+走到 2 格的那一步记号变 11，此后 11 步一直是 11，一次也没变回 15。
+
+对规划的意思：**2 格是安全线**。路线只要不进它 2 格以内，它就是一块布景，
+可以当墙绕过去；一旦碰线，它就永久跟着走，只能靠不回头甩开（它每步一格，和我同速）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；&quot;
+         &quot;记号色读不出返回 NA；**prev 里它已经是唤醒色就返回 NA**（那一支是「不再翻回」，&quot;
+         &quot;由 chaser_wakes 的每步复核间接管着）&quot;)
+NOTE = &quot;v1：把 chaser_wakes v1 的距离规则从「动不动」挪到「记号翻不翻」，各归各位。&quot;
+EVIDENCE = [
+    &quot;79acaaa6c82be897&quot;,     # 步309 格距4 → 记号仍是 15
+    &quot;c6d89096f585f7e3&quot;,     # 步310 格距3→走完变2 → 记号翻成 11
+]
+# 另有 4 条休眠期的转移没抄进来，留在 held-out 里。
+
+from _lib import me, chasers, chaser_awake, cell_dist, DELTA
+
+WAKE = 2
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    if chaser_awake(prev, *p[0]) is not False:
+        return &quot;NA&quot;
+    after = chaser_awake(nxt, *q[0])
+    b = me(nxt)
+    if after is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if after == (cell_dist(q[0], b) &lt;= WAKE) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块的记号从休眠色15 翻成唤醒色11，就发生在玩家走进它 2 格以内的那一步；翻过就不再翻回。
+
+这是扳机本身。实测第 6 关：玩家在 3~5 格外来回走了 6 步，记号一直是15；
+走到 2 格的那一步记号变 11，此后 11 步一直是 11，一次也没变回 15。
+
+对规划的意思：**2 格是安全线**。路线只要不进它 2 格以内，它就是一块布景，
+可以当墙绕过去；一旦碰线，它就永久跟着走，只能靠不回头甩开（它每步一格，和我同速）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；&quot;
+         &quot;记号色读不出返回 NA；**prev 里它已经是唤醒色就返回 NA**（那一支是「不再翻回」，&quot;
+         &quot;由 chaser_wakes 的每步复核间接管着）&quot;)
+NOTE = &quot;v1：把 chaser_wakes v1 的距离规则从「动不动」挪到「记号翻不翻」，各归各位。&quot;
+EVIDENCE = [
+    &quot;79acaaa6c82be897&quot;,     # 步309 格距4 → 记号仍是 15
+    &quot;c6d89096f585f7e3&quot;,     # 步310 格距3→走完变2 → 记号翻成 11
+]
+# 另有 4 条休眠期的转移没抄进来，留在 held-out 里。
+
+from _lib import me, chasers, chaser_awake, cell_dist, DELTA
+
+WAKE = 2
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    if chaser_awake(prev, *p[0]) is not False:
+        return &quot;NA&quot;
+    after = chaser_awake(nxt, *q[0])
+    b = me(nxt)
+    if after is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if after == (cell_dist(q[0], b) &lt;= WAKE) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">chaser_hidden</span><span class="chip c-lv">L7 · 看得见什么</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">追兵被巡逻压住时看不见</div></summary><div class="body"><div class="doc">色13 追踪者一步之后从帧上整块读不出来，当且仅当它这一步落进的那格上同时有一只色12——它被画在巡逻兵<b>底下</b>。
+
+这不是死亡，是遮挡：它的 8 个像素连同记号一格不剩地被色12 盖掉，
+下一步两者分开时它原样出现在该在的位置上。第 8 关连着发生了两次，
+第一次我把它当成「追踪者没了」，差点照着一张错的地图规划。
+
+<b>读不出来 ≠ 不存在。</b> 词汇 chasers() 在这两帧上返回空表，
+而 chaser_hunts / chaser_steps / game_over 全都靠它取值——
+于是最危险的那两步恰好是全册集体失明的两步（方法册「词汇也会瞎」）。
+写下这条是为了让「它到底在不在」有一个能判错的答案：
+它在的位置由 chaser_steps 的记号预告接着算，遮挡期间照常推进。
+
+只管消失那个方向。反过来（从空表里冒出来）prev 就已经读不出它，这条概念说不了，留 NA。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T03:19:18 · L7</span><div>色13 追踪者一步之后从帧上整块读不出来，当且仅当它这一步落进的那格上同时有一只色12——它被画在巡逻兵<b>底下</b>。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 追踪者一步之后从帧上整块读不出来，当且仅当它这一步落进的那格上同时有一只色12——它被画在巡逻兵**底下**。
+
+这不是死亡，是遮挡：它的 8 个像素连同记号一格不剩地被色12 盖掉，
+下一步两者分开时它原样出现在该在的位置上。第 8 关连着发生了两次，
+第一次我把它当成「追踪者没了」，差点照着一张错的地图规划。
+
+**读不出来 ≠ 不存在。** 词汇 chasers() 在这两帧上返回空表，
+而 chaser_hunts / chaser_steps / game_over 全都靠它取值——
+于是最危险的那两步恰好是全册集体失明的两步（方法册「词汇也会瞎」）。
+写下这条是为了让「它到底在不在」有一个能判错的答案：
+它在的位置由 chaser_steps 的记号预告接着算，遮挡期间照常推进。
+
+只管消失那个方向。反过来（从空表里冒出来）prev 就已经读不出它，这条概念说不了，留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；ctx 缺失返回 NA；&quot;
+         &quot;prev 里色13 块不是恰好 1 只、或它的记号读不出，返回 NA；&quot;
+         &quot;me 这一步没真的动（被挡，世界冻结）返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [
+    &quot;b24889df4538c311&quot;,     # 第 357 步：色13 落进 (16,27)，那格上有巡逻兵，帧上色13 归零
+    &quot;2e27f988f1c1db38&quot;,     # 第 363 步：同样的事再来一次，这次发生在我身边两格
+]
+
+from _lib import me, chasers, chaser_facing, patrols, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    cs = chasers(prev)
+    if len(cs) != 1:
+        return &quot;NA&quot;
+    f = chaser_facing(prev, *cs[0])
+    if f is None:
+        return &quot;NA&quot;
+    dst = (cs[0][0] + f[0], cs[0][1] + f[1])
+    return &quot;TRUE&quot; if (not chasers(nxt)) == (dst in patrols(nxt)) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 追踪者一步之后从帧上整块读不出来，当且仅当它这一步落进的那格上同时有一只色12——它被画在巡逻兵**底下**。
+
+这不是死亡，是遮挡：它的 8 个像素连同记号一格不剩地被色12 盖掉，
+下一步两者分开时它原样出现在该在的位置上。第 8 关连着发生了两次，
+第一次我把它当成「追踪者没了」，差点照着一张错的地图规划。
+
+**读不出来 ≠ 不存在。** 词汇 chasers() 在这两帧上返回空表，
+而 chaser_hunts / chaser_steps / game_over 全都靠它取值——
+于是最危险的那两步恰好是全册集体失明的两步（方法册「词汇也会瞎」）。
+写下这条是为了让「它到底在不在」有一个能判错的答案：
+它在的位置由 chaser_steps 的记号预告接着算，遮挡期间照常推进。
+
+只管消失那个方向。反过来（从空表里冒出来）prev 就已经读不出它，这条概念说不了，留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；ctx 缺失返回 NA；&quot;
+         &quot;prev 里色13 块不是恰好 1 只、或它的记号读不出，返回 NA；&quot;
+         &quot;me 这一步没真的动（被挡，世界冻结）返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [
+    &quot;b24889df4538c311&quot;,     # 第 357 步：色13 落进 (16,27)，那格上有巡逻兵，帧上色13 归零
+    &quot;2e27f988f1c1db38&quot;,     # 第 363 步：同样的事再来一次，这次发生在我身边两格
+]
+
+from _lib import me, chasers, chaser_facing, patrols, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    cs = chasers(prev)
+    if len(cs) != 1:
+        return &quot;NA&quot;
+    f = chaser_facing(prev, *cs[0])
+    if f is None:
+        return &quot;NA&quot;
+    dst = (cs[0][0] + f[0], cs[0][1] + f[1])
+    return &quot;TRUE&quot; if (not chasers(nxt)) == (dst in patrols(nxt)) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">chaser_hunts</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">醒着的追兵沿最短路扑向玩家</div></summary><div class="body"><div class="doc">唤醒后的色13 块，每一步都走在桥图上通往玩家的最短路上——目标是玩家动作<b>之前</b>的位置。
+
+这条比 chaser_steps 深一层：那条只说「它照记号走」，这条说<b>记号是怎么定出来的</b>。
+两条合起来，看一眼当前帧就能算出它此后每一步落在哪，不必观察不必回忆。
+
+它也解释了另一个更显眼、但更浅的规律：追踪者锁上玩家的轨迹之后，
+看起来像是「踩着玩家两步前站过的格」。那只是最短路在走廊里的样子——
+第 8 关的开局它离玩家两步的轨迹很远，滞后 2 那条读法当场失效，最短路这条照样成立。
+
+并列没检验过：语料 26 步里每一步的最短路第一步都<b>唯一</b>。
+真出现两条一样短的岔路时它挑哪条，这条概念不知道；规划时把两条都当危险格。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T02:51:07 · L6</span><div>唤醒后的色13 块，每一步都走在桥图上通往玩家的最短路上——目标是玩家动作<b>之前</b>的位置。</div><div>v1：从 chaser_steps 的「照记号走」再往下问一层——记号本身指哪，由最短路定。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;唤醒后的色13 块，每一步都走在桥图上通往玩家的最短路上——目标是玩家动作**之前**的位置。
+
+这条比 chaser_steps 深一层：那条只说「它照记号走」，这条说**记号是怎么定出来的**。
+两条合起来，看一眼当前帧就能算出它此后每一步落在哪，不必观察不必回忆。
+
+它也解释了另一个更显眼、但更浅的规律：追踪者锁上玩家的轨迹之后，
+看起来像是「踩着玩家两步前站过的格」。那只是最短路在走廊里的样子——
+第 8 关的开局它离玩家两步的轨迹很远，滞后 2 那条读法当场失效，最短路这条照样成立。
+
+并列没检验过：语料 26 步里每一步的最短路第一步都**唯一**。
+真出现两条一样短的岔路时它挑哪条，这条概念不知道；规划时把两条都当危险格。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA（整屏重画）；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；prev 里它没醒返回 NA；&quot;
+         &quot;me 读不出返回 NA；它在图上到不了玩家、或已与玩家同格返回 NA&quot;)
+NOTE = &quot;v1：从 chaser_steps 的「照记号走」再往下问一层——记号本身指哪，由最短路定。&quot;
+EVIDENCE = [
+    &quot;c58260689f785e64&quot;,     # 步311 唤醒后第一步，此时它还没踩上我的轨迹
+    &quot;aa7f30c686eb019b&quot;,     # 步333 走廊里，最短路与滞后2 恰好重合
+]
+# 语料里另有 24 步没抄进来，留在 held-out 里。
+
+from _lib import me, chasers, chaser_awake, bridge_graph, first_steps, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    if chaser_awake(prev, *p[0]) is not True:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    cands = first_steps(bridge_graph(prev), p[0], a)
+    if not cands:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if q[0] in cands else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;唤醒后的色13 块，每一步都走在桥图上通往玩家的最短路上——目标是玩家动作**之前**的位置。
+
+这条比 chaser_steps 深一层：那条只说「它照记号走」，这条说**记号是怎么定出来的**。
+两条合起来，看一眼当前帧就能算出它此后每一步落在哪，不必观察不必回忆。
+
+它也解释了另一个更显眼、但更浅的规律：追踪者锁上玩家的轨迹之后，
+看起来像是「踩着玩家两步前站过的格」。那只是最短路在走廊里的样子——
+第 8 关的开局它离玩家两步的轨迹很远，滞后 2 那条读法当场失效，最短路这条照样成立。
+
+并列没检验过：语料 26 步里每一步的最短路第一步都**唯一**。
+真出现两条一样短的岔路时它挑哪条，这条概念不知道；规划时把两条都当危险格。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA（整屏重画）；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；prev 里它没醒返回 NA；&quot;
+         &quot;me 读不出返回 NA；它在图上到不了玩家、或已与玩家同格返回 NA&quot;)
+NOTE = &quot;v1：从 chaser_steps 的「照记号走」再往下问一层——记号本身指哪，由最短路定。&quot;
+EVIDENCE = [
+    &quot;c58260689f785e64&quot;,     # 步311 唤醒后第一步，此时它还没踩上我的轨迹
+    &quot;aa7f30c686eb019b&quot;,     # 步333 走廊里，最短路与滞后2 恰好重合
+]
+# 语料里另有 24 步没抄进来，留在 held-out 里。
+
+from _lib import me, chasers, chaser_awake, bridge_graph, first_steps, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    if chaser_awake(prev, *p[0]) is not True:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    cands = first_steps(bridge_graph(prev), p[0], a)
+    if not cands:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if q[0] in cands else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">chaser_steps</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">追兵照记号方向走一格</div></summary><div class="body"><div class="doc">色13 块移动时，走的正是它上一帧记号所指的那个方向、恰好 CELL 格。
+
+记号不是装饰，是<b>预告</b>：和玩家块的色4 记号、哨兵的色15 记号读同一张 MARK_OFFSET 表，
+指向它下一步要去的格。所以看一眼当前帧就知道它下一步落在哪——
+不必知道它用什么算法追人，也不必回忆自己走过哪条路。
+
+v1 只敢说「位移是 CELL 格、四个正方向之一」，那时 chasers() 读不出唤醒态的块，
+这条概念在全部 11 次移动上都没开过口（N=0）。词汇修好之后方向那一半也能一起说了。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T02:13:23 · L6</span><div>色13 块一旦移动，位移就恰好是 CELL 格、且只沿四个正方向之一。</div><div>v1：与 chaser_wakes 拆开写。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块一旦移动，位移就恰好是 CELL 格、且只沿四个正方向之一。
+
+和玩家、巡逻兵同一个移动量子——它走的是同一张桥网，不是自由飞行。
+这条只管「动了的话动多远」，动不动归 chaser_wakes 管；两件事分开说，
+免得一条概念被其中一半拖垮时，另一半也跟着一起撤。
+
+实测第 6 关 11 条移动，位移全部是 (±6,0) 或 (0,±6)，没有一条是对角线或多格跳。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；&quot;
+         &quot;**它这一步没动就返回 NA**（那一支归 chaser_wakes）&quot;)
+NOTE = &quot;v1：与 chaser_wakes 拆开写。&quot;
+EVIDENCE = [
+    &quot;c58260689f785e64&quot;,     # 步311 (18,24)-&gt;(24,24)  向下一格
+    &quot;e5f64b89b88ec1ce&quot;,     # 步313 (30,24)-&gt;(30,30)  向右一格
+    &quot;8653f9fe490ecbcd&quot;,     # 步317 (42,36)-&gt;(36,36)  向上一格
+]
+# 另有 8 条移动没抄进来，留在 held-out 里。
+
+from _lib import chasers, DELTA
+
+STEPS = set(DELTA.values())
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    if p[0] == q[0]:
+        return &quot;NA&quot;
+    d = (q[0][0] - p[0][0], q[0][1] - p[0][1])
+    return &quot;TRUE&quot; if d in STEPS else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-10T02:16:11 · L6</span><div>色13 块移动时，走的正是它上一帧记号所指的那个方向、恰好 CELL 格。</div><div>v2：v1 因 chasers() 读不出唤醒态而恒 NA；修词汇后把方向也纳入主张。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块移动时，走的正是它上一帧记号所指的那个方向、恰好 CELL 格。
+
+记号不是装饰，是**预告**：和玩家块的色4 记号、哨兵的色15 记号读同一张 MARK_OFFSET 表，
+指向它下一步要去的格。所以看一眼当前帧就知道它下一步落在哪——
+不必知道它用什么算法追人，也不必回忆自己走过哪条路。
+
+v1 只敢说「位移是 CELL 格、四个正方向之一」，那时 chasers() 读不出唤醒态的块，
+这条概念在全部 11 次移动上都没开过口（N=0）。词汇修好之后方向那一半也能一起说了。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；&quot;
+         &quot;**它这一步没动就返回 NA**（那一支归 chaser_wakes）；记号方向读不出返回 NA&quot;)
+NOTE = &quot;v2：v1 因 chasers() 读不出唤醒态而恒 NA；修词汇后把方向也纳入主张。&quot;
+EVIDENCE = [
+    &quot;c58260689f785e64&quot;,     # 步311 (18,24)-&gt;(24,24)  记号指下
+    &quot;8653f9fe490ecbcd&quot;,     # 步317 (42,36)-&gt;(36,36)  记号指上
+]
+# 另有 9 条移动没抄进来，留在 held-out 里。
+
+from _lib import chasers, chaser_facing, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1 or p[0] == q[0]:
+        return &quot;NA&quot;
+    f = chaser_facing(prev, *p[0])
+    if f is None:
+        return &quot;NA&quot;
+    got = (q[0][0] - p[0][0], q[0][1] - p[0][1])
+    return &quot;TRUE&quot; if got == f else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块移动时，走的正是它上一帧记号所指的那个方向、恰好 CELL 格。
+
+记号不是装饰，是**预告**：和玩家块的色4 记号、哨兵的色15 记号读同一张 MARK_OFFSET 表，
+指向它下一步要去的格。所以看一眼当前帧就知道它下一步落在哪——
+不必知道它用什么算法追人，也不必回忆自己走过哪条路。
+
+v1 只敢说「位移是 CELL 格、四个正方向之一」，那时 chasers() 读不出唤醒态的块，
+这条概念在全部 11 次移动上都没开过口（N=0）。词汇修好之后方向那一半也能一起说了。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；&quot;
+         &quot;**它这一步没动就返回 NA**（那一支归 chaser_wakes）；记号方向读不出返回 NA&quot;)
+NOTE = &quot;v2：v1 因 chasers() 读不出唤醒态而恒 NA；修词汇后把方向也纳入主张。&quot;
+EVIDENCE = [
+    &quot;c58260689f785e64&quot;,     # 步311 (18,24)-&gt;(24,24)  记号指下
+    &quot;8653f9fe490ecbcd&quot;,     # 步317 (42,36)-&gt;(36,36)  记号指上
+]
+# 另有 9 条移动没抄进来，留在 held-out 里。
+
+from _lib import chasers, chaser_facing, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1 or p[0] == q[0]:
+        return &quot;NA&quot;
+    f = chaser_facing(prev, *p[0])
+    if f is None:
+        return &quot;NA&quot;
+    got = (q[0][0] - p[0][0], q[0][1] - p[0][1])
+    return &quot;TRUE&quot; if got == f else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">chaser_wakes</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">追兵动不动看记号颜色</div></summary><div class="body"><div class="doc">色13 块这一步动不动，等于它上一帧的记号是不是唤醒色 11。
+
+v1 说的是「离玩家 ≤2 格就动」，那条在语料上也全中，但它错过了真正的读法：
+块上的记号会变色。休眠时记号是色15（和哨兵、巡逻兵的记号同色），
+被唤醒的那一帧变成色11，从下一步起每步都动，再没变回去过。
+
+这比距离规则更基本，也更好用：<b>一帧就能看出它醒没醒</b>，不必回忆玩家走过哪。
+距离只是把记号从15 翻成11 的那个扳机，归 chaser_alarm 管。
+
+v1 还带着一个词汇上的内伤：chasers() 当时套用共用的 _entities，而那个只认色15 记号，
+于是块一开始动、记号一变色，它就读不出来——概念在最该说话的 11 步上全部返回 NA，
+N=0 却挂着满分。这次连词一起修了。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T02:13:23 · L6</span><div>色13 块动不动，只由上一帧它与玩家的格距决定：≤2 格就动，≥3 格就不动。</div><div>v1：第 6 关新块，L6 运动物槽此前只有巡逻兵一种，这一种和它规律不同。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块动不动，只由上一帧它与玩家的格距决定：≤2 格就动，≥3 格就不动。
+
+第 6 关新出现的第四种块。它一开始像块布景：我在它 4~5 格外来回走了 6 步，它一格没挪。
+等我走到离它 2 格，它当步启动，此后每一步都动，再没停过。
+实测 17 条：格距 3/4/5 共 6 条全部不动，格距 2 共 11 条全部移动，零例外。
+
+**它不是巡逻兵**：巡逻兵沿记号方向直线走、到头掉头，与我在哪无关；
+这东西的记号一开始指向下，启动后走的却是我的路线。押注「它按记号方向走」那一条当场落空。
+它启动后的走法是以 2 步滞后复刻我的轨迹（第 k 步末它站在我第 k-2 步末站过的格上，11 步全中），
+但那要看两帧以前的局面，一条只拿到 (prev, action, nxt) 的概念说不了，所以不写进这条。
+
+对规划的意思：**这东西唤醒之后就甩不掉，只能靠不回头**。它每步一格、我每步一格，
+差距锁死在 2 格；一旦我原地打转、被挡住不动、或折返踩回自己的老路，它就贴上来。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA（整屏重画）；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；me(prev) 读不出返回 NA&quot;)
+NOTE = &quot;v1：第 6 关新块，L6 运动物槽此前只有巡逻兵一种，这一种和它规律不同。&quot;
+EVIDENCE = [
+    &quot;a1788769da41e266&quot;,     # 步305 格距4 不动
+    &quot;c6d89096f585f7e3&quot;,     # 步310 格距3 不动（阈值的上沿）
+    &quot;c58260689f785e64&quot;,     # 步311 格距2 动（启动那一步）
+]
+# 另有 3 条不动、10 条动没抄进来，留在 held-out 里当考题。
+
+from _lib import me, chasers, cell_dist, DELTA
+
+WAKE = 2
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    a = me(prev)
+    if len(p) != 1 or len(q) != 1 or a is None:
+        return &quot;NA&quot;
+    moved = p[0] != q[0]
+    near = cell_dist(p[0], a) &lt;= WAKE
+    return &quot;TRUE&quot; if moved == near else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-10T02:16:11 · L6</span><div>色13 块这一步动不动，等于它上一帧的记号是不是唤醒色 11。</div><div>v2：改用记号色判醒没醒（v1 用的是与玩家的格距）；同时修 chasers() —— 它此前读不出唤醒态的块，让 v1 的分数是从沉默里换来的。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块这一步动不动，等于它上一帧的记号是不是唤醒色 11。
+
+v1 说的是「离玩家 ≤2 格就动」，那条在语料上也全中，但它错过了真正的读法：
+块上的记号会变色。休眠时记号是色15（和哨兵、巡逻兵的记号同色），
+被唤醒的那一帧变成色11，从下一步起每步都动，再没变回去过。
+
+这比距离规则更基本，也更好用：**一帧就能看出它醒没醒**，不必回忆玩家走过哪。
+距离只是把记号从15 翻成11 的那个扳机，归 chaser_alarm 管。
+
+v1 还带着一个词汇上的内伤：chasers() 当时套用共用的 _entities，而那个只认色15 记号，
+于是块一开始动、记号一变色，它就读不出来——概念在最该说话的 11 步上全部返回 NA，
+N=0 却挂着满分。这次连词一起修了。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA（整屏重画）；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；记号色读不出返回 NA&quot;)
+NOTE = (&quot;v2：改用记号色判醒没醒（v1 用的是与玩家的格距）；&quot;
+        &quot;同时修 chasers() —— 它此前读不出唤醒态的块，让 v1 的分数是从沉默里换来的。&quot;)
+EVIDENCE = [
+    &quot;79acaaa6c82be897&quot;,     # 步309 记号15 → 不动
+    &quot;c58260689f785e64&quot;,     # 步311 记号11 → 动（唤醒后第一步）
+]
+# 语料里另有 4 条休眠、10 条唤醒没抄进来，留在 held-out 里。
+
+from _lib import chasers, chaser_awake, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    awake = chaser_awake(prev, *p[0])
+    if awake is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (p[0] != q[0]) == awake else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;色13 块这一步动不动，等于它上一帧的记号是不是唤醒色 11。
+
+v1 说的是「离玩家 ≤2 格就动」，那条在语料上也全中，但它错过了真正的读法：
+块上的记号会变色。休眠时记号是色15（和哨兵、巡逻兵的记号同色），
+被唤醒的那一帧变成色11，从下一步起每步都动，再没变回去过。
+
+这比距离规则更基本，也更好用：**一帧就能看出它醒没醒**，不必回忆玩家走过哪。
+距离只是把记号从15 翻成11 的那个扳机，归 chaser_alarm 管。
+
+v1 还带着一个词汇上的内伤：chasers() 当时套用共用的 _entities，而那个只认色15 记号，
+于是块一开始动、记号一变色，它就读不出来——概念在最该说话的 11 步上全部返回 NA，
+N=0 却挂着满分。这次连词一起修了。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；换关那一步返回 NA（整屏重画）；&quot;
+         &quot;prev 或 nxt 里色13 块不是恰好一个返回 NA；记号色读不出返回 NA&quot;)
+NOTE = (&quot;v2：改用记号色判醒没醒（v1 用的是与玩家的格距）；&quot;
+        &quot;同时修 chasers() —— 它此前读不出唤醒态的块，让 v1 的分数是从沉默里换来的。&quot;)
+EVIDENCE = [
+    &quot;79acaaa6c82be897&quot;,     # 步309 记号15 → 不动
+    &quot;c58260689f785e64&quot;,     # 步311 记号11 → 动（唤醒后第一步）
+]
+# 语料里另有 4 条休眠、10 条唤醒没抄进来，留在 held-out 里。
+
+from _lib import chasers, chaser_awake, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    p, q = chasers(prev), chasers(nxt)
+    if len(p) != 1 or len(q) != 1:
+        return &quot;NA&quot;
+    awake = chaser_awake(prev, *p[0])
+    if awake is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (p[0] != q[0]) == awake else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">foe_kills</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">从侧面踩进红色守卫，它就消失</div></summary><div class="body"><div class="doc">玩家一步踩进某只色8 敌人所在的格、且移动方向与它朝向垂直时，那只敌人当步消失，且不 GAME_OVER。
+
+我三关的路线都靠这条走通，可它到今天一句口都没开过（N=0、NA 率 100%）——
+因为 v2 用的 foe() 是单数读法：全帧色8+色15 恰好铺满一个块才给答案。
+第 3 关起多只敌人同屏，巡逻兵也带色15 记号，它就永远读不出来，
+于是这条概念在它最该说话的每一步上都返回 NA。<b>没被检验，不等于没被推翻。</b>
+
+v3 换成 foes()（多只），并把「踩进去会怎样」正面说出来：
+垂直进入 ⇒ 下一帧那个格位上不再有色8 块，且 state 不是 GAME_OVER。
+非垂直进入那一支仍不敢说（语料里 0 条），留 NA。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T18:53:59 · L5</span><div>色8 块（带色15 记号）是敌人：记号指的方向就是它下一次要走的方向，</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色8 块（带色15 记号）是敌人：记号指的方向就是它下一次要走的方向，
+玩家块与它落在同一个块上就 GAME_OVER。
+
+第 25-28 步实测：色8 在 (27,36)，记号偏移恒为 (1,0)=左中位；前三步它不动，
+第 28 步我走向 (27,30) 时它也向左走了 6 到 (27,30)，同一格，当步 GAME_OVER。
+这条断言两件互相独立的事各占一半，所以拆成两条——这一条只管「同格即死」。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；prev 里没有色8 块返回 NA（第 0 关就没有）；&quot;
+         &quot;me(prev) 读不出来或不在块角上返回 NA。只用 prev + action 推玩家落点，&quot;
+         &quot;敌人落点按 foe_faces 的朝向推&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;168811c66e944b85&quot;, &quot;785a9502477782ff&quot;, &quot;e3f0bf006bc8d9b7&quot;]
+
+from _lib import (me, DELTA, on_grid, block_color, BRIDGE,
+                  foe, foe_facing, GAME_OVER_STATE)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    d = DELTA.get(action)
+    if d is None:
+        return &quot;NA&quot;
+    f = foe(prev)
+    a = me(prev)
+    if f is None or a is None or not on_grid(*a, prev):
+        return &quot;NA&quot;
+    # 玩家落点：中间块是桥才走得动
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) == BRIDGE:
+        land = (a[0] + d[0], a[1] + d[1])
+    else:
+        land = a
+    # 敌人落点：按它记号指的方向走一格；那个方向走不动就留在原地
+    fd = foe_facing(prev)
+    if fd is None:
+        return &quot;NA&quot;
+    if block_color(prev, f[0] + fd[0] // 2, f[1] + fd[1] // 2) == BRIDGE:
+        fland = (f[0] + fd[0], f[1] + fd[1])
+    else:
+        fland = f
+    died = ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE
+    return &quot;TRUE&quot; if (land == fland) == died else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T18:56:16 · L5</span><div>玩家和色8 敌人<b>这一步都不动</b>时，绝不会 GAME_OVER。</div><div>v2：v1 拿 foe_facing 推敌人落点，而那个读法正是 foe_walks v1 被打死的地方；把一个已被推翻的假设藏进另一条概念的推理里，等于让它绕开检验。退到「双方都不动就不会死」这一条能独立站住的。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家和色8 敌人**这一步都不动**时，绝不会 GAME_OVER。
+
+第 28 步实测的死法是：我走向 (27,30)，敌人同一步也走到 (27,30)，同格当步 GAME_OVER。
+但那要求先知道敌人落点，而 foe_walks v1「有桥就走」已经被自己的依据打死——
+敌人什么时候动、动去哪，现在册子答不出来。**所以正向那一半这条不敢说**。
+
+只留否定式里站得住的最窄一条：双方都没挪的那一步不会死。
+它一样能被打——只要哪一步谁都没动却 GAME_OVER 了，这条当场是反例。
+等 foe_walks 量出触发条件，再把正向那一半补上。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；prev 里没有色8 块返回 NA（第 0 关就没有）；&quot;
+         &quot;me / foe 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;**玩家或敌人任一方挪了位就返回 NA** —— 那一支要等敌人的移动规则量出来&quot;)
+NOTE = (&quot;v2：v1 拿 foe_facing 推敌人落点，而那个读法正是 foe_walks v1 被打死的地方；&quot;
+        &quot;把一个已被推翻的假设藏进另一条概念的推理里，等于让它绕开检验。&quot;
+        &quot;退到「双方都不动就不会死」这一条能独立站住的。&quot;)
+EVIDENCE = [&quot;168811c66e944b85&quot;, &quot;785a9502477782ff&quot;, &quot;e3f0bf006bc8d9b7&quot;]
+
+from _lib import me, DELTA, foe, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    f = foe(prev)
+    a = me(prev)
+    if f is None or a is None:
+        return &quot;NA&quot;
+    died = ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE
+    if died:
+        # 死那一帧整屏重画，读不出双方位置——但死本身就说明有一方动过，
+        # 所以它落在「挪了位」那一支之外：这条对它无话可说。
+        return &quot;NA&quot;
+    f2, a2 = foe(nxt), me(nxt)
+    if f2 is None or a2 is None:
+        return &quot;NA&quot;
+    if f2 != f or a2 != a:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot;           # 双方都没挪，而确实没死
+
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-10T01:59:05 · L5</span><div>玩家一步踩进某只色8 敌人所在的格、且移动方向与它朝向垂直时，那只敌人当步消失，且不 GAME_OVER。</div><div>v3：v2 的 foe() 在多只敌人同屏时恒为 None，这条概念因此在 162 条 held-out 上全部 NA——满分的 S 是从没开过口换来的。改用 foes() 并把击杀那一半正面断言。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家一步踩进某只色8 敌人所在的格、且移动方向与它朝向垂直时，那只敌人当步消失，且不 GAME_OVER。
+
+我三关的路线都靠这条走通，可它到今天一句口都没开过（N=0、NA 率 100%）——
+因为 v2 用的 foe() 是单数读法：全帧色8+色15 恰好铺满一个块才给答案。
+第 3 关起多只敌人同屏，巡逻兵也带色15 记号，它就永远读不出来，
+于是这条概念在它最该说话的每一步上都返回 NA。**没被检验，不等于没被推翻。**
+
+v3 换成 foes()（多只），并把「踩进去会怎样」正面说出来：
+垂直进入 ⇒ 下一帧那个格位上不再有色8 块，且 state 不是 GAME_OVER。
+非垂直进入那一支仍不敢说（语料里 0 条），留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(prev) 读不出返回 NA；&quot;
+         &quot;prev 里没有色8 块返回 NA；&quot;
+         &quot;**落点不是某只色8 块所在的格位**返回 NA（绝大多数步都落在这里）；&quot;
+         &quot;那只敌人的朝向读不出、或移动方向与它朝向不垂直，返回 NA&quot;)
+NOTE = (&quot;v3：v2 的 foe() 在多只敌人同屏时恒为 None，这条概念因此在 162 条 held-out 上&quot;
+        &quot;全部 NA——满分的 S 是从没开过口换来的。改用 foes() 并把击杀那一半正面断言。&quot;)
+EVIDENCE = [
+    &quot;551f0807fcbb198c&quot;, &quot;42757357b9e83f8b&quot;, &quot;33d11ec0c3b6e12f&quot;,
+    &quot;eb54ac0b4d9f8799&quot;, &quot;38236ae58cd60e3a&quot;, &quot;0b063aef30845e67&quot;,
+    &quot;5f31571333624def&quot;, &quot;9c086ca8055d95ce&quot;, &quot;620a12fcf01b2762&quot;,
+    &quot;6809c762279d6114&quot;, &quot;a0570be2d69a335e&quot;,
+]
+
+from _lib import me, foes, patrol_facing, DELTA, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    fs = foes(prev)
+    if not fs:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in fs:
+        return &quot;NA&quot;
+    f = patrol_facing(prev, dst[0], dst[1])
+    if f is None or f[0] * d[0] + f[1] * d[1] != 0:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if dst not in foes(nxt) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-10T01:59:43 · L5</span><div>玩家一步踩进某只色8 敌人所在的格、且移动方向与它朝向垂直时，那只敌人当步消失，且不 GAME_OVER。</div><div>v3：v2 的 foe() 在多只敌人同屏时恒为 None，这条概念因此在 162 条 held-out 上全部 NA——满分的 S 是从没开过口换来的。改用 foes() 并把击杀那一半正面断言。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家一步踩进某只色8 敌人所在的格、且移动方向与它朝向垂直时，那只敌人当步消失，且不 GAME_OVER。
+
+我三关的路线都靠这条走通，可它到今天一句口都没开过（N=0、NA 率 100%）——
+因为 v2 用的 foe() 是单数读法：全帧色8+色15 恰好铺满一个块才给答案。
+第 3 关起多只敌人同屏，巡逻兵也带色15 记号，它就永远读不出来，
+于是这条概念在它最该说话的每一步上都返回 NA。**没被检验，不等于没被推翻。**
+
+v3 换成 foes()（多只），并把「踩进去会怎样」正面说出来：
+垂直进入 ⇒ 下一帧那个格位上不再有色8 块，且 state 不是 GAME_OVER。
+非垂直进入那一支仍不敢说（语料里 0 条），留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(prev) 读不出返回 NA；&quot;
+         &quot;prev 里没有色8 块返回 NA；&quot;
+         &quot;**落点不是某只色8 块所在的格位**返回 NA（绝大多数步都落在这里）；&quot;
+         &quot;那只敌人的朝向读不出、或移动方向与它朝向不垂直，返回 NA&quot;)
+NOTE = (&quot;v3：v2 的 foe() 在多只敌人同屏时恒为 None，这条概念因此在 162 条 held-out 上&quot;
+        &quot;全部 NA——满分的 S 是从没开过口换来的。改用 foes() 并把击杀那一半正面断言。&quot;)
+EVIDENCE = [
+    &quot;551f0807fcbb198c&quot;,     # 第 39 步 第 2 关：敌人朝左，我从下往上踩进去
+    &quot;33d11ec0c3b6e12f&quot;,     # 第 55 步 第 3 关：敌人朝下，我从左往右踩进去
+    &quot;9c086ca8055d95ce&quot;,     # 第 159 步 第 5 关：敌人朝上，我从右往左踩进去
+]
+# 语料里另有 8 条同型转移**没抄进来**：它们留在 held-out 里当这条概念的考题。
+# 把依据抄全了，N 就是 0——那样的 S=1 只是「它在自己挑的题上没错」。
+
+from _lib import me, foes, patrol_facing, DELTA, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    fs = foes(prev)
+    if not fs:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in fs:
+        return &quot;NA&quot;
+    f = patrol_facing(prev, dst[0], dst[1])
+    if f is None or f[0] * d[0] + f[1] * d[1] != 0:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if dst not in foes(nxt) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家一步踩进某只色8 敌人所在的格、且移动方向与它朝向垂直时，那只敌人当步消失，且不 GAME_OVER。
+
+我三关的路线都靠这条走通，可它到今天一句口都没开过（N=0、NA 率 100%）——
+因为 v2 用的 foe() 是单数读法：全帧色8+色15 恰好铺满一个块才给答案。
+第 3 关起多只敌人同屏，巡逻兵也带色15 记号，它就永远读不出来，
+于是这条概念在它最该说话的每一步上都返回 NA。**没被检验，不等于没被推翻。**
+
+v3 换成 foes()（多只），并把「踩进去会怎样」正面说出来：
+垂直进入 ⇒ 下一帧那个格位上不再有色8 块，且 state 不是 GAME_OVER。
+非垂直进入那一支仍不敢说（语料里 0 条），留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(prev) 读不出返回 NA；&quot;
+         &quot;prev 里没有色8 块返回 NA；&quot;
+         &quot;**落点不是某只色8 块所在的格位**返回 NA（绝大多数步都落在这里）；&quot;
+         &quot;那只敌人的朝向读不出、或移动方向与它朝向不垂直，返回 NA&quot;)
+NOTE = (&quot;v3：v2 的 foe() 在多只敌人同屏时恒为 None，这条概念因此在 162 条 held-out 上&quot;
+        &quot;全部 NA——满分的 S 是从没开过口换来的。改用 foes() 并把击杀那一半正面断言。&quot;)
+EVIDENCE = [
+    &quot;551f0807fcbb198c&quot;,     # 第 39 步 第 2 关：敌人朝左，我从下往上踩进去
+    &quot;33d11ec0c3b6e12f&quot;,     # 第 55 步 第 3 关：敌人朝下，我从左往右踩进去
+    &quot;9c086ca8055d95ce&quot;,     # 第 159 步 第 5 关：敌人朝上，我从右往左踩进去
+]
+# 语料里另有 8 条同型转移**没抄进来**：它们留在 held-out 里当这条概念的考题。
+# 把依据抄全了，N 就是 0——那样的 S=1 只是「它在自己挑的题上没错」。
+
+from _lib import me, foes, patrol_facing, DELTA, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    fs = foes(prev)
+    if not fs:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in fs:
+        return &quot;NA&quot;
+    f = patrol_facing(prev, dst[0], dst[1])
+    if f is None or f[0] * d[0] + f[1] * d[1] != 0:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if dst not in foes(nxt) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">foe_walks</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">红色守卫在出生点连着几步不动</div></summary><div class="body"><div class="doc">色8 敌人块<b>不是每步都动</b>：至少三步连续不动过，而它面前一直有桥。
+
+v1 断言「有桥就走」，被自己的三条依据当场打死（第 25、26、27 步敌人面前是桥却没动）。
+现在只保留站得住的那一半：<b>敌人不动是常态</b>，它动的时机由别的东西决定，还没量出来。
+所以这条只断言否定式：玩家走了不到 3 步（本关内）时，敌人一定不动。
+这是能被打的——只要哪一步敌人提前动了，它当场变反例。
+
+样本只有 4 步（第 25-28），「每 4 步动一次」是从单次事件外推的，不写进主张。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T18:53:59 · L6</span><div>色8 敌人块每步沿它的色15 记号指的方向走 CELL 格，走不动（中间块不是桥）就原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色8 敌人块每步沿它的色15 记号指的方向走 CELL 格，走不动（中间块不是桥）就原地不动。
+
+这条只管敌人的位置，不管它撞到我会怎样（那是 foe_kills）。
+第 25-27 步它三次不动、第 28 步向左走 6，都要由同一条规则解释——
+若「不动」不是因为没桥，这条当场是反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；prev 或 nxt 里读不出色8 块返回 NA；&quot;
+         &quot;读不出色15 记号返回 NA；GAME_OVER 那一步 nxt 已重画，返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;785a9502477782ff&quot;, &quot;e3f0bf006bc8d9b7&quot;, &quot;f123c13c36d8bd85&quot;]
+
+from _lib import DELTA, block_color, BRIDGE, foe, foe_facing, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if ctx and ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    f, g2 = foe(prev), foe(nxt)
+    if f is None or g2 is None:
+        return &quot;NA&quot;
+    fd = foe_facing(prev)
+    if fd is None:
+        return &quot;NA&quot;
+    if block_color(prev, f[0] + fd[0] // 2, f[1] + fd[1] // 2) == BRIDGE:
+        want = (f[0] + fd[0], f[1] + fd[1])
+    else:
+        want = f
+    return &quot;TRUE&quot; if g2 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    from _lib import FOE, FOE_MARK, BLOCK, NODE, foe_mark_offset
+    f = foe(prev)
+    fd = foe_facing(prev)
+    off = foe_mark_offset(prev)
+    if f is None or fd is None or off is None:
+        return None
+    if block_color(prev, f[0] + fd[0] // 2, f[1] + fd[1] // 2) != BRIDGE:
+        return None
+    b = (f[0] + fd[0], f[1] + fd[1])
+    out = {}
+    old = {(f[0] + i, f[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for cell in new:
+        out[cell] = FOE
+    out[(b[0] + off[0], b[1] + off[1])] = FOE_MARK
+    for cell in old - new:
+        out[cell] = NODE
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T18:56:16 · L6</span><div>色8 敌人块<b>不是每步都动</b>：至少三步连续不动过，而它面前一直有桥。</div><div>v3：v2 想用 ctx[&#x27;level_step&#x27;] 判本关步数，但 ctx 里只有全局 step，没有本关步数——那是我发明的字段。改成从帧上读：敌人还在出生点时才开口。v2：v1 说「面前有桥就走」，被第 25/26/27 步三条自己的依据打死——那三步敌人面前都是桥（色2）却纹丝不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;色8 敌人块**不是每步都动**：至少三步连续不动过，而它面前一直有桥。
+
+v1 断言「有桥就走」，被自己的三条依据当场打死（第 25、26、27 步敌人面前是桥却没动）。
+现在只保留站得住的那一半：**敌人不动是常态**，它动的时机由别的东西决定，还没量出来。
+所以这条只断言否定式：玩家走了不到 3 步（本关内）时，敌人一定不动。
+这是能被打的——只要哪一步敌人提前动了，它当场变反例。
+
+样本只有 4 步（第 25-28），「每 4 步动一次」是从单次事件外推的，不写进主张。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；prev 或 nxt 里读不出色8 块返回 NA；&quot;
+         &quot;GAME_OVER 那一步 nxt 已重画，返回 NA；&quot;
+         &quot;只在敌人还停在本关出生点（还一步没走过）时开口——那是唯一实测过的区间&quot;)
+NOTE = (&quot;v3：v2 想用 ctx[&#x27;level_step&#x27;] 判本关步数，但 ctx 里只有全局 step，没有本关步数——&quot;
+        &quot;那是我发明的字段。改成从帧上读：敌人还在出生点时才开口。&quot;
+        &quot;v2：v1 说「面前有桥就走」，被第 25/26/27 步三条自己的依据打死——&quot;
+        &quot;那三步敌人面前都是桥（色2）却纹丝不动。&quot;)
+EVIDENCE = [&quot;785a9502477782ff&quot;, &quot;e3f0bf006bc8d9b7&quot;, &quot;f123c13c36d8bd85&quot;,
+            &quot;168811c66e944b85&quot;]
+
+from _lib import DELTA, foe, GAME_OVER_STATE
+
+SPAWN = (27, 36)       # 第 1 关敌人的出生点，第 25 步实测。换关要重量。
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    if ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    f, g2 = foe(prev), foe(nxt)
+    if f is None or g2 is None:
+        return &quot;NA&quot;
+    if f != SPAWN:
+        return &quot;NA&quot;                    # 超出实测范围，闭嘴
+    return &quot;TRUE&quot; if g2 == f else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;色8 敌人块**不是每步都动**：至少三步连续不动过，而它面前一直有桥。
+
+v1 断言「有桥就走」，被自己的三条依据当场打死（第 25、26、27 步敌人面前是桥却没动）。
+现在只保留站得住的那一半：**敌人不动是常态**，它动的时机由别的东西决定，还没量出来。
+所以这条只断言否定式：玩家走了不到 3 步（本关内）时，敌人一定不动。
+这是能被打的——只要哪一步敌人提前动了，它当场变反例。
+
+样本只有 4 步（第 25-28），「每 4 步动一次」是从单次事件外推的，不写进主张。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；prev 或 nxt 里读不出色8 块返回 NA；&quot;
+         &quot;GAME_OVER 那一步 nxt 已重画，返回 NA；&quot;
+         &quot;只在敌人还停在本关出生点（还一步没走过）时开口——那是唯一实测过的区间&quot;)
+NOTE = (&quot;v3：v2 想用 ctx[&#x27;level_step&#x27;] 判本关步数，但 ctx 里只有全局 step，没有本关步数——&quot;
+        &quot;那是我发明的字段。改成从帧上读：敌人还在出生点时才开口。&quot;
+        &quot;v2：v1 说「面前有桥就走」，被第 25/26/27 步三条自己的依据打死——&quot;
+        &quot;那三步敌人面前都是桥（色2）却纹丝不动。&quot;)
+EVIDENCE = [&quot;785a9502477782ff&quot;, &quot;e3f0bf006bc8d9b7&quot;, &quot;f123c13c36d8bd85&quot;,
+            &quot;168811c66e944b85&quot;]
+
+from _lib import DELTA, foe, GAME_OVER_STATE
+
+SPAWN = (27, 36)       # 第 1 关敌人的出生点，第 25 步实测。换关要重量。
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    if ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    f, g2 = foe(prev), foe(nxt)
+    if f is None or g2 is None:
+        return &quot;NA&quot;
+    if f != SPAWN:
+        return &quot;NA&quot;                    # 超出实测范围，闭嘴
+    return &quot;TRUE&quot; if g2 == f else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">game_over</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">输掉的几种情况</div></summary><div class="body"><div class="doc">一步之后局面变 GAME_OVER，当且仅当落点是别人的落点/正前方，或 HUD 归零。
+
+L5 这一格上一直只有 reach_goal 说「怎么赢」，没有一条说「怎么死」——
+规划器里那张危险格表因此是我自己发明的世界事实，一次都没走过闸。这条把它交出去。
+
+四类危险格，三类有实证、一类是补的对称支：
+  · 活着的色8 敌人<b>正对着</b>的那一格 —— 第 28 步、第 139 步两次死在这里；
+    注意这和 foe_kills 不冲突：踩进它<b>所在</b>的格且方向垂直是杀它，踩进它<b>面前</b>的格是死。
+  · 巡逻兵这一步的落点，或与巡逻兵对穿换位 —— 第 66 步死在这里。
+  · 醒着的追踪者这一步的落点 —— <b>没见过</b>，是照前两类补的；
+    真踩上去而没死，这条概念当场变反例，那正是它该做的事。
+  · HUD 归零 —— 第 86 步 hud 3→0，人没撞任何东西，局面照样结束。
+
+它是「当且仅当」，所以两个方向都能被打：漏了一种死法会判 FALSE，
+多编了一种危险格（比如世界其实允许走进敌人正前方）也会判 FALSE。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T03:01:23 · L5</span><div>一步之后局面变 GAME_OVER，当且仅当落点是别人的落点/正前方，或 HUD 归零。</div><div>v1：把规划器里那张自造的危险格表交出来走闸。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之后局面变 GAME_OVER，当且仅当落点是别人的落点/正前方，或 HUD 归零。
+
+L5 这一格上一直只有 reach_goal 说「怎么赢」，没有一条说「怎么死」——
+规划器里那张危险格表因此是我自己发明的世界事实，一次都没走过闸。这条把它交出去。
+
+四类危险格，三类有实证、一类是补的对称支：
+  · 活着的色8 敌人**正对着**的那一格 —— 第 28 步、第 139 步两次死在这里；
+    注意这和 foe_kills 不冲突：踩进它**所在**的格且方向垂直是杀它，踩进它**面前**的格是死。
+  · 巡逻兵这一步的落点，或与巡逻兵对穿换位 —— 第 66 步死在这里。
+  · 醒着的追踪者这一步的落点 —— **没见过**，是照前两类补的；
+    真踩上去而没死，这条概念当场变反例，那正是它该做的事。
+  · HUD 归零 —— 第 86 步 hud 3→0，人没撞任何东西，局面照样结束。
+
+它是「当且仅当」，所以两个方向都能被打：漏了一种死法会判 FALSE，
+多编了一种危险格（比如世界其实允许走进敌人正前方）也会判 FALSE。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失、或 ctx 里没有 state_next 返回 NA；&quot;
+         &quot;换关那一步返回 NA；me(prev) 读不出返回 NA；&quot;
+         &quot;prev 里有巡逻兵而它的朝向读不出返回 NA（危险格算不出来就闭嘴）；&quot;
+         &quot;**动作被挡（落点不在桥图上）返回 NA**——那一支世界冻结，谁都不动，&quot;
+         &quot;只有 HUD 在掉，归 hud_drain 与 bridge_gate 管&quot;)
+NOTE = &quot;v1：把规划器里那张自造的危险格表交出来走闸。&quot;
+EVIDENCE = [
+    &quot;e3ef86bef23a18b2&quot;,     # 步86  HUD 3-&gt;0，没撞任何东西
+    &quot;bbdf2ba5a0ba9a71&quot;,     # 步139 踏进两只色8 共同正对的格
+]
+# 语料里另有两条死亡转移（步28 撞正对格、步66 撞巡逻兵落点）没抄进来，
+# 连同几百条「没死」的转移一起留在 held-out 里——「当且仅当」的两个方向都在被考。
+
+from _lib import (me, foes, patrols, patrol_facing, patrol_next, chasers,
+                  chaser_awake, bridge_graph, first_steps, hud_left, DELTA)
+
+GAME_OVER = &quot;GAME_OVER&quot;
+
+
+def _danger(prev, dst):
+    &quot;&quot;&quot;dst 这一格，在 prev 这一帧上是不是危险格。&quot;&quot;&quot;
+    for f in foes(prev):
+        d = patrol_facing(prev, *f)
+        if d is not None and dst == (f[0] + d[0], f[1] + d[1]):
+            return True
+    for p in patrols(prev):
+        if patrol_next(prev, *p) == dst:
+            return True
+    for c in chasers(prev):
+        if chaser_awake(prev, *c) is not True:
+            continue
+        a = me(prev)
+        s = first_steps(bridge_graph(prev), c, a) if a else None
+        if s and dst in s:
+            return True
+    return False
+
+
+def _swap(prev, a, dst):
+    &quot;&quot;&quot;我和某只巡逻兵对穿换位。&quot;&quot;&quot;
+    for p in patrols(prev):
+        if p == dst and patrol_next(prev, *p) == a:
+            return True
+    return False
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    dead = ctx.get(&quot;state_next&quot;)
+    if dead is None:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in bridge_graph(prev).get(a, []):
+        return &quot;NA&quot;                      # 被挡：世界冻结，另有概念管
+    for p in patrols(prev):
+        if patrol_facing(prev, *p) is None:
+            return &quot;NA&quot;
+    want = (_danger(prev, dst) or _swap(prev, a, dst)
+            or hud_left(nxt) == 0)
+    return &quot;TRUE&quot; if want == (dead == GAME_OVER) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之后局面变 GAME_OVER，当且仅当落点是别人的落点/正前方，或 HUD 归零。
+
+L5 这一格上一直只有 reach_goal 说「怎么赢」，没有一条说「怎么死」——
+规划器里那张危险格表因此是我自己发明的世界事实，一次都没走过闸。这条把它交出去。
+
+四类危险格，三类有实证、一类是补的对称支：
+  · 活着的色8 敌人**正对着**的那一格 —— 第 28 步、第 139 步两次死在这里；
+    注意这和 foe_kills 不冲突：踩进它**所在**的格且方向垂直是杀它，踩进它**面前**的格是死。
+  · 巡逻兵这一步的落点，或与巡逻兵对穿换位 —— 第 66 步死在这里。
+  · 醒着的追踪者这一步的落点 —— **没见过**，是照前两类补的；
+    真踩上去而没死，这条概念当场变反例，那正是它该做的事。
+  · HUD 归零 —— 第 86 步 hud 3→0，人没撞任何东西，局面照样结束。
+
+它是「当且仅当」，所以两个方向都能被打：漏了一种死法会判 FALSE，
+多编了一种危险格（比如世界其实允许走进敌人正前方）也会判 FALSE。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失、或 ctx 里没有 state_next 返回 NA；&quot;
+         &quot;换关那一步返回 NA；me(prev) 读不出返回 NA；&quot;
+         &quot;prev 里有巡逻兵而它的朝向读不出返回 NA（危险格算不出来就闭嘴）；&quot;
+         &quot;**动作被挡（落点不在桥图上）返回 NA**——那一支世界冻结，谁都不动，&quot;
+         &quot;只有 HUD 在掉，归 hud_drain 与 bridge_gate 管&quot;)
+NOTE = &quot;v1：把规划器里那张自造的危险格表交出来走闸。&quot;
+EVIDENCE = [
+    &quot;e3ef86bef23a18b2&quot;,     # 步86  HUD 3-&gt;0，没撞任何东西
+    &quot;bbdf2ba5a0ba9a71&quot;,     # 步139 踏进两只色8 共同正对的格
+]
+# 语料里另有两条死亡转移（步28 撞正对格、步66 撞巡逻兵落点）没抄进来，
+# 连同几百条「没死」的转移一起留在 held-out 里——「当且仅当」的两个方向都在被考。
+
+from _lib import (me, foes, patrols, patrol_facing, patrol_next, chasers,
+                  chaser_awake, bridge_graph, first_steps, hud_left, DELTA)
+
+GAME_OVER = &quot;GAME_OVER&quot;
+
+
+def _danger(prev, dst):
+    &quot;&quot;&quot;dst 这一格，在 prev 这一帧上是不是危险格。&quot;&quot;&quot;
+    for f in foes(prev):
+        d = patrol_facing(prev, *f)
+        if d is not None and dst == (f[0] + d[0], f[1] + d[1]):
+            return True
+    for p in patrols(prev):
+        if patrol_next(prev, *p) == dst:
+            return True
+    for c in chasers(prev):
+        if chaser_awake(prev, *c) is not True:
+            continue
+        a = me(prev)
+        s = first_steps(bridge_graph(prev), c, a) if a else None
+        if s and dst in s:
+            return True
+    return False
+
+
+def _swap(prev, a, dst):
+    &quot;&quot;&quot;我和某只巡逻兵对穿换位。&quot;&quot;&quot;
+    for p in patrols(prev):
+        if p == dst and patrol_next(prev, *p) == a:
+            return True
+    return False
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    dead = ctx.get(&quot;state_next&quot;)
+    if dead is None:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in bridge_graph(prev).get(a, []):
+        return &quot;NA&quot;                      # 被挡：世界冻结，另有概念管
+    for p in patrols(prev):
+        if patrol_facing(prev, *p) is None:
+            return &quot;NA&quot;
+    want = (_danger(prev, dst) or _swap(prev, a, dst)
+            or hud_left(nxt) == 0)
+    return &quot;TRUE&quot; if want == (dead == GAME_OVER) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">hud_drain</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">每按一下预算带就短一截</div></summary><div class="body"><div class="doc">同一关内，玩家每发一个 ACTION1..4，HUD 带上的色6 格数就少 1~4 格，绝不变多。
+
+这是本局唯一的资源，也是规划器的预算槽：它给出「一关最多能走多少步」的上界。
+实测 159 条关内动作，扣减量的直方图是 1:84  2:38  3:30  4:7，一次都没变多过，
+也没有一步是零扣减——<b>连玩家被挡住原地不动的那些步也照扣</b>（第 0 关 6 条、第 3 关 1 条）。
+所以「白走一步」不是免费的，探索本身要花钱。
+
+单价随关卡变（第 3 关中位 3，第 0/1/4/5 关中位 1，第 2 关中位 2），
+但这条不说单价是几，只说它落在 1..4 且方向朝下——多说一个字就得先量出单价由什么定。
+查过一个猜法并<b>否掉</b>了：单价不是墙钟时间。单价与上游往返时间的相关系数只有 0.104，
+第 4、5 关的 rtt 中位（1638 / 1773 ms）和第 3 关（1652 ms）一样，单价却是 1 对 3。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T01:59:05 · L4</span><div>同一关内，玩家每发一个 ACTION1..4，HUD 带上的色6 格数就少 1~4 格，绝不变多。</div><div>v1：L4 计数器一直是空槽，规划器没有预算来源，路线长短全靠手估。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;同一关内，玩家每发一个 ACTION1..4，HUD 带上的色6 格数就少 1~4 格，绝不变多。
+
+这是本局唯一的资源，也是规划器的预算槽：它给出「一关最多能走多少步」的上界。
+实测 159 条关内动作，扣减量的直方图是 1:84  2:38  3:30  4:7，一次都没变多过，
+也没有一步是零扣减——**连玩家被挡住原地不动的那些步也照扣**（第 0 关 6 条、第 3 关 1 条）。
+所以「白走一步」不是免费的，探索本身要花钱。
+
+单价随关卡变（第 3 关中位 3，第 0/1/4/5 关中位 1，第 2 关中位 2），
+但这条不说单价是几，只说它落在 1..4 且方向朝下——多说一个字就得先量出单价由什么定。
+查过一个猜法并**否掉**了：单价不是墙钟时间。单价与上游往返时间的相关系数只有 0.104，
+第 4、5 关的 rtt 中位（1638 / 1773 ms）和第 3 关（1652 ms）一样，单价却是 1 对 3。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；&quot;
+         &quot;**换关那一步返回 NA**（那一步 HUD 会回满，归 hud_reset 管）；&quot;
+         &quot;state 变了的那一步返回 NA（GAME_OVER 整屏重画，读不出带子）&quot;)
+NOTE = &quot;v1：L4 计数器一直是空槽，规划器没有预算来源，路线长短全靠手估。&quot;
+EVIDENCE = [
+    &quot;4e0d440e6017b707&quot;, &quot;3c1fd26d11ae6568&quot;,
+    &quot;fe4e4a78353eab06&quot;, &quot;d5b40bf6e1cb4d6a&quot;,
+    &quot;32ec594bb2809c0d&quot;, &quot;5e6f831eaaca66dc&quot;,
+    &quot;3a868dec317bc1d9&quot;, &quot;44dac0b1764895f0&quot;,
+]
+
+from _lib import hud_left, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_prev&quot;) != ctx.get(&quot;state_next&quot;):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if 1 &lt;= hud_left(prev) - hud_left(nxt) &lt;= 4 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;同一关内，玩家每发一个 ACTION1..4，HUD 带上的色6 格数就少 1~4 格，绝不变多。
+
+这是本局唯一的资源，也是规划器的预算槽：它给出「一关最多能走多少步」的上界。
+实测 159 条关内动作，扣减量的直方图是 1:84  2:38  3:30  4:7，一次都没变多过，
+也没有一步是零扣减——**连玩家被挡住原地不动的那些步也照扣**（第 0 关 6 条、第 3 关 1 条）。
+所以「白走一步」不是免费的，探索本身要花钱。
+
+单价随关卡变（第 3 关中位 3，第 0/1/4/5 关中位 1，第 2 关中位 2），
+但这条不说单价是几，只说它落在 1..4 且方向朝下——多说一个字就得先量出单价由什么定。
+查过一个猜法并**否掉**了：单价不是墙钟时间。单价与上游往返时间的相关系数只有 0.104，
+第 4、5 关的 rtt 中位（1638 / 1773 ms）和第 3 关（1652 ms）一样，单价却是 1 对 3。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；&quot;
+         &quot;**换关那一步返回 NA**（那一步 HUD 会回满，归 hud_reset 管）；&quot;
+         &quot;state 变了的那一步返回 NA（GAME_OVER 整屏重画，读不出带子）&quot;)
+NOTE = &quot;v1：L4 计数器一直是空槽，规划器没有预算来源，路线长短全靠手估。&quot;
+EVIDENCE = [
+    &quot;4e0d440e6017b707&quot;, &quot;3c1fd26d11ae6568&quot;,
+    &quot;fe4e4a78353eab06&quot;, &quot;d5b40bf6e1cb4d6a&quot;,
+    &quot;32ec594bb2809c0d&quot;, &quot;5e6f831eaaca66dc&quot;,
+    &quot;3a868dec317bc1d9&quot;, &quot;44dac0b1764895f0&quot;,
+]
+
+from _lib import hud_left, DELTA
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_prev&quot;) != ctx.get(&quot;state_next&quot;):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if 1 &lt;= hud_left(prev) - hud_left(nxt) &lt;= 4 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">hud_reset</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">摆出新的一关，预算带回满</div></summary><div class="body"><div class="doc">过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。
+
+实测 6 次换关，进关前的余额是 35 / 47 / 27 / 13 / 28 / 33，六次之后全是 64。
+和 hud_drain 合起来，L4 这个槽才算有东西：预算是<b>每关一份</b>，不是全局一份，
+所以规划器该按关做预算，上一关省下来的不带过来（也不用心疼）。
+
+v3 死于 a6a2162b82f9d686：最后一关通关那一步，HUD 停在 26 没有回满。
+v2 把「过关」当成了「新的一关开始」，可通掉最后一关之后没有下一关——
+帧上目标块直接消失，带子就地留在余额上。所以补满的不是「过关」这个事件，
+是<b>新一关被摆出来</b>这件事；判据也从上游的 level 号改成帧上的读法：
+下一帧有没有目标块。这一改还让它在预测口径下也说得出话（那时 state 全是 None）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T01:59:05 · L4</span><div>过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。</div><div>v1：和 hud_drain 一起补 L4 空槽；两条各说一半，别写成一条。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。
+
+实测 6 次换关，进关前的余额是 35 / 47 / 27 / 13 / 28 / 33，六次之后全是 64。
+和 hud_drain 合起来，L4 这个槽才算有东西：预算是**每关一份**，不是全局一份，
+所以规划器该按关做预算，上一关省下来的不带过来（也不用心疼）。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；&quot;
+         &quot;**只管换关那一步**（level_prev != level_next），其余一律 NA&quot;)
+NOTE = &quot;v1：和 hud_drain 一起补 L4 空槽；两条各说一半，别写成一条。&quot;
+EVIDENCE = [
+    &quot;f78cbb893b781c08&quot;, &quot;cc39541aed16c669&quot;, &quot;32290625b9dc6cfb&quot;,
+    &quot;c22e35c4523c11c9&quot;, &quot;319f83bf783e8cc7&quot;, &quot;cd8567db7107799d&quot;,
+]
+
+from _lib import hud_left, DELTA
+
+FULL = 64
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if hud_left(nxt) == FULL else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-10T01:59:43 · L4</span><div>过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。</div><div>v1：和 hud_drain 一起补 L4 空槽；两条各说一半，别写成一条。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。
+
+实测 6 次换关，进关前的余额是 35 / 47 / 27 / 13 / 28 / 33，六次之后全是 64。
+和 hud_drain 合起来，L4 这个槽才算有东西：预算是**每关一份**，不是全局一份，
+所以规划器该按关做预算，上一关省下来的不带过来（也不用心疼）。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；&quot;
+         &quot;**只管换关那一步**（level_prev != level_next），其余一律 NA&quot;)
+NOTE = &quot;v1：和 hud_drain 一起补 L4 空槽；两条各说一半，别写成一条。&quot;
+EVIDENCE = [
+    &quot;f78cbb893b781c08&quot;,     # 第 24 步 第 0→1 关：35 → 64
+    &quot;c22e35c4523c11c9&quot;,     # 第 103 步 第 3→4 关：13 → 64（进关前最紧的一次）
+]
+# 另外 4 次换关没抄进来，留在 held-out 里当考题。
+
+from _lib import hud_left, DELTA
+
+FULL = 64
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if hud_left(nxt) == FULL else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-10T03:20:45 · L4</span><div>过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。</div><div>v3：v2 在最后一关通关那一步判 FALSE。「过关」不等于「新一关开始」，末关之后没有新预算可发。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。
+
+实测 6 次换关，进关前的余额是 35 / 47 / 27 / 13 / 28 / 33，六次之后全是 64。
+和 hud_drain 合起来，L4 这个槽才算有东西：预算是**每关一份**，不是全局一份，
+所以规划器该按关做预算，上一关省下来的不带过来（也不用心疼）。
+
+v3 死于 a6a2162b82f9d686：最后一关通关那一步，HUD 停在 26 没有回满。
+v2 把「过关」当成了「新的一关开始」，可通掉最后一关之后没有下一关——
+帧上目标块直接消失，带子就地留在余额上。所以补满的不是「过关」这个事件，
+是**新一关被摆出来**这件事；判据也从上游的 level 号改成帧上的读法：
+下一帧有没有目标块。这一改还让它在预测口径下也说得出话（那时 state 全是 None）。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；&quot;
+         &quot;**只管换关那一步**（level_prev != level_next），其余一律 NA；&quot;
+         &quot;换关后帧上没有目标块（= 没有下一关了，整局通关）返回 NA&quot;)
+NOTE = (&quot;v3：v2 在最后一关通关那一步判 FALSE。「过关」不等于「新一关开始」，&quot;
+        &quot;末关之后没有新预算可发。&quot;)
+EVIDENCE = [
+    &quot;f78cbb893b781c08&quot;,     # 第 24 步 第 0→1 关：35 → 64
+    &quot;c22e35c4523c11c9&quot;,     # 第 103 步 第 3→4 关：13 → 64（进关前最紧的一次）
+    &quot;a6a2162b82f9d686&quot;,     # 第 373 步 第 9 关通关：26 没回满，也没有下一关——v2 死在这里
+]
+# 另外 4 次换关没抄进来，留在 held-out 里当考题。
+
+from _lib import hud_left, target, DELTA
+
+FULL = 64
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if target(nxt) is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if hud_left(nxt) == FULL else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步，HUD 带子回到满格 64——不管进关前还剩多少。
+
+实测 6 次换关，进关前的余额是 35 / 47 / 27 / 13 / 28 / 33，六次之后全是 64。
+和 hud_drain 合起来，L4 这个槽才算有东西：预算是**每关一份**，不是全局一份，
+所以规划器该按关做预算，上一关省下来的不带过来（也不用心疼）。
+
+v3 死于 a6a2162b82f9d686：最后一关通关那一步，HUD 停在 26 没有回满。
+v2 把「过关」当成了「新的一关开始」，可通掉最后一关之后没有下一关——
+帧上目标块直接消失，带子就地留在余额上。所以补满的不是「过关」这个事件，
+是**新一关被摆出来**这件事；判据也从上游的 level 号改成帧上的读法：
+下一帧有没有目标块。这一改还让它在预测口径下也说得出话（那时 state 全是 None）。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；&quot;
+         &quot;**只管换关那一步**（level_prev != level_next），其余一律 NA；&quot;
+         &quot;换关后帧上没有目标块（= 没有下一关了，整局通关）返回 NA&quot;)
+NOTE = (&quot;v3：v2 在最后一关通关那一步判 FALSE。「过关」不等于「新一关开始」，&quot;
+        &quot;末关之后没有新预算可发。&quot;)
+EVIDENCE = [
+    &quot;f78cbb893b781c08&quot;,     # 第 24 步 第 0→1 关：35 → 64
+    &quot;c22e35c4523c11c9&quot;,     # 第 103 步 第 3→4 关：13 → 64（进关前最紧的一次）
+    &quot;a6a2162b82f9d686&quot;,     # 第 373 步 第 9 关通关：26 没回满，也没有下一关——v2 死在这里
+]
+# 另外 4 次换关没抄进来，留在 held-out 里当考题。
+
+from _lib import hud_left, target, DELTA
+
+FULL = 64
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    if ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if target(nxt) is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if hud_left(nxt) == FULL else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">mark_faces</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">记号转向这一步的方向</div></summary><div class="body"><div class="doc">生效移动后，色4 记号落在玩家块内<b>朝该动作方向</b>的那条边的中点——记号是朝向，不跟着块平移。
+
+第 10 步 ACTION4 打脸了「记号随块平移」：块从 (21,27) 移到 (27,27)（ACTION4 竟是向下），
+落点上的记号不在平移该到的位置。这条只管记号那一格，块本身归 move_shift。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T18:38:10 · L6</span><div>生效移动后，色4 记号落在玩家块内<b>朝该动作方向</b>的那条边的中点——记号是朝向，不跟着块平移。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效移动后，色4 记号落在玩家块内**朝该动作方向**的那条边的中点——记号是朝向，不跟着块平移。
+
+第 10 步 ACTION4 打脸了「记号随块平移」：块从 (21,27) 移到 (27,27)（ACTION4 竟是向下），
+落点上的记号不在平移该到的位置。这条只管记号那一格，块本身归 move_shift。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4 且玩家块确实挪了（me(prev) != me(nxt)）；换关返回 NA；&quot;
+         &quot;me() 读不出来返回 NA；nxt 里读不出记号返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;100a66356f23e1f3&quot;, &quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;]
+
+from _lib import me, DELTA, MARK, MARK_OFFSET, _block_of
+
+
+def _mark_cell_for(top, left, action):
+    &quot;&quot;&quot;动作 action 对应的边中点在块内的绝对坐标；动作不在表里返回 None。&quot;&quot;&quot;
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    for off, dd in MARK_OFFSET.items():
+        if dd == d:
+            return (top + off[0], left + off[1])
+    return None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    m = _block_of(nxt, MARK)
+    if m is None:
+        return &quot;NA&quot;
+    want = _mark_cell_for(b[0], b[1], action)
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只画记号那一格，以及它在块内让位给主体色的那一格——都不画。
+
+    记号的落点由 move_shift 之外的这条概念单独负责：这里只声明记号格。
+    &quot;&quot;&quot;
+    from _lib import on_grid, block_color, BRIDGE
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a):
+        return None
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) != BRIDGE:
+        return None
+    b = (a[0] + d[0], a[1] + d[1])
+    want = _mark_cell_for(b[0], b[1], action)
+    return None if want is None else {want: MARK}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T18:38:55 · L6</span><div>生效移动后，色4 记号落在玩家块内<b>朝该动作方向</b>的那条边的中点——记号是朝向，不跟着块平移。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效移动后，色4 记号落在玩家块内**朝该动作方向**的那条边的中点——记号是朝向，不跟着块平移。
+
+第 10 步 ACTION4 打脸了「记号随块平移」：块从 (21,27) 移到 (27,27)（ACTION4 竟是向下），
+落点上的记号不在平移该到的位置。这条只管记号那一格，块本身归 move_shift。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4 且玩家块确实挪了（me(prev) != me(nxt)）；换关返回 NA；&quot;
+         &quot;me() 读不出来返回 NA；nxt 里读不出记号返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;100a66356f23e1f3&quot;, &quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;]
+
+from _lib import me, DELTA, MARK, MARK_OFFSET, _block_of, mark_cell_for
+
+
+def _mark_cell_for(top, left, action):
+    &quot;&quot;&quot;共享词 _lib.mark_cell_for 的别名，保留本地名字。&quot;&quot;&quot;
+    return mark_cell_for(top, left, action)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    m = _block_of(nxt, MARK)
+    if m is None:
+        return &quot;NA&quot;
+    want = _mark_cell_for(b[0], b[1], action)
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只画记号那一格，以及它在块内让位给主体色的那一格——都不画。
+
+    记号的落点由 move_shift 之外的这条概念单独负责：这里只声明记号格。
+    &quot;&quot;&quot;
+    from _lib import on_grid, block_color, BRIDGE
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a):
+        return None
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) != BRIDGE:
+        return None
+    b = (a[0] + d[0], a[1] + d[1])
+    want = _mark_cell_for(b[0], b[1], action)
+    return None if want is None else {want: MARK}
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-09T18:49:28 · L6</span><div>生效移动后，色4 记号落在玩家块内<b>朝该动作方向</b>的那条边的中点——记号是朝向，不跟着块平移。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效移动后，色4 记号落在玩家块内**朝该动作方向**的那条边的中点——记号是朝向，不跟着块平移。
+
+第 10 步 ACTION4 打脸了「记号随块平移」：块从 (21,27) 移到 (27,27)（ACTION4 竟是向下），
+落点上的记号不在平移该到的位置。这条只管记号那一格，块本身归 move_shift。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4 且玩家块确实挪了（me(prev) != me(nxt)）；换关返回 NA；&quot;
+         &quot;me() 读不出来返回 NA；nxt 里读不出记号返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;100a66356f23e1f3&quot;, &quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;]
+
+from _lib import me, DELTA, MARK, MARK_OFFSET, _block_of, mark_cell_for
+
+
+def _mark_cell_for(top, left, action):
+    &quot;&quot;&quot;共享词 _lib.mark_cell_for 的别名，保留本地名字。&quot;&quot;&quot;
+    return mark_cell_for(top, left, action)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    m = _block_of(nxt, MARK)
+    if m is None:
+        return &quot;NA&quot;
+    want = _mark_cell_for(b[0], b[1], action)
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只画记号那一格，以及它在块内让位给主体色的那一格——都不画。
+
+    记号的落点由 move_shift 之外的这条概念单独负责：这里只声明记号格。
+    &quot;&quot;&quot;
+    from _lib import on_grid, block_color, BRIDGE
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return None
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) != BRIDGE:
+        return None
+    b = (a[0] + d[0], a[1] + d[1])
+    want = _mark_cell_for(b[0], b[1], action)
+    return None if want is None else {want: MARK}
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-10T03:29:21 · L6</span><div>生效移动后，色4 记号落在玩家块内<b>朝该动作方向</b>的那条边的中点——记号是朝向，不跟着块平移。</div><div>v4：apply 在「落点就是目标块」那一步照旧生成同关内的记号，而那一步整屏重画。结算口径下它本来就 NA（换关返回 NA），所以它从没变成反例——漏只在<b>事前口径</b>里，终局卡第 391 步预测 18 格对 0 格才把它逼出来。改用帧上的读法（落点是不是目标块，reach_goal 的同一个判据），事前事后都闭嘴。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效移动后，色4 记号落在玩家块内**朝该动作方向**的那条边的中点——记号是朝向，不跟着块平移。
+
+第 10 步 ACTION4 打脸了「记号随块平移」：块从 (21,27) 移到 (27,27)（ACTION4 竟是向下），
+落点上的记号不在平移该到的位置。这条只管记号那一格，块本身归 move_shift。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4 且玩家块确实挪了（me(prev) != me(nxt)）；换关返回 NA；&quot;
+         &quot;me() 读不出来返回 NA；nxt 里读不出记号返回 NA&quot;)
+NOTE = (&quot;v4：apply 在「落点就是目标块」那一步照旧生成同关内的记号，而那一步整屏重画。&quot;
+        &quot;结算口径下它本来就 NA（换关返回 NA），所以它从没变成反例——&quot;
+        &quot;漏只在**事前口径**里，终局卡第 391 步预测 18 格对 0 格才把它逼出来。&quot;
+        &quot;改用帧上的读法（落点是不是目标块，reach_goal 的同一个判据），事前事后都闭嘴。&quot;)
+EVIDENCE = [&quot;100a66356f23e1f3&quot;, &quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;]
+
+from _lib import me, DELTA, MARK, MARK_OFFSET, _block_of, mark_cell_for
+
+
+def _mark_cell_for(top, left, action):
+    &quot;&quot;&quot;共享词 _lib.mark_cell_for 的别名，保留本地名字。&quot;&quot;&quot;
+    return mark_cell_for(top, left, action)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    m = _block_of(nxt, MARK)
+    if m is None:
+        return &quot;NA&quot;
+    want = _mark_cell_for(b[0], b[1], action)
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只画记号那一格，以及它在块内让位给主体色的那一格——都不画。
+
+    记号的落点由 move_shift 之外的这条概念单独负责：这里只声明记号格。
+    &quot;&quot;&quot;
+    from _lib import on_grid, block_color, BRIDGE
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return None
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) != BRIDGE:
+        return None
+    b = (a[0] + d[0], a[1] + d[1])
+    from _lib import target
+    if b == target(prev):
+        return None                    # reach_goal：这一步过关，整屏重画，本条不生成
+    want = _mark_cell_for(b[0], b[1], action)
+    return None if want is None else {want: MARK}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效移动后，色4 记号落在玩家块内**朝该动作方向**的那条边的中点——记号是朝向，不跟着块平移。
+
+第 10 步 ACTION4 打脸了「记号随块平移」：块从 (21,27) 移到 (27,27)（ACTION4 竟是向下），
+落点上的记号不在平移该到的位置。这条只管记号那一格，块本身归 move_shift。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1..4 且玩家块确实挪了（me(prev) != me(nxt)）；换关返回 NA；&quot;
+         &quot;me() 读不出来返回 NA；nxt 里读不出记号返回 NA&quot;)
+NOTE = (&quot;v4：apply 在「落点就是目标块」那一步照旧生成同关内的记号，而那一步整屏重画。&quot;
+        &quot;结算口径下它本来就 NA（换关返回 NA），所以它从没变成反例——&quot;
+        &quot;漏只在**事前口径**里，终局卡第 391 步预测 18 格对 0 格才把它逼出来。&quot;
+        &quot;改用帧上的读法（落点是不是目标块，reach_goal 的同一个判据），事前事后都闭嘴。&quot;)
+EVIDENCE = [&quot;100a66356f23e1f3&quot;, &quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;]
+
+from _lib import me, DELTA, MARK, MARK_OFFSET, _block_of, mark_cell_for
+
+
+def _mark_cell_for(top, left, action):
+    &quot;&quot;&quot;共享词 _lib.mark_cell_for 的别名，保留本地名字。&quot;&quot;&quot;
+    return mark_cell_for(top, left, action)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    m = _block_of(nxt, MARK)
+    if m is None:
+        return &quot;NA&quot;
+    want = _mark_cell_for(b[0], b[1], action)
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只画记号那一格，以及它在块内让位给主体色的那一格——都不画。
+
+    记号的落点由 move_shift 之外的这条概念单独负责：这里只声明记号格。
+    &quot;&quot;&quot;
+    from _lib import on_grid, block_color, BRIDGE
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return None
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) != BRIDGE:
+        return None
+    b = (a[0] + d[0], a[1] + d[1])
+    from _lib import target
+    if b == target(prev):
+        return None                    # reach_goal：这一步过关，整屏重画，本条不生成
+    want = _mark_cell_for(b[0], b[1], action)
+    return None if want is None else {want: MARK}
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">move_shift</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">6 版</span></div><div class="one">走动时玩家整块平移一格</div></summary><div class="body"><div class="doc">生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。
+
+块<b>在哪</b>归这条管；块内那一格色4 记号<b>指哪</b>归 mark_faces 管——
+第 10 步 ACTION4 的 2 格意外就是这条边界：位置全对，记号错了。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T18:31:38 · L1</span><div>生效的移动一定是整块平移 CELL 格：玩家 3x3 块整体挪 DELTA[动作]，原位置全变色0，块形状不变。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家 3x3 块整体挪 DELTA[动作]，原位置全变色0，块形状不变。
+
+这条只管「动了的时候动成什么样」，不管「什么时候动」——那是 block.py 的事。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;prev == nxt（没生效）返回 NA，那一支归 block.py 管&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    if prev == nxt:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    dr, dc = DELTA[action]
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for i in range(BLOCK):
+        for j in range(BLOCK):
+            out[(a[0] + dr + i, a[1] + dc + j)] = prev[a[0] + i][a[1] + j]
+    for (r, c) in old - set(out):
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T18:32:11 · L1</span><div>生效的移动一定是整块平移 CELL 格：玩家 3x3 块整体挪 DELTA[动作]，原位置全变色0，块形状不变。</div><div>v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。没生效要看玩家块动没动，不能看整帧。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家 3x3 块整体挪 DELTA[动作]，原位置全变色0，块形状不变。
+
+这条只管「动了的时候动成什么样」，不管「什么时候动」——那是 block.py 的事。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;玩家块没挪（me(prev) == me(nxt)）返回 NA，那一支归 bridge_gate 管&quot;)
+NOTE = (&quot;v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，&quot;
+        &quot;于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。&quot;
+        &quot;没生效要看玩家块动没动，不能看整帧。&quot;)
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;,
+            &quot;4e0d440e6017b707&quot;, &quot;fe4e4a78353eab06&quot;, &quot;3c1fd26d11ae6568&quot;,
+            &quot;18294bff9809c4a2&quot;, &quot;d5b40bf6e1cb4d6a&quot;, &quot;ab4e3a81ba768e7f&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE, on_grid, block_color, BRIDGE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if a == b:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只在 bridge_gate 说走得动时生成——两条概念共用同一个「桥」判据，
+    所以这里也只对中间块是桥的那一支开口。&quot;&quot;&quot;
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a):
+        return None
+    dr, dc = DELTA[action]
+    if block_color(prev, a[0] + dr // 2, a[1] + dc // 2) != BRIDGE:
+        return None
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for i in range(BLOCK):
+        for j in range(BLOCK):
+            out[(a[0] + dr + i, a[1] + dc + j)] = prev[a[0] + i][a[1] + j]
+    for (r, c) in old - set(out):
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-09T18:38:10 · L1</span><div>生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。</div><div>v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。
+
+块**在哪**归这条管；块内那一格色4 记号**指哪**归 mark_faces 管——
+第 10 步 ACTION4 的 2 格意外就是这条边界：位置全对，记号错了。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;玩家块没挪（me(prev) == me(nxt)）返回 NA，那一支归 bridge_gate 管；&quot;
+         &quot;只主张块的位置与腾出的旧格，不主张块内哪一格是记号&quot;)
+NOTE = (&quot;v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——&quot;
+        &quot;记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。&quot;
+        &quot;v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，&quot;
+        &quot;于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。&quot;)
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;,
+            &quot;4e0d440e6017b707&quot;, &quot;fe4e4a78353eab06&quot;, &quot;3c1fd26d11ae6568&quot;,
+            &quot;18294bff9809c4a2&quot;, &quot;d5b40bf6e1cb4d6a&quot;, &quot;ab4e3a81ba768e7f&quot;,
+            &quot;431ce56dfadcee7f&quot;, &quot;100a66356f23e1f3&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE, on_grid, block_color, BRIDGE, PLAYER, MARK
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if a == b:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 落点必须仍是 3x3 实心玩家块（主体色 + 恰好一格记号）
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    if sum(1 for (r, c) in new if nxt[r][c] == MARK) != 1:
+        return &quot;FALSE&quot;
+    if any(nxt[r][c] not in (PLAYER, MARK) for (r, c) in new):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只在 bridge_gate 说走得动时生成，且**只画主体色**——
+    块内哪一格是记号由 mark_faces 单独主张，这条不碰，免得两条概念在同一格上打架。&quot;&quot;&quot;
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a):
+        return None
+    dr, dc = DELTA[action]
+    if block_color(prev, a[0] + dr // 2, a[1] + dc // 2) != BRIDGE:
+        return None
+    from mark_faces import _mark_cell_for
+    b = (a[0] + dr, a[1] + dc)
+    skip = _mark_cell_for(b[0], b[1], action)
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for cell in new:
+        if cell != skip:
+            out[cell] = PLAYER
+    for (r, c) in old - new:
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-09T18:38:55 · L1</span><div>生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。</div><div>v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。
+
+块**在哪**归这条管；块内那一格色4 记号**指哪**归 mark_faces 管——
+第 10 步 ACTION4 的 2 格意外就是这条边界：位置全对，记号错了。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;玩家块没挪（me(prev) == me(nxt)）返回 NA，那一支归 bridge_gate 管；&quot;
+         &quot;只主张块的位置与腾出的旧格，不主张块内哪一格是记号&quot;)
+NOTE = (&quot;v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——&quot;
+        &quot;记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。&quot;
+        &quot;v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，&quot;
+        &quot;于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。&quot;)
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;,
+            &quot;4e0d440e6017b707&quot;, &quot;fe4e4a78353eab06&quot;, &quot;3c1fd26d11ae6568&quot;,
+            &quot;18294bff9809c4a2&quot;, &quot;d5b40bf6e1cb4d6a&quot;, &quot;ab4e3a81ba768e7f&quot;,
+            &quot;431ce56dfadcee7f&quot;, &quot;100a66356f23e1f3&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE, on_grid, block_color, BRIDGE, PLAYER, MARK
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if a == b:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 落点必须仍是 3x3 实心玩家块（主体色 + 恰好一格记号）
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    if sum(1 for (r, c) in new if nxt[r][c] == MARK) != 1:
+        return &quot;FALSE&quot;
+    if any(nxt[r][c] not in (PLAYER, MARK) for (r, c) in new):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只在 bridge_gate 说走得动时生成，且**只画主体色**——
+    块内哪一格是记号由 mark_faces 单独主张，这条不碰，免得两条概念在同一格上打架。&quot;&quot;&quot;
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a):
+        return None
+    dr, dc = DELTA[action]
+    if block_color(prev, a[0] + dr // 2, a[1] + dc // 2) != BRIDGE:
+        return None
+    from _lib import mark_cell_for
+    b = (a[0] + dr, a[1] + dc)
+    skip = mark_cell_for(b[0], b[1], action)
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for cell in new:
+        if cell != skip:
+            out[cell] = PLAYER
+    for (r, c) in old - new:
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-09T18:49:28 · L1</span><div>生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。</div><div>v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。
+
+块**在哪**归这条管；块内那一格色4 记号**指哪**归 mark_faces 管——
+第 10 步 ACTION4 的 2 格意外就是这条边界：位置全对，记号错了。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;玩家块没挪（me(prev) == me(nxt)）返回 NA，那一支归 bridge_gate 管；&quot;
+         &quot;只主张块的位置与腾出的旧格，不主张块内哪一格是记号&quot;)
+NOTE = (&quot;v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——&quot;
+        &quot;记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。&quot;
+        &quot;v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，&quot;
+        &quot;于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。&quot;)
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;,
+            &quot;4e0d440e6017b707&quot;, &quot;fe4e4a78353eab06&quot;, &quot;3c1fd26d11ae6568&quot;,
+            &quot;18294bff9809c4a2&quot;, &quot;d5b40bf6e1cb4d6a&quot;, &quot;ab4e3a81ba768e7f&quot;,
+            &quot;431ce56dfadcee7f&quot;, &quot;100a66356f23e1f3&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE, on_grid, block_color, BRIDGE, PLAYER, MARK
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if a == b:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 落点必须仍是 3x3 实心玩家块（主体色 + 恰好一格记号）
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    if sum(1 for (r, c) in new if nxt[r][c] == MARK) != 1:
+        return &quot;FALSE&quot;
+    if any(nxt[r][c] not in (PLAYER, MARK) for (r, c) in new):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只在 bridge_gate 说走得动时生成，且**只画主体色**——
+    块内哪一格是记号由 mark_faces 单独主张，这条不碰，免得两条概念在同一格上打架。&quot;&quot;&quot;
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return None
+    dr, dc = DELTA[action]
+    if block_color(prev, a[0] + dr // 2, a[1] + dc // 2) != BRIDGE:
+        return None
+    from _lib import mark_cell_for
+    b = (a[0] + dr, a[1] + dc)
+    skip = mark_cell_for(b[0], b[1], action)
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for cell in new:
+        if cell != skip:
+            out[cell] = PLAYER
+    for (r, c) in old - new:
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-10T03:29:21 · L1</span><div>生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。</div><div>v6：apply 在「落点就是目标块」那一步照旧生成同关内的平移，而那一步整屏重画。结算口径下这条本来就 NA（换关返回 NA），漏只在事前口径里——终局卡第 391 步预测 18 格对 0 格才把它逼出来。改用帧上的读法（落点是不是目标块）。v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。
+
+块**在哪**归这条管；块内那一格色4 记号**指哪**归 mark_faces 管——
+第 10 步 ACTION4 的 2 格意外就是这条边界：位置全对，记号错了。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;玩家块没挪（me(prev) == me(nxt)）返回 NA，那一支归 bridge_gate 管；&quot;
+         &quot;只主张块的位置与腾出的旧格，不主张块内哪一格是记号&quot;)
+NOTE = (&quot;v6：apply 在「落点就是目标块」那一步照旧生成同关内的平移，而那一步整屏重画。&quot;
+        &quot;结算口径下这条本来就 NA（换关返回 NA），漏只在事前口径里——&quot;
+        &quot;终局卡第 391 步预测 18 格对 0 格才把它逼出来。改用帧上的读法（落点是不是目标块）。&quot;
+        &quot;v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——&quot;
+        &quot;记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。&quot;
+        &quot;v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，&quot;
+        &quot;于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。&quot;)
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;,
+            &quot;4e0d440e6017b707&quot;, &quot;fe4e4a78353eab06&quot;, &quot;3c1fd26d11ae6568&quot;,
+            &quot;18294bff9809c4a2&quot;, &quot;d5b40bf6e1cb4d6a&quot;, &quot;ab4e3a81ba768e7f&quot;,
+            &quot;431ce56dfadcee7f&quot;, &quot;100a66356f23e1f3&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE, on_grid, block_color, BRIDGE, PLAYER, MARK
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if a == b:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 落点必须仍是 3x3 实心玩家块（主体色 + 恰好一格记号）
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    if sum(1 for (r, c) in new if nxt[r][c] == MARK) != 1:
+        return &quot;FALSE&quot;
+    if any(nxt[r][c] not in (PLAYER, MARK) for (r, c) in new):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只在 bridge_gate 说走得动时生成，且**只画主体色**——
+    块内哪一格是记号由 mark_faces 单独主张，这条不碰，免得两条概念在同一格上打架。&quot;&quot;&quot;
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return None
+    dr, dc = DELTA[action]
+    if block_color(prev, a[0] + dr // 2, a[1] + dc // 2) != BRIDGE:
+        return None
+    from _lib import mark_cell_for, target
+    b = (a[0] + dr, a[1] + dc)
+    if b == target(prev):
+        return None                    # reach_goal：这一步过关，整屏重画，本条不生成
+    skip = mark_cell_for(b[0], b[1], action)
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for cell in new:
+        if cell != skip:
+            out[cell] = PLAYER
+    for (r, c) in old - new:
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;生效的移动一定是整块平移 CELL 格：玩家块整体挪 DELTA[动作]，原位置全变色0，仍是 3x3 实心块。
+
+块**在哪**归这条管；块内那一格色4 记号**指哪**归 mark_faces 管——
+第 10 步 ACTION4 的 2 格意外就是这条边界：位置全对，记号错了。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1..4；换关返回 NA；me() 在 prev 或 nxt 读不出来返回 NA；&quot;
+         &quot;玩家块没挪（me(prev) == me(nxt)）返回 NA，那一支归 bridge_gate 管；&quot;
+         &quot;只主张块的位置与腾出的旧格，不主张块内哪一格是记号&quot;)
+NOTE = (&quot;v6：apply 在「落点就是目标块」那一步照旧生成同关内的平移，而那一步整屏重画。&quot;
+        &quot;结算口径下这条本来就 NA（换关返回 NA），漏只在事前口径里——&quot;
+        &quot;终局卡第 391 步预测 18 格对 0 格才把它逼出来。改用帧上的读法（落点是不是目标块）。&quot;
+        &quot;v3：v2 的 apply 把整块连同记号一起平移，第 10 步 ACTION4 上错 2 格——&quot;
+        &quot;记号不随块平移，它转向。apply 改成只画主体色，记号交给 mark_faces。&quot;
+        &quot;v2：v1 拿「prev == nxt」当没生效，但 HUD 带每一步都扣格，整帧永远在变，&quot;
+        &quot;于是每条没生效的转移都被当成「生效了却没挪」判 FALSE。&quot;)
+EVIDENCE = [&quot;123802eb1d08dd2b&quot;, &quot;650dff6793dda42b&quot;,
+            &quot;4e0d440e6017b707&quot;, &quot;fe4e4a78353eab06&quot;, &quot;3c1fd26d11ae6568&quot;,
+            &quot;18294bff9809c4a2&quot;, &quot;d5b40bf6e1cb4d6a&quot;, &quot;ab4e3a81ba768e7f&quot;,
+            &quot;431ce56dfadcee7f&quot;, &quot;100a66356f23e1f3&quot;]
+
+from _lib import me, DELTA, BLOCK, NODE, on_grid, block_color, BRIDGE, PLAYER, MARK
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if a == b:
+        return &quot;NA&quot;
+    dr, dc = DELTA[action]
+    if (b[0] - a[0], b[1] - a[1]) != (dr, dc):
+        return &quot;FALSE&quot;
+    # 落点必须仍是 3x3 实心玩家块（主体色 + 恰好一格记号）
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    if sum(1 for (r, c) in new if nxt[r][c] == MARK) != 1:
+        return &quot;FALSE&quot;
+    if any(nxt[r][c] not in (PLAYER, MARK) for (r, c) in new):
+        return &quot;FALSE&quot;
+    # 原位置腾出来的那部分必须变成 NODE 色
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for (r, c) in old - new:
+        if nxt[r][c] != NODE:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;只在 bridge_gate 说走得动时生成，且**只画主体色**——
+    块内哪一格是记号由 mark_faces 单独主张，这条不碰，免得两条概念在同一格上打架。&quot;&quot;&quot;
+    if action not in DELTA:
+        return None
+    a = me(prev)
+    if a is None or not on_grid(*a, prev):
+        return None
+    dr, dc = DELTA[action]
+    if block_color(prev, a[0] + dr // 2, a[1] + dc // 2) != BRIDGE:
+        return None
+    from _lib import mark_cell_for, target
+    b = (a[0] + dr, a[1] + dc)
+    if b == target(prev):
+        return None                    # reach_goal：这一步过关，整屏重画，本条不生成
+    skip = mark_cell_for(b[0], b[1], action)
+    out = {}
+    old = {(a[0] + i, a[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    new = {(b[0] + i, b[1] + j) for i in range(BLOCK) for j in range(BLOCK)}
+    for cell in new:
+        if cell != skip:
+            out[cell] = PLAYER
+    for (r, c) in old - new:
+        out[(r, c)] = NODE
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">patrol_kills</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">从侧面踩进巡逻，它就消失</div></summary><div class="body"><div class="doc">玩家一步踩进某只色12 巡逻兵所在的格、且移动方向与它朝向垂直时，那只巡逻兵当步消失，且不 GAME_OVER。
+
+和 foe_kills 是同一条击杀规则，只是作用在会动的那一族身上。
+在此之前册子里只有「巡逻兵的<b>落点</b>踩不得」（game_over 的一支），
+从没说过「巡逻兵<b>当前所在的格</b>踩进去会怎样」——那一块是空的，
+而我第 8 关有一步就是在这块空白上误打误撞过去的：当时以为它凭空消失了，
+查像素才知道是被我杀的（色12 从 24 像素掉到 16，记号色15 从 5 掉到 4）。
+
+只此一条证据，N 会很低。写下来是为了让规划器里那句「踩进色12 的格不会死」
+指得到一条概念，而不是我脑子里的类比（方法册「危险格表是世界事实」）。
+非垂直进入那一支不敢说，语料里 0 条，留 NA。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-10T03:18:07 · L5</span><div>玩家一步踩进某只色12 巡逻兵所在的格、且移动方向与它朝向垂直时，那只巡逻兵当步消失，且不 GAME_OVER。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家一步踩进某只色12 巡逻兵所在的格、且移动方向与它朝向垂直时，那只巡逻兵当步消失，且不 GAME_OVER。
+
+和 foe_kills 是同一条击杀规则，只是作用在会动的那一族身上。
+在此之前册子里只有「巡逻兵的**落点**踩不得」（game_over 的一支），
+从没说过「巡逻兵**当前所在的格**踩进去会怎样」——那一块是空的，
+而我第 8 关有一步就是在这块空白上误打误撞过去的：当时以为它凭空消失了，
+查像素才知道是被我杀的（色12 从 24 像素掉到 16，记号色15 从 5 掉到 4）。
+
+只此一条证据，N 会很低。写下来是为了让规划器里那句「踩进色12 的格不会死」
+指得到一条概念，而不是我脑子里的类比（方法册「危险格表是世界事实」）。
+非垂直进入那一支不敢说，语料里 0 条，留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失、me(prev) 读不出、prev 里没有色12 块，返回 NA；&quot;
+         &quot;**落点不是某只色12 块当前所在的格位**返回 NA（绝大多数步都落在这里）；&quot;
+         &quot;那只巡逻兵的朝向读不出、或移动方向与它朝向不垂直，返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;ebf9dd329ff7cfd6&quot;]     # 第 360 步 第 8 关：我向下踩进一只横着走的巡逻兵
+
+from _lib import me, patrols, patrol_facing, DELTA, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    ps = patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in ps:
+        return &quot;NA&quot;
+    f = patrol_facing(prev, dst[0], dst[1])
+    if f is None or f[0] * d[0] + f[1] * d[1] != 0:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if dst not in patrols(nxt) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家一步踩进某只色12 巡逻兵所在的格、且移动方向与它朝向垂直时，那只巡逻兵当步消失，且不 GAME_OVER。
+
+和 foe_kills 是同一条击杀规则，只是作用在会动的那一族身上。
+在此之前册子里只有「巡逻兵的**落点**踩不得」（game_over 的一支），
+从没说过「巡逻兵**当前所在的格**踩进去会怎样」——那一块是空的，
+而我第 8 关有一步就是在这块空白上误打误撞过去的：当时以为它凭空消失了，
+查像素才知道是被我杀的（色12 从 24 像素掉到 16，记号色15 从 5 掉到 4）。
+
+只此一条证据，N 会很低。写下来是为了让规划器里那句「踩进色12 的格不会死」
+指得到一条概念，而不是我脑子里的类比（方法册「危险格表是世界事实」）。
+非垂直进入那一支不敢说，语料里 0 条，留 NA。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失、me(prev) 读不出、prev 里没有色12 块，返回 NA；&quot;
+         &quot;**落点不是某只色12 块当前所在的格位**返回 NA（绝大多数步都落在这里）；&quot;
+         &quot;那只巡逻兵的朝向读不出、或移动方向与它朝向不垂直，返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;ebf9dd329ff7cfd6&quot;]     # 第 360 步 第 8 关：我向下踩进一只横着走的巡逻兵
+
+from _lib import me, patrols, patrol_facing, DELTA, GAME_OVER_STATE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action not in DELTA:
+        return &quot;NA&quot;
+    a = me(prev)
+    if a is None:
+        return &quot;NA&quot;
+    ps = patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    d = DELTA[action]
+    dst = (a[0] + d[0], a[1] + d[1])
+    if dst not in ps:
+        return &quot;NA&quot;
+    f = patrol_facing(prev, dst[0], dst[1])
+    if f is None or f[0] * d[0] + f[1] * d[1] != 0:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) == GAME_OVER_STATE:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if dst not in patrols(nxt) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">patrol_steps</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">玩家真走了，巡逻才走</div></summary><div class="body"><div class="doc">巡逻兵只在玩家动作生效时走：me 动了，色12 块才沿自己朝向平移一格；me 被挡，世界冻结，它也不动。
+
+v2 死于 490fdcfeb52f7354：me 在 (40,33) 发被墙挡的 A1（(37,33) 无桥），帧上只有 HUD 三格变化，
+巡逻兵留在 (34,39) 没走——「每步都走」错了，走棋以玩家的有效动作为节拍。
+这也是第 3 关相位墙的一半：被挡动作不能用来调巡逻兵的相位。
+
+LEVEL: L6
+SCOPE: 只看帧上有色12 块的动作（ACTION1..4）；色12 块数量变化（生/灭）返回 NA；
+       me() 定位不到返回 NA
+NOTE: 只管「走没走、走多远、跟不跟着世界节拍」，掉头方向见 patrol_turns。
+      「me 动了」用位置平移判定（move_shift 的读法）；被挡 = me 原地 = 冻结。
+EVIDENCE: 32ec594bb2809c0d 5e6f831eaaca66dc ad3d4f4ccd3c8e45 490fdcfeb52f7354</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T20:13:49 · L6</span><div>巡逻兵每步都走：色12 块每一次动作后沿自己朝向平移一格（CELL）。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;巡逻兵每步都走：色12 块每一次动作后沿自己朝向平移一格（CELL）。
+
+和色8 那只（foe_walks：待在 SPAWN 不动）正相反 —— 这是两种实体，不是一种。
+死因证据：第 66 步我走进 (40,39)，它也在同一步走到 (40,39)，正面相撞 GAME_OVER。
+它从 (22,39) 起，第 63/64/65/66 步分别在 (22,39)/(28,39)/(34,39)/(40,39)：
+每步 6 行，一步不停，和我离它多远无关。
+
+LEVEL: L6
+SCOPE: 帧上存在至少一只色12 块，且动作是 ACTION1..4
+NOTE: 只管「走了没走、走多远」，不管掉头（见 patrol_turns）也不管撞上会怎样。
+      朝向读法借 MARK_OFFSET，那张表本身没走过闸。
+&quot;&quot;&quot;
+import _lib
+
+LEVEL = &quot;L6&quot;
+EVIDENCE = [&quot;32ec594bb2809c0d&quot;, &quot;5e6f831eaaca66dc&quot;, &quot;ad3d4f4ccd3c8e45&quot;]
+
+
+def assert_(prev, next, action, ctx):
+    if action not in _lib.DELTA:
+        return &quot;NA&quot;
+    ps = _lib.patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    ns = _lib.patrols(next)
+    if len(ns) != len(ps):
+        return &quot;NA&quot;          # 有生有灭就不是「平移」这件事，交给别的概念
+    for top, left in ps:
+        face = _lib.patrol_facing(prev, top, left)
+        if face is None:
+            return &quot;NA&quot;
+        want = (top + face[0], left + face[1])
+        back = (top - face[0], left - face[1])
+        # 走一格：新位置要么在朝向前方（继续走），要么在后方（这一步掉头了）
+        if want not in ns and back not in ns:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T20:15:43 · L6</span><div>巡逻兵每步都走：色12 块每一次动作后沿自己朝向平移一格（CELL）。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;巡逻兵每步都走：色12 块每一次动作后沿自己朝向平移一格（CELL）。
+
+和色8 那只（foe_walks：待在 SPAWN 不动）正相反 —— 这是两种实体，不是一种。
+死因证据：第 66 步我走进 (40,39)，它也在同一步走到 (40,39)，正面相撞 GAME_OVER。
+它从 (22,39) 起，第 63/64/65/66 步分别在 (22,39)/(28,39)/(34,39)/(40,39)：
+每步 6 行，一步不停，和我离它多远无关。
+
+LEVEL: L6
+SCOPE: 帧上存在至少一只色12 块，且动作是 ACTION1..4
+NOTE: 只管「走了没走、走多远」，不管掉头（见 patrol_turns）也不管撞上会怎样。
+      朝向读法借 MARK_OFFSET，那张表本身没走过闸。
+&quot;&quot;&quot;
+import _lib
+
+LEVEL = &quot;L6&quot;
+EVIDENCE = [&quot;32ec594bb2809c0d&quot;, &quot;5e6f831eaaca66dc&quot;, &quot;ad3d4f4ccd3c8e45&quot;]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if action not in _lib.DELTA:
+        return &quot;NA&quot;
+    ps = _lib.patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    ns = _lib.patrols(nxt)
+    if len(ns) != len(ps):
+        return &quot;NA&quot;          # 有生有灭就不是「平移」这件事，交给别的概念
+    for top, left in ps:
+        face = _lib.patrol_facing(prev, top, left)
+        if face is None:
+            return &quot;NA&quot;
+        want = (top + face[0], left + face[1])
+        back = (top - face[0], left - face[1])
+        # 走一格：新位置要么在朝向前方（继续走），要么在后方（这一步掉头了）
+        if want not in ns and back not in ns:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-09T20:36:42 · L6</span><div>巡逻兵只在玩家动作生效时走：me 动了，色12 块才沿自己朝向平移一格；me 被挡，世界冻结，它也不动。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;巡逻兵只在玩家动作生效时走：me 动了，色12 块才沿自己朝向平移一格；me 被挡，世界冻结，它也不动。
+
+v2 死于 490fdcfeb52f7354：me 在 (40,33) 发被墙挡的 A1（(37,33) 无桥），帧上只有 HUD 三格变化，
+巡逻兵留在 (34,39) 没走——「每步都走」错了，走棋以玩家的有效动作为节拍。
+这也是第 3 关相位墙的一半：被挡动作不能用来调巡逻兵的相位。
+
+LEVEL: L6
+SCOPE: 只看帧上有色12 块的动作（ACTION1..4）；色12 块数量变化（生/灭）返回 NA；
+       me() 定位不到返回 NA
+NOTE: 只管「走没走、走多远、跟不跟着世界节拍」，掉头方向见 patrol_turns。
+      「me 动了」用位置平移判定（move_shift 的读法）；被挡 = me 原地 = 冻结。
+EVIDENCE: 32ec594bb2809c0d 5e6f831eaaca66dc ad3d4f4ccd3c8e45 490fdcfeb52f7354
+&quot;&quot;&quot;
+import _lib
+
+LEVEL = &quot;L6&quot;
+EVIDENCE = [&quot;32ec594bb2809c0d&quot;, &quot;5e6f831eaaca66dc&quot;, &quot;ad3d4f4ccd3c8e45&quot;,
+            &quot;490fdcfeb52f7354&quot;]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if action not in _lib.DELTA:
+        return &quot;NA&quot;
+    ps = _lib.patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    ns = _lib.patrols(nxt)
+    if len(ns) != len(ps):
+        return &quot;NA&quot;          # 有生有灭就不是「平移」这件事，交给别的概念
+    a, b = _lib.me(prev), _lib.me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    moved = (a != b)
+    for top, left in ps:
+        face = _lib.patrol_facing(prev, top, left)
+        if face is None:
+            return &quot;NA&quot;
+        want = (top + face[0], left + face[1])
+        back = (top - face[0], left - face[1])
+        if moved:
+            # 玩家走了棋：巡逻兵必须走一格（直行或掉头后走，两种都算走）
+            if want not in ns and back not in ns:
+                return &quot;FALSE&quot;
+        else:
+            # 玩家被挡：世界冻结，巡逻兵必须原地
+            if (top, left) not in ns:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;巡逻兵只在玩家动作生效时走：me 动了，色12 块才沿自己朝向平移一格；me 被挡，世界冻结，它也不动。
+
+v2 死于 490fdcfeb52f7354：me 在 (40,33) 发被墙挡的 A1（(37,33) 无桥），帧上只有 HUD 三格变化，
+巡逻兵留在 (34,39) 没走——「每步都走」错了，走棋以玩家的有效动作为节拍。
+这也是第 3 关相位墙的一半：被挡动作不能用来调巡逻兵的相位。
+
+LEVEL: L6
+SCOPE: 只看帧上有色12 块的动作（ACTION1..4）；色12 块数量变化（生/灭）返回 NA；
+       me() 定位不到返回 NA
+NOTE: 只管「走没走、走多远、跟不跟着世界节拍」，掉头方向见 patrol_turns。
+      「me 动了」用位置平移判定（move_shift 的读法）；被挡 = me 原地 = 冻结。
+EVIDENCE: 32ec594bb2809c0d 5e6f831eaaca66dc ad3d4f4ccd3c8e45 490fdcfeb52f7354
+&quot;&quot;&quot;
+import _lib
+
+LEVEL = &quot;L6&quot;
+EVIDENCE = [&quot;32ec594bb2809c0d&quot;, &quot;5e6f831eaaca66dc&quot;, &quot;ad3d4f4ccd3c8e45&quot;,
+            &quot;490fdcfeb52f7354&quot;]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if action not in _lib.DELTA:
+        return &quot;NA&quot;
+    ps = _lib.patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    ns = _lib.patrols(nxt)
+    if len(ns) != len(ps):
+        return &quot;NA&quot;          # 有生有灭就不是「平移」这件事，交给别的概念
+    a, b = _lib.me(prev), _lib.me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    moved = (a != b)
+    for top, left in ps:
+        face = _lib.patrol_facing(prev, top, left)
+        if face is None:
+            return &quot;NA&quot;
+        want = (top + face[0], left + face[1])
+        back = (top - face[0], left - face[1])
+        if moved:
+            # 玩家走了棋：巡逻兵必须走一格（直行或掉头后走，两种都算走）
+            if want not in ns and back not in ns:
+                return &quot;FALSE&quot;
+        else:
+            # 玩家被挡：世界冻结，巡逻兵必须原地
+            if (top, left) not in ns:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">patrol_turns</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">巡逻走到尽头掉头</div></summary><div class="body"><div class="doc">巡逻兵沿桥走直路，尽头才掉头：走直（朝向不变）或有桥才走；无桥直行则这一步反向走。
+
+证据：两次掉头都在桥的断头处——(40,39) 向下 (43,39) 无桥 → 反向朝上；
+(16,39) 向上 (13,39) 无桥 → 反向朝下。巡逻兵走的每一步（含掉头步）中点都是桥，
+和玩家走 bridge_gate 是同一张图。
+
+LEVEL: L6
+SCOPE: 帧上有色12 块且玩家动作生效（me 平移了）；动作不是 ACTION1..4 返回 NA
+NOTE: 「走没走」归 patrol_steps；这里只管方向——直行还是掉头、掉头的条件。
+      桥的读法沿用 _lib.block_color（bridge_gate 赌的同一个词）。
+EVIDENCE: ad3d4f4ccd3c8e45 44dac0b1764895f0</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T20:36:42 · L6</span><div>巡逻兵沿桥走直路，尽头才掉头：走直（朝向不变）或有桥才走；无桥直行则这一步反向走。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;巡逻兵沿桥走直路，尽头才掉头：走直（朝向不变）或有桥才走；无桥直行则这一步反向走。
+
+证据：两次掉头都在桥的断头处——(40,39) 向下 (43,39) 无桥 → 反向朝上；
+(16,39) 向上 (13,39) 无桥 → 反向朝下。巡逻兵走的每一步（含掉头步）中点都是桥，
+和玩家走 bridge_gate 是同一张图。
+
+LEVEL: L6
+SCOPE: 帧上有色12 块且玩家动作生效（me 平移了）；动作不是 ACTION1..4 返回 NA
+NOTE: 「走没走」归 patrol_steps；这里只管方向——直行还是掉头、掉头的条件。
+      桥的读法沿用 _lib.block_color（bridge_gate 赌的同一个词）。
+EVIDENCE: ad3d4f4ccd3c8e45 44dac0b1764895f0
+&quot;&quot;&quot;
+import _lib
+
+LEVEL = &quot;L6&quot;
+EVIDENCE = [&quot;ad3d4f4ccd3c8e45&quot;, &quot;44dac0b1764895f0&quot;]
+
+
+def _block_color_at(g, top, left):
+    return _lib.block_color(g, top, left)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if action not in _lib.DELTA:
+        return &quot;NA&quot;
+    ps = _lib.patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    ns = _lib.patrols(nxt)
+    if len(ns) != len(ps):
+        return &quot;NA&quot;
+    a, b = _lib.me(prev), _lib.me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;          # 被挡的世界不归这条管（见 patrol_steps）
+    for top, left in ps:
+        face = _lib.patrol_facing(prev, top, left)
+        if face is None:
+            return &quot;NA&quot;
+        want = (top + face[0], left + face[1])
+        back = (top - face[0], left - face[1])
+        if want in ns:
+            mid = (top + face[0] // 2, left + face[1] // 2)
+            # 直行必须真有桥；没有桥还能直行，说明桥的读法或掉头条件错了
+            if _block_color_at(prev, mid[0], mid[1]) != _lib.BRIDGE:
+                return &quot;FALSE&quot;
+        elif back in ns:
+            mid = (top + face[0] // 2, left + face[1] // 2)
+            # 掉头只准发生在直行无桥的尽头；有桥还掉头就是反例
+            if _block_color_at(prev, mid[0], mid[1]) == _lib.BRIDGE:
+                return &quot;FALSE&quot;
+        else:
+            return &quot;FALSE&quot;   # 既没直行也没反向——斜走/跳格，不在主张内
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;巡逻兵沿桥走直路，尽头才掉头：走直（朝向不变）或有桥才走；无桥直行则这一步反向走。
+
+证据：两次掉头都在桥的断头处——(40,39) 向下 (43,39) 无桥 → 反向朝上；
+(16,39) 向上 (13,39) 无桥 → 反向朝下。巡逻兵走的每一步（含掉头步）中点都是桥，
+和玩家走 bridge_gate 是同一张图。
+
+LEVEL: L6
+SCOPE: 帧上有色12 块且玩家动作生效（me 平移了）；动作不是 ACTION1..4 返回 NA
+NOTE: 「走没走」归 patrol_steps；这里只管方向——直行还是掉头、掉头的条件。
+      桥的读法沿用 _lib.block_color（bridge_gate 赌的同一个词）。
+EVIDENCE: ad3d4f4ccd3c8e45 44dac0b1764895f0
+&quot;&quot;&quot;
+import _lib
+
+LEVEL = &quot;L6&quot;
+EVIDENCE = [&quot;ad3d4f4ccd3c8e45&quot;, &quot;44dac0b1764895f0&quot;]
+
+
+def _block_color_at(g, top, left):
+    return _lib.block_color(g, top, left)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if action not in _lib.DELTA:
+        return &quot;NA&quot;
+    ps = _lib.patrols(prev)
+    if not ps:
+        return &quot;NA&quot;
+    ns = _lib.patrols(nxt)
+    if len(ns) != len(ps):
+        return &quot;NA&quot;
+    a, b = _lib.me(prev), _lib.me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;          # 被挡的世界不归这条管（见 patrol_steps）
+    for top, left in ps:
+        face = _lib.patrol_facing(prev, top, left)
+        if face is None:
+            return &quot;NA&quot;
+        want = (top + face[0], left + face[1])
+        back = (top - face[0], left - face[1])
+        if want in ns:
+            mid = (top + face[0] // 2, left + face[1] // 2)
+            # 直行必须真有桥；没有桥还能直行，说明桥的读法或掉头条件错了
+            if _block_color_at(prev, mid[0], mid[1]) != _lib.BRIDGE:
+                return &quot;FALSE&quot;
+        elif back in ns:
+            mid = (top + face[0] // 2, left + face[1] // 2)
+            # 掉头只准发生在直行无桥的尽头；有桥还掉头就是反例
+            if _block_color_at(prev, mid[0], mid[1]) == _lib.BRIDGE:
+                return &quot;FALSE&quot;
+        else:
+            return &quot;FALSE&quot;   # 既没直行也没反向——斜走/跳格，不在主张内
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">reach_goal</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">踩上目标当步过关</div></summary><div class="body"><div class="doc">踩上目标块（色14）当步换关；没踩上绝不换关——<b>只用 prev 判</b>。
+
+v1 死于 f78cbb893b781c08：换关那一帧整屏重画，我却拿 nxt 里的玩家块去和 <b>prev</b> 的目标块比。
+换关后 me(nxt) 读出来的是新关的玩家位置，跟旧关的目标块毫无关系，于是判 FALSE。
+判据必须只用「动作之前的局面 + 这个动作」算，不能读换关后的帧——那一帧已经是另一个世界了。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-09T18:45:18 · L5</span><div>玩家块与目标块（色14）重合时换关；没重合绝不换关。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家块与目标块（色14）重合时换关；没重合绝不换关。
+
+否定式那一半（「没重合绝不换关」）每一步都在被检验——至今 19 步全没换关，
+而玩家从来没到过目标块上。正向那一半要走进去才知道。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(nxt) 读不出来返回 NA；&quot;
+         &quot;prev 里读不出目标块（色14 不存在）返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;28d9c01f282a2422&quot;, &quot;2ad77e018e642ab7&quot;, &quot;794190918c9b25b7&quot;]
+
+from _lib import me, DELTA, target
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    t = target(prev)
+    if t is None:
+        return &quot;NA&quot;
+    b = me(nxt)
+    if b is None:
+        # 玩家块读不出来：换关重画那一帧就长这样，交给别的概念
+        return &quot;NA&quot;
+    leveled = ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]
+    return &quot;TRUE&quot; if (b == t) == leveled else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-09T18:48:10 · L5</span><div>踩上目标块（色14）当步换关；没踩上绝不换关——<b>只用 prev 判</b>。</div><div>v2：v1 拿 me(nxt) 和 target(prev) 比，换关重画那一帧 nxt 是新关的世界，比出来必错。改成从 prev 算落点：走得动就落在 me(prev)+DELTA，走不动就还在原地。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;踩上目标块（色14）当步换关；没踩上绝不换关——**只用 prev 判**。
+
+v1 死于 f78cbb893b781c08：换关那一帧整屏重画，我却拿 nxt 里的玩家块去和 **prev** 的目标块比。
+换关后 me(nxt) 读出来的是新关的玩家位置，跟旧关的目标块毫无关系，于是判 FALSE。
+判据必须只用「动作之前的局面 + 这个动作」算，不能读换关后的帧——那一帧已经是另一个世界了。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(prev) 读不出来返回 NA；&quot;
+         &quot;prev 里读不出目标块返回 NA；me(prev) 不在阵列块角上返回 NA。&quot;
+         &quot;只用 prev 与 action 推落点，一格都不读 nxt&quot;)
+NOTE = (&quot;v2：v1 拿 me(nxt) 和 target(prev) 比，换关重画那一帧 nxt 是新关的世界，比出来必错。&quot;
+        &quot;改成从 prev 算落点：走得动就落在 me(prev)+DELTA，走不动就还在原地。&quot;)
+EVIDENCE = [&quot;28d9c01f282a2422&quot;, &quot;2ad77e018e642ab7&quot;, &quot;794190918c9b25b7&quot;,
+            &quot;f78cbb893b781c08&quot;]
+
+from _lib import me, DELTA, target, on_grid, block_color, BRIDGE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    d = DELTA.get(action)
+    if d is None:
+        return &quot;NA&quot;
+    t = target(prev)
+    a = me(prev)
+    if t is None or a is None or not on_grid(*a):
+        return &quot;NA&quot;
+    # 落点：中间块是桥才走得动（bridge_gate 的判据），否则原地不动
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) == BRIDGE:
+        landing = (a[0] + d[0], a[1] + d[1])
+    else:
+        landing = a
+    leveled = ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]
+    return &quot;TRUE&quot; if (landing == t) == leveled else &quot;FALSE&quot;
+
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-09T18:49:28 · L5</span><div>踩上目标块（色14）当步换关；没踩上绝不换关——<b>只用 prev 判</b>。</div><div>v2：v1 拿 me(nxt) 和 target(prev) 比，换关重画那一帧 nxt 是新关的世界，比出来必错。改成从 prev 算落点：走得动就落在 me(prev)+DELTA，走不动就还在原地。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;踩上目标块（色14）当步换关；没踩上绝不换关——**只用 prev 判**。
+
+v1 死于 f78cbb893b781c08：换关那一帧整屏重画，我却拿 nxt 里的玩家块去和 **prev** 的目标块比。
+换关后 me(nxt) 读出来的是新关的玩家位置，跟旧关的目标块毫无关系，于是判 FALSE。
+判据必须只用「动作之前的局面 + 这个动作」算，不能读换关后的帧——那一帧已经是另一个世界了。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(prev) 读不出来返回 NA；&quot;
+         &quot;prev 里读不出目标块返回 NA；me(prev) 不在阵列块角上返回 NA。&quot;
+         &quot;只用 prev 与 action 推落点，一格都不读 nxt&quot;)
+NOTE = (&quot;v2：v1 拿 me(nxt) 和 target(prev) 比，换关重画那一帧 nxt 是新关的世界，比出来必错。&quot;
+        &quot;改成从 prev 算落点：走得动就落在 me(prev)+DELTA，走不动就还在原地。&quot;)
+EVIDENCE = [&quot;28d9c01f282a2422&quot;, &quot;2ad77e018e642ab7&quot;, &quot;794190918c9b25b7&quot;,
+            &quot;f78cbb893b781c08&quot;]
+
+from _lib import me, DELTA, target, on_grid, block_color, BRIDGE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    d = DELTA.get(action)
+    if d is None:
+        return &quot;NA&quot;
+    t = target(prev)
+    a = me(prev)
+    if t is None or a is None or not on_grid(*a, prev):
+        return &quot;NA&quot;
+    # 落点：中间块是桥才走得动（bridge_gate 的判据），否则原地不动
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) == BRIDGE:
+        landing = (a[0] + d[0], a[1] + d[1])
+    else:
+        landing = a
+    leveled = ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]
+    return &quot;TRUE&quot; if (landing == t) == leveled else &quot;FALSE&quot;
+
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;踩上目标块（色14）当步换关；没踩上绝不换关——**只用 prev 判**。
+
+v1 死于 f78cbb893b781c08：换关那一帧整屏重画，我却拿 nxt 里的玩家块去和 **prev** 的目标块比。
+换关后 me(nxt) 读出来的是新关的玩家位置，跟旧关的目标块毫无关系，于是判 FALSE。
+判据必须只用「动作之前的局面 + 这个动作」算，不能读换关后的帧——那一帧已经是另一个世界了。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION1..4；ctx 缺失返回 NA；me(prev) 读不出来返回 NA；&quot;
+         &quot;prev 里读不出目标块返回 NA；me(prev) 不在阵列块角上返回 NA。&quot;
+         &quot;只用 prev 与 action 推落点，一格都不读 nxt&quot;)
+NOTE = (&quot;v2：v1 拿 me(nxt) 和 target(prev) 比，换关重画那一帧 nxt 是新关的世界，比出来必错。&quot;
+        &quot;改成从 prev 算落点：走得动就落在 me(prev)+DELTA，走不动就还在原地。&quot;)
+EVIDENCE = [&quot;28d9c01f282a2422&quot;, &quot;2ad77e018e642ab7&quot;, &quot;794190918c9b25b7&quot;,
+            &quot;f78cbb893b781c08&quot;]
+
+from _lib import me, DELTA, target, on_grid, block_color, BRIDGE
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    d = DELTA.get(action)
+    if d is None:
+        return &quot;NA&quot;
+    t = target(prev)
+    a = me(prev)
+    if t is None or a is None or not on_grid(*a, prev):
+        return &quot;NA&quot;
+    # 落点：中间块是桥才走得动（bridge_gate 的判据），否则原地不动
+    if block_color(prev, a[0] + d[0] // 2, a[1] + d[1] // 2) == BRIDGE:
+        landing = (a[0] + d[0], a[1] + d[1])
+    else:
+        landing = a
+    leveled = ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]
+    return &quot;TRUE&quot; if (landing == t) == leveled else &quot;FALSE&quot;
+
+</code></pre></details></div></details></div><details class="src"><summary>本局共享词汇 _lib.py</summary><pre><code class="language-python">&quot;&quot;&quot;这一局的词汇表 —— **每个定义都是假设，不是装置给的事实**。
+
+实测来源（第 1-8 步）：
+    玩家 = 色9 的 8 格 + 色4 的 1 格，合起来是一个 3x3 实心块；色4 占该块的一条边的中点。
+    第 4 步 ACTION4：整块 Δ(0,+6)，原位变色0。
+    第 7 步 ACTION2：整块 Δ(+6,0)，原位变色0，色4 从右中位移到下中位。
+    ACTION1 / ACTION3 至今没生效过（第 1、3、6、8 步都只扣 HUD），所以它们的 DELTA 是**猜的**，
+    按「上 / 左」填，等世界来打。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from geo import cells_of  # noqa: F401
+
+CELL = 6               # 一次生效移动的格数（第 4、7 步实测 |Δ| = 6）
+BLOCK = 3              # 玩家块 / 地砖块的边长（实测 3x3）
+
+PLAYER = 9             # 玩家块主体色
+MARK = 4               # 玩家块上的单格记号，占块内某条边的中点
+TARGET = 14            # 全图唯一的另一个 3x3 实心块（开局在 (45,45)）
+FOE = 8                # 第 1 关起出现的第二个 3x3 块：会动，撞上就 GAME_OVER
+FOE_MARK = 15          # 敌人块上的单格记号，和玩家的色4 同构：指它下一步要走的方向
+GAME_OVER_STATE = &quot;GAME_OVER&quot;
+HUD_ROW = 63           # 行 63 整行：开局 64 格色6，每步从右端起变色0
+HUD_COLOR = 6
+
+# 猜的部分：只有 ACTION2 / ACTION4 有实测支撑
+DELTA = {
+    &quot;ACTION1&quot;: (-CELL, 0),
+    &quot;ACTION2&quot;: (CELL, 0),
+    &quot;ACTION3&quot;: (0, -CELL),
+    &quot;ACTION4&quot;: (0, CELL),
+}
+
+# 记号相对块左上角的偏移 -&gt; 方向名。实测：右中位 (1,2)、下中位 (2,1)。
+# 上中位 (0,1)、左中位 (1,0) 是按对称补的，没见过。
+MARK_OFFSET = {
+    (0, 1): (-CELL, 0),
+    (2, 1): (CELL, 0),
+    (1, 0): (0, -CELL),
+    (1, 2): (0, CELL),
+}
+
+
+GRID0 = 15             # 第 0 关的阵列原点。**别直接用**——第 1 关的阵列不在这里。
+PITCH = 3              # 块间距 = 块边长
+BRIDGE = 2             # 桥色（节点之间的连接块）
+NODE = 0               # 节点色（可站的落点）
+
+
+def grid_origin(g):
+    &quot;&quot;&quot;阵列的相位原点：用玩家块自己的位置反推，而不是抄上一关的常数。
+
+    玩家永远站在一个块角上（19 步实测都是），所以 (me % PITCH) 就是这一关的相位。
+    方法册「不继承上一关的常数」：GRID0 是第 0 关量出来的，第 1 关的阵列不在那里。
+    &quot;&quot;&quot;
+    a = me(g)
+    if a is None:
+        return None
+    return (a[0] % PITCH, a[1] % PITCH)
+
+
+def on_grid(top, left, g=None):
+    &quot;&quot;&quot;(top,left) 是不是块阵列上的一个块角。
+
+    给了 g 就用这一帧自己的相位（grid_origin）；没给才退回 GRID0——
+    退回那一支只对第 0 关成立，是已知的债。
+    &quot;&quot;&quot;
+    if g is not None:
+        o = grid_origin(g)
+        if o is None:
+            return False
+        return top % PITCH == o[0] and left % PITCH == o[1]
+    return (top - GRID0) % PITCH == 0 and (left - GRID0) % PITCH == 0
+
+
+def block_color(g, top, left):
+    &quot;&quot;&quot;(top,left) 起的 PITCH×PITCH 块若是纯色就返回该色，越界或不纯返回 None。&quot;&quot;&quot;
+    if top &lt; 0 or left &lt; 0 or top + PITCH &gt; len(g) or left + PITCH &gt; len(g[0]):
+        return None
+    vals = {g[top + dr][left + dc] for dr in range(PITCH) for dc in range(PITCH)}
+    return vals.pop() if len(vals) == 1 else None
+
+
+def mark_cell_for(top, left, action):
+    &quot;&quot;&quot;块 (top,left) 上，动作 action 对应的那条边的中点绝对坐标；动作不在表里返回 None。
+
+    共享词：mark_faces 用它做主张，move_shift 用它把这一格让出去（免得两条概念在同一格打架）。
+    概念之间不能互相 import——predict 路径下 sys.path 里只有 _lib。
+    &quot;&quot;&quot;
+    d = DELTA.get(action)
+    if d is None:
+        return None
+    for off, dd in MARK_OFFSET.items():
+        if dd == d:
+            return (top + off[0], left + off[1])
+    return None
+
+
+def _block_of(g, color):
+    &quot;&quot;&quot;色 color 的所有格子的 bbox 左上角；没有该色返回 None。&quot;&quot;&quot;
+    cs = [(r, c) for r, row in enumerate(g) for c, v in enumerate(row) if v == color]
+    if not cs:
+        return None
+    return (min(r for r, _ in cs), min(c for _, c in cs))
+
+
+def me(g):
+    &quot;&quot;&quot;玩家块的 (top_row, left_col)：色9 与色4 合起来的 bbox 左上角。
+
+    只在两者合起来恰好铺满一个 3x3（9 格）时给答案，否则 None——
+    「色4 一定嵌在玩家块里」本身是假设，不满足时宁可闭嘴。
+    &quot;&quot;&quot;
+    cs = [(r, c) for r, row in enumerate(g)
+          for c, v in enumerate(row) if v in (PLAYER, MARK)]
+    if len(cs) != BLOCK * BLOCK:
+        return None
+    top, left = min(r for r, _ in cs), min(c for _, c in cs)
+    if set(cs) != {(top + dr, left + dc)
+                   for dr in range(BLOCK) for dc in range(BLOCK)}:
+        return None
+    return (top, left)
+
+
+def facing(g):
+    &quot;&quot;&quot;色4 记号指的方向，返回 DELTA 里的那种 (dr, dc)；读不出来返回 None。&quot;&quot;&quot;
+    a = me(g)
+    if a is None:
+        return None
+    m = _block_of(g, MARK)
+    if m is None:
+        return None
+    return MARK_OFFSET.get((m[0] - a[0], m[1] - a[1]))
+
+
+def target(g):
+    &quot;&quot;&quot;目标块 (top_row, left_col)；不存在返回 None。&quot;&quot;&quot;
+    return _block_of(g, TARGET)
+
+
+def foe(g):
+    &quot;&quot;&quot;敌人块（色8 + 色15）的 (top_row, left_col)。
+
+    和 me() 同构：只在两色合起来恰好铺满一个 BLOCK×BLOCK 时给答案。
+    第 0 关没有敌人，返回 None——那是对的，不是失败。
+    &quot;&quot;&quot;
+    cs = [(r, c) for r, row in enumerate(g)
+          for c, v in enumerate(row) if v in (FOE, FOE_MARK)]
+    if len(cs) != BLOCK * BLOCK:
+        return None
+    top, left = min(r for r, _ in cs), min(c for _, c in cs)
+    if set(cs) != {(top + dr, left + dc)
+                   for dr in range(BLOCK) for dc in range(BLOCK)}:
+        return None
+    return (top, left)
+
+
+def foe_mark_offset(g):
+    &quot;&quot;&quot;色15 记号相对敌人块左上角的偏移；读不出来返回 None。&quot;&quot;&quot;
+    f = foe(g)
+    m = _block_of(g, FOE_MARK)
+    if f is None or m is None:
+        return None
+    return (m[0] - f[0], m[1] - f[1])
+
+
+def foe_facing(g):
+    &quot;&quot;&quot;敌人记号指的方向，返回 DELTA 里的那种 (dr, dc)；读不出来返回 None。
+
+    和玩家的 facing() 共用同一张 MARK_OFFSET 表——这是个**假设**：
+    两种记号的读法相同。它没被单独检验过，foe_walks 就是在赌它。
+    &quot;&quot;&quot;
+    off = foe_mark_offset(g)
+    return None if off is None else MARK_OFFSET.get(off)
+
+
+PATROL = 12            # 第 3 关起出现的第三种 3x3 块：和色8 同构（8格 + 1格色15）
+
+
+def _entities(g, body):
+    &quot;&quot;&quot;把「色 body 的格子 + 色15 记号」切成一个个 BLOCK×BLOCK 块。
+
+    色8 和色12 可能同屏（第 3 关），色15 记号也就有多个；
+    记号按「落在哪个块的范围里」归属，不靠 _block_of 的唯一性。
+    返回 [(top, left), ...]，按 (top, left) 排序。
+    &quot;&quot;&quot;
+    body_cs = [(r, c) for r, row in enumerate(g)
+               for c, v in enumerate(row) if v == body]
+    marks = [(r, c) for r, row in enumerate(g)
+             for c, v in enumerate(row) if v == FOE_MARK]
+    out = []
+    seen = set()
+    for r0, c0 in body_cs:
+        for top in range(r0 - BLOCK + 1, r0 + 1):
+            for left in range(c0 - BLOCK + 1, c0 + 1):
+                if (top, left) in seen:
+                    continue
+                cells = {(top + dr, left + dc)
+                         for dr in range(BLOCK) for dc in range(BLOCK)}
+                if not all(0 &lt;= r &lt; len(g) and 0 &lt;= c &lt; len(g[0])
+                           for r, c in cells):
+                    continue
+                got = {(r, c) for r, c in cells
+                       if g[r][c] == body or (r, c) in marks}
+                if got == cells and any((r, c) in marks for r, c in cells):
+                    seen.add((top, left))
+                    out.append((top, left))
+    return sorted(out)
+
+
+def patrols(g):
+    &quot;&quot;&quot;所有色12 巡逻兵块的 (top, left)，按位置排序；没有就是空表。&quot;&quot;&quot;
+    return _entities(g, PATROL)
+
+
+def foes(g):
+    &quot;&quot;&quot;所有色8 敌人块的 (top, left)，按位置排序；没有就是空表。
+
+    和 foe() 的区别：foe() 只在全帧的色8+色15 恰好铺满**一个**块时才给答案，
+    多只敌人同屏、或别的带色15 记号的块同屏时，它一律读不出来（返回 None）。
+    &quot;&quot;&quot;
+    return _entities(g, FOE)
+
+
+CHASER = 13            # 第 6 关起出现的第四种块：8格 + 1格记号
+CHASER_ASLEEP = 15     # 记号是这个色 = 它休眠，不动
+CHASER_AWAKE = 11      # 记号是这个色 = 它已唤醒，每步都动
+
+
+def chasers(g):
+    &quot;&quot;&quot;所有色13 块的 (top, left)，按位置排序；没有就是空表。
+
+    **不能用 _entities**：那个只认色15 记号，而这种块唤醒后记号会变成色11，
+    于是它从块开始动的那一刻起就读不出来了——概念会在最该说话的每一步上返回 NA。
+    &quot;&quot;&quot;
+    out = []
+    for r in range(len(g) - BLOCK + 1):
+        for c in range(len(g[0]) - BLOCK + 1):
+            v = [g[r + dr][c + dc] for dr in range(BLOCK) for dc in range(BLOCK)]
+            if v.count(CHASER) != BLOCK * BLOCK - 1:
+                continue
+            if CHASER_ASLEEP not in v and CHASER_AWAKE not in v:
+                continue
+            if any(abs(r - a) &lt; BLOCK and abs(c - b) &lt; BLOCK for a, b in out):
+                continue
+            out.append((r, c))
+    return sorted(out)
+
+
+def chaser_mark(g, top, left):
+    &quot;&quot;&quot;那只色13 块的记号 (色, 块内偏移)；读不出返回 (None, None)。&quot;&quot;&quot;
+    for dr in range(BLOCK):
+        for dc in range(BLOCK):
+            v = g[top + dr][left + dc]
+            if v in (CHASER_AWAKE, CHASER_ASLEEP):
+                return v, (dr, dc)
+    return None, None
+
+
+def chaser_awake(g, top, left):
+    &quot;&quot;&quot;那只色13 块醒了没；读不出返回 None。&quot;&quot;&quot;
+    col, _ = chaser_mark(g, top, left)
+    return None if col is None else col == CHASER_AWAKE
+
+
+def chaser_facing(g, top, left):
+    &quot;&quot;&quot;那只色13 块记号指的方向；读不出返回 None。&quot;&quot;&quot;
+    _, off = chaser_mark(g, top, left)
+    return None if off is None else MARK_OFFSET.get(off)
+
+
+def cell_dist(p, q):
+    &quot;&quot;&quot;两个块左上角之间的曼哈顿距离，按格（CELL）计。&quot;&quot;&quot;
+    return (abs(p[0] - q[0]) + abs(p[1] - q[1])) // CELL
+
+
+BG = 5                 # 底色：占地最多、没人站的那一色
+
+
+def majority_color(g, top, left):
+    &quot;&quot;&quot;块的多数色。block_color 遇到带记号的块返回 None，这个不会。&quot;&quot;&quot;
+    if top &lt; 0 or left &lt; 0 or top + PITCH &gt; len(g) or left + PITCH &gt; len(g[0]):
+        return None
+    v = [g[top + dr][left + dc] for dr in range(PITCH) for dc in range(PITCH)]
+    return max(set(v), key=v.count)
+
+
+def bridge_graph(g):
+    &quot;&quot;&quot;这一帧的落点图：{块角: [相邻块角, ...]}，边 = 中点块的多数色是桥色。
+
+    节点 = 阵列上多数色不是底色的块。和 bridge_gate 赌的是同一张图，
+    只是那条概念每次只问一条边，这里把整张图铺开——**是同一个假设的两种用法**。
+    &quot;&quot;&quot;
+    o = grid_origin(g)
+    if o is None:
+        return {}
+    ns = set()
+    for t in range(o[0], len(g) - PITCH + 1, PITCH):
+        for l in range(o[1], len(g[0]) - PITCH + 1, PITCH):
+            if majority_color(g, t, l) != BG:
+                ns.add((t, l))
+    adj = {}
+    for n in ns:
+        for d in DELTA.values():
+            dst = (n[0] + d[0], n[1] + d[1])
+            if dst not in ns:
+                continue
+            if majority_color(g, n[0] + d[0] // 2, n[1] + d[1] // 2) == BRIDGE:
+                adj.setdefault(n, []).append(dst)
+    return adj
+
+
+def first_steps(adj, src, dst):
+    &quot;&quot;&quot;adj 上 src 走向 dst 的所有最短路第一步；不连通返回 None，同格返回空集。&quot;&quot;&quot;
+    from collections import deque
+    if src == dst:
+        return set()
+    dist = {dst: 0}
+    q = deque([dst])
+    while q:
+        u = q.popleft()
+        for v in adj.get(u, []):
+            if v not in dist:
+                dist[v] = dist[u] + 1
+                q.append(v)
+    if src not in dist:
+        return None
+    return {v for v in adj.get(src, []) if dist.get(v, 1 &lt;&lt; 30) == dist[src] - 1}
+
+
+def patrol_facing(g, top, left):
+    &quot;&quot;&quot;(top,left) 那只巡逻兵的朝向；读不出来返回 None。
+
+    记号读法沿用 MARK_OFFSET —— 和 foe_facing 赌的是同一个假设。
+    &quot;&quot;&quot;
+    for dr in range(BLOCK):
+        for dc in range(BLOCK):
+            if g[top + dr][left + dc] == FOE_MARK:
+                return MARK_OFFSET.get((dr, dc))
+    return None
+
+
+def patrol_next(g, top, left):
+    &quot;&quot;&quot;那只巡逻兵下一步落在哪：朝向上有桥就直行，没桥就反向走一格。
+
+    走法沿用 patrol_turns 的主张（那条概念在这张图上判过 71 次），
+    这里只是把「下一步在哪」抽成一个词，好让别的概念拿来当危险格用。
+    朝向读不出返回 None。
+    &quot;&quot;&quot;
+    f = patrol_facing(g, top, left)
+    if f is None:
+        return None
+    dst = (top + f[0], left + f[1])
+    if dst in bridge_graph(g).get((top, left), []):
+        return dst
+    return (top - f[0], left - f[1])
+
+
+def hud_left(g):
+    &quot;&quot;&quot;HUD 带上还剩几格色6。行 63 之外的东西一概不看。&quot;&quot;&quot;
+    return sum(1 for v in g[HUD_ROW] if v == HUD_COLOR)
+
+
+def walls(g):
+    &quot;&quot;&quot;阻挡格集合。待实测：ACTION1/ACTION3 至今零生效，分不清是出界还是墙。&quot;&quot;&quot;
+    return None
+</code></pre></details></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/f61f9313-9b63-4593-988d-c12f4ceff1d7" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

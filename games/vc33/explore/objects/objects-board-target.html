@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象 · target</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属** ↓↓↓
+     这一局的回放是把**真实的帧**逐格画出来（帧是观测，不是世界），色号 → 屏幕颜色那张表只有一个来源：
+     export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，site.js 的 PAL 读它（给 canvas 用）。
+     这里只剩页面本身的两个颜色名。 */
+  --link: #7ab8ff;  --fg: #e8eaf0;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* 缺口摆在最上面：黄边，和「判准没过」的红分开 */
+.gapcard { border-color: #6b5a24; background: #1f1c14; margin-bottom: 16px; }
+.gapcard h2 { color: #e9c46a; }
+figure.board { margin: 0; }
+canvas { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+.controls button { margin-right: 4px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>对象 · target</h1>
+  <div class="sub">objects/board/target.py</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../howto.html">怎么给别人看</a>
+  </nav>
+</header>
+<div id="gaps"></div>
+<div id="obj"></div>
+</div>
+<script>window.PAGE = {"kind": "obj", "key": "objects/board/target.py", "up": "../"};</script>
+<script>window.DATA={"claim":{"seal":"vc33-20260907","run_id":"vc33-0907-1213","score":100.0,"levels_done":7,"levels_total":7,"steps":535},"corpus":{"rows":538,"segments":[{"guid":"64d41f8a-c407-4064-ba9d-59a331a7f1c5","seq_lo":1,"seq_hi":202,"rows":202,"max_level":5,"certified":false,"won":false,"level_actions":[13,8,23,96,56,5]},{"guid":"8ae429b0-2c8a-4c92-a6af-0a6161c35a8d","seq_lo":203,"seq_hi":370,"rows":168,"max_level":7,"certified":false,"won":true,"level_actions":[3,7,23,21,44,20,49]},{"guid":"b8edcbe1-d227-47be-a919-b751788633e5","seq_lo":371,"seq_hi":538,"rows":168,"max_level":7,"certified":true,"won":true,"level_actions":[3,7,23,21,44,20,49]}],"scorecard":{"guid":"b8edcbe1-d227-47be-a919-b751788633e5","level_actions":[3,7,23,21,44,20,49],"levels_completed":7,"actions":167},"marks":{"uncertified":370,"level_up":17,"reset":3,"win":2},"markWhy":{"reset":"RESET：局面整个换掉，模型不描述这一步（重置回开局写成明处的假设）","level_up":"换关：下一帧已经是下一关的盘，本关的规则不对它主张","win":"通关：上游报 WIN，没有下一关可开","uncertified":"这一段没被成绩单认证：只当「更多语料」读，不拿来当任何一关的见证"},"tid":{"same_content_diff_tid":0,"same_tid_diff_content":0,"rows":538,"distinct_tid":369,"repeated_rows":169,"verdict":"内容哈希"},"dupStep":[91,201,368],"bookEvidence":[{"concept":"btn_capped","evidence":1,"in_corpus":1,"missing":[]},{"concept":"btn_pull","evidence":3,"in_corpus":3,"missing":[]},{"concept":"btn_starved","evidence":3,"in_corpus":3,"missing":[]},{"concept":"click_noop","evidence":2,"in_corpus":2,"missing":[]},{"concept":"cursor_follows","evidence":5,"in_corpus":5,"missing":[]},{"concept":"flow_conserved","evidence":3,"in_corpus":3,"missing":[]},{"concept":"frame_static","evidence":7,"in_corpus":7,"missing":[]},{"concept":"gauge_lit","evidence":12,"in_corpus":12,"missing":[]},{"concept":"gauge_signal","evidence":4,"in_corpus":4,"missing":[]},{"concept":"gauge_swap","evidence":3,"in_corpus":3,"missing":[]},{"concept":"gauge_teleport","evidence":11,"in_corpus":11,"missing":[]},{"concept":"hud_cost","evidence":5,"in_corpus":5,"missing":[]},{"concept":"tank_cap","evidence":2,"in_corpus":2,"missing":[]},{"concept":"win_align","evidence":4,"in_corpus":4,"missing":[]}]},"readings":{"rows":538,"distinct":369,"silent":[],"frames":{"n":360,"a":0,"b":0,"refuted":[{"criterion":"通关（state=WIN）那一步的下一帧是终局画面、不是局面","frames":2,"readable":2,"verdict":"被证伪：这几帧全都读得成世界，画的还是真盘（最后一关的版面、液面和光标）"}]},"totalScope":2532,"totalC":2532,"totalE":0},"gaps":["「重来一次把局面放回这一关的开局」是明写的假设，不进模型；它在这批语料上有两次被驳倒的机会（L0_after_reset_203_trace、L3_after_reset_92_trace）而没被驳倒——**没红不构成证明**。","「赢不了」的两张盘说的都是：**不经过模型说不出话的那一支、也不经过 RESET** 就赢不了。","点量规把光标送过去之后恰好到位，会不会当场过关——语料里 0 次；模型按「会」写（isGoal 是局面的性质），这一句没被检验过。","顶栏（hud_cost）与量规显示的颜色（gauge_signal）不进模型：两条都在规则那一侧每步核（论域 / 被驳倒次数见身份表）。","每关那一层的见证只取成绩单认证的那一段；另外两段语料只进逐条那一层与「重来」那两条核对。","反向测试里没红的源码变异 2 个，每个都归了入口（见规则首页「反向测试」）。"],"palette":["#ffffff","#cccccc","#999999","#666666","#333333","#000000","#e53aa3","#ff7bcc","#f93c31","#1e93ff","#88d8f1","#ffdc00","#ff851b","#921231","#4fcc30","#a356d6"],"objects":[{"path":"objects/board/target.py","group":"objects/board","name":"target","doc":"`Target` —— 一段**配对目标**：嵌在某条隔条里、颜色和某个光标相同的那一段标记。\n\n它说的是「和我同色的那个光标，要停在我这个深度上、并且贴着我这条隔条」。\n\n    color   不透明 id，**只许判相等**（拿去和光标配对），不许比大小、不许当语义用\n    band    嵌在第几条隔条里（`World.bands` 的下标）\n    depths  占哪几深；目标深度 = `depths.lo`\n\n同一个颜色嵌在两条隔条里的话，「贴着哪条」就没有唯一答案——解析直接读不成（语料里 0 次）。","isPixelReader":false,"fields":[{"field":"targets","why":"字段 targets —— 配对目标（为什么删不掉）\n\n1. 记的是什么：嵌在隔条里、颜色配得到某个光标的那几段标记：颜色（不透明 id）、在哪条隔条、从多深起。\n2. 谁读它（卡 06 消融）：**只有 win_align**（外加 board_static 核它不变——那条规则抹成常量时两边一起变，读数上不动）。\n3. 抹成常量之后：seq 13 上 win_align 原判 TRUE、抹掉后判错——seq 13 是第 0 关过关那一步，\n   目标换成别关的之后「点完就到位」不成立了，而世界换了关。那一对世界规则分得开。\n4. 分离表：**分不开**（第 ③ 种）。见证是构造的那一对。卡 03 欠账 → 卡 06：留。\n   它是全盘读者最少的一个字段（25 处改判），但它是「赢」的全部定义所在，删掉它这一局就没有目标了。\n","ablation":{"第一帧的值":{"readers":{"win_align":45},"errors":{},"witness":{"seq":14,"rule":"win_align","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"win_align":25},"errors":{"win_align":2},"witness":{"seq":13,"rule":"win_align","real":"C","erased":"E"}}}}],"lean":{"path":"Obj/Board/Target.lean","source":"/-\n# Target —— 一段配对目标（对应 `objects/board/target.py`）\n\n    color   不透明 id，只许判相等（和同色光标配对）\n    band    嵌在第几条隔条里\n    depths  占哪几深；目标深度 = depths.lo\n-/\n\nimport Obj.Geometry.Span\n\nnamespace Game\n\nstructure Target where\n  color  : Nat\n  band   : Nat\n  depths : Span\nderiving Repr, DecidableEq\n\nend Game\n"}}]};</script>
+<script>
+// **页面那一侧：只画，不算。**
+//
+// 每一个数、每一个框、每一句「这一下点中了什么」都是 web/export.py 在 Python 那边算好导出来的
+// （window.DATA）。这一份只摆数据、只画图形；新增的只有两样：尺寸和配色。
+// web/check_no_logic.py 会来这里搜世界那一侧的函数名，搜到就算破了。
+
+(function () {
+  const D = window.DATA || {};
+  const P = window.PAGE || { kind: "home", up: "" };
+  const $ = (id) => document.getElementById(id);
+
+  // ---------------------------------------------------------------- 配色（渲染方面的东西）
+  // 帧里的色号 → 屏幕上的颜色。色号本身是不透明 id；这张表只有一个来源：
+  // export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号）。这里不抄。
+  const PAL = D.palette || [];
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function md(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+  function pick(path) {
+    let x = D;
+    for (const k of path.split(".")) {
+      if (x == null) return undefined;
+      x = x[k];
+    }
+    return x;
+  }
+  function chip(cls, text) { return `<span class="chip ${cls}">${esc(text)}</span>`; }
+  function vchip(v) {
+    if (v === "C") return chip("TRUE", "判对");
+    if (v === "E") return chip("FALSE", "判错");
+    if (v === "U") return chip("FALSE", "读不成");
+    if (v === "ERR") return chip("FALSE", "跑不起来");
+    return chip("NA", "不开口");
+  }
+
+  // 散文里的数：`<span data-k="路径">`。缺了就写「缺」，不留旧数。
+  function fillNumbers() {
+    for (const el of document.querySelectorAll("[data-k]")) {
+      const v = pick(el.getAttribute("data-k"));
+      el.textContent = v === undefined ? "缺" : v;
+      if (v === undefined) el.className = "bad";
+    }
+  }
+
+  function gapsBanner() {
+    const g = D.gaps || [];
+    if (!g.length || !$("gaps")) return;
+    $("gaps").innerHTML = `<div class="card gapcard"><h2>缺口（明写的，不是判准没过）</h2><ul class="tight">`
+      + g.map((x) => `<li>${md(x)}</li>`).join("") + "</ul></div>";
+  }
+
+  // ---------------------------------------------------------------- 画一帧
+  function canvasOf(fi, changed, px) {
+    const hex = (D.frames || [])[fi];
+    const c = document.createElement("canvas");
+    const s = px || 5;
+    c.width = 64 * s; c.height = 64 * s;
+    const g = c.getContext("2d");
+    if (!hex) return c;
+    for (let i = 0; i < 4096; i++) {
+      g.fillStyle = PAL[parseInt(hex[i], 16)];
+      g.fillRect((i % 64) * s, Math.floor(i / 64) * s, s, s);
+    }
+    if (changed) {
+      g.strokeStyle = "#ff3b30"; g.lineWidth = 1;
+      for (const [r, cc] of changed) g.strokeRect(cc * s + 0.5, r * s + 0.5, s - 1, s - 1);
+    }
+    return c;
+  }
+  function figure(fi, caption, changed, px) {
+    const f = document.createElement("figure");
+    f.className = "board";
+    const cap = document.createElement("figcaption");
+    cap.innerHTML = caption;
+    f.appendChild(cap);
+    f.appendChild(canvasOf(fi, changed, px));
+    return f;
+  }
+  function rowBySeq(seq) { return (D.rows || []).find((r) => r.seq === seq); }
+  function pairInto(el, seq, text) {
+    const r = rowBySeq(seq);
+    if (!el || !r) { if (el) el.innerHTML = `<p class="note bad">导出里没有这一步（缺）</p>`; return; }
+    el.appendChild(figure(r.prevF, `seq ${r.seq} · 点之前`, null, 4));
+    el.appendChild(figure(r.nextF, `点之后 · ${esc(r.word)}（框出来的是变了的格）`, r.changed, 4));
+    if (text) {
+      const p = document.createElement("p");
+      p.className = "note"; p.innerHTML = text; el.appendChild(p);
+    }
+  }
+
+  // ---------------------------------------------------------------- 首页
+  function home() {
+    const pk = D.picks || {};
+    pairInto($("shotPress"), pk.onButton, "点了一个按钮：它所在的槽涨了一个隔条厚度，隔条对岸的槽落了同样多，光标跟着液面挪。");
+    const blk = $("shotBlock");
+    if (pk.onStarved) pairInto(blk, pk.onStarved, "源槽不够搬：除了顶栏，一格都没变。（这一步在语料的非认证段里）");
+    if (pk.onCapped) pairInto(blk, pk.onCapped, "墙太矮：得到方已经顶到墙高，这一下整次作废。（同样在非认证段里）");
+    pairInto($("shotGauge"), pk.onGauge, "点亮着的量规：隔条两侧的光标整套送到对岸，液面一格没动。");
+    const r = rowBySeq(pk.lastWin);
+    if (r && $("shotWin")) {
+      $("shotWin").appendChild(figure(r.prevF, `seq ${r.seq} · 最后一下之前`, null, 4));
+      $("shotWin").appendChild(figure(r.nextF, `最后一下之后：每个光标都停在自己的目标深度上、贴着嵌目标的那条隔条`, r.changed, 4));
+    }
+  }
+
+  // ---------------------------------------------------------------- 回放
+  function replay() {
+    const rows = D.rows || [];
+    const sl = $("slider");
+    sl.max = rows.length - 1;
+    let i = 0;
+    for (const j of D.jumps || []) {
+      const b = document.createElement("button");
+      b.textContent = j.label;
+      b.onclick = () => { i = j.index; show(); };
+      $("jumps").appendChild(b);
+    }
+    function show() {
+      const r = rows[i];
+      sl.value = i;
+      $("label").textContent = `第 ${i + 1} / ${rows.length} 行 · seq ${r.seq} · 第 ${r.lvl} 关`;
+      $("pair").innerHTML = "";
+      $("pair").appendChild(figure(r.prevF, "点之前", null, 5));
+      $("pair").appendChild(figure(r.nextF, "点之后", r.changed, 5));
+      const leanWord = { yes: chip("TRUE", "模型说对了"), no: chip("FALSE", "模型被驳倒"), na: chip("NA", "模型不描述这一步") }[r.lean] || chip("NA", "缺");
+      $("stepinfo").innerHTML = `<dl class="kv">
+        <dt>动作</dt><dd class="mono">${esc(r.action)}</dd>
+        <dt>点中了什么</dt><dd>${esc(r.word)}</dd>
+        <dt>变了几格</dt><dd>${r.changed.length}</dd>
+        <dt>上游报的关卡</dt><dd>${r.lvl} → ${r.lvlNext}（${esc(r.state)}）</dd>
+        <dt>这一行的标记</dt><dd>${r.marks.length ? r.marks.map((m) => `<b>${esc(m)}</b>：${esc((D.corpus.markWhy || {})[m])}`).join("<br>") : "（无：认证段里同一关的一步）"}</dd>
+        <dt>形式化那一层</dt><dd>${leanWord} <span class="note">（内核逐行算过，和规则那一侧逐行相等：corpus_reconciled）</span></dd></dl>`;
+      const vs = Object.entries(r.verdicts).map(([k, v]) =>
+        `<tr><td class="mono"><a href="rules/${k}.html">${esc(k)}</a></td><td>${vchip(v.startsWith("N:") ? "N" : v)}</td>`
+        + `<td class="why">${v.startsWith("N:") ? esc(v.slice(2)) : ""}</td></tr>`).join("");
+      $("verdicts").innerHTML = `<table><tr><th>规则</th><th>判决</th><th>不开口的理由</th></tr>${vs}</table>`;
+      const w = r.world, n = r.worldNext;
+      const cur = (x) => x.cursors.map((c) => `色 ${c.color} 在槽 ${c.zone}（第 ${c.lane} 道起，宽 ${c.width}）`).join("；") || "（没有光标）";
+      $("world").innerHTML = `<table>
+        <tr><th style="width:120px">液面（每个槽）</th><td class="mono">${w.levels.join(", ")}</td><td class="mono">${n.levels.join(", ")}</td></tr>
+        <tr><th>光标</th><td>${cur(w)}</td><td>${cur(n)}</td></tr>
+        <tr><th>量规显示的颜色</th><td class="mono">${w.look.join(", ") || "（这一关没有量规）"}</td><td class="mono">${n.look.join(", ") || ""}</td></tr>
+        <tr><th>顶栏已消耗</th><td>${w.used}</td><td>${n.used}</td></tr></table>
+        <p class="note">版面（这一关不变的那一半）：${w.bands.length} 条隔条、${w.zones.length} 个槽、${w.buttons} 个按钮、${w.targets.length} 段目标、${w.gauges.length} 段量规。</p>`;
+    }
+    sl.oninput = () => { i = +sl.value; show(); };
+    $("prev").onclick = () => { if (i > 0) { i--; show(); } };
+    $("next").onclick = () => { if (i < rows.length - 1) { i++; show(); } };
+    i = (D.jumps && D.jumps.length) ? D.jumps.find((j) => j.label.indexOf("认证段") >= 0).index : 0;
+    show();
+  }
+
+  // ---------------------------------------------------------------- 对象
+  function objName(p) { return p.replace(/\.py$/, "").replace(/\//g, "-"); }
+  function objIndex() {
+    const groups = D.objectGroups || {};
+    const objs = D.objects || [];
+    const used = new Set();
+    let h = "";
+    for (const g of Object.keys(groups)) {
+      const xs = objs.filter((o) => o.group === g);
+      if (!xs.length) continue;
+      h += `<div class="grouphead">${esc(g)}/</div><p class="note" style="margin:0 0 10px">${md((groups[g] || "").split("\n")[0])}</p><div class="rulelist">`;
+      for (const o of xs) {
+        used.add(o.path);
+        h += `<a class="row" href="${objName(o.path)}.html"><span class="nm">${esc(o.name)}</span>`
+          + `<span class="cl">${md((o.doc || "").split("\n")[0])}</span><span>${o.lean.path ? chip("TRUE", "有 Lean") : chip("NA", "无 Lean")}</span></a>`;
+      }
+      h += "</div>";
+    }
+    const rest = objs.filter((o) => !used.has(o.path));
+    if (rest.length) {
+      h += `<div class="grouphead">还没归类（${rest.length} 样）</div><div class="rulelist">`
+        + rest.map((o) => `<a class="row" href="${objName(o.path)}.html"><span class="nm">${esc(o.path)}</span><span class="cl"></span><span></span></a>`).join("") + "</div>";
+    }
+    $("list").innerHTML = h;
+    const ab = (D.card06 || {}).ablation || {};
+    let t = `<table><tr><th>字段</th><th>扰动</th><th>读它的规则（改判处数）</th><th>一对干净的见证</th></tr>`;
+    for (const [f, per] of Object.entries(ab)) {
+      for (const [lab, x] of Object.entries(per)) {
+        const rd = Object.entries(x.readers).map(([k, v]) => `${k} ${v}`).join("、") || "<b class='bad'>一条都没有</b>";
+        const w = x.witness ? `seq ${x.witness.seq} 上 ${x.witness.rule}：${x.witness.real} → ${x.witness.erased}` : "<b>没有</b>";
+        t += `<tr><td class="mono">${esc(f)}</td><td>${esc(lab)}</td><td>${rd}</td><td>${w}</td></tr>`;
+      }
+    }
+    $("split").innerHTML = t + "</table><p class='note'>「C → N」= 规则从开口判对变成不开口；「C → E」= 从判对变成判错。两种都是「抹掉这一位，规则分不开这一对世界了」。</p>";
+  }
+  function obj() {
+    const o = (D.objects || []).find((x) => x.path === P.key);
+    if (!o) { $("obj").innerHTML = "<p class='bad'>缺</p>"; return; }
+    let h = "";
+    for (const f of o.fields) {
+      const per = f.ablation || {};
+      const readers = Object.entries(per).map(([lab, x]) =>
+        `${esc(lab)}：${Object.entries(x.readers).map(([k, v]) => `${k} ${v}`).join("、") || "<b class='bad'>无</b>"}`).join("<br>");
+      h += `<div class="card"><h2>读数 · 字段 ${esc(f.field)}</h2><p>${readers || "（没有消融读数）"}</p>`
+        + (f.why ? `<pre class="doc">${md(f.why)}</pre>` : "<p class='bad'>analysis/ 里没有这个字段的那一份（缺）</p>") + "</div>";
+    }
+    h += `<div class="card"><h2>它是什么</h2><pre class="doc">${md(o.doc)}</pre></div>`;
+    if (o.lean.path) {
+      h += `<div class="card"><h2>它的 Lean（身份：定义）· ${esc(o.lean.path)}</h2><details><summary>展开源码</summary><pre class="lean">${paint(o.lean.source)}</pre></details></div>`;
+    } else {
+      h += `<div class="card"><h2>它的 Lean</h2><p class="note">没有对应的 Lean 文件。${o.isPixelReader ? "解析（帧 → 世界）不进形式化：形式化那一层吃的是它的输出（lean2/Obs/Replay.lean）。" : ""}</p></div>`;
+    }
+    $("obj").innerHTML = h;
+  }
+
+  // ---------------------------------------------------------------- 规则
+  function ruleRow(r) {
+    const d = r.readings;
+    const id = r.identity || {};
+    return `<a class="row" href="${r.name}.html"><span class="nm">${esc(r.name)}</span>`
+      + `<span class="cl">${md(r.claim)}</span>`
+      + `<span>${chip(d.E ? "FALSE" : "TRUE", `开口 ${d.scope} · 判错 ${d.E}`)} ${chip("NA", id.identity || "没身份")}</span></a>`;
+  }
+  function ruleIndex() {
+    const rules = D.rules || [];
+    const groups = D.ruleGroups || {};
+    const used = new Set();
+    let h = "";
+    for (const g of Object.keys(groups)) {
+      const xs = rules.filter((r) => r.group === g);
+      if (!xs.length) continue;
+      xs.forEach((r) => used.add(r.name));
+      h += `<div class="grouphead">${esc(g)}</div><p class="note" style="margin:0 0 10px">${md((groups[g] || "").split("\n")[0])}</p>`
+        + `<div class="rulelist">${xs.map(ruleRow).join("")}</div>`;
+    }
+    const rest = rules.filter((r) => !used.has(r.name));
+    if (rest.length) h += `<div class="grouphead">还没归类（${rest.length} 条）</div><div class="rulelist">${rest.map(ruleRow).join("")}</div>`;
+    $("list").innerHTML = h;
+    const ret = (D.retired || []).map((r) => `<li><b>${esc(r.rule)}</b>（${esc(r.status)}，身份：${esc(r.identity)}，${esc(r.lean || "")}）：${md(r.why || "")}</li>`).join("");
+    const merges = (D.rules || []).flatMap((r) => (r.note || []).filter((x) => x.startsWith("卡 05")).map((x) => `<li><b>${esc(r.name)}</b>：${md(x)}</li>`)).join("");
+    $("history").innerHTML = `<p class="note">起点是一本 14 条概念的册子（<code>concepts/</code>，只读）。卡 04 把它逐条用对象重写成 13 条规则；卡 05 推倒重排成现在这几条。
+      撤册的源码一字不改地留在 <code>analysis/_history/rules_card04/</code>，死因写在 <code>analysis/record.txt</code>。<b>撤册的不在上面那张现役表里。</b></p>
+      <ul class="tight">${merges}</ul><p class="note" style="margin-top:12px">撤册、进了形式化当推论的：</p><ul class="tight">${ret}</ul>`;
+    const rv = D.reverse || {};
+    const md0 = rv.mutants_data || {};
+    let t = `<p>装置的变异（<code>ledger/criteria_run.py</code>）：造了 ${md0.total} 个错的转移，这一套拒掉 <b>${md0.rejected}</b>（其中解析读不成 ${md0.by_parse}）。</p>`;
+    t += `<p>源码变异（另起进程跑；先种一个<b>必红</b>的，它是${(rv.seed_alive ? "活的" : "<b class='bad'>死的</b>")}）：</p><table><tr><th>突变</th><th>改的文件</th><th>红没红</th><th>红在哪 / 没红的入口</th></tr>`;
+    for (const m of rv.source_mutants || []) {
+      t += `<tr><td>${esc(m.mutant)}<div class="why">${esc(m.why)}</div></td><td class="mono">${esc(m.file)}</td>`
+        + `<td>${m.red ? chip("TRUE", "红") : chip("FALSE", "没红")}</td>`
+        + `<td>${m.red ? esc((m.hits || []).join("、")) : `<b>${esc(m.entrance || "")}</b> —— ${md(m.note || "")}`}</td></tr>`;
+    }
+    t += "</table><p style='margin-top:12px'>解析的良构检查是不是活的（拿真帧动一刀，看它按那条理由读不成）：</p><table>";
+    for (const x of rv.parse_liveness || []) {
+      t += `<tr><td>${esc(x.check)}</td><td>${esc(x.cut)}</td><td>${x.live ? chip("TRUE", "活") : chip("FALSE", "死")}</td><td class="why">${esc(x.raised || "")}</td></tr>`;
+    }
+    $("reverse").innerHTML = t + "</table>";
+  }
+  function rule() {
+    const r = (D.rules || []).find((x) => x.name === P.key);
+    if (!r) { $("rule").innerHTML = "<p class='bad'>缺</p>"; return; }
+    const d = r.readings, id = r.identity || {};
+    const nby = Object.entries(d.N_by || {}).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td></tr>`).join("");
+    let h = `<div class="card"><h2>读数（在这 ${D.readings.rows} 行 / 去重 ${D.readings.distinct} 条转移上）</h2>
+      <table><tr><th>|scope| 开口</th><th>N 不开口</th><th>C 判对</th><th>E 判错</th><th>U 读不成</th><th>去重后 开口 / 判对 / 判错</th></tr>
+      <tr><td class="num">${d.scope}</td><td class="num">${d.N}</td><td class="num">${d.C}</td><td class="num ${d.E ? "bad" : ""}">${d.E}</td><td class="num">${d.U}</td>
+      <td>${d.dedup.scope} / ${d.dedup.C} / ${d.dedup.E}</td></tr></table>
+      ${d.E ? `<p class="bad">判错在 seq ${d.E_seqs.join(", ")}</p>` : ""}
+      <details><summary>不开口的那些，按理由数</summary><table>${nby}</table></details></div>`;
+    h += `<div class="card"><h2>身份：${esc(id.identity || "缺")}</h2>`
+      + (id.identity === "不进模型" ? `<p>论域 ${d.scope} 条，被驳倒 ${d.E} 次。</p>` : "")
+      + (id.why ? `<p>${md(id.why)}</p>` : "")
+      + (id.lean ? `<p class="note">Lean：<a href="../lean/${id.lean.replace(".lean", "").replace(/\//g, "-")}.html">${esc(id.lean)}</a>（${esc(id.name || "")}）</p>` : "") + "</div>";
+    h += `<div class="card"><h2>它说什么</h2><p>${md(r.claim)}</p><p class="note"><b>不管的那些归谁：</b>${md(r.scope_note)}</p></div>`;
+    h += `<div class="card"><h2>它明确不主张什么</h2><ul class="tight">${(r.not_claimed || []).map((x) => `<li>${md(x)}</li>`).join("") || "<li>（没写）</li>"}</ul></div>`;
+    h += `<div class="card"><h2>改版史</h2><ul class="tight">${(r.note || []).map((x) => `<li>${md(x)}</li>`).join("")}</ul>
+      <p class="note">见证（tid，内容哈希）：${(r.evidence || []).map(esc).join("、")}</p></div>`;
+    const dm = r.data_mutants || {};
+    h += `<div class="card"><h2>反向测试里打到它的</h2><p>装置变异：拒掉 ${dm.rejected}，其中独家 ${dm.unique}。</p>`
+      + `<ul class="tight">${(r.mutants || []).map((m) => `<li><b>${esc(m.mutant)}</b>（${esc(m.why)}）：${esc(m.hits.join("、"))}</li>`).join("") || "<li>源码变异里没有一个让它单独红</li>"}</ul></div>`;
+    if (r.lean && r.lean.source) {
+      h += `<div class="card"><h2>它的 Lean · ${esc(r.lean.path)}</h2><details><summary>展开源码</summary><pre class="lean">${paint(r.lean.source)}</pre></details></div>`;
+    }
+    h += `<div class="card"><h2>源码的文件头</h2><pre class="doc small">${md(r.doc)}</pre></div>`;
+    $("rule").innerHTML = h;
+  }
+
+  // ---------------------------------------------------------------- 形式化
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|using|open").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+    "rintro|induction|split|rw|apply|unfold|absurd|first|next|subst|rename_i").split("|");
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/"[^"\n]*"/g, (m) => `\u0003${m}\u0004`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+  function axChip(a) {
+    if (!a) return chip("NA", "没查到公理表");
+    const dirty = a.some((x) => ["propext", "Classical.choice", "Quot.sound"].indexOf(x) < 0);
+    return chip(dirty ? "FALSE" : "TRUE", a.length ? a.join(", ") : "不依赖任何公理");
+  }
+  function leanHref(p) { return p.replace(".lean", "").replace(/\//g, "-") + ".html"; }
+  const ROLE_ORDER = ["对象", "规则", "分发", "推论", "观测", "证明"];
+  function leanPicker(here) {
+    const files = D.lean.files;
+    let opts = "";
+    const used = new Set();
+    for (const role of ROLE_ORDER) {
+      const xs = files.filter((f) => f.role === role);
+      if (!xs.length) continue;
+      opts += `<optgroup label="${role}">` + xs.map((f) => { used.add(f.path); return `<option value="${leanHref(f.path)}"${f.path === here ? " selected" : ""}>${esc(f.path)} —— ${esc(f.title)}</option>`; }).join("") + "</optgroup>";
+    }
+    const rest = files.filter((f) => !used.has(f.path));
+    if (rest.length) opts += `<optgroup label="没归类（${rest.length} 份）">` + rest.map((f) => `<option value="${leanHref(f.path)}">${esc(f.path)}</option>`).join("") + "</optgroup>";
+    opts += `<optgroup label="破坏测试"><option value="Broken.html"${here === "Broken.lean" ? " selected" : ""}>Broken.lean —— 应当编不过</option></optgroup>`;
+    return `<label class="picker"><span>这 ${files.length} 份 Lean（另有一份破坏测试）</span><select onchange="if(this.value)location.href=this.value">${opts}</select></label>　<a href="index.html">回形式化首页</a>`;
+  }
+  function leanIndex() {
+    const L = D.lean;
+    let t = `<table><tr><th>关</th><th>结论</th><th>逐帧核过的步数（只有开局是观测给的）</th><th>见证</th><th>另核的「重来之后」</th><th>Lean</th></tr>`;
+    for (const lv of L.levels) {
+      t += `<tr><td>${lv.level}</td><td>${lv.conclusion === "走得通" ? chip("TRUE", "走得通") : chip("FALSE", lv.conclusion)}</td>`
+        + `<td class="num">${lv.walked}</td><td>认证段 seq ${lv.start_seq} 起，过关那一脚 seq ${lv.win_seq}</td>`
+        + `<td>${lv.after_reset.map((x) => `seq ${x.reset_seq} 那次 RESET 之后 ${x.steps} 步（${esc(x.theorem)}）`).join("<br>") || "—"}</td>`
+        + `<td><a href="Proof-Levels-L${lv.level}.html">L${lv.level}.lean</a></td></tr>`;
+    }
+    $("levels").innerHTML = t + `</table><p class="note">每一关两条：<code>_trace</code>（沿真实走法模型每一帧都和观测对上）和 <code>_winnable</code>（走得通，见证就是那条路 + 过关那一脚）；
+      <code>_walked</code> 钉住核过的步数（切片切歪成空表时它是 0）。「重来一次回到开局」是明写的假设，那两段核对是它被驳倒的机会，<b>没红不构成证明</b>。</p>`;
+    const sc = L.scenes.map((s) => `<li class="mono">${esc(s)}</li>`).join("");
+    const r0 = rowBySeq((L.levelsMeta["0"] || {}).start_seq);
+    $("scenes").innerHTML = `<div class="boards" id="sceneFig"></div>
+      <p>两张盘都从<b>第 0 关的真实开局</b>改一处：只把那一段目标往深处挪。对照盘就是第 0 关本身（它赢得了：<code>L0_winnable</code>）。</p>
+      <table><tr><th>钥匙</th><th>盘</th><th>赢不了</th><th>另一把套不上</th><th>对照盘赢得了</th><th>不是一开局就通</th><th>对照盘上前提不满足</th></tr>
+      <tr><td><b>余数守恒</b>：每次搬一个厚度，液面模厚度不变</td><td>目标 24 → 26</td><td><a href="Proof-Scenes.html">residue_scene_unsolvable</a></td><td>residue_scene_not_capacity</td><td>residue_ctrl_winnable</td><td>residue_ctrl_closed_at_start</td><td>residue_ctrl_not_key</td></tr>
+      <tr><td><b>墙太矮</b>：槽装不过旁边最矮的墙（推论 tank_cap）</td><td>目标 24 → 48</td><td>capacity_scene_unsolvable</td><td>capacity_scene_not_residue</td><td>capacity_ctrl_winnable</td><td>capacity_ctrl_closed_at_start</td><td>capacity_ctrl_not_key</td></tr></table>
+      <p class="note">内核算出来的盘面读数：</p><ul class="tight">${sc}</ul>
+      <p class="note">「赢不了」的准确意思：<b>不经过模型说不出话的那一支、也不经过 RESET</b>，就赢不了。证明里没有一处枚举、没有一处搜索，和盘面多大无关（骨架 <code>unsolvable_of_invariant</code>，对动作串归纳）。</p>`;
+    if (r0) $("sceneFig").appendChild(figure(r0.prevF, "第 0 关的真实开局（两张盘都从它改一处：目标记号挪深）", null, 4));
+    let it = `<table><tr><th>规则</th><th>现役 / 撤册</th><th>身份</th><th>在哪 / 为什么</th></tr>`;
+    for (const r of L.identity) {
+      it += `<tr><td class="mono">${esc(r.rule)}</td><td>${esc(r.status)}</td><td>${chip(r.identity === "不进模型" ? "NA" : "TRUE", r.identity)}</td>`
+        + `<td>${r.lean ? `<a href="${leanHref(r.lean)}">${esc(r.lean)}</a> · ${esc(r.name)}` : ""}`
+        + `${r.identity === "不进模型" ? ` 论域 ${r.scope} 条，被驳倒 ${r.refuted} 次。` : ""}<div class="why">${md(r.why || "")}</div></td></tr>`;
+    }
+    $("identity").innerHTML = it + "</table>";
+    $("corpus").innerHTML = `<p>逐条那一层：每一行都从<b>观测到的那一帧</b>起算一步，和看到的下一帧比（局面 + 版面）。
+      模型说对了 <b>${L.corpus.yes}</b> 行、被驳倒 <b>${L.corpus.no}</b> 行、不描述 <b>${L.corpus.na}</b> 行（RESET）。</p>
+      <p>规则那一份（Python）和模型那一份（Lean）<b>各自独立写</b>；<code>${esc(L.corpus.reconciled_theorem)}</code> 这条定理说
+      「内核自己算的每一行判决 = 规则那一份的判决」——<b>任何一行对不上，那一份就编不过</b>。</p>`;
+    const vm = D.verifyMutants;
+    const dev = L.device;
+    $("trust").innerHTML = `<table>
+      <tr><th style="width:220px">定理条数</th><td>${L.theorems}（公理表逐条查到 ${L.axiomsChecked}，脏 ${Object.keys(L.dirty).length}）</td></tr>
+      <tr><th>只许的公理</th><td>propext / Classical.choice / Quot.sound（白名单）；全文没有 native_decide；不许 sorry</td></tr>
+      <tr><th>破坏测试</th><td>${L.broken.ok ? chip("TRUE", "编不过，只红在标记行") : chip("FALSE", "没过")} 退出码 ${L.broken.rc}，红在第 ${L.broken.error_lines.join(",")} 行，标记在第 ${L.broken.marker_line} 行 · <a href="Broken.html">Broken.lean</a></td></tr>
+      <tr><th>判据自己被判据核</th><td>${vm ? `种子必红：${vm.seed_alive ? "活的" : "<b class='bad'>死的</b>"}<br>` + vm.mutants.map((m) => `${m.red ? chip("TRUE", "红") : chip("FALSE", "没红")} ${esc(m.mutant)}（该红在：${esc(m.want)}）`).join("<br>") : "<b class='bad'>缺（verify_mutants 没跑）</b>"}</td></tr>
+      <tr><th>装置的 lean_check</th><td>${dev ? `ok=${dev.ok}<br>` + dev.owed.map((o) => `${esc(o.kind)}`).join("<br>") : "（这一次没跑）"}</td></tr>
+      </table>`;
+    const groups = {};
+    for (const f of L.files) (groups[f.role] = groups[f.role] || []).push(f);
+    let fl = leanPicker(null);
+    for (const role of ROLE_ORDER) {
+      if (!groups[role]) continue;
+      fl += `<div class="grouphead">${role}</div><div class="rulelist">` + groups[role].map((f) =>
+        `<a class="row" href="${leanHref(f.path)}"><span class="nm">${esc(f.path)}</span><span class="cl">${md(f.title)}</span><span>${chip("NA", `${f.theorems.length} 条定理`)}</span></a>`).join("") + "</div>";
+    }
+    $("files").innerHTML = fl;
+  }
+  function leanFile() {
+    if (P.key === "Broken.lean") {
+      const b = D.lean.broken;
+      $("leanfile").innerHTML = `<div class="card">${leanPicker("Broken.lean")}</div><div class="card"><h2>读数</h2>
+        <p>${b.ok ? chip("TRUE", "编不过，只红在标记行") : chip("FALSE", "没过")} 退出码 ${b.rc}；红在第 ${b.error_lines.join(",")} 行；标记在第 ${b.marker_line} 行。</p></div>
+        <div class="card"><h2>源码</h2><pre class="lean">${paint(b.source || "")}</pre></div>`;
+      return;
+    }
+    const f = D.lean.files.find((x) => x.path === P.key);
+    if (!f) { $("leanfile").innerHTML = "<p class='bad'>缺</p>"; return; }
+    const th = f.theorems.map((t) => `<div class="litem thm"><div class="lhead"><span class="lkind">theorem</span><span class="mono lname">${esc(t.name)}</span>${axChip(t.axioms)}</div>`
+      + (f.thmDocs[t.name] ? `<div class="ldoc">${md(f.thmDocs[t.name])}</div>` : "") + "</div>").join("");
+    $("leanfile").innerHTML = `<div class="card">${leanPicker(f.path)}</div>
+      <div class="card"><h2>${esc(f.role)} · 编译 ${f.rc === 0 ? chip("TRUE", "编过") : chip("FALSE", "没编过")} ${f.seconds} 秒${f.python ? ` · 对应 <code>${esc(f.python)}</code>` : ""}</h2>
+      <pre class="doc">${md(f.head)}</pre></div>
+      <div class="card"><h2>定理与公理表（${f.theorems.length} 条）</h2>${th || "<p class='note'>这一份里一条定理都没有——它只有定义。</p>"}</div>
+      <div class="card"><h2>源码</h2><pre class="lean">${paint(f.source)}</pre></div>`;
+  }
+
+  function howto() {}
+
+  document.addEventListener("DOMContentLoaded", () => {
+    gapsBanner();
+    fillNumbers();
+    ({ home, replay, objIndex, obj, ruleIndex, rule, leanIndex, leanFile, howto }[P.kind] || home)();
+  });
+})();
+
+</script>
+</body>
+</html>

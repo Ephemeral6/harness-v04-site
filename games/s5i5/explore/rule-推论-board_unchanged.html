@@ -1,0 +1,102 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · 推论.board_unchanged</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>推论.board_unchanged</h1>
+<p><b>读数</b>：开口 2555 行（去重 1158）· 判对 <span class=ok>2555</span> · 判错 <span class="mut">0</span>
+ · 读不清 0 · 闭嘴 63</p>
+<p><b>它说什么</b>：同一关里任何一步之后，盘面（面板、图例框、菱形靶、枢纽、色 15 的格子）和之前一模一样。</p><p><b>什么时候不管</b>：只管关内步（不管 RESET 与换关步：那两种整盘重画）。</p>
+<p><b>明确不主张</b>：不主张换关之后盘面是什么。</p>
+<details><summary>闭嘴的理由与条数</summary><ul><li>63 · 不是关内步</li></ul></details>
+<details><summary>改版史</summary><ul><li>v1 起点册子 panels_static + walls_immutable + diamond_dots_immutable + fixed_color_never_moves 四条合一。</li><li>   在这个表示下它是推论：Board 不是状态，step 碰不到它（lean2/Derived/BoardUnchanged.lean）。</li></ul></details>
+<details><summary>专门弄坏它的突变体</summary><ul><li>没有专门对准它的</li></ul></details>
+<details open><summary>它的 Lean（推论：Derived/BoardUnchanged.lean）</summary><pre>/-
+# Derived/BoardUnchanged —— 推论（对应 `rule/推论/board_unchanged.py`）
+
+一步之后盘面不变。**不用任何一条规则的内容**：`step` 每一支返回的新世界，盘面都是从旧世界抄过去的
+（`{ w with bars := …, walls := … }`）。所以它不是一条独立的规则，是表示法的推论。
+-/
+
+import Step
+
+namespace Game
+
+theorem tryTurn_board (w w&#x27; : World) (pr pc : Nat) (ch : List (Bar × Bool)) :
+    ∀ k n, tryTurn w pr pc ch k n = .ok w&#x27; → w&#x27;.board = w.board := by
+  intro k n
+  induction n generalizing k with
+  | zero =&gt; intro h; simp [tryTurn] at h
+  | succ n ih =&gt;
+    intro h
+    simp only [tryTurn] at h
+    split at h &lt;;&gt; first | exact ih _ h | (simp at h; subst h; rfl) | simp at h
+
+theorem rotate_board (w w&#x27; : World) (K : Nat) (h : rotate w K = .ok w&#x27;) : w&#x27;.board = w.board := by
+  simp only [rotate] at h
+  split at h
+  · simp at h
+  · exact tryTurn_board w w&#x27; _ _ _ 1 3 h
+
+theorem stretch_board (w w&#x27; : World) (K : Nat) (g : Bool) (h : stretch w K g = .ok w&#x27;) :
+    w&#x27;.board = w.board := by
+  unfold stretch at h
+  split at h
+  · exact Res.noConfusion h
+  · split at h
+    split at h
+    · exact Res.noConfusion h
+    split at h
+    · exact Res.noConfusion h
+    split at h
+    · exact Res.noConfusion h
+    split at h
+    · exact Res.noConfusion h
+    injection h with h
+    subst h
+    rfl
+
+theorem board_unchanged (w w&#x27; : World) (a : Act) (h : step w a = .ok w&#x27;) : w&#x27;.board = w.board := by
+  cases a with
+  | reset =&gt; simp [step] at h
+  | click x y =&gt;
+    simp only [step] at h
+    split at h
+    · exact stretch_board w w&#x27; _ _ h
+    · exact stretch_board w w&#x27; _ _ h
+    · exact rotate_board w w&#x27; _ h
+    · simp only [clickElsewhere] at h; cases h; rfl
+
+end Game
+</pre></details><details><summary>Python 源码</summary><pre>&quot;&quot;&quot;一关之内，盘面（面板、图例、靶、枢纽、钉死的墙）一格不变。&quot;&quot;&quot;
+from __future__ import annotations
+
+CLAIM = &quot;同一关里任何一步之后，盘面（面板、图例框、菱形靶、枢纽、色 15 的格子）和之前一模一样。&quot;
+SCOPE_NOTE = &quot;只管关内步（不管 RESET 与换关步：那两种整盘重画）。&quot;
+NOT_CLAIMED = &quot;不主张换关之后盘面是什么。&quot;
+HISTORY = [
+    &quot;v1 起点册子 panels_static + walls_immutable + diamond_dots_immutable + fixed_color_never_moves 四条合一。&quot;,
+    &quot;   在这个表示下它是推论：Board 不是状态，step 碰不到它（lean2/Derived/BoardUnchanged.lean）。&quot;,
+]
+EVIDENCE = [2158]
+
+
+def scope_(w, action, ctx=None):
+    if ctx is None or ctx.get(&quot;mark&quot;) != &quot;ok&quot;:
+        return &quot;不是关内步&quot;
+    return None
+
+
+def assert_(w, action, nw, ctx=None) -&gt; bool:
+    return nw.board == w.board
+</pre></details></div></main></body></html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Rule/Move/BlockedCross.lean</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Lean · Rule/Move/BlockedCross.lean</h1><div class="sub">源码原样</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class='card'><pre>/-
+# Rule/Move/BlockedCross —— 十字撞挡块：两条杠各走各的（对应 `rule/move/blocked_cross.py`）
+
+会压到挡块的那条杠原地不动，另一条平移 3；交点 = 横杠的行 × 竖杠的列。
+没有横杠（竖线）或没有竖杠（横线）时，交点只跟着那一条走。
+-/
+
+import Obj.World
+import Rule.Move.Translate
+
+namespace Game
+
+def blockedCross (b : Board) (p : Piece) (a : Act) : Piece :=
+  let dr := a.delta.1
+  let dc := a.delta.2
+  let hasH := decide (p.left &lt; p.right)
+  let hasV := decide (p.top &lt; p.bottom)
+  let hb := hasH &amp;&amp; b.blockers.any (fun rc =&gt;
+    rc.1 - dr == p.hr &amp;&amp; decide (p.left ≤ rc.2 - dc) &amp;&amp; decide (rc.2 - dc ≤ p.right))
+  let vb := hasV &amp;&amp; b.blockers.any (fun rc =&gt;
+    rc.2 - dc == p.hc &amp;&amp; decide (p.top ≤ rc.1 - dr) &amp;&amp; decide (rc.1 - dr ≤ p.bottom))
+  let rh := if hasH then (if hb then p.hr else p.hr + dr) else (if vb then p.hr else p.hr + dr)
+  let l  := if hasH then (if hb then p.left else p.left + dc) else (if vb then p.hc else p.hc + dc)
+  let rr := if hasH then (if hb then p.right else p.right + dc) else (if vb then p.hc else p.hc + dc)
+  let cv := if hasV then (if vb then p.hc else p.hc + dc) else (if hb then p.hc else p.hc + dc)
+  let t  := if hasV then (if vb then p.top else p.top + dr) else (if hb then p.hr else p.hr + dr)
+  let bt := if hasV then (if vb then p.bottom else p.bottom + dr) else (if hb then p.hr else p.hr + dr)
+  { p with top := min t rh, left := min l cv, bottom := max bt rh, right := max rr cv,
+           hr := rh, hc := cv }
+
+end Game
+</pre></div>
+</div></body></html>

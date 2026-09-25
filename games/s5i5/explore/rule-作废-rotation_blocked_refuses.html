@@ -1,0 +1,87 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · 作废.rotation_blocked_refuses</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>作废.rotation_blocked_refuses</h1>
+<p><b>读数</b>：开口 7 行（去重 7）· 判对 <span class=ok>7</span> · 判错 <span class="mut">0</span>
+ · 读不清 0 · 闭嘴 2611</p>
+<p><b>它说什么</b>：点图例逐档试（90°、180°、270°）：这一档压着钉死的墙 ⇒ 作废；压着别的条 / 墙 / 框 ⇒ 试下一档；没压着但有帽出了盘 ⇒ 作废；跳过了至少一档、这一档身体出了盘 ⇒ 作废；三档都被挡 ⇒ 作废。</p><p><b>什么时候不管</b>：只管模型把转动作废记在这一条名下的步。</p>
+<p><b>明确不主张</b>：「第一档身体出盘照转、跳档后出盘作废」只有语料撑着：前者 3 次（seq 737、773、2536），后者 2 次（seq 1813、2504）。没有别的读法能同时对上这 5 次，但样本很薄。</p>
+<details><summary>闭嘴的理由与条数</summary><ul><li>2445 · 模型预测这一步不作废</li><li>65 · 作废了，但是别的原因（归 作废.landing_blocked_refuses）</li><li>63 · 不是关内步</li><li>22 · 作废了，但是别的原因（归 作废.fixed_blocks_refuses）</li><li>10 · 作废了，但是别的原因（归 作废.too_short_refuses）</li><li>4 · 作废了，但是别的原因（归 作废.wall_onto_target_refuses）</li><li>2 · 作废了，但是别的原因（归 作废.dragged_off_board_refuses）</li></ul></details>
+<details><summary>改版史</summary><ul><li>v1 起点册子 fixed_obstacle_blocks_rotation（压上死物整击作废）+ legend_click_rotates_chain_ccw 的「转不成」那一半。</li><li>v1 原型模拟器上先试「出盘不算放不下」（册子原话）：seq 2502、2504、2526 红（世界没转）；</li><li>   再试「出盘算放不下、跳下一档」：seq 2536 红（世界照转、帧上只剩露出的一截）。</li><li>   现在的分法在全部点图例步上的读数见 analysis/readings.json（是不是唯一能对上的分法：没核过）。</li></ul></details>
+<details><summary>专门弄坏它的突变体</summary><ul><li>M6 跳档后出盘也照转：红</li></ul></details>
+<details open><summary>它的 Lean（定义：Rule/Refuse/RotationBlocked.lean）</summary><pre>/-
+# Rule/Refuse/RotationBlocked —— 定义（对应 `rule/作废/rotation_blocked_refuses.py`）
+
+点图例逐档试：这一档压着钉死的墙 ⇒ 作废；压着别的条 / 墙 / 框 ⇒ 试下一档；
+没压着但有帽出了盘 ⇒ 作废；跳过了至少一档、这一档身体出了盘 ⇒ 作废；否则转到这一档。
+-/
+
+import Obj.World
+
+namespace Game
+
+inductive Verdict where
+  | refuse | next | accept
+  deriving DecidableEq, Repr
+
+/-- 一档的四个读数 → 结论。 -/
+def verdict (k : Nat) (fixed blocked off capOff : Bool) : Verdict :=
+  if fixed then .refuse
+  else if blocked then .next
+  else if capOff then .refuse
+  else if off &amp;&amp; Nat.blt 1 k then .refuse
+  else .accept
+
+end Game
+</pre></details><details><summary>Python 源码</summary><pre>&quot;&quot;&quot;点图例转不成的几种：压上钉死的墙、帽转出了盘、跳过一档之后身体出了盘、三档全被挡 ⇒ 整步作废。&quot;&quot;&quot;
+from __future__ import annotations
+
+from rule._common import refusal_scope, unchanged
+
+CLAIM = (&quot;点图例逐档试（90°、180°、270°）：这一档压着钉死的墙 ⇒ 作废；压着别的条 / 墙 / 框 ⇒ 试下一档；&quot;
+         &quot;没压着但有帽出了盘 ⇒ 作废；跳过了至少一档、这一档身体出了盘 ⇒ 作废；三档都被挡 ⇒ 作废。&quot;)
+SCOPE_NOTE = &quot;只管模型把转动作废记在这一条名下的步。&quot;
+NOT_CLAIMED = (&quot;「第一档身体出盘照转、跳档后出盘作废」只有语料撑着：前者 3 次（seq 737、773、2536），&quot;
+               &quot;后者 2 次（seq 1813、2504）。没有别的读法能同时对上这 5 次，但样本很薄。&quot;)
+HISTORY = [
+    &quot;v1 起点册子 fixed_obstacle_blocks_rotation（压上死物整击作废）+ legend_click_rotates_chain_ccw 的「转不成」那一半。&quot;,
+    &quot;v1 原型模拟器上先试「出盘不算放不下」（册子原话）：seq 2502、2504、2526 红（世界没转）；&quot;,
+    &quot;   再试「出盘算放不下、跳下一档」：seq 2536 红（世界照转、帧上只剩露出的一截）。&quot;,
+    &quot;   现在的分法在全部点图例步上的读数见 analysis/readings.json（是不是唯一能对上的分法：没核过）。&quot;,
+]
+EVIDENCE = [2503, 2504, 2527]
+ME = &quot;作废.rotation_blocked_refuses&quot;
+
+
+def verdict(info: dict) -&gt; str:
+    &quot;&quot;&quot;一档的结论：refuse / next / accept。&quot;&quot;&quot;
+    if info[&quot;fixed&quot;]:
+        return &quot;refuse&quot;
+    if info[&quot;blocked&quot;]:
+        return &quot;next&quot;
+    if info[&quot;cap_off&quot;]:
+        return &quot;refuse&quot;
+    if info[&quot;off&quot;] and info[&quot;k&quot;] &gt; 1:
+        return &quot;refuse&quot;
+    return &quot;accept&quot;
+
+
+def scope_(w, action, ctx=None):
+    return refusal_scope(w, action, ME, ctx)
+
+
+def assert_(w, action, nw, ctx=None) -&gt; bool:
+    return unchanged(w, nw)
+</pre></details></div></main></body></html>

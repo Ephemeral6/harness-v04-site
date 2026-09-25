@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tn36 · 对象</title>
+<style>
+/* 只有尺寸与配色。形状从 ledger/templates/web/style.css 起手，世界的配色那一块按本局改。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .6px; }
+.gaps { border-color: var(--warn); }
+.gaps h2 { color: var(--warn); }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { color: var(--dim); font-size: 12px; max-width: 300px; margin-top: 6px; }
+canvas.frame { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; min-width: 44px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.U { background: #222732; color: var(--faint); }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 14px; }
+.note { color: var(--dim); font-size: 13px; }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.row .t { font-weight: 600; }
+pre.src { background: #0e1015; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+          overflow-x: auto; font-size: 12px; line-height: 1.45; white-space: pre; }
+pre.txt { white-space: pre-wrap; font-size: 12.5px; }
+details > summary { cursor: pointer; color: var(--dim); }
+.controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; font-size: 13px; }
+input[type=range] { flex: 1; min-width: 200px; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>tn36 · 对象</h1>
+  <div class="sub">世界由什么组成——按「它在这一帧里是什么」分组（读目录）。</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card "><h2>World 有几个字段、每个为什么删不掉（三个读数对账）</h2><table><tr><th>字段</th><th>分离表</th><th>常量消融（变了几处）</th><th>错位扰动（逐条规则）</th><th>点名</th></tr><tr><td><code>counter</code></td><td>分得开</td><td class='num'>151</td><td>{&quot;counter_pays&quot;: 136, &quot;clear_starts_fresh&quot;: 12, &quot;reset_restarts&quot;: 1}</td><td>clear_starts_fresh、counter_pays、reset_restarts</td></tr><tr><td><code>panel</code></td><td>分得开</td><td class='num'>222</td><td>{&quot;panel_follows_clicks&quot;: 257, &quot;fit_clears_level&quot;: 14, &quot;clear_starts_fresh&quot;: 12, &quot;piece_follows_program&quot;: 6}</td><td>clear_starts_fresh、fit_clears_level、panel_follows_clicks、piece_follows_program</td></tr><tr><td><code>piece</code></td><td>分不开（③ 语料分不开）</td><td class='num'>28</td><td>{&quot;fit_clears_level&quot;: 12, &quot;piece_follows_program&quot;: 25}</td><td>fit_clears_level、piece_follows_program</td></tr><tr><td><code>pads</code></td><td>分不开（③ 语料分不开）</td><td class='num'>5</td><td>{&quot;piece_follows_program&quot;: 21}</td><td>fit_clears_level、piece_follows_program</td></tr><tr><td><code>layout</code></td><td>分不开（③ 语料分不开）</td><td class='num'>274</td><td>{&quot;panel_follows_clicks&quot;: 43, &quot;fit_clears_level&quot;: 11, &quot;layout_stays&quot;: 15, &quot;piece_follows_program&quot;: 5}</td><td>counter_pays、fit_clears_level、layout_stays、panel_follows_clicks、piece_follows_program、reset_restarts</td></tr></table><p class='note'>分离表那一栏来自 analysis/field_split.txt（ledger/field_split.py 跑的）；另两栏来自 analysis/objects_check.txt。</p></div><div class="grouphead">board</div><p class="note" style="margin:0 0 8px">**盘面**：件在上面走的那块格子盘，以及盘上画着的东西（墙、记号、插槽、花格）。</p>
+<div class="row"><span class="t"><a href="board.html">board</a></span> <span class="note">— 部件 / 复合概念 · objects/board/board.py</span><div class="note">`Board` —— 盘：一关之内**不会动**的那部分。</div></div>
+<div class="row"><span class="t"><a href="pads.html">pads</a></span> <span class="note">— World 的字段 <code>pads</code> · objects/board/pads.py</span><div class="note">`Pads` —— 花格：件可以**停下来**的格（色 11 与底色交错的 4×4 棋盘纹）。</div></div>
+<div class="grouphead">frame</div><p class="note" style="margin:0 0 8px">**一帧的全貌**：`World` 把各组的对象装成一帧，`Layout` 把一关之内不动的那几样装成版面。</p>
+<div class="row"><span class="t"><a href="layout.html">layout</a></span> <span class="note">— World 的字段 <code>layout</code> · objects/frame/layout.py</span><div class="note">`Layout` —— 这一关的**版面**：盘、底栏给的指令、命中盒、其余画面。一关之内一格不变。</div></div>
+<div class="row"><span class="t"><a href="world.html">world</a></span> <span class="note">— 部件 / 复合概念 · objects/frame/world.py</span><div class="note">`World` —— 一帧读出来的**全部状态**。字段就是这一局的对象。</div></div>
+<div class="grouphead">gauge</div><p class="note" style="margin:0 0 8px">**量表**：顶栏那根预算条。它只记一件事——还剩多少——所以这一组只有一个对象。</p>
+<div class="row"><span class="t"><a href="counter.html">counter</a></span> <span class="note">— World 的字段 <code>counter</code> · objects/gauge/counter.py</span><div class="note">`Counter` —— 顶栏那根量表：61 格里**还没花掉**的有几格。</div></div>
+<div class="grouphead">geometry</div><p class="note" style="margin:0 0 8px">**几何**：格坐标。这一类里没有任何世界断言——</p>
+<div class="row"><span class="t"><a href="cell.html">cell</a></span> <span class="note">— 部件 / 复合概念 · objects/geometry/cell.py</span><div class="note">`Cell` —— 盘上一格的坐标（格行, 格列），从 0 数。</div></div>
+<div class="row"><span class="t"><a href="form.html">form</a></span> <span class="note">— 部件 / 复合概念 · objects/geometry/form.py</span><div class="note">`Form` —— 一块「缺一口的方块」的形：左上角在哪一格、几倍大、缺口朝哪。</div></div>
+<div class="grouphead">movable</div><p class="note" style="margin:0 0 8px">**会动的**：件。整局只有它会被程序挪动、放大缩小、转缺口。</p>
+<div class="row"><span class="t"><a href="piece.html">piece</a></span> <span class="note">— World 的字段 <code>piece</code> · objects/movable/piece.py</span><div class="note">`Piece` —— 件：盘上那块色 11、缺一口的方块。**整局唯一会被程序挪动的东西。**</div></div>
+<div class="grouphead">panel</div><p class="note" style="margin:0 0 8px">**写程序的地方**：可点面板（程序本身）和底栏的框（这一关给了哪几种指令）。</p>
+<div class="row"><span class="t"><a href="panel.html">panel</a></span> <span class="note">— World 的字段 <code>panel</code> · objects/panel/panel.py</span><div class="note">`Panel` —— 可点面板：G 组 × K 槽，每组每槽一根横条（bar）和一根竖杆（stem），各自亮或暗。</div></div>
+<div class="row"><span class="t"><a href="toolbox.html">toolbox</a></span> <span class="note">— 部件 / 复合概念 · objects/panel/toolbox.py</span><div class="note">`Toolbox` —— 底栏那一排 9×9 的框：这一关**给了哪几种指令**。</div></div>
+<div class="grouphead">screen</div><p class="note" style="margin:0 0 8px">**屏幕**：点得到的地方（命中盒）和模型不解释的其余画面（指纹）。</p>
+<div class="row"><span class="t"><a href="controls.html">controls</a></span> <span class="note">— 部件 / 复合概念 · objects/screen/controls.py</span><div class="note">`Controls` —— 点得到的地方：面板每个件的命中盒 + 交卷的大圆。</div></div>
+<div class="row"><span class="t"><a href="scenery.html">scenery</a></span> <span class="note">— 部件 / 复合概念 · objects/screen/scenery.py</span><div class="note">`Scenery` —— 画面上**模型不解释**的其余部分，只留一个指纹。</div></div>
+<div class="grouphead">derive</div><p class="note" style="margin:0 0 8px">**复合概念**：由 `objects/` 里的对象算出来的量。**不碰像素**，输入是 `World`。</p>
+<div class="row"><span class="t"><a href="click.html">click</a></span> <span class="note">— 部件 / 复合概念 · derive/click.py</span><div class="note">一个动作点中了什么。组合自：动作字符串 + `layout.controls`（命中盒）。</div></div>
+<div class="row"><span class="t"><a href="outcome.html">outcome</a></span> <span class="note">— 部件 / 复合概念 · derive/outcome.py</span><div class="note">交卷的结果。组合自：`panel` + `layout.toolbox`（读成程序）、`piece` + `layout.board`（走程序）、</div></div>
+<div class="row"><span class="t"><a href="program.html">program</a></span> <span class="note">— 部件 / 复合概念 · derive/program.py</span><div class="note">面板 → 一串指令。组合自：`panel`（哪几个件暗着）+ `layout.toolbox`（这一关给了哪几种指令）。</div></div>
+<div class="row"><span class="t"><a href="walk.html">walk</a></span> <span class="note">— 部件 / 复合概念 · derive/walk.py</span><div class="note">一串指令 → 件走完停在哪、途经哪几格。组合自：`piece`（起点的形）+ `layout.board`（行列、墙、记号）。</div></div>
+<div class="grouphead">(根)</div><p class="note" style="margin:0 0 8px">唯一碰像素的那一份，留在根上：它最该显眼。</p>
+<div class="row"><span class="t"><a href="parse.html">parse</a></span> <span class="note">— 唯一碰像素的地方 · objects/parse.py</span><div class="note">帧 → 世界。**全局唯一碰像素的地方。**</div></div>
+<div class="grouphead">还没归类（0 样）</div><p class="note" style="margin:0 0 8px">新加了一样却忘了给它一个组，会掉进这里露出来，而不是从页面上凭空消失。</p>
+</div>
+<script>window.PAGE = {};</script>
+<script>
+// 只画、只翻页。**这里没有一行世界逻辑**：每一帧的像素、哪几格变了、每条规则判了什么、
+// 世界字段读出来是多少——全是 web/export.py 在 Python 那边算好的，这一份只摆出来。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+// ARC-AGI-3 的 16 色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出，
+// pages.py 放进要画帧的那几页的 PAGE.palette（下标 = 色号）。这里不抄。
+const PALETTE = (window.PAGE && window.PAGE.palette) || [];
+const PX = 4;
+
+function paintFrame(cv, hex, marks) {
+  cv.width = 64 * PX; cv.height = 64 * PX;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 4096; i++) {
+    g.fillStyle = PALETTE[parseInt(hex[i], 16)];
+    g.fillRect((i % 64) * PX, Math.floor(i / 64) * PX, PX, PX);
+  }
+  if (marks) {
+    g.strokeStyle = "#ff2d55"; g.lineWidth = 1;
+    for (const rc of marks) g.strokeRect(rc[1] * PX + .5, rc[0] * PX + .5, PX - 1, PX - 1);
+  }
+}
+
+function paintAll() {
+  const P = window.PAGE || {};
+  document.querySelectorAll("canvas[data-frame]").forEach((cv) => {
+    const id = cv.getAttribute("data-frame");
+    const mk = cv.getAttribute("data-marks");
+    paintFrame(cv, P.frames[id], mk ? P.marks[mk] : null);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function replayInit() {
+  const P = window.PAGE;
+  if (!P || !P.rows) return;
+  const box = document.getElementById("replay");
+  const slider = document.getElementById("pos");
+  const label = document.getElementById("where");
+  slider.max = P.rows.length - 1;
+  function show(i) {
+    const s = P.rows[i];
+    slider.value = i;
+    label.textContent = `第 ${i + 1} / ${P.rows.length} 行 · seq ${s.seq} · 段 ${s.seg} · 第 ${s.lvl} 关（本关第 ${s.k} 下）`;
+    paintFrame(document.getElementById("cvA"), P.frames[s.prev], null);
+    paintFrame(document.getElementById("cvB"), P.frames[s.next], s.changed);
+    const chips = Object.entries(s.verdicts).map(([n, v]) =>
+      `<tr><td>${esc(n)}</td><td><span class="chip ${v}">${v}</span></td></tr>`).join("");
+    const wv = (w) => w ? `顶栏 ${w.counter}；件 ${esc(w.piece)}；面板程序 ${esc(w.program)}；看得见的花格 ${esc(w.pads)}` : "（读不成世界：终局画面）";
+    document.getElementById("info").innerHTML =
+      `<dl class="kv"><dt>动作</dt><dd class="mono">${esc(s.action)}（${esc(s.kind)}${s.result ? "，交卷结果 " + esc(s.result) : ""}）</dd>` +
+      `<dt>上游</dt><dd>第 ${s.lvl} 关 → 第 ${s.lvl_next} 关，${esc(s.state)}</dd>` +
+      `<dt>变了几格</dt><dd>${s.n_changed}（右图红框，导出侧比好的）</dd>` +
+      `<dt>前一帧</dt><dd>${wv(s.w)}</dd><dt>后一帧</dt><dd>${wv(s.nw)}</dd>` +
+      `<dt>标记</dt><dd>${esc(s.mark)}</dd></dl>` +
+      `<table style="margin-top:10px"><tr><th>规则</th><th>判决</th></tr>${chips}</table>`;
+  }
+  slider.addEventListener("input", () => show(+slider.value));
+  document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+  document.getElementById("nextBtn").onclick = () => show(Math.min(P.rows.length - 1, +slider.value + 1));
+  const jump = document.getElementById("jump");
+  if (jump) jump.onchange = () => show(+jump.value);
+  show(0);
+  box.style.display = "block";
+}
+
+function navSelect() {
+  document.querySelectorAll("select[data-nav]").forEach((s) => {
+    s.onchange = () => { if (s.value) window.location.href = s.value; };
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => { paintAll(); replayInit(); navSelect(); });
+
+</script>
+</body>
+</html>

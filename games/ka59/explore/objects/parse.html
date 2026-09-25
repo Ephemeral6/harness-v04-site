@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>objects/parse.py · ka59</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+   形状从 ledger/templates/web/style.css 起手；「本局专属」那一块换成了这一局的东西。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275; --link: #7ab8ff;
+
+  /* ↓↓↓ 本局专属：世界的配色（前端配的，不是世界里的颜色） ↓↓↓ */
+  --floor: #262b36;
+  --wall: #07080b;
+  --band: #1f6f78;
+  --slot: #e0b84a;
+  --piece: #59b0ff;  --piece-sel: #9fd4ff;  --piece-ret: #4a6f96;
+  --bare: #e0873a;
+  --gate: #8e5cc9;  --gate-on: #d7a6ff;
+  --chg: #ff5d8f;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+.gaps { border-color: #6b4a1f; background: #231d14; margin-bottom: 16px; }
+.gaps h2 { color: #e0b84a; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; max-width: 360px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 260px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE, .chip.T { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.F { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.N { background: #222732; color: var(--faint); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0; font-family: inherit; }
+pre.src { white-space: pre; font-size: 12px; line-height: 1.55; margin: 0; padding: 12px;
+          background: #0f1218; border: 1px solid var(--line); border-radius: 8px; overflow: auto; max-height: 640px;
+          font-family: ui-monospace, Consolas, monospace; color: #cfd6e6; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 230px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--link); }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 20px 0 4px; font-size: 12px; color: var(--dim); letter-spacing: .8px; }
+.grouphead:first-child { margin-top: 0 }
+
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain b { color: #ffd88a; }
+
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+details summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+details summary:hover { color: var(--ink); }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; white-space: pre; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }
+pre.lean i.s { color: #b5cea8; }
+pre.lean i.k { color: #c08cdc; }
+pre.lean i.t { color: #6fb3c8; }
+pre.lean i.p { color: #d79a5b; }
+
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); margin-top: 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.verdicts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; margin-top: 8px; }
+
+</style>
+</head>
+<body data-page="">
+<div class="wrap">
+<header>
+<h1>objects/parse.py</h1>
+<div class="sub">组：objects</div>
+<nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../share.html">怎么给别人看</a></nav>
+</header>
+<div class="card"><h2>它是什么</h2><pre class="doc">帧 → 世界。<b>全局唯一碰像素的地方。</b>
+
+上面每一层只认 <code>World</code> 的字段（格、块、框、门带、条），读不到帧。
+
+## 读法（每一步读不出来都抛 <code>ParseError</code>，不返回半个世界）
+
+    1. 预算条    第 63 行：左边一段色4、右边一段色0，色4 的格数就是 <code>bar</code>
+    2. 块        带壳块从核心认：一块实心的 a×b（a,b ≤ 3）单色（5 / 4 / 0），
+                 朝四周各扩 a 行 b 列是一整块外壳（色14）。核心色0 的那一块是被操纵的，
+                 它的外壳上可能有整条边也被涂成色0（贴着东西的那一面）
+                 裸十字：色11 的连通块
+    3. 相位      所有块的左上角像素 mod 3 必须一致 —— <b>同一个量的两种读法</b>，对不上就抛
+    4. 门带      色12/13 的连通块：实心长方形，色12 是从一头起的整层
+    5. 地形      每一格的 9 个像素（被块 / 门带盖住的不算）：有色2 或出了画面 → 墙；有色15 → 带
+    6. 框        从框线（色4，不在块里的）推出框的内部（见 <code>_slots</code>）
+    7. 良构      (a) 框线恰好是框内部的轮廓；(b) 被操纵块的外壳上亮起的边
+                 恰好是「那一面紧贴着别的块或门带」的那几面 —— 都是同一件事的两种读法
+
+## 读不成的帧归不归类，<b>不在这里判</b>
+
+这里只管抛。「这一帧本来就不是局面（终局画面、过场）」还是「是局面而读不出来」，
+由拿得到 meta 的那一层分（<code>run_rules.py</code>），它把两档分开报。</pre></div><div class="card"><h2>它的 Lean</h2><p class="note">不进 Lean：唯一碰像素的地方：Lean 那边从格起算，像素一个都不进模型</p></div><div class="card"><h2>Python 源码 · objects/parse.py</h2><details><summary>展开</summary><pre class="src">&quot;&quot;&quot;帧 → 世界。**全局唯一碰像素的地方。**
+
+上面每一层只认 `World` 的字段（格、块、框、门带、条），读不到帧。
+
+## 读法（每一步读不出来都抛 `ParseError`，不返回半个世界）
+
+    1. 预算条    第 63 行：左边一段色4、右边一段色0，色4 的格数就是 `bar`
+    2. 块        带壳块从核心认：一块实心的 a×b（a,b ≤ 3）单色（5 / 4 / 0），
+                 朝四周各扩 a 行 b 列是一整块外壳（色14）。核心色0 的那一块是被操纵的，
+                 它的外壳上可能有整条边也被涂成色0（贴着东西的那一面）
+                 裸十字：色11 的连通块
+    3. 相位      所有块的左上角像素 mod 3 必须一致 —— **同一个量的两种读法**，对不上就抛
+    4. 门带      色12/13 的连通块：实心长方形，色12 是从一头起的整层
+    5. 地形      每一格的 9 个像素（被块 / 门带盖住的不算）：有色2 或出了画面 → 墙；有色15 → 带
+    6. 框        从框线（色4，不在块里的）推出框的内部（见 `_slots`）
+    7. 良构      (a) 框线恰好是框内部的轮廓；(b) 被操纵块的外壳上亮起的边
+                 恰好是「那一面紧贴着别的块或门带」的那几面 —— 都是同一件事的两种读法
+
+## 读不成的帧归不归类，**不在这里判**
+
+这里只管抛。「这一帧本来就不是局面（终局画面、过场）」还是「是局面而读不出来」，
+由拿得到 meta 的那一层分（`run_rules.py`），它把两档分开报。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .board.slot import Slot
+from .geometry.cell import Cell
+from .movable.gate import Gate
+from .movable.piece import Piece
+from .world import World
+
+ROWS = 63            # 第 0..62 行是版面
+HUD = 63             # 第 63 行是预算条
+COLS = 64
+K = 3                # 一格 3 像素
+
+BG, WALL, SEL, IDLE, RET, BARE, ON, OFF, SHELL, BAND = 1, 2, 0, 5, 4, 11, 12, 13, 14, 15
+
+UP, DOWN, LEFT, RIGHT = (-1, 0), (1, 0), (0, -1), (0, 1)
+DIRS4 = (UP, DOWN, LEFT, RIGHT)
+
+
+class ParseError(Exception):
+    &quot;&quot;&quot;这一帧读不成一个世界。**这是一条可判错的话**，不是一次异常处理。
+
+    读不成的帧要归成两类（归类在读数那一层做，不在这里）：
+        不是局面   终局画面、过场、整屏重画 —— 有名字、有条数，不算欠账
+        读不出来   是一张盘而我读不出来 —— **只有这一种是欠账，它要是 0 才算过**
+    &quot;&quot;&quot;
+
+
+# ---------------------------------------------------------------- 小工具（只在这个文件里用）
+
+def _components(cells):
+    todo, out = set(cells), []
+    while todo:
+        seed = todo.pop()
+        comp, stack = {seed}, [seed]
+        while stack:
+            r, c = stack.pop()
+            for dr, dc in DIRS4:
+                nb = (r + dr, c + dc)
+                if nb in todo:
+                    todo.discard(nb)
+                    comp.add(nb)
+                    stack.append(nb)
+        out.append(comp)
+    return out
+
+
+def _bbox(cells):
+    rs = [r for r, _ in cells]
+    cs = [c for _, c in cells]
+    return min(rs), max(rs), min(cs), max(cs)
+
+
+def _rect(box):
+    r0, r1, c0, c1 = box
+    return {(r, c) for r in range(r0, r1 + 1) for c in range(c0, c1 + 1)}
+
+
+def _in_board(r, c):
+    return 0 &lt;= r &lt; ROWS and 0 &lt;= c &lt; COLS
+
+
+# ---------------------------------------------------------------- 1. 预算条
+
+def _bar(row) -&gt; int:
+    n = 0
+    while n &lt; len(row) and row[n] == RET:
+        n += 1
+    if any(v != SEL for v in row[n:]):
+        raise ParseError(f&quot;预算条不是「一段色4 + 一段色0」：{row}&quot;)
+    return n
+
+
+# ---------------------------------------------------------------- 2. 块
+
+def _shell_box(g, core):
+    &quot;&quot;&quot;核心 → 外壳的包围盒；外壳要整块在版面里。&quot;&quot;&quot;
+    r0, r1, c0, c1 = core
+    a, b = r1 - r0 + 1, c1 - c0 + 1
+    box = (r0 - a, r1 + a, c0 - b, c1 + b)
+    if box[0] &lt; 0 or box[2] &lt; 0 or box[1] &gt;= ROWS or box[3] &gt;= COLS:
+        return None
+    return box
+
+
+def _solid_cores(g, color):
+    &quot;&quot;&quot;某一种核心色的全部带壳块（未被操纵的那些：外壳整块色14）。
+    认不成块的那一片同色格原样退回，由调用方决定它是什么。&quot;&quot;&quot;
+    cells = [(r, c) for r in range(ROWS) for c in range(COLS) if g[r][c] == color]
+    found, rest = [], []
+    for comp in _components(cells):
+        box = _bbox(comp)
+        r0, r1, c0, c1 = box
+        a, b = r1 - r0 + 1, c1 - c0 + 1
+        sb = _shell_box(g, box) if len(comp) == a * b and a &lt;= 3 and b &lt;= 3 else None
+        if sb is not None and all(g[r][c] == SHELL for (r, c) in _rect(sb) - comp):
+            found.append((sb, box))
+        else:
+            rest.append(comp)
+    return found, rest
+
+
+def _lit_edges(g, box):
+    &quot;&quot;&quot;外壳四条边里整条是色0 的那几条（贴着东西的那几面）。&quot;&quot;&quot;
+    r0, r1, c0, c1 = box
+    sides = {UP: [(r0, c) for c in range(c0, c1 + 1)],
+             DOWN: [(r1, c) for c in range(c0, c1 + 1)],
+             LEFT: [(r, c0) for r in range(r0, r1 + 1)],
+             RIGHT: [(r, c1) for r in range(r0, r1 + 1)]}
+    return {d for d, s in sides.items() if all(g[r][c] == SEL for r, c in s)}, sides
+
+
+def _selected(g, taken):
+    &quot;&quot;&quot;被操纵的那一块：(外壳盒, 核心盒, 亮着的边)。一个色0 都没有时 None。&quot;&quot;&quot;
+    zeros = {(r, c) for r in range(ROWS) for c in range(COLS) if g[r][c] == SEL}
+    if not zeros:
+        return None
+    best = []
+    for (r0, c0) in zeros:
+        for a in (1, 2, 3):
+            for b in (1, 2, 3):
+                core = (r0, r0 + a - 1, c0, c0 + b - 1)
+                if not _rect(core) &lt;= zeros:
+                    continue
+                box = _shell_box(g, core)
+                if box is None:
+                    continue
+                R = _rect(box)
+                if not zeros &lt;= R or R &amp; taken:
+                    continue
+                if any(g[r][c] not in (SEL, SHELL) for (r, c) in R):
+                    continue
+                lit, sides = _lit_edges(g, box)
+                ring = set().union(*sides.values())
+                litpx = set().union(*(set(sides[d]) for d in lit)) if lit else set()
+                # 外壳上的色0 只许整条边地出现；核心以外、外壳之内的里层不许有色0
+                if any((r, c) not in litpx for (r, c) in (zeros &amp; ring)):
+                    continue
+                if (zeros - ring) != _rect(core):
+                    continue
+                best.append((a * b, box, core, frozenset(lit)))
+    if not best:
+        raise ParseError(&quot;有色0 的像素，但认不出被操纵的那一块&quot;)
+    top = max(x[0] for x in best)
+    tops = {(b, c, l) for (ar, b, c, l) in best if ar == top}
+    if len(tops) != 1:
+        raise ParseError(f&quot;被操纵的那一块有 {len(tops)} 种同样好的读法&quot;)
+    return next(iter(tops))
+
+
+# ---------------------------------------------------------------- 4. 门带
+
+def _gate(g, comp, pr, pc):
+    box = _bbox(comp)
+    if _rect(box) != set(comp):
+        raise ParseError(f&quot;门带不是实心长方形（被盖住了？）：{box}&quot;)
+    r0, r1, c0, c1 = box
+    if (r0 - pr) % K or (c0 - pc) % K or (r1 - r0 + 1) % K or (c1 - c0 + 1) % K:
+        raise ParseError(f&quot;门带没对齐格阵：{box}&quot;)
+    cells = frozenset(Cell((r - pr) // K, (c - pc) // K)
+                      for r in range(r0, r1 + 1, K) for c in range(c0, c1 + 1, K))
+    hot = {(r, c) for (r, c) in comp if g[r][c] == ON}
+    H, W = r1 - r0 + 1, c1 - c0 + 1
+    if not hot:
+        return Gate(cells, None, None, 0)
+    rows = sorted({r for r, _ in hot})
+    cols = sorted({c for _, c in hot})
+    full_rows = len(hot) == len(rows) * W and rows == list(range(rows[0], rows[-1] + 1))
+    full_cols = len(hot) == len(cols) * H and cols == list(range(cols[0], cols[-1] + 1))
+    by_row = full_rows and len(rows) &lt; H
+    by_col = full_cols and len(cols) &lt; W
+    if by_row and by_col:
+        raise ParseError(f&quot;门带上的色12 横竖两种读法都成立：{box}&quot;)
+    if by_row and rows[0] == r0:
+        return Gate(cells, &quot;row&quot;, +1, len(rows))
+    if by_row and rows[-1] == r1:
+        return Gate(cells, &quot;row&quot;, -1, len(rows))
+    if by_col and cols[0] == c0:
+        return Gate(cells, &quot;col&quot;, +1, len(cols))
+    if by_col and cols[-1] == c1:
+        return Gate(cells, &quot;col&quot;, -1, len(cols))
+    raise ParseError(f&quot;门带上的色12 不是从一头起的整层：{box}&quot;)
+
+
+# ---------------------------------------------------------------- 6. 框
+
+def _slots(g, cand, hidden, ring, lo, hi, pr, pc):
+    &quot;&quot;&quot;从框线推出框的内部。
+
+    框线画在**外侧那一格**紧贴内部的那一排像素上。所以对一格 u 和一个方向 d，
+    看的是邻格 v = u+d 朝着 u 的那一排 3 个像素（`_line`）：
+
+        R   看得见的全是框线（色4）         → u 在框里，v 不在同一个框里
+        H   3 个全被块 / 门带盖住            → 这一面说不了话
+        O   其余（看得见地面 / 墙 / 带）     → 若 u 在框里，v 也在同一个框里
+
+    先从带 R 的格起种子，沿 O 扩；再把「四面都是 R / H / 朝框内的 O」的被盖住的格
+    收进来（块整个或一半坐在框里时，框线在它身上看不见）；最后相邻两格之间没有 R 就并成一个框。
+    &quot;&quot;&quot;
+    def line(u, d):
+        (i, j), (di, dj) = u, d
+        vi, vj = i + di, j + dj
+        if di == 1:
+            px = [(pr + K * vi, pc + K * vj + k) for k in range(K)]
+        elif di == -1:
+            px = [(pr + K * vi + K - 1, pc + K * vj + k) for k in range(K)]
+        elif dj == 1:
+            px = [(pr + K * vi + k, pc + K * vj) for k in range(K)]
+        else:
+            px = [(pr + K * vi + k, pc + K * vj + K - 1) for k in range(K)]
+        if any(not _in_board(r, c) for r, c in px):
+            return &quot;X&quot;
+        vis = [p for p in px if p not in hidden]
+        if not vis:
+            return &quot;H&quot;
+        if all(p in ring for p in vis):
+            return &quot;R&quot;
+        return &quot;O&quot;
+
+    def corners(u):
+        i, j = u
+        top, left = pr + K * i, pc + K * j
+        return [(top - 1, left - 1), (top - 1, left + K), (top + K, left - 1), (top + K, left + K)]
+
+    L = {(u, d): line(u, d) for u in cand for d in DIRS4}
+    inside = {u for u in cand if any(L[(u, d)] == &quot;R&quot; for d in DIRS4)}
+    # 第二种种子：四面全被盖住（块压在框上），可是**对角那几个框线角**露在外面。
+    # 十字块压住一个一格的框时就是这样：四条边都在十字的四条臂底下，只剩四个角看得见。
+    # 看得见的角必须**全是**框线：块的一条臂伸进框里时，臂根那一格的角一半是框线一半是地面，它不在框里。
+    def seen_corners(u):
+        return [p for p in corners(u) if _in_board(*p) and p not in hidden]
+    inside |= {u for u in cand if all(L[(u, d)] in (&quot;R&quot;, &quot;H&quot;) for d in DIRS4)
+               and seen_corners(u) and all(p in ring for p in seen_corners(u))}
+    stack = list(inside)
+    while stack:
+        u = stack.pop()
+        for d in DIRS4:
+            s = L[(u, d)]
+            v = (u[0] + d[0], u[1] + d[1])
+            if s == &quot;X&quot;:
+                raise ParseError(f&quot;框内一格朝画面外：格 {u}&quot;)
+            if s == &quot;O&quot;:
+                if v not in cand:
+                    raise ParseError(f&quot;框内一格 {u} 朝 {d} 是开的，而那边不是空地&quot;)
+                if v not in inside:
+                    inside.add(v)
+                    stack.append(v)
+    def corner_ok(u):
+        &quot;&quot;&quot;u 要算框内，它看得见的对角那几个像素要么是框线，要么落在已经算框内的格里。&quot;&quot;&quot;
+        i, j = u
+        out = []
+        for (r, c), (di, dj) in zip(corners(u), ((-1, -1), (-1, 1), (1, -1), (1, 1))):
+            if not _in_board(r, c) or (r, c) in hidden or (r, c) in ring:
+                continue
+            out.append((i + di, j + dj) in inside)
+        return all(out)
+
+    grew = True
+    while grew:
+        grew = False
+        for u in cand - inside:
+            nbs = [(d, (u[0] + d[0], u[1] + d[1])) for d in DIRS4]
+            if not any(v in inside for _, v in nbs):
+                continue
+            if all(L[(u, d)] in (&quot;R&quot;, &quot;H&quot;) or (L[(u, d)] == &quot;O&quot; and v in inside) for d, v in nbs) \
+                    and corner_ok(u):
+                inside.add(u)
+                grew = True
+    # 相邻两格之间没有框线就是同一个框
+    parent = {u: u for u in inside}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    for u in inside:
+        for d in (DOWN, RIGHT):
+            v = (u[0] + d[0], u[1] + d[1])
+            if v in inside and L[(u, d)] != &quot;R&quot; and L[(v, (-d[0], -d[1]))] != &quot;R&quot;:
+                parent[find(u)] = find(v)
+    groups: dict = {}
+    for u in inside:
+        groups.setdefault(find(u), set()).add(u)
+    return [frozenset(s) for s in groups.values()]
+
+
+def _outline8(pix):
+    out = set()
+    for (r, c) in pix:
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                q = (r + dr, c + dc)
+                if q not in pix:
+                    out.add(q)
+    return out
+
+
+# ---------------------------------------------------------------- 主函数
+
+def parse(frame) -&gt; World:
+    g = frame
+    if len(g) != 64 or any(len(row) != COLS for row in g):
+        raise ParseError(&quot;帧不是 64×64&quot;)
+    bar = _bar(g[HUD])
+
+    idle, rest5 = _solid_cores(g, IDLE)
+    if rest5:
+        raise ParseError(f&quot;有 {len(rest5)} 片色5 认不成带壳块的核心&quot;)
+    retired, rest4 = _solid_cores(g, RET)
+    taken = set()
+    for sb, _ in idle + retired:
+        taken |= _rect(sb)
+    sel = _selected(g, taken)
+
+    boxes = [(sb, &quot;idle&quot;) for sb, _ in idle] + [(sb, &quot;retired&quot;) for sb, _ in retired]
+    if sel is not None:
+        boxes.append((sel[0], &quot;selected&quot;))
+    bare_px = [(r, c) for r in range(ROWS) for c in range(COLS) if g[r][c] == BARE]
+    bares = _components(bare_px)
+    if not boxes and not bares:
+        raise ParseError(&quot;一块可推的东西都没有&quot;)
+
+    # 3. 相位：所有块的左上角 mod 3 必须一致
+    phases = {(b[0] % K, b[2] % K) for b, _ in boxes} | {(_bbox(p)[0] % K, _bbox(p)[2] % K) for p in bares}
+    if len(phases) != 1:
+        raise ParseError(f&quot;块的相位对不上：{sorted(phases)}&quot;)
+    pr, pc = next(iter(phases))
+
+    def cells_of_px(pix):
+        cs = {Cell((r - pr) // K, (c - pc) // K) for r, c in pix}
+        full = {(pr + K * x.row + i, pc + K * x.col + j) for x in cs for i in range(K) for j in range(K)}
+        if full != set(pix):
+            raise ParseError(&quot;一块东西没铺满整格&quot;)
+        return frozenset(cs)
+
+    covered = set()
+    pieces, selected, ret = [], None, set()
+    for box, kind in boxes:
+        R = _rect(box)
+        if R &amp; covered:
+            raise ParseError(&quot;两块带壳块重叠&quot;)
+        covered |= R
+        p = Piece(cells_of_px(R), True)
+        pieces.append(p)
+        if kind == &quot;selected&quot;:
+            selected = p.anchor
+        elif kind == &quot;retired&quot;:
+            ret.add(p.anchor)
+    for comp in bares:
+        if set(comp) &amp; covered:
+            raise ParseError(&quot;裸十字和带壳块重叠&quot;)
+        covered |= set(comp)
+        pieces.append(Piece(cells_of_px(comp), False))
+
+    gate_px = [(r, c) for r in range(ROWS) for c in range(COLS) if g[r][c] in (ON, OFF)]
+    gates = []
+    for comp in _components(gate_px):
+        gates.append(_gate(g, comp, pr, pc))
+        covered |= set(comp)
+
+    # 5. 地形：每一格 9 个像素里看得见的那些
+    ring = set()
+    for comp in rest4:
+        ring |= set(comp)
+    i_lo, i_hi = (0 - pr) // K, (ROWS - 1 - pr) // K
+    j_lo, j_hi = (0 - pc) // K, (COLS - 1 - pc) // K
+    walls, bands, cand = set(), set(), set()
+    for i in range(i_lo, i_hi + 1):
+        for j in range(j_lo, j_hi + 1):
+            px = [(pr + K * i + a, pc + K * j + b) for a in range(K) for b in range(K)]
+            if any(not _in_board(r, c) for r, c in px):
+                walls.add(Cell(i, j))
+                continue
+            vis = [g[r][c] for r, c in px if (r, c) not in covered]
+            bad = [v for v in vis if v not in (BG, WALL, BAND, RET)]
+            if bad:
+                raise ParseError(f&quot;格 ({i},{j}) 里有认不得的颜色 {sorted(set(bad))}&quot;)
+            if WALL in vis:
+                walls.add(Cell(i, j))
+            elif BAND in vis:
+                bands.add(Cell(i, j))
+            elif RET not in vis and not any((r, c) in covered and g[r][c] in (ON, OFF) for r, c in px):
+                cand.add((i, j))
+
+    # 画面之外一圈也记成墙：一步只挪一格、推 / 扫都是一格一格试，外面一圈就够挡住
+    for i in range(i_lo - 1, i_hi + 2):
+        walls.add(Cell(i, j_lo - 1))
+        walls.add(Cell(i, j_hi + 1))
+    for j in range(j_lo - 1, j_hi + 2):
+        walls.add(Cell(i_lo - 1, j))
+        walls.add(Cell(i_hi + 1, j))
+
+    # 6. 框
+    slot_sets = _slots(g, cand, covered, ring, i_lo, i_hi, pr, pc)
+    slots = frozenset(Slot(frozenset(Cell(i, j) for i, j in s)) for s in slot_sets)
+
+    # 7a. 良构：框线恰好是框内部的轮廓（被盖住的那几段不算）
+    drawn = set()
+    for s in slot_sets:
+        pix = {(pr + K * i + a, pc + K * j + b) for i, j in s for a in range(K) for b in range(K)}
+        drawn |= _outline8(pix)
+    visible_outline = {p for p in drawn if _in_board(*p) and p not in covered}
+    if visible_outline != ring:
+        extra = len(ring - visible_outline)
+        miss = len(visible_outline - ring)
+        raise ParseError(f&quot;框线和框内部的轮廓对不上：多出 {extra} 个框线像素、缺 {miss} 个&quot;)
+
+    world = World(phase=(pr, pc), walls=frozenset(walls), bands=frozenset(bands), slots=slots,
+                  pieces=tuple(sorted(pieces)), selected=selected, retired=frozenset(ret),
+                  gates=tuple(sorted(gates)), bar=bar)
+
+    # 7b. 良构：亮着的边 == 紧贴着别的块或门带的那几面
+    if sel is not None:
+        me = world.piece_at(selected)
+        occ = set()
+        for p in world.pieces:
+            if p is not me:
+                occ |= {(x.row, x.col) for x in p.cells}
+        for gt in world.gates:
+            occ |= {(x.row, x.col) for x in gt.cells}
+        mine = {(x.row, x.col) for x in me.cells}
+        want = set()
+        for d in DIRS4:
+            front = {(r + d[0], c + d[1]) for r, c in mine} - mine
+            if front &amp; occ:
+                want.add(d)
+        if want != set(sel[2]):
+            raise ParseError(f&quot;被操纵那一块亮着的边 {sorted(sel[2])} ≠ 紧贴着东西的那几面 {sorted(want)}&quot;)
+    return world
+</pre></details></div>
+</div>
+<script>
+// **只画、不算。** 每一格、每一个数都是 web/export.py 在 Python 那边算好导出来的：
+// 这一份只把导出的格集合画成方块、把导出的判决串画成小标签、把 Lean 源码上色。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破了。
+
+const D = window.DATA || {};
+const $ = (id) => document.getElementById(id);
+const S = 11;                       // 一格画几个像素：尺寸，渲染方面的东西
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 一张盘：盘面（墙 / 带 / 框）+ 这一帧的块和门带 + 导出侧给的「变了的格」。
+function drawFrame(board, fr, chg, title) {
+  const all = [];
+  board.walls.forEach((c) => all.push(c));
+  const r0 = Math.min(...all.map((c) => c[0])), c0 = Math.min(...all.map((c) => c[1]));
+  const r1 = Math.max(...all.map((c) => c[0])), c1 = Math.max(...all.map((c) => c[1]));
+  const W = (c1 - c0 + 1) * S, H = (r1 - r0 + 1) * S;
+  const box = (c, fill, extra) =>
+    `<rect x="${(c[1] - c0) * S}" y="${(c[0] - r0) * S}" width="${S}" height="${S}" fill="${fill}" ${extra || ""}/>`;
+  let g = `<rect width="${W}" height="${H}" fill="var(--floor)"/>`;
+  board.walls.forEach((c) => { g += box(c, "var(--wall)"); });
+  board.bands.forEach((c) => { g += box(c, "var(--band)"); });
+  board.slots.forEach((sl) => sl.forEach((c) => {
+    g += box(c, "none", 'stroke="var(--slot)" stroke-width="1.5" stroke-dasharray="3 2"');
+  }));
+  fr.gates.forEach((gt) => gt.cells.forEach((c) => {
+    g += box(c, "var(--gate)", 'stroke="#000" stroke-width=".5"');
+  }));
+  fr.gates.forEach((gt) => {
+    const c = gt.cells[0];
+    g += `<text x="${(c[1] - c0) * S + 2}" y="${(c[0] - r0) * S + 9}" font-size="8" fill="var(--gate-on)">${gt.count}</text>`;
+  });
+  fr.pieces.forEach((p) => {
+    const fill = !p.shelled ? "var(--bare)" : p.sel ? "var(--piece-sel)" : p.retired ? "var(--piece-ret)" : "var(--piece)";
+    p.cells.forEach((c) => { g += box(c, fill, 'stroke="#000" stroke-width=".6"'); });
+  });
+  (chg || []).forEach((c) => { g += box(c, "none", 'stroke="var(--chg)" stroke-width="1.6"'); });
+  const bar = `预算条 ${fr.bar} / 64`;
+  return `<figure class="board"><figcaption>${esc(title || "")}　<span class="mono">${bar}</span></figcaption>` +
+    `<svg class="grid" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg></figure>`;
+}
+
+function rowByNumber(n) { return D.rows.find((r) => r.row === n); }
+function legend() {
+  return '<div class="legend">' +
+    '<span><i style="background:var(--wall)"></i>墙</span>' +
+    '<span><i style="background:var(--band)"></i>带</span>' +
+    '<span><i style="border:1.5px dashed var(--slot)"></i>框的内部</span>' +
+    '<span><i style="background:var(--piece-sel)"></i>被操纵的块</span>' +
+    '<span><i style="background:var(--piece)"></i>没被选过的块</span>' +
+    '<span><i style="background:var(--piece-ret)"></i>被点走过的块</span>' +
+    '<span><i style="background:var(--bare)"></i>裸十字</span>' +
+    '<span><i style="background:var(--gate)"></i>门带（数字=数到几）</span>' +
+    '<span><i style="border:1.6px solid var(--chg)"></i>这一步变了的格（导出侧算的）</span></div>';
+}
+
+// ---------------------------------------------------------------- 首页
+function initHome() {
+  document.querySelectorAll("[data-pick]").forEach((el) => {
+    const n = D.picks[el.dataset.pick];
+    const r = rowByNumber(n);
+    if (!r) { el.innerHTML = '<span class="bad">导出侧没挑出这一帧</span>'; return; }
+    const b = D.boards[String(r.lv)];
+    el.innerHTML = drawFrame(b, D.frames[r.p], null, `row ${r.row} 之前（第 ${r.lv} 关）`) +
+      (r.tag === "levelup" ? "" : drawFrame(b, D.frames[r.n], r.chg, `按 ${r.act} 之后`));
+  });
+  const lg = $("legend");
+  if (lg) lg.innerHTML = legend();
+}
+
+// ---------------------------------------------------------------- 回放
+function initReplay() {
+  const segSel = $("seg"), slider = $("slider");
+  let rows = [];
+  function show() {
+    const r = rows[+slider.value];
+    if (!r) return;
+    const b = D.boards[String(r.lv)] || D.boards["0"];
+    const nb = D.boards[String(r.lvn)] || b;
+    $("label").textContent = `row ${r.row}（段内第 ${+slider.value + 1} / ${rows.length}）· 第 ${r.lv} 关 · 动作 ${r.act} · 标记 ${r.tag}`;
+    $("frames").innerHTML = drawFrame(b, D.frames[r.p], null, "这一步之前") +
+      drawFrame(r.tag === "ok" || r.tag === "over" ? b : nb, D.frames[r.n], r.chg,
+        r.tag === "levelup" ? "之后（已经是下一关的盘）" : r.tag === "reset" ? "之后（RESET：模型不描述）" : "这一步之后");
+    let v = "";
+    D.rule_order.forEach((nm, i) => {
+      const k = r.v[i];
+      v += `<span><span class="chip ${k}">${k === "T" ? "对" : k === "F" ? "错" : "不管"}</span> ` +
+        `<a href="rules/${nm}.html">${nm}</a></span>`;
+    });
+    $("verdicts").innerHTML = v;
+  }
+  function load() {
+    const s = +segSel.value;
+    rows = D.rows.filter((r) => r.seg === s);
+    slider.max = rows.length - 1;
+    slider.value = 0;
+    show();
+  }
+  segSel.onchange = load;
+  slider.oninput = show;
+  $("prev").onclick = () => { slider.value = Math.max(0, +slider.value - 1); show(); };
+  $("next").onclick = () => { slider.value = Math.min(rows.length - 1, +slider.value + 1); show(); };
+  $("legend").innerHTML = legend();
+  load();
+}
+
+// ---------------------------------------------------------------- Lean 源码上色（只认注释、字符串和几十个词）
+const KEY = ("theorem|def|abbrev|structure|inductive|namespace|end|import|deriving|" +
+  "by|fun|match|with|let|have|show|if|then|else|where|open").split("|");
+const TAC = ("simp|decide|rfl|exact|intro|cases|obtain|refine|induction|split|rw|unfold|absurd|calc").split("|");
+function paint(src) {
+  let h = esc(src);
+  h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+  const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+  const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+  return h
+    .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+    .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+    .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+    .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("pre.lean").forEach((el) => { el.innerHTML = paint(el.textContent); });
+  if (document.body.dataset.page === "home") initHome();
+  if (document.body.dataset.page === "replay") initReplay();
+});
+
+</script>
+</body>
+</html>

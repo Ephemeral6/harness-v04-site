@@ -1,0 +1,469 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · parse</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>parse</h1><pre>帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的字段。
+
+## 读法（按结构认，不按色号认——只有三处例外，写在明处）
+
+  1. 第 63 行是计费行：一段色 3 前缀 + 一段色 4 后缀，`spent` = 色 4 的格数。
+  2. 色 2 描边的长方形是**框**。框里有色 3 分隔线的是面板（两颗图标），没有的是图例（一颗）。
+     条的颜色 = 某个框里图标的颜色。
+  3. 四邻都是色 13 的格是**菱形靶**的中心。那四个点画在一切之上，按透明读。
+  4. 场地上成排三格的色 3 是**帽**。每顶帽朝一侧长出一根条：
+     条 = 帽 + 若干条 3 格宽的同色横截面；**同一色的格子要被这些条恰好铺满一遍**
+     （精确覆盖）。铺不满、剩下一块 3×3 且四周两边以上贴着帽的，是**枢纽**。
+  5. 其余颜色是死物：色 15 推不动（盘面），别的色拆成 3 格厚的长方形刚体（墙）。
+
+三处按色号认的例外：色 3（帽 / 分隔线 / 计费）、色 13（尖 / 菱形）、色 15（推不动）。
+前两个是这一局的「标点」，每一关意思都一样；色 15 的「推不动」是一条**只有语料撑着**的事实
+（`analysis/fixed.txt`），帧上看不出它和推得动的墙有什么结构区别。
+
+## 良构检查（对不上就抛）
+
+  - 计费行必须是「前缀 3 + 后缀 4」；
+  - 帽必须是整齐的一排三格，而且恰好朝一侧长；
+  - 条色格子必须被帽出发的条恰好铺满（剩下的只许是枢纽）；
+  - 每个尖（非菱形的色 13）必须恰好落在某根条离帽第 L-1 条的正中。
+
+## 读不成的帧
+
+**这里只管抛，不管归类**（卡 01）：「这一帧不是局面」还是「是局面但我读不出」
+由拿得到 meta 的那一层判（`corpus.py`）。</pre>
+<details><summary>源码</summary><pre>&quot;&quot;&quot;帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的字段。
+
+## 读法（按结构认，不按色号认——只有三处例外，写在明处）
+
+  1. 第 63 行是计费行：一段色 3 前缀 + 一段色 4 后缀，`spent` = 色 4 的格数。
+  2. 色 2 描边的长方形是**框**。框里有色 3 分隔线的是面板（两颗图标），没有的是图例（一颗）。
+     条的颜色 = 某个框里图标的颜色。
+  3. 四邻都是色 13 的格是**菱形靶**的中心。那四个点画在一切之上，按透明读。
+  4. 场地上成排三格的色 3 是**帽**。每顶帽朝一侧长出一根条：
+     条 = 帽 + 若干条 3 格宽的同色横截面；**同一色的格子要被这些条恰好铺满一遍**
+     （精确覆盖）。铺不满、剩下一块 3×3 且四周两边以上贴着帽的，是**枢纽**。
+  5. 其余颜色是死物：色 15 推不动（盘面），别的色拆成 3 格厚的长方形刚体（墙）。
+
+三处按色号认的例外：色 3（帽 / 分隔线 / 计费）、色 13（尖 / 菱形）、色 15（推不动）。
+前两个是这一局的「标点」，每一关意思都一样；色 15 的「推不动」是一条**只有语料撑着**的事实
+（`analysis/fixed.txt`），帧上看不出它和推得动的墙有什么结构区别。
+
+## 良构检查（对不上就抛）
+
+  - 计费行必须是「前缀 3 + 后缀 4」；
+  - 帽必须是整齐的一排三格，而且恰好朝一侧长；
+  - 条色格子必须被帽出发的条恰好铺满（剩下的只许是枢纽）；
+  - 每个尖（非菱形的色 13）必须恰好落在某根条离帽第 L-1 条的正中。
+
+## 读不成的帧
+
+**这里只管抛，不管归类**（卡 01）：「这一帧不是局面」还是「是局面但我读不出」
+由拿得到 meta 的那一层判（`corpus.py`）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from collections import Counter
+
+from .board.board import Board
+from .board.diamond import Diamond
+from .board.hub import Hub
+from .board.legend import Legend
+from .board.panel import Panel
+from .geometry.grid import COLS, ROWS, inside, strip
+from .piece.bar import Bar
+from .piece.wall import Wall
+from .world import World
+
+BG, CAP, FILL, BORDER, TIP, FIXED = 5, 3, 4, 2, 13, 15
+PUNCT = {BG, CAP, FILL, BORDER, TIP}
+SEARCH_CAP = 20000          # 精确覆盖每组最多试几步；超了算读不出（抛），不许猜
+
+
+class ParseError(Exception):
+    &quot;&quot;&quot;这一帧读不成一个世界。**这是一条可判错的话**，不是一次异常处理。&quot;&quot;&quot;
+
+
+# ---------------------------------------------------------------- 框
+
+def _boxes(g):
+    seen, out = set(), []
+    for r in range(ROWS):
+        for c in range(COLS):
+            if g[r][c] != BORDER or (r, c) in seen:
+                continue
+            c1 = c
+            while c1 + 1 &lt; COLS and g[r][c1 + 1] == BORDER:
+                c1 += 1
+            r1 = r
+            while r1 + 1 &lt; ROWS and g[r1 + 1][c] == BORDER:
+                r1 += 1
+            if (r1 &gt; r + 1 and c1 &gt; c + 1
+                    and all(g[r1][x] == BORDER for x in range(c, c1 + 1))
+                    and all(g[y][c1] == BORDER for y in range(r, r1 + 1))):
+                out.append((r, c, r1, c1))
+                seen |= {(y, x) for y in range(r, r1 + 1) for x in range(c, c1 + 1)}
+    return out
+
+
+def _center(cells):
+    rs = sorted(p[0] for p in cells)
+    cs = sorted(p[1] for p in cells)
+    return (rs[len(rs) // 2], cs[len(cs) // 2])
+
+
+def _box_objects(g, boxes):
+    panels, legends = [], []
+    for (r0, c0, r1, c1) in boxes:
+        inner = [(y, x) for y in range(r0 + 1, r1) for x in range(c0 + 1, c1)]
+        icon = {g[y][x] for y, x in inner} - {FILL, CAP}
+        if len(icon) != 1:
+            raise ParseError(f&quot;框 {(r0, c0, r1, c1)} 里的图标颜色不是恰好一种：{sorted(icon)}&quot;)
+        k = icon.pop()
+        sep = [(y, x) for y, x in inner if g[y][x] == CAP]
+        cells = [(y, x) for y, x in inner if g[y][x] == k]
+        if not sep:
+            legends.append(Legend(k, (r0, c0, r1, c1)))
+            continue
+        cols = {x for _, x in sep}
+        rows_ = {y for y, _ in sep}
+        if len(cols) == 1:                     # 竖分隔线：左缩右伸
+            x0 = cols.pop()
+            a = [p for p in cells if p[1] &lt; x0]
+            b = [p for p in cells if p[1] &gt; x0]
+        elif len(rows_) == 1:                  # 横分隔线：上缩下伸
+            y0 = rows_.pop()
+            a = [p for p in cells if p[0] &lt; y0]
+            b = [p for p in cells if p[0] &gt; y0]
+        else:
+            raise ParseError(f&quot;面板 {(r0, c0, r1, c1)} 的分隔线不是一条直线&quot;)
+        if not a or not b:
+            raise ParseError(f&quot;面板 {(r0, c0, r1, c1)} 分隔线一侧没有图标&quot;)
+        panels.append(Panel(k, (r0, c0, r1, c1), _center(a), _center(b)))
+    return panels, legends
+
+
+def _in_boxes(boxes, r, c):
+    for (r0, c0, r1, c1) in boxes:
+        if r0 &lt;= r &lt;= r1 and c0 &lt;= c &lt;= c1:
+            return True
+    return False
+
+
+# ---------------------------------------------------------------- 死物
+
+def _transparent(cells_of, dots):
+    &quot;&quot;&quot;菱形点透明：一个点的两对对边里有一对都是同一色死物，就把它还给那一色。&quot;&quot;&quot;
+    for (r, c) in dots:
+        for p1, p2 in (((r, c - 1), (r, c + 1)), ((r - 1, c), (r + 1, c))):
+            v1, v2 = cells_of.get(p1), cells_of.get(p2)
+            if v1 is not None and v1 == v2:
+                cells_of[(r, c)] = v1
+                break
+
+
+def _rects(cells):
+    &quot;&quot;&quot;一色的格子拆成最少几块 3 格厚的长方形。返回（拆法, 拆法是否唯一）。&quot;&quot;&quot;
+    best: list = [None, 0]
+    budget = [SEARCH_CAP]
+
+    def rec(rem, acc):
+        budget[0] -= 1
+        if budget[0] &lt; 0:
+            raise ParseError(&quot;墙拆长方形试了太多步&quot;)
+        if best[0] is not None and len(acc) &gt; len(best[0]):
+            return
+        if not rem:
+            if best[0] is None or len(acc) &lt; len(best[0]):
+                best[0], best[1] = list(acc), 1
+            elif len(acc) == len(best[0]) and sorted(acc) != sorted(best[0]):
+                best[1] += 1
+            return
+        r, c = min(rem)
+        opts = set()
+        if all((r + i, c) in rem for i in range(3)):
+            c1 = c
+            while all((r + i, c1 + 1) in rem for i in range(3)):
+                c1 += 1
+            opts.add((r, c, r + 2, c1))
+        if all((r, c + j) in rem for j in range(3)):
+            r1 = r
+            while all((r1 + 1, c + j) in rem for j in range(3)):
+                r1 += 1
+            opts.add((r, c, r1, c + 2))
+        for o in sorted(opts):
+            cs = {(y, x) for y in range(o[0], o[2] + 1) for x in range(o[1], o[3] + 1)}
+            acc.append(o)
+            rec(rem - cs, acc)
+            acc.pop()
+
+    rec(frozenset(cells), [])
+    if best[0] is None:
+        raise ParseError(&quot;有一色死物拆不成 3 格厚的长方形&quot;)
+    return best[0], best[1] == 1
+
+
+# ---------------------------------------------------------------- 帽与条
+
+def _caps(g, boxes):
+    capcells = {(r, c) for r in range(ROWS) for c in range(COLS)
+                if g[r][c] == CAP and not _in_boxes(boxes, r, c)}
+    out, used = [], set()
+    for (r, c) in sorted(capcells):
+        if (r, c) in used:
+            continue
+        h = all((r, c + k) in capcells for k in range(3))
+        v = all((r + k, c) in capcells for k in range(3))
+        if h == v:
+            raise ParseError(f&quot;帽 {(r, c)} 不是整齐的一排三格&quot;)
+        if h:
+            out.append((r, c, &quot;h&quot;)); used |= {(r, c + k) for k in range(3)}
+        else:
+            out.append((r, c, &quot;v&quot;)); used |= {(r + k, c) for k in range(3)}
+    return out, capcells
+
+
+def _options(g, cap, barcols, tips):
+    &quot;&quot;&quot;这顶帽能长出哪些条：[(色, 方向, 长度, clipped, 身体格, 尖格或 None)]。&quot;&quot;&quot;
+    r, c, o = cap
+    out = []
+    for d in ((&quot;U&quot;, &quot;D&quot;) if o == &quot;h&quot; else (&quot;L&quot;, &quot;R&quot;)):
+        first = strip(r, c, d, 1)
+        if not all(inside(*p) for p in first):
+            continue
+        vals = [g[y][x] for y, x in first]
+        ks = {v for v in vals if v in barcols}
+        if len(ks) != 1 or not all(v in barcols or v == TIP for v in vals):
+            continue
+        K = ks.pop()
+        lmax, edge = 0, False
+        while True:
+            cs = strip(r, c, d, lmax + 1)
+            if not all(inside(*p) for p in cs):
+                edge = True
+                break
+            if all(g[y][x] in (K, TIP) for y, x in cs):
+                lmax += 1
+            else:
+                break
+        tipk = [k for k in range(1, lmax + 1) if strip(r, c, d, k)[1] in tips]
+        lens = []
+        for L in range(2, lmax + 1, 3):
+            lens.append((L, False))
+        if edge:
+            # 身体一路连到盘边：真长度可能更长。尖在盘上就定得死长度。
+            for k in tipk:
+                if k + 1 &gt; lmax:
+                    lens.append((k + 1, False))
+            if lmax % 3 == 2:
+                lens = [x for x in lens if x != (lmax, False)] + [(lmax, True)]
+            else:
+                lens.append((lmax, True))
+        for L, clipped in sorted(set(lens), reverse=True):
+            cells = frozenset(p for k in range(1, L + 1) for p in strip(r, c, d, k) if inside(*p))
+            mid = strip(r, c, d, L - 1)[1]
+            inner = [t for t in tips if t in cells]
+            if any(t != mid for t in inner):
+                continue                       # 尖只许在离帽第 L-1 条的正中
+            out.append((K, d, L, clipped, cells, mid if mid in tips else None))
+    return out
+
+
+def _cover(g, caps, capcells, barcols, tips, need):
+    &quot;&quot;&quot;精确覆盖：每顶帽挑一个长度，同色格子恰好铺满一遍，剩下的只许是枢纽。&quot;&quot;&quot;
+    opts = [(_c, _options(g, _c, barcols, tips)) for _c in caps]
+    for capk, cs in opts:
+        if not cs:
+            raise ParseError(f&quot;帽 {capk} 哪一侧都长不出条&quot;)
+
+    def capped_sides(r0, c0):
+        n = 0
+        for side in ([(r0 - 1, c0 + j) for j in range(3)], [(r0 + 3, c0 + j) for j in range(3)],
+                     [(r0 + j, c0 - 1) for j in range(3)], [(r0 + j, c0 + 3) for j in range(3)]):
+            if all(q in capcells for q in side):
+                n += 1
+        return n
+
+    hubs_cand = []
+    for (r0, c0) in need:
+        blk = [(r0 + a, c0 + b) for a in range(3) for b in range(3)]
+        K = need[(r0, c0)]
+        if all(need.get(q) == K for q in blk) and capped_sides(r0, c0) &gt;= 2:
+            hubs_cand.append((r0, c0, K, frozenset(blk)))
+
+    # 分组：选项格子互相碰得到的帽归一组，每组独立解
+    n = len(opts)
+    parent = list(range(n))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    reach = [frozenset().union(*[o[4] for o in cs]) for _, cs in opts]
+    owner: dict = {}
+    for i, cells in enumerate(reach):
+        for p in cells:
+            if p in owner:
+                parent[find(i)] = find(owner[p])
+            else:
+                owner[p] = i
+    for h in hubs_cand:
+        idx = [owner[p] for p in h[3] if p in owner]
+        for i in idx[1:]:
+            parent[find(i)] = find(idx[0])
+
+    groups: dict = {}
+    for i in range(n):
+        groups.setdefault(find(i), []).append(i)
+
+    unexplained = [p for p in need if p not in owner]
+    for p in unexplained:
+        if not any(p in h[3] for h in hubs_cand):
+            raise ParseError(f&quot;条色格子 {p} 哪顶帽都够不着，也不在枢纽里&quot;)
+
+    chosen_all, hubs_all, unsure = [], [], False
+    budget = [SEARCH_CAP]
+    for gi, members in groups.items():
+        area = frozenset().union(*[reach[i] for i in members])
+        gneed = {p for p in need if p in area}
+        ghubs = [h for h in hubs_cand if h[3] &amp; area]
+        order = sorted(members, key=lambda i: len(opts[i][1]))
+        sols = []
+
+        def feasible(covered, k):
+            rest = [opts[order[j]][1] for j in range(k, len(order))]
+            for p in gneed:
+                if p in covered:
+                    continue
+                ok = any(p in o[4] and o[0] == need[p] and not (o[4] &amp; covered)
+                         for cs in rest for o in cs)
+                if not ok and not any(p in h[3] and not (h[3] &amp; covered) for h in ghubs):
+                    return False
+            return True
+
+        def rec(k, acc, covered):
+            budget[0] -= 1
+            if budget[0] &lt; 0:
+                raise ParseError(&quot;精确覆盖试了太多步&quot;)
+            if len(sols) &gt;= 2:
+                return
+            if k == len(order):
+                left = gneed - covered
+                hub_pick = []
+                rem = set(left)
+                while rem:
+                    p = min(rem)
+                    h = next((h for h in ghubs if (h[0], h[1]) == p and h[3] &lt;= rem), None)
+                    if h is None:
+                        return
+                    hub_pick.append(h)
+                    rem -= h[3]
+                sols.append((list(acc), hub_pick))
+                return
+            capk, cs = opts[order[k]]
+            for o in cs:
+                if o[4] &amp; covered:
+                    continue
+                if any((p not in need and g[p[0]][p[1]] != TIP) or (p in need and need[p] != o[0])
+                       for p in o[4]):
+                    continue
+                nc = covered | o[4]
+                if not feasible(nc, k + 1):
+                    continue
+                acc.append((capk,) + o)
+                rec(k + 1, acc, nc)
+                acc.pop()
+
+        rec(0, [], frozenset())
+        if not sols:
+            raise ParseError(f&quot;帽 {[opts[i][0] for i in members]} 那一片铺不满&quot;)
+        if len(sols) &gt; 1:
+            sols.sort(key=lambda s: len(s[1]))
+            if len(sols[0][1]) == len(sols[1][1]):
+                unsure = True
+        chosen_all += sols[0][0]
+        hubs_all += sols[0][1]
+    for t in tips:
+        if not any(t in x[5] for x in chosen_all):
+            raise ParseError(f&quot;尖 {t} 不在任何一根条里&quot;)
+    return chosen_all, hubs_all, unsure
+
+
+# ---------------------------------------------------------------- 入口
+
+def parse(frame) -&gt; World:
+    g = frame
+    if len(g) != 64 or any(len(row) != 64 for row in g):
+        raise ParseError(&quot;帧不是 64×64&quot;)
+    row = list(g[63])
+    spent = sum(1 for v in row if v == FILL)
+    if row != [CAP] * (64 - spent) + [FILL] * spent:
+        raise ParseError(&quot;计费行不是「色 3 前缀 + 色 4 后缀」&quot;)
+
+    boxes = _boxes(g)
+    panels, legends = _box_objects(g, boxes)
+    barcols = {p.color for p in panels} | {l.color for l in legends}
+
+    dia = [(r, c) for r in range(1, ROWS - 1) for c in range(1, COLS - 1)
+           if not _in_boxes(boxes, r, c)
+           and all(g[r + a][c + b] == TIP for a, b in ((-1, 0), (1, 0), (0, -1), (0, 1)))]
+    dots = {(r + a, c + b) for r, c in dia for a, b in ((-1, 0), (1, 0), (0, -1), (0, 1))}
+    tips = {(r, c) for r in range(ROWS) for c in range(COLS)
+            if g[r][c] == TIP and (r, c) not in dots and not _in_boxes(boxes, r, c)}
+
+    dead: dict = {}
+    need: dict = {}
+    for r in range(ROWS):
+        for c in range(COLS):
+            v = g[r][c]
+            if _in_boxes(boxes, r, c) or v in PUNCT:
+                continue
+            if v in barcols:
+                need[(r, c)] = v
+            else:
+                dead[(r, c)] = v
+    _transparent(dead, dots)
+    fixed = frozenset(p for p, v in dead.items() if v == FIXED)
+    walls, wall_sure = [], True
+    for v in sorted({v for v in dead.values() if v != FIXED}):
+        rs, sure = _rects({p for p, x in dead.items() if x == v})
+        wall_sure &amp;= sure
+        walls += [Wall(v, *x) for x in rs]
+
+    caps, capcells = _caps(g, boxes)
+    chosen, hubs, split_unsure = _cover(g, caps, capcells, barcols, tips, need)
+    bars = []
+    for (capk, K, d, L, clipped, cells, tipc) in chosen:
+        r, c, _o = capk
+        bars.append(Bar(K, r, c, d, L, tipc is not None, clipped))
+    unsure = set()
+    if split_unsure:
+        unsure.add(&quot;split&quot;)
+    if not wall_sure:
+        unsure.add(&quot;wall&quot;)
+    board = Board(
+        panels=tuple(sorted(panels, key=lambda p: p.box)),
+        legends=tuple(sorted(legends, key=lambda p: p.box)),
+        diamonds=tuple(Diamond(r, c) for r, c in sorted(dia)),
+        hubs=tuple(Hub(K, r, c) for (r, c, K, _) in sorted(hubs)),
+        fixed=fixed,
+    )
+    return World(
+        board=board,
+        bars=tuple(sorted(bars, key=lambda b: (b.r, b.c, b.dir))),
+        walls=tuple(sorted(walls, key=lambda w: (w.r0, w.c0, w.color))),
+        spent=spent,
+        unsure=frozenset(unsure),
+    )
+</pre></details></div></main></body></html>

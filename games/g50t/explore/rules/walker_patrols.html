@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · walker_patrols</title>
+<style>
+/* 只有尺寸与配色（从 ledger/templates/web/style.css 起手）。 */
+/* 按钮 / 门按世界色号上色：--btnN / --doorN 由 web/export.py 从官方 arc_agi.rendering.COLOR_MAP 生成（只有这一个来源） */
+/* 生成的文件，别手改：web/export.py 从 arc_agi.rendering.COLOR_MAP 按色号取色 */
+:root {
+  --btn8: #F93C31;
+  --btn11: #FFDC00;
+  --btn15: #A356D6;
+  --door8: #F93C31;
+  --door11: #FFDC00;
+  --door15: #A356D6;
+}
+
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;
+  /* ↓ 本局专属：世界的配色（前端配的，不是世界里的色号） */
+  --wall: #0b0d12; --floor: #2a2f3b; --goal: #e8e8e8; --hidden: #3d3340;
+  --me: #59b0ff; --ghost: #e5544b; --walker: #b36bff;
+  --spring: #c9a227; --latch: #3fb6a8;
+  --ok: #4caf7d; --bad: #e5544b; --na: #4a5163;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; color: var(--dim); letter-spacing: .8px; }
+.gaps { border-color: #7a5a20; }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin-top: 22px; font-weight: 600; font-size: 15px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--line); }
+.mono, code, pre { font-family: ui-monospace, Consolas, monospace; }
+pre.src { white-space: pre-wrap; font-size: 12px; background: #0f1116; padding: 10px; border-radius: 6px; overflow-x: auto; }
+.prose { white-space: pre-wrap; }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.cells .row { display: flex; }
+.c { display: inline-block; width: 22px; height: 22px; border: 1px solid #0003; }
+.legend .c { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+.c.wall { background: var(--wall); } .c.floor { background: var(--floor); } .c.goal { background: var(--goal); }
+.c.hidden { background: var(--hidden); } .c.me { background: var(--me); } .c.ghost { background: var(--ghost); }
+.c.walker { background: var(--walker); } .c.spring { background: var(--spring); } .c.latch { background: var(--latch); }
+.c.cart { background: #888; }
+.c.btn8 { background: var(--btn8); } .c.btn11 { background: var(--btn11); } .c.btn15 { background: var(--btn15); }
+.c.door8 { background: var(--door8); } .c.door11 { background: var(--door11); } .c.door15 { background: var(--door15); }
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+input[type=range] { flex: 1; min-width: 180px; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+.v-TRUE { color: var(--ok); } .v-FALSE { color: var(--bad); font-weight: 700; } .v-NA { color: var(--na); }
+@media (max-width: 600px) { .c { width: 14px; height: 14px; } }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · walker_patrols</h1><div class="sub">环：棋子挪窝它才走一格；直走 &gt; 唯一的侧路 &gt; 掉头；棋子没挪它不动；它落脚那格同一步被车挪进来就被压掉。</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+
+<div class="card"><h2>读数（全部语料 811 行）</h2>
+<p class="mono">|scope| 274　判对 274　判错 0　闭嘴 534　读不成 3　跑崩 0</p>
+<p>判错的那几条：</p><ul><li>没有</li></ul>
+<p>转移变异：拒掉 23 个，独家 1 个（共 120 个错的转移）</p>
+<details><summary>闭嘴的理由（按条数）</summary><table><tr><td>场上没有环</td><td>484</td></tr><tr><td>换一盘（归 switch_restarts_round）</td><td>34</td></tr><tr><td>换关那一步</td><td>12</td></tr><tr><td>RESET（归 reset_restores_start）</td><td>4</td></tr><tr><td>读不成世界</td><td>3</td></tr></table></details></div>
+<div class="card"><h2>它说什么</h2><p><b>环：棋子挪窝它才走一格；直走 &gt; 唯一的侧路 &gt; 掉头；棋子没挪它不动；它落脚那格同一步被车挪进来就被压掉。</b></p><p class="note">论域：看全部动作，ACTION5 除外（换一盘把环放回起点，归 switch_restarts_round）。场上没有环不管；需要历史（朝向是它上一次挪动的方向，帧上读不出：环的图案四个朝向逐像素一样）。走到岔路口（直走不通、两侧都通）不管——语料里一次都没有，规则不替它编一个偏好。</p></div>
+<div class="card"><h2>它明确不主张什么</h2><p>不说岔路口怎么选；不说环能不能和棋子 / 替身叠在一格；不说被压掉之后会不会自己回来（换一盘 / RESET 才放回）。</p></div>
+<div class="card"><h2>改版史</h2><ul><li>起点册子里关于环的四条（walker_walks_alone v5、walker_steps_when_i_step、walker_enters_only_free、walker_dies_only_to_moving_cart）各说一半：一步至多一格 / 节拍跟着棋子 / 只进通格 / 不动的车压不死它。那四条都不敢说<strong>去哪一格</strong>，因为朝向读不出来。朝向是历史里读得出来的（上一次挪动的方向），把历史交给规则之后，四条合成一条、说到具体哪一格。</li><li>被合掉的四条的拒绝集都在这一条里：一步多于一格 / 棋子没动它动了 / 走进墙或车 / 车没动它却消失——每一种都会让这一条判 FALSE。</li></ul>
+<p class="note">EVIDENCE 6 条，在这批语料里命中 6 条（tid 是内容哈希：命中只说明内容重叠）。</p></div>
+<div class="card"><h2>故意弄坏它（代码突变体，每个另起进程）</h2><table><tr><td>walker_prefers_turn</td><td>环不直走、先拐</td><td>红</td><td>186</td></tr><tr><td>walker_moves_always</td><td>棋子不动环也走</td><td>红</td><td>7</td></tr></table></div>
+<div class="card"><h2>它的 Lean</h2><p>身份：<b>定义</b>，Rule/Movers/WalkerPatrols.lean</p><pre class="src">/-
+# walker_patrols（`rule/替身与环/walker_patrols.py`）—— **定义**
+
+环只在棋子挪了窝的那一步走：直走 &gt; 唯一的侧路 &gt; 掉头 &gt; 原地。
+岔路口（直走不通、两侧都通）Python 那边闭嘴；这里**选不出就原地**——
+那一支在语料里一次都没走到，模型在那里说的话没有被检验过（写在明处）。
+被压掉那一半（落脚那格同一步被车挪进来）在 `Step` 里接上，因为它要等车挪完。
+-/
+import Obj.Derive.Cells
+
+namespace G50t
+
+def sides : Dir → List Dir
+  | .up | .down =&gt; [.left, .right]
+  | .left | .right =&gt; [.up, .down]
+
+def canGo (b : Board) (carts : List Cell) (w : Cell) (d : Dir) : Bool :=
+  match w.go d with
+  | some y =&gt; enterable b carts y
+  | none =&gt; false
+
+/-- 环这一步朝哪走；`none` = 原地。 -/
+def walkerChoice (b : Board) (carts : List Cell) (w : Cell) : Option Dir → Option Dir
+  | some h =&gt;
+    if canGo b carts w h then some h else
+    match (sides h).filter (canGo b carts w) with
+    | [d] =&gt; some d
+    | [] =&gt; if canGo b carts w h.back then some h.back else none
+    | _ =&gt; none
+  | none =&gt;
+    match [Dir.up, Dir.down, Dir.left, Dir.right].filter (canGo b carts w) with
+    | [d] =&gt; some d
+    | _ =&gt; none
+
+def walkerPatrols (b : Board) (carts : List Cell) (w : Option Cell) (h : Option Dir) :
+    Option Cell × Option Dir :=
+  match w with
+  | none =&gt; (none, h)
+  | some x =&gt;
+    match walkerChoice b carts x h with
+    | some d =&gt; ((x.go d).orElse (fun _ =&gt; some x), some d)
+    | none =&gt; (some x, h)
+
+end G50t
+</pre></div>
+<div class="card"><details><summary>Python 源码（rule/替身与环/walker_patrols.py）</summary><pre class="src">&quot;&quot;&quot;那个环沿走廊巡逻：**棋子挪了窝的那一步**它才走一格——朝原方向进得去就直走，
+进不去就拐进唯一进得去的那一侧，两侧都不通就掉头；棋子没挪窝它就不动。
+它走进的那一格如果同一步被一辆车挪进来，它就被压掉（从场上消失）。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.cells import enterable
+from rule._common import common_skip
+
+CLAIM = (&quot;环：棋子挪窝它才走一格；直走 &gt; 唯一的侧路 &gt; 掉头；棋子没挪它不动；&quot;
+         &quot;它落脚那格同一步被车挪进来就被压掉。&quot;)
+
+SCOPE_NOTE = (&quot;看全部动作，ACTION5 除外（换一盘把环放回起点，归 switch_restarts_round）。&quot;
+              &quot;场上没有环不管；需要历史（朝向是它上一次挪动的方向，帧上读不出：环的图案四个朝向逐像素一样）。&quot;
+              &quot;走到岔路口（直走不通、两侧都通）不管——语料里一次都没有，规则不替它编一个偏好。&quot;)
+
+NOT_CLAIMED = &quot;不说岔路口怎么选；不说环能不能和棋子 / 替身叠在一格；不说被压掉之后会不会自己回来（换一盘 / RESET 才放回）。&quot;
+
+HISTORY = [
+    &quot;起点册子里关于环的四条（walker_walks_alone v5、walker_steps_when_i_step、walker_enters_only_free、&quot;
+    &quot;walker_dies_only_to_moving_cart）各说一半：一步至多一格 / 节拍跟着棋子 / 只进通格 / 不动的车压不死它。&quot;
+    &quot;那四条都不敢说**去哪一格**，因为朝向读不出来。朝向是历史里读得出来的（上一次挪动的方向），&quot;
+    &quot;把历史交给规则之后，四条合成一条、说到具体哪一格。&quot;,
+    &quot;被合掉的四条的拒绝集都在这一条里：一步多于一格 / 棋子没动它动了 / 走进墙或车 / 车没动它却消失——&quot;
+    &quot;每一种都会让这一条判 FALSE。&quot;,
+]
+
+EVIDENCE = [&quot;a36f011df5a0d6e4&quot;, &quot;318b647f5a416482&quot;, &quot;eab899ad0939e788&quot;, &quot;57eb933232a0f98d&quot;,
+            &quot;8e93a884facf590d&quot;, &quot;6484be2c2277ac68&quot;]
+
+DIRS = ((-1, 0), (1, 0), (0, -1), (0, 1))
+
+
+def choice(w, heading):
+    &quot;&quot;&quot;环这一步想去哪（单位位移）；原地返回 (0, 0)；岔路口返回 None。&quot;&quot;&quot;
+    def ok(d):
+        return enterable(w, w.walker + _delta(d))
+    if heading is not None and ok(heading):
+        return heading
+    back = (-heading[0], -heading[1]) if heading else None
+    side = [d for d in DIRS if d != heading and d != back and ok(d)]
+    if len(side) == 1:
+        return side[0]
+    if len(side) &gt; 1:
+        return None
+    if back is not None and ok(back):
+        return back
+    return (0, 0)
+
+
+def _delta(d):
+    from objects.geometry.delta import Delta
+    return Delta(*d)
+
+
+def scope_(prev, action, nxt, ctx):
+    s = common_skip(prev, nxt, ctx)
+    if s:
+        return s
+    if action == &quot;ACTION5&quot;:
+        return &quot;换一盘（归 switch_restarts_round）&quot;
+    if action == &quot;RESET&quot;:
+        return &quot;RESET（归 reset_restores_start）&quot;
+    if prev.walker is None:
+        return &quot;场上没有环&quot;
+    if ctx.get(&quot;hist&quot;) is None:
+        return &quot;这一关的历史不全&quot;
+    if prev.me != nxt.me and choice(prev, ctx[&quot;hist&quot;].walker_heading()) is None:
+        return &quot;环在岔路口&quot;
+    return None
+
+
+def assert_(prev, action, nxt, ctx):
+    if prev.me == nxt.me:
+        return nxt.walker == prev.walker
+    d = choice(prev, ctx[&quot;hist&quot;].walker_heading())
+    want = prev.walker + _delta(d)
+    if want in {c.cell for c in nxt.carts}:
+        return nxt.walker is None
+    return nxt.walker == want
+</pre></details></div>
+
+</div></body></html>

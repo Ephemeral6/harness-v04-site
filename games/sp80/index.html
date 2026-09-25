@@ -1,0 +1,160 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>sp80 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow">ARC-AGI-3 · 代号 sp80</div><h1>一个 AI agent 从零开始，只看画面，学出了一款陌生游戏的世界模型，并用定理证明器证明它足以打通全部 6 关。</h1><p class="lede">这是 ARC-AGI-3 里的一局游戏（代号 sp80）。agent 事先不知道任何规则，只能按方向键、点屏幕、按发射键，看画面怎么变。它打通了全部 6 关，并把这个世界整理成一份明确的模型：3 样东西、6 条规则，每一条都是能对任何一步自动判对错的代码。在录像的 371 步里，模型逐帧推演对上了 353 步，推错 0 步；在 Lean 定理证明器里，它被证明足以打通全部 6 关。</p><div class="cta"><a class="btn primary" href="explore/replay.html">看 agent 怎么玩：逐步回放</a><a class="btn" href="https://arcprize.org/replay/84782af3-5382-4aba-a9d9-839a3840aae3" target="_blank" rel="noopener">ARC Prize 官方通关记录 ↗</a></div><p class="note" style="margin-top:8px">证明使用官方认证的那一遍通关。</p><div class="chain"><b>3</b><span class="l">样东西</span><span class="to">·</span><b>6</b><span class="l">条规则</span><span class="to">·</span><b>353/371</b><span class="l">步解释</span><span class="to">·</span><b>6/6</b><span class="l">关机器证明</span></div><h2 id="world">世界由什么组成</h2><p class="prose">整个世界由 3 样东西组成。版面在一关之内一格都不动；件和预算条随每一步变化。</p><ul class="objs"><li><b>版面</b><span>格子网、墙、杯，和发射口（一颗球贴着一格发射器）；一关之内一格都不动</span><code>board</code></li><li><b>件</b><span>玩家能选中、能挪的小块，有直的也有拐的；蓝色的那一件是选中件</span><code>pieces</code></li><li><b>预算条</b><span>画面边上那条绿线，按比例显示本关还剩多少步</span><code>hud</code></li></ul><div class="shots"><figure><div class="px"><img src="data:image/png;base64,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" width="256" height="256" alt="一颗球在上，两只杯在下，场上一根横杆"></div><figcaption><b>第 1 关</b>　一颗球在上，两只杯在下，场上一根横杆</figcaption></figure><figure><div class="px"><img src="data:image/png;base64,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" width="256" height="256" alt="水朝上流：三颗球在下，三只杯在上，四根横杆"></div><figcaption><b>第 3 关</b>　水朝上流：三颗球在下，三只杯在上，四根横杆</figcaption></figure><figure><div class="px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAAGlElEQVR42u3XPU4CQRiAYTETSksKl8QjYMIZCNmYSEnDQTyCpYeg2ZLCEMMVhoIjkIgFJZ1U3oAgriwzPM8B9uebSd58rRjjDQDX59YIAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAA+B+hqRf3P0amf8h4k+d/VYXzusbzMp+zWA5nNgAABAAAAQBAAAAQAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAA+L1gBJmrinqeM96YpfMyHxsAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAIAAACAIAAACAAAOSoFWNs5MX9j5HpA9RoOZzZAAAQAAAEAAABAEAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAACOE4yAFO3nHUM4oF1uDQEbAAACAIAAACAAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAcJxgBKWqXW0MAGwAAAgCAAAAgAAAIAAACACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgDAqYIR5G0/72T5X+1y63APeLj7NIQzWO+6NgAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAEAAABAAAAQAAAEAQAAASF9o7M3jzWVNoiqyPOB2uXXLr9B61zUEbAAACAAAAgCAAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAcJyQ/B9UhVMEsAEAIAAACAAAAgCAAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAwKlC8n8w3tTznKpwG67QdLW4qO+Z9AYOBRsAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAJxXaOzNVWH6NG7SG9TynOlqYZjYAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAAAQAAAEAQAAAEAAABAAAAQAgTcEI4O8mvYEhYAMAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAEAAABAEAAABAAAAQAAAEAQAAASEcwgrx9vb/W8pz7pxfDdH/cHxsAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAIAAACAIAAACAAAOQoGEHenr/fanlONEr3x/2xAQAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAIAAACAAAAgBAnloxRlMAsAEAIAAACAAAAgCAAAAgAAAIAABpaI3ioykA2AAAEAAABAAAAQBAAAAQAAAEAIA0/AA4bUOLSMNBPgAAAABJRU5ErkJggg==" width="256" height="256" alt="两颗球；左边多了一只朝右开的杯，紫色的是拐件"></div><figcaption><b>第 5 关</b>　两颗球；左边多了一只朝右开的杯，紫色的是拐件</figcaption></figure><figure><div class="px"><img src="data:image/png;base64,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" width="256" height="256" alt="杯分在左、右、下三面；红色横杆中间那格深灰记号也会出水"></div><figcaption><b>第 6 关</b>　杯分在左、右、下三面；红色横杆中间那格深灰记号也会出水</figcaption></figure></div><h2 id="core">核心概念：按下发射键，水按四种走法流到杯里</h2><p class="prose">每个发射口是一颗粉色的球贴着一格深灰的发射器，水从球出发，朝背离发射器的方向流。前面是空地就往前落；落到件上，就沿着件的面往两端流，从两端再落下去；落在拐件的内角里，就朝另一侧射出一股横流；横流撞上件，就沿着件上下爬。水走进杯口，那只杯就算喂到。一发过关，当且仅当每个杯口都喂到、并且没有一股水停在盘里（落在墙上、杯壁上或积在件上）；从盘边流出去的不算。玩家要做的，就是选件、挪件，把这条水路搭出来。</p><figure class="pair"><div><div class="px"><img src="data:image/png;base64,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" width="256" height="256" alt="按发射键之前"></div><div class="cap">按发射键之前</div></div><div class="arrow" aria-hidden="true">→</div><div><div class="px"><img src="data:image/png;base64,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" width="256" height="256" alt="按下之后：下一关的开局"></div><div class="cap">按下之后：下一关的开局</div></div><figcaption>第 1 关的真实录像：横杆挪到球的正下方，按下发射键，水落在杆上、从两端各流进一只杯，这一关就过了。</figcaption></figure><h2 id="rules">6 条规则</h2><div class="rules"><article class="rule"><h3>方向键把选中件整体挪一格</h3><p>件上的记号跟着一起走。别的件不挡路，挪过去就盖在它上面；除了腾出来的格，盘上别处都不变。模型里另有一条「挪过去碰到禁区，件不动」，见证明与验证页的适用范围。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">298/298 步</span></div></article><article class="rule"><h3>点在一件的外框里，它就成为选中件</h3><p>外框是这件所占的最小矩形，拐件缺的那个角也算。新选中的件变蓝、画在最上面；原来的选中件放下；别处不变。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">47/47 步</span></div></article><article class="rule"><h3>放下的件按形状上色</h3><p>直件（只占一行或一列）变红，拐件（既跨行又跨列）变紫；件上的记号始终是深灰。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">51/51 步</span></div></article><article class="rule"><h3>每按一下，预算条缩一档</h3><p>方向键、点击、发射键都算。每关有自己的步数预算，预算条的长度按已走步数占预算的比例缩短。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">353/353 步</span></div></article><article class="rule"><h3>发射：每个杯口都进了水、没有一股水停在盘里，就过关</h3><p>水按上面的四种走法流。停在墙上、杯壁上或积在件上都算停在盘里；从盘边流出去不算。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">20/20 步</span></div></article></div><p class="note" style="margin-top:10px"><a href="proof.html#apx-code">看全部代码</a></p><h2 id="derived">由模型推出来的</h2><div class="rules"><article class="rule"><h3>点在所有件的外框之外，局面不变</h3><p>由点击规则的定义直接证出：点击没落在任何件的外框里，整个世界原样不变。录像里这样的点击有 1 次，画面都没变。</p><div class="from"><a href="proof.html#lean-Derived-ClickMissStill">Lean 证明</a></div></article><article class="rule"><h3>件挪走后，腾出来的格露出空地</h3><p>由画面的定义证出：一格既不属于版面、也没有任何件占着，画出来就是空地的橙色。录像里 265 步挪动留下的空格全部对上。</p><div class="from"><a href="proof.html#lean-Derived-VacatedShowsEmpty">Lean 证明</a></div></article></div><div class="branches"><a class="branch" href="learned.html"><b>它是怎么学出来的 →</b><span>58 条早期说法如何被画面检验、改写，最后整理成这 6 条规则。</span></a><a class="branch" href="proof.html"><b>证明与验证 →</b><span>每一关的机器证明、官方认证记录、数据来源与适用范围。</span></a></div><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/84782af3-5382-4aba-a9d9-839a3840aae3" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

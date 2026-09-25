@@ -1,0 +1,92 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Obj/Geometry/Grid.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Obj/Geometry/Grid.lean</h1><p></p><details><summary>公理表（0 条）</summary><ul></ul></details><pre>/-
+# Obj/Geometry/Grid —— 格、方向、长方形（对应 `objects/geometry/grid.py`）
+
+**一格 = 一个像素。** 坐标一律加上偏移 `O = 100` 存成自然数：
+盘面是 `100 ≤ 行 ≤ 162`、`100 ≤ 列 ≤ 163`；伸出盘外的条可以落到 `&lt; 100` 或 `&gt; 162`，
+但不会落到 0 以下。这样全程只用 `Nat`，内核算 `decide` 时走的是带加速的自然数运算，
+而且「减过头」这种事表示不出来（偏移留足了 100 格余量）。
+
+**这一份里没有一条定理。** 全是定义。
+-/
+
+namespace Game
+
+/-- 盘面坐标的偏移。 -/
+def O : Nat := 100
+
+/-- 身体朝哪边长。 -/
+inductive Dir where
+  | U | D | L | R
+  deriving DecidableEq, Repr
+
+/-- 屏幕上看的逆时针一档（行向下）：朝下的转一档朝右。 -/
+def Dir.ccw : Dir → Dir
+  | .U =&gt; .L | .L =&gt; .D | .D =&gt; .R | .R =&gt; .U
+
+/-- 反方向。 -/
+def Dir.opp : Dir → Dir
+  | .U =&gt; .D | .D =&gt; .U | .L =&gt; .R | .R =&gt; .L
+
+/-- 一个格往 `d` 走 `n` 格。 -/
+def Dir.go (d : Dir) (n : Nat) (r c : Nat) : Nat × Nat :=
+  match d with
+  | .U =&gt; (r - n, c) | .D =&gt; (r + n, c) | .L =&gt; (r, c - n) | .R =&gt; (r, c + n)
+
+/-- 闭区间长方形（含边）。 -/
+structure Rect where
+  r0 : Nat
+  c0 : Nat
+  r1 : Nat
+  c1 : Nat
+  deriving DecidableEq, Repr
+
+/-- 两块长方形至少共一格。 -/
+def Rect.meets (a b : Rect) : Bool :=
+  Nat.ble a.r0 b.r1 &amp;&amp; Nat.ble b.r0 a.r1 &amp;&amp; Nat.ble a.c0 b.c1 &amp;&amp; Nat.ble b.c0 a.c1
+
+/-- 整块落在盘上。 -/
+def Rect.onBoard (a : Rect) : Bool :=
+  Nat.ble O a.r0 &amp;&amp; Nat.ble a.r1 (O + 62) &amp;&amp; Nat.ble O a.c0 &amp;&amp; Nat.ble a.c1 (O + 63)
+
+/-- 一格。 -/
+def Rect.cell (r c : Nat) : Rect := ⟨r, c, r, c⟩
+
+/-- 整块平移：往 `d` 走 3 格。 -/
+def Rect.shift (a : Rect) (d : Dir) : Rect :=
+  match d with
+  | .U =&gt; ⟨a.r0 - 3, a.c0, a.r1 - 3, a.c1⟩
+  | .D =&gt; ⟨a.r0 + 3, a.c0, a.r1 + 3, a.c1⟩
+  | .L =&gt; ⟨a.r0, a.c0 - 3, a.r1, a.c1 - 3⟩
+  | .R =&gt; ⟨a.r0, a.c0 + 3, a.r1, a.c1 + 3⟩
+
+/-- 绕格 `(pr, pc)` 逆时针转一档（屏幕坐标）：`(r, c) ↦ (pr + pc - c, pc + r - pr)`。 -/
+def rotPt (pr pc r c : Nat) : Nat × Nat := (pr + pc - c, pc + r - pr)
+
+/-- 长方形绕一格逆时针转一档：两个对角转过去，再取行列的最小 / 最大。 -/
+def Rect.rot (a : Rect) (pr pc : Nat) : Rect :=
+  let p := rotPt pr pc a.r0 a.c0
+  let q := rotPt pr pc a.r1 a.c1
+  ⟨min p.1 q.1, min p.2 q.2, max p.1 q.1, max p.2 q.2⟩
+
+/-- 一张长方形表里有没有一块和 `a` 相交。 -/
+def meetsAny (a : Rect) : List Rect → Bool
+  | [] =&gt; false
+  | x :: xs =&gt; a.meets x || meetsAny a xs
+
+end Game
+</pre></div></main></body></html>

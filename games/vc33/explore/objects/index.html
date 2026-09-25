@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属** ↓↓↓
+     这一局的回放是把**真实的帧**逐格画出来（帧是观测，不是世界），色号 → 屏幕颜色那张表只有一个来源：
+     export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，site.js 的 PAL 读它（给 canvas 用）。
+     这里只剩页面本身的两个颜色名。 */
+  --link: #7ab8ff;  --fg: #e8eaf0;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* 缺口摆在最上面：黄边，和「判准没过」的红分开 */
+.gapcard { border-color: #6b5a24; background: #1f1c14; margin-bottom: 16px; }
+.gapcard h2 { color: #e9c46a; }
+figure.board { margin: 0; }
+canvas { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+.controls button { margin-right: 4px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>对象</h1>
+  <div class="sub">这个世界由什么组成，以及每一样为什么删不掉。</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../howto.html">怎么给别人看</a>
+  </nav>
+</header>
+<div id="gaps"></div>
+
+<section class="hero"><div class="plain">
+  <p><b>一帧画面读成一个世界之后，就只剩下这几样东西。</b>往上的每一层（规则、形式化、这些页面）都只认它们，不再碰像素。</p>
+  <p>它们住在哪个文件夹，就是属于哪一组；每一组的说明取自那个文件夹自己的 <code>__init__.py</code>。</p>
+</div></section>
+<div id="list"></div>
+<div class="card"><h2>每个字段：抹掉它，哪几条规则的判决会变（卡 06 全量消融，两种扰动）</h2><div id="split"></div></div>
+
+</div>
+<script>window.PAGE = {"kind": "objIndex", "key": null, "up": "../"};</script>
+<script>window.DATA={"claim":{"seal":"vc33-20260907","run_id":"vc33-0907-1213","score":100.0,"levels_done":7,"levels_total":7,"steps":535},"corpus":{"rows":538,"segments":[{"guid":"64d41f8a-c407-4064-ba9d-59a331a7f1c5","seq_lo":1,"seq_hi":202,"rows":202,"max_level":5,"certified":false,"won":false,"level_actions":[13,8,23,96,56,5]},{"guid":"8ae429b0-2c8a-4c92-a6af-0a6161c35a8d","seq_lo":203,"seq_hi":370,"rows":168,"max_level":7,"certified":false,"won":true,"level_actions":[3,7,23,21,44,20,49]},{"guid":"b8edcbe1-d227-47be-a919-b751788633e5","seq_lo":371,"seq_hi":538,"rows":168,"max_level":7,"certified":true,"won":true,"level_actions":[3,7,23,21,44,20,49]}],"scorecard":{"guid":"b8edcbe1-d227-47be-a919-b751788633e5","level_actions":[3,7,23,21,44,20,49],"levels_completed":7,"actions":167},"marks":{"uncertified":370,"level_up":17,"reset":3,"win":2},"markWhy":{"reset":"RESET：局面整个换掉，模型不描述这一步（重置回开局写成明处的假设）","level_up":"换关：下一帧已经是下一关的盘，本关的规则不对它主张","win":"通关：上游报 WIN，没有下一关可开","uncertified":"这一段没被成绩单认证：只当「更多语料」读，不拿来当任何一关的见证"},"tid":{"same_content_diff_tid":0,"same_tid_diff_content":0,"rows":538,"distinct_tid":369,"repeated_rows":169,"verdict":"内容哈希"},"dupStep":[91,201,368],"bookEvidence":[{"concept":"btn_capped","evidence":1,"in_corpus":1,"missing":[]},{"concept":"btn_pull","evidence":3,"in_corpus":3,"missing":[]},{"concept":"btn_starved","evidence":3,"in_corpus":3,"missing":[]},{"concept":"click_noop","evidence":2,"in_corpus":2,"missing":[]},{"concept":"cursor_follows","evidence":5,"in_corpus":5,"missing":[]},{"concept":"flow_conserved","evidence":3,"in_corpus":3,"missing":[]},{"concept":"frame_static","evidence":7,"in_corpus":7,"missing":[]},{"concept":"gauge_lit","evidence":12,"in_corpus":12,"missing":[]},{"concept":"gauge_signal","evidence":4,"in_corpus":4,"missing":[]},{"concept":"gauge_swap","evidence":3,"in_corpus":3,"missing":[]},{"concept":"gauge_teleport","evidence":11,"in_corpus":11,"missing":[]},{"concept":"hud_cost","evidence":5,"in_corpus":5,"missing":[]},{"concept":"tank_cap","evidence":2,"in_corpus":2,"missing":[]},{"concept":"win_align","evidence":4,"in_corpus":4,"missing":[]}]},"readings":{"rows":538,"distinct":369,"silent":[],"frames":{"n":360,"a":0,"b":0,"refuted":[{"criterion":"通关（state=WIN）那一步的下一帧是终局画面、不是局面","frames":2,"readable":2,"verdict":"被证伪：这几帧全都读得成世界，画的还是真盘（最后一关的版面、液面和光标）"}]},"totalScope":2532,"totalC":2532,"totalE":0},"gaps":["「重来一次把局面放回这一关的开局」是明写的假设，不进模型；它在这批语料上有两次被驳倒的机会（L0_after_reset_203_trace、L3_after_reset_92_trace）而没被驳倒——**没红不构成证明**。","「赢不了」的两张盘说的都是：**不经过模型说不出话的那一支、也不经过 RESET** 就赢不了。","点量规把光标送过去之后恰好到位，会不会当场过关——语料里 0 次；模型按「会」写（isGoal 是局面的性质），这一句没被检验过。","顶栏（hud_cost）与量规显示的颜色（gauge_signal）不进模型：两条都在规则那一侧每步核（论域 / 被驳倒次数见身份表）。","每关那一层的见证只取成绩单认证的那一段；另外两段语料只进逐条那一层与「重来」那两条核对。","反向测试里没红的源码变异 2 个，每个都归了入口（见规则首页「反向测试」）。"],"palette":["#ffffff","#cccccc","#999999","#666666","#333333","#000000","#e53aa3","#ff7bcc","#f93c31","#1e93ff","#88d8f1","#ffdc00","#ff851b","#921231","#4fcc30","#a356d6"],"objects":[{"path":"objects/board/band.py","group":"objects/board","name":"band","doc":"`Band` —— 一条**隔条**：占满若干整道、从深 0 画起、画到某个深度为止的一堵墙。\n\n两个量，都从帧上直接量：\n\n    lanes   它占哪几道。**道数就是它的厚度**，也就是跨它搬一次液体的量（STEP）\n    height  它画到多深。超过这个深度那几道就是空槽色，和两边的槽连成一片——\n            所以它是一堵**有限高的墙**，不是通到底的分割线\n\n「墙有高度」是册子吃过亏才认出来的：前几关的槽从没装到那么高，\n隔条一直被当成通到底的分界线，直到一次搬运把一个槽推到顶、整次点击作废。","isPixelReader":false,"fields":[{"field":"bands","why":"字段 bands —— 隔条（为什么删不掉）\n\n1. 记的是什么：每条隔条占哪几道（道数 = 厚度 = 跨它搬一次的量）、画到多深（墙高 = 两侧槽的容量上界之一）。\n2. 谁读它（卡 06 消融，现役 8 条规则，全量 538 行，扰动着问不是 grep）：\n   press_button · win_align · gauge_signal · click_gauge · click_noop（两种常量扰动都一样）。\n   读法：搬运量取按钮贴着的那条隔条的厚度；容量取两侧墙高；槽和量规「贴着哪条隔条」要它的位置；\n   落点分类里「点在量规上」要量规所在隔条的道区间。\n3. 抹成常量之后：seq 7 上 press_button 原判 TRUE、抹掉后不再开口（按钮贴不到任何隔条）——\n   也就是那一对世界「真实的 seq 7 prev」与「只把 bands 换成最后一帧那张盘的隔条」，规则分得开它们。\n4. 分离表：**分不开**（卡 02 / 03 / 06 三次都是）。和第 2、3 句对不上——\n   不是它没用，是这批语料里版面只有 7 种、各自和关卡绑死，「除隔条以外全相等」的一对根本不存在（第 ③ 种：语料分不开）。\n   见证因此是**构造**的那一对（第 3 句），不是语料里找到的。卡 03 列为欠账，卡 06 判：留。\n","ablation":{"第一帧的值":{"readers":{"press_button":490,"win_align":515,"click_gauge":51,"click_noop":42,"gauge_signal":380},"errors":{"click_gauge":42,"click_noop":42,"press_button":42,"gauge_signal":362,"win_align":42},"witness":{"seq":14,"rule":"press_button","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"press_button":382,"win_align":402,"click_gauge":29,"click_noop":26,"gauge_signal":169},"errors":{"gauge_signal":127,"click_gauge":12,"click_noop":12,"press_button":12,"win_align":12},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"N"}}}}],"lean":{"path":"Obj/Board/Band.lean"}},{"path":"objects/board/button.py","group":"objects/board","name":"button","doc":"`Button` —— 一个**按钮**：槽里贴着某条隔条的一小块方块。\n\n只记它**在哪**（道区间 × 深区间）。它属于哪个槽、隔着哪条隔条、对家是谁，\n都是从位置算出来的（`derive/layout/button_pair.py`），不是按钮自己的属性——\n写成属性的话，同一件事会在对象层和复合层各有一份。\n\n按钮压在液体上画：液面涨过它、落过它，它那几格都还是按钮色。","isPixelReader":false,"fields":[{"field":"buttons","why":"字段 buttons —— 按钮（为什么删不掉）\n\n1. 记的是什么：每个按钮在哪（道区间 × 深区间）。它属于哪个槽、隔着哪条隔条、对家是谁，全是由位置算的（derive/layout/button_pair）。\n2. 谁读它（卡 06 消融）：press_button · click_noop · win_align（最后一帧常量那一次还有 click_gauge）。\n   读法只有一种：这一下点击落没落在按钮上（derive/hit）。\n3. 抹成常量之后：seq 7 上 click_noop 原来不开口（那一下点中了按钮），抹掉后它开口并**判错**——\n   它以为点在空地上、世界不该动，而液面动了。那一对世界（真实 prev / 按钮换成别关的位置）规则分得开。\n4. 分离表：**分不开**（第 ③ 种）。见证是构造的那一对。卡 03 欠账 → 卡 06：留。\n","ablation":{"第一帧的值":{"readers":{"click_noop":394,"press_button":440,"win_align":62},"errors":{},"witness":{"seq":17,"rule":"click_noop","real":"N","erased":"E"}},"最后一帧的值":{"readers":{"click_noop":318,"press_button":322,"win_align":23,"click_gauge":2},"errors":{},"witness":{"seq":7,"rule":"click_noop","real":"N","erased":"E"}}}}],"lean":{"path":"Obj/Board/Button.lean"}},{"path":"objects/board/gauge.py","group":"objects/board","name":"gauge","doc":"`Gauge` —— 一段**量规**：嵌在隔条里、颜色配不到任何光标的那一段标记。\n\n它是盘面自己在标注「什么样的液面算对齐」：两侧盖住它那一段深度的槽，\n液面都正好等于它的起始深度时，它**点亮**；点亮的量规点一下，能把光标搬到对岸。\n\n这里只记它**在哪**（第几条隔条、占哪几深）。亮不亮**不是这里的字段**——\n它是液面的函数（`derive/gauge/lit.py`），解析那一步拿帧上的通道去核这个函数，\n对不上这一帧就读不成（良构检查：同一个量的两种读法必须对得上）。\n它此刻显示的颜色是另一位观测，住在 `World.gauge_look`。","isPixelReader":false,"fields":[{"field":"gauges","why":"字段 gauges —— 量规的位置（为什么删不掉）\n\n1. 记的是什么：嵌在隔条里、颜色配不到任何光标的那几段标记：在哪条隔条、占哪几深。亮不亮**不在这里**（是液面的函数）。\n2. 谁读它（卡 06 消融）：gauge_signal · click_gauge · click_noop（最后一帧常量那次还有 press_button / win_align，全是跑不起来）。\n   读法：点没点中量规（derive/hit）；亮不亮要它的起始深度和它那条隔条（derive/gauge/lit）。\n3. 抹成常量之后：seq 45 上 click_gauge 原判 TRUE（点亮着的量规、光标搬了过去），抹掉后不再开口——\n   它认不出那一下点在量规上了。那一对世界规则分得开。\n4. 分离表：**分不开**（第 ③ 种）。见证是构造的那一对。卡 03 欠账 → 卡 06：留。\n","ablation":{"第一帧的值":{"readers":{"click_gauge":37,"click_noop":37,"gauge_signal":415},"errors":{},"witness":{"seq":45,"rule":"click_gauge","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"click_gauge":33,"click_noop":27,"press_button":7,"gauge_signal":309,"win_align":7},"errors":{"click_gauge":7,"click_noop":7,"press_button":7,"gauge_signal":251,"win_align":7},"witness":{"seq":4,"rule":"click_gauge","real":"N","erased":"C"}}}},{"field":"gauge_look","why":"字段 gauge_look —— 每段量规此刻显示的颜色（为什么删不掉）\n\n1. 记的是什么：每段量规此刻画成什么颜色（不透明 id，只许判相等）。它是「亮 / 暗」的**观测**；亮暗本身是液面的函数。\n2. 谁读它（卡 06 消融）：**只有 gauge_signal**（颜色变了 ⟺ 亮暗翻了）。\n3. 抹成常量之后：第一帧常量那一次**一处干净改判都没有**（第一帧所在的第 0 关没有量规，常量是空元组，\n   改判全是「跑不起来」）——这就是「扰动太温柔 / 扰动不合法」的样子；换成最后一帧的常量之后，\n   seq 78 上 gauge_signal 原判 TRUE、抹掉后判错（量规点亮了而颜色被钉住）。**两种扰动的读数都留着**。\n4. 分离表：**分不开**——它在一关之内由液面决定（亮一色、暗一色），和 levels 同进同出。\n   卡 03 当时列成欠账（缺谁读它），卡 06 判：**留**。理由：它是「颜色跟着亮暗翻」这句话唯一的落脚处；\n   删掉它，gauge_signal 就没有东西可判，parse 里只剩「同一帧里亮的同色、暗的同色、亮暗不同色」那一半。\n   形式化那一边不带它（gauge_signal 的身份是「不进模型」：颜色是观测，模型只有亮暗这个函数）。\n","ablation":{"第一帧的值":{"readers":{"gauge_signal":415},"errors":{"gauge_signal":415},"witness":null},"最后一帧的值":{"readers":{"gauge_signal":74},"errors":{},"witness":{"seq":78,"rule":"gauge_signal","real":"C","erased":"E"}}}}],"lean":{"path":"Obj/Board/Gauge.lean"}},{"path":"objects/board/target.py","group":"objects/board","name":"target","doc":"`Target` —— 一段**配对目标**：嵌在某条隔条里、颜色和某个光标相同的那一段标记。\n\n它说的是「和我同色的那个光标，要停在我这个深度上、并且贴着我这条隔条」。\n\n    color   不透明 id，**只许判相等**（拿去和光标配对），不许比大小、不许当语义用\n    band    嵌在第几条隔条里（`World.bands` 的下标）\n    depths  占哪几深；目标深度 = `depths.lo`\n\n同一个颜色嵌在两条隔条里的话，「贴着哪条」就没有唯一答案——解析直接读不成（语料里 0 次）。","isPixelReader":false,"fields":[{"field":"targets","why":"字段 targets —— 配对目标（为什么删不掉）\n\n1. 记的是什么：嵌在隔条里、颜色配得到某个光标的那几段标记：颜色（不透明 id）、在哪条隔条、从多深起。\n2. 谁读它（卡 06 消融）：**只有 win_align**（外加 board_static 核它不变——那条规则抹成常量时两边一起变，读数上不动）。\n3. 抹成常量之后：seq 13 上 win_align 原判 TRUE、抹掉后判错——seq 13 是第 0 关过关那一步，\n   目标换成别关的之后「点完就到位」不成立了，而世界换了关。那一对世界规则分得开。\n4. 分离表：**分不开**（第 ③ 种）。见证是构造的那一对。卡 03 欠账 → 卡 06：留。\n   它是全盘读者最少的一个字段（25 处改判），但它是「赢」的全部定义所在，删掉它这一局就没有目标了。\n","ablation":{"第一帧的值":{"readers":{"win_align":45},"errors":{},"witness":{"seq":14,"rule":"win_align","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"win_align":25},"errors":{"win_align":2},"witness":{"seq":13,"rule":"win_align","real":"C","erased":"E"}}}}],"lean":{"path":"Obj/Board/Target.lean"}},{"path":"objects/board/zone.py","group":"objects/board","name":"zone","doc":"`Zone` —— 一个**槽**：一块矩形 `道区间 × 深区间`，液体从深区间的起点那一侧往里填。\n\n槽的**轮廓**是版面（一关之内不变），槽里**填到多深**不是——那一位住在 `World.levels`，\n和这里按下标一一对应。拆开的理由是形式化那一边：轮廓进 `Board`，液面进状态，\n`step` 碰不到轮廓。\n\n轮廓由两样东西切出来：横隔条把道切开；**前墙**（占满一段深度、横跨一整片道的隔条色）\n把同一片道沿深度切成两个槽，墙外那个从更深处起算。\n所以槽的液面是**绝对深度**，不是格数：它能直接和标记的深度比。","isPixelReader":false,"fields":[{"field":"zones","why":"字段 zones —— 槽的轮廓（为什么删不掉）\n\n1. 记的是什么：每个槽是哪一块矩形（道区间 × 深区间）；深区间的起点是液面的起算深度，终点 + 1 是它自己的容量上界。\n   前墙把同一片道沿深度切成两个槽，就是靠这个字段表示出来的。\n2. 谁读它（卡 06 消融）：press_button · win_align · gauge_signal · click_gauge。\n   液面、光标都以槽为下标；「失去方能搬走多少」= 液面 − 起算深度；「盖不盖得住这段量规」按深区间筛。\n3. 抹成常量之后：seq 7 上 press_button 原判 TRUE、抹掉后不再开口（按钮落不进任何一个槽）。\n   另一次实测：卡 03 的源码变异「解析不认前墙」让 74 帧读不成世界（两个槽被读成一个，重画对不上）。\n4. 分离表：**分不开**（第 ③ 种：版面只有 7 种）。见证是构造的那一对。卡 03 欠账 → 卡 06：留。\n   卡 06「该合吗」：它和 levels 不是同生共死（levels 分得开），和 bands 也不是每条规则都一起读\n   （click_noop 读 bands 不读 zones），不合。\n","ablation":{"第一帧的值":{"readers":{"press_button":448,"win_align":501,"click_gauge":37,"gauge_signal":76},"errors":{},"witness":{"seq":14,"rule":"press_button","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"press_button":370,"win_align":416,"click_gauge":29,"gauge_signal":169},"errors":{"gauge_signal":99},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"N"}}}},{"field":"levels","why":"字段 levels —— 每个槽的液面（为什么删不掉）\n\n1. 记的是什么：每个槽液体填到的**绝对深度**（= 起算深度 + 格数），和 zones 按下标对应。\n2. 谁读它（卡 06 消融）：press_button · win_align · gauge_signal · click_gauge。\n3. 抹成常量之后：seq 7 上 press_button 原判 TRUE、抹掉后判错（液面被钉死，搬运就对不上了）。\n4. 分离表：**分得开**，语料里就有见证：第 1 / 407 帧（seq 1 的 next 与 seq 204 的 next），\n   两个世界除液面外一模一样。三个读数（分离表 / 消融 / 点名）一致。卡 03 / 06 都判：留。\n","ablation":{"第一帧的值":{"readers":{"press_button":420,"win_align":394,"gauge_signal":265,"click_gauge":33},"errors":{"win_align":389,"press_button":336,"gauge_signal":227,"click_gauge":18},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"E"}},"最后一帧的值":{"readers":{"press_button":312,"win_align":19,"gauge_signal":74,"click_gauge":33},"errors":{},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"E"}}}}],"lean":{"path":"Obj/Board/Zone.lean"}},{"path":"objects/geometry/click.py","group":"objects/geometry","name":"click","doc":"`Click` —— 一次点击落在规范视图的哪一格。\n\n**动作也要从像素里读**：`ACTION6:x,y` 给的是帧上的列与行，而「那是第几道第几深」\n取决于这一关的盘面摆在帧的哪儿、朝哪个方向填。这一步只能在解析里做\n（`objects.parse.click_of`），往上一层就只剩 `Click`。\n\n点在盘面外面（边框上）是 `None`，不是一个 `Click`——那一下在规范视图里没有落点。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Geometry/Click.lean"}},{"path":"objects/geometry/span.py","group":"objects/geometry","name":"span","doc":"`Span` —— 一段闭区间 `[lo, hi]`，用来写「第几道到第几道」或「第几深到第几深」。\n\n**一个对象一个文件。** 整个对象层里所有「一段」都用它，不再各自写 `(a, b)` 元组——\n原来的词汇表里 `(lane0, lane1, 深度0, 深度1)` 四元组、`(b[0], b[1])` 二元组混用，\n「第 2 项是道还是深」要看上下文猜，而猜错不会报错。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Geometry/Span.lean"}},{"path":"objects/parse.py","group":"objects","name":"parse","doc":"帧 → 世界。**全局唯一碰像素的地方。**\n\n上面每一层只认 `World` 的字段（道 × 深的规范视图），读不到帧。\n\n## 结构色与标记色\n\n这一局的**结构色**七关一致，是从全部语料上量出来的词汇（解析读得通全部帧就是它的读数）：\n\n    0 已填液体   3 未填（空槽）   4 边框 / 顶栏已消耗 / 光标把手\n    5 隔条       7 顶栏未消耗     9 按钮\n\n**其余一切颜色都是「标记色」，当不透明 id 用**：只许判相等（光标和同色目标配对、\n量规是「配不到光标的那种」），不许比大小、不许把某个色号当成「亮」或「暗」的意思。\n——册子吃过这个亏的反面：按色号写死的概念会在换关那一刻静默失效。\n\n## 读不出来要抛，别返回 None；并且**重画一遍对账**\n\n读完之后用读到的 `World` 把规范视图**整张重画一遍**，和帧逐格比。\n对不上一格这一帧就读不成——这是这一份里最硬的一条良构检查：\n**World 必须说得出帧上的每一格**，没有哪一格是「模型没认领、所以它爱怎么变就怎么变」的。\n（这就是装置那条「像素接触 = 0」在对象层的同一句话。）\n\n## 读不成的帧归两档，而这里**只管抛、不管归类**\n\n`(a)` 不是局面 / `(b)` 是局面但读不出来——判断在拿得到 meta 的那一层（`run_rules.py`），不在这里。","isPixelReader":true,"fields":[],"lean":{"path":null}},{"path":"objects/piece/cursor.py","group":"objects/piece","name":"cursor","doc":"`Cursor` —— 一个**光标**：贴在某个槽液面前沿上的一套刚性图形（一段标记色 + 一截把手）。\n\n    color   不透明 id，只许判相等（和同色的 `Target` 配对）\n    zone    住在第几个槽（`World.zones` 的下标）\n    lane    这一套最靠低道号那一格在第几道\n    shape   这一套的形状：`((道偏移, 深偏移, 是不是标记色), …)`，偏移相对 `(lane, 该槽液面)`\n\n## 它**没有深度字段**，这是故意的\n\n旧册子里有一条概念专门断言「光标的深度恒等于它所在槽的液面」，每一步都判一次。\n这里把它**展开成表示不出来**（判据 5 · 展开）：`shape` 的深偏移是相对液面记的，\n于是「光标离开了前沿」这种世界**写都写不出来**；\n帧上真出现那种画面，解析那一步就读不成（对不上重画）。一条要每帧判的断言，换成了一句说不出口的话。","isPixelReader":false,"fields":[{"field":"cursors","why":"字段 cursors —— 光标（为什么删不掉）\n\n1. 记的是什么：每个光标的颜色（不透明 id）、住在哪个槽、最低那一道在哪、这一套的形状（相对「那一道、那个槽的液面」记）。\n   **没有深度字段**：光标深度恒等于液面这件事被写成了表示不出来（册子 cursor_follows 就此退场），\n   帧上真出现离开前沿的光标，parse 当场读不成——这条检查在语料上从未触发，但反向测试造的那一帧它拦下了。\n2. 谁读它（卡 06 消融）：win_align · click_gauge（外加 press_button / click_noop 通过「其余一概不动」核它不变）。\n3. 抹成常量之后：seq 44 上 win_align 原判 TRUE、抹掉后判错（光标换成别关的之后，配对和贴不贴着全变了）。\n4. 分离表：**分得开**，语料见证：第 339 / 571 帧（seq 170 的 next 与 seq 286 的 next），两个世界只差光标。三个读数一致。\n   卡 06「该拆吗」：形状（哪几格是标记色、哪几格是把手）只有 parse 的重画在用，规则只用它的宽度——\n   但形状是刚性的、一个光标从头到尾不变，拆出去换不来任何一条规则少一个分支，不拆。\n","ablation":{"第一帧的值":{"readers":{"win_align":43,"click_gauge":20},"errors":{},"witness":{"seq":14,"rule":"win_align","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"win_align":73,"click_gauge":34},"errors":{"win_align":64},"witness":{"seq":44,"rule":"win_align","real":"C","erased":"E"}}}}],"lean":{"path":"Obj/Piece/Cursor.lean"}},{"path":"objects/world.py","group":"objects","name":"world","doc":"`World` —— 这一局的**全部状态**，按**规范视图**记（道 × 深，深 0 = 填充起点那一侧）。\n\n字段就是这一局的对象。每个字段为什么删不掉，写在 `analysis/<字段>.txt`，\n见证由 `ledger/field_split.py` 在语料上真的找出来（卡 02 / 03 / 06 各取一次）。\n\n## 两半：版面与局面\n\n    版面（一关之内不变）  bands · zones · buttons · targets · gauges\n    局面（点击会改的）    levels · cursors · gauge_look · used\n\n形式化那一边把前一半放进 `Board`，后一半放进状态，`step` 碰不到 `Board`。\nPython 这一边它们住在同一个 `World` 里——**不变**这件事由规则 `board_static` 逐步核。\n\n## 不在这里的东西（都是有意的）\n\n* **帧的朝向、盘面摆在帧的哪儿**：解析那一步商掉了（判据 3 · 对称）。\n  同一张盘转个方向，每条规则的判决一个字不变——那一位不带信息。\n* **关卡号、通没通关**：上游 API 给的，规则要用就从 `ctx` 读，这里不存第二份。\n* **量规亮不亮**：液面的函数，不是独立的一位（见 `board/gauge.py`）。\n* **光标的深度**：相对液面记，于是「光标离开前沿」表示不出来（见 `piece/cursor.py`）。\n* **每关的开局长什么样**：那是历史，一帧上读不出来。重置之后回到哪一帧，写成明处的假设。","isPixelReader":false,"fields":[{"field":"levels","why":"字段 levels —— 每个槽的液面（为什么删不掉）\n\n1. 记的是什么：每个槽液体填到的**绝对深度**（= 起算深度 + 格数），和 zones 按下标对应。\n2. 谁读它（卡 06 消融）：press_button · win_align · gauge_signal · click_gauge。\n3. 抹成常量之后：seq 7 上 press_button 原判 TRUE、抹掉后判错（液面被钉死，搬运就对不上了）。\n4. 分离表：**分得开**，语料里就有见证：第 1 / 407 帧（seq 1 的 next 与 seq 204 的 next），\n   两个世界除液面外一模一样。三个读数（分离表 / 消融 / 点名）一致。卡 03 / 06 都判：留。\n","ablation":{"第一帧的值":{"readers":{"press_button":420,"win_align":394,"gauge_signal":265,"click_gauge":33},"errors":{"win_align":389,"press_button":336,"gauge_signal":227,"click_gauge":18},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"E"}},"最后一帧的值":{"readers":{"press_button":312,"win_align":19,"gauge_signal":74,"click_gauge":33},"errors":{},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"E"}}}},{"field":"gauge_look","why":"字段 gauge_look —— 每段量规此刻显示的颜色（为什么删不掉）\n\n1. 记的是什么：每段量规此刻画成什么颜色（不透明 id，只许判相等）。它是「亮 / 暗」的**观测**；亮暗本身是液面的函数。\n2. 谁读它（卡 06 消融）：**只有 gauge_signal**（颜色变了 ⟺ 亮暗翻了）。\n3. 抹成常量之后：第一帧常量那一次**一处干净改判都没有**（第一帧所在的第 0 关没有量规，常量是空元组，\n   改判全是「跑不起来」）——这就是「扰动太温柔 / 扰动不合法」的样子；换成最后一帧的常量之后，\n   seq 78 上 gauge_signal 原判 TRUE、抹掉后判错（量规点亮了而颜色被钉住）。**两种扰动的读数都留着**。\n4. 分离表：**分不开**——它在一关之内由液面决定（亮一色、暗一色），和 levels 同进同出。\n   卡 03 当时列成欠账（缺谁读它），卡 06 判：**留**。理由：它是「颜色跟着亮暗翻」这句话唯一的落脚处；\n   删掉它，gauge_signal 就没有东西可判，parse 里只剩「同一帧里亮的同色、暗的同色、亮暗不同色」那一半。\n   形式化那一边不带它（gauge_signal 的身份是「不进模型」：颜色是观测，模型只有亮暗这个函数）。\n","ablation":{"第一帧的值":{"readers":{"gauge_signal":415},"errors":{"gauge_signal":415},"witness":null},"最后一帧的值":{"readers":{"gauge_signal":74},"errors":{},"witness":{"seq":78,"rule":"gauge_signal","real":"C","erased":"E"}}}},{"field":"used","why":"字段 used —— 顶栏已消耗几格（为什么删不掉）\n\n1. 记的是什么：顶栏从最右起连续几格是「已消耗」色。形状本身（右起连续一段）是 parse 的良构检查。\n2. 谁读它（卡 06 消融）：**只有 hud_cost**（身份：不进模型）。\n3. 抹成常量之后：第一帧常量（0）那一次**一处都没改判**——0 恰好是一个合法值，前后都抹成 0，\n   「涨 0~2 格」「换关归零」全都照样成立。这是卡 06 自己撞上的「扰动太温柔，和没人读长得一模一样」：\n   只跑这一种扰动的话，这一位会被报成「没人读」。换成最后一帧的常量（16）之后，\n   seq 13 上 hud_cost 原判 TRUE、抹掉后判错（换关那一步顶栏该归零）。\n4. 分离表：**分得开**，语料见证：第 0 / 1 帧（seq 1 前后，只差顶栏）。\n   卡 06 判：留在 World（它是帧上看得见的量，parse 的重画要它），但**不进形式化**：\n   涨几格取决于这一关的换算尺度，一帧上读不出来。\n","ablation":{"第一帧的值":{"readers":{},"errors":{},"witness":null},"最后一帧的值":{"readers":{"hud_cost":17},"errors":{},"witness":{"seq":13,"rule":"hud_cost","real":"C","erased":"E"}}}}],"lean":{"path":"Obj/World.lean"}},{"path":"derive/gauge/lit.py","group":"derive/gauge","name":"lit","doc":"`aligned(w, i)` —— 第 `i` 段量规该不该亮：`True` / `False`，读不出来 `None`。\n\n由三样对象组合出来：量规的位置、它那条隔条两侧盖得住它的槽、那几个槽的液面。\n\n    亮  ⟺  隔条两侧、深度上盖得住这段量规的每一个槽，液面都正好等于这段量规的起始深度\n\n一侧没有槽（隔条在盘边上）时只看另一侧；两侧都没有就读不出来。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Gauge.lean"}},{"path":"derive/goal/pairs.py","group":"derive/goal","name":"pairs","doc":"`pairs(w)` / `solved(w)` —— 光标和目标按颜色配对；每一对都到位才算过关。\n\n一对「到位」要**同时**满足两件事：\n\n    光标所在的槽，液面 = 目标的深度\n    光标所在的槽，**贴着嵌那段目标的隔条**\n\n第二件在前四关一次都没露过面（那几关光标本来就在自己目标旁边，恒真的合取项在数据里是隐形的），\n直到光标能换槽之后，才出现「数字凑对了、却隔着半张盘」的局面——那一步世界没换关。\n\n配不上对的光标（没有同色目标）不参与；一对都配不上时 `solved` 返回 `None`（说不出）。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Goal.lean"}},{"path":"derive/hit/what.py","group":"derive/hit","name":"what","doc":"`hit(w, click)` —— 这一下点中了什么：\n\n    (\"button\", i)   第 i 个按钮\n    (\"gauge\", i)    第 i 段量规\n    (\"else\", None)  盘面里别的地方（液体、空槽、光标、目标、隔条……）\n    (\"off\", None)   盘面外面（边框上），`click` 是 None\n\n**只给位置，不给后果**——点了会怎样是规则的主张，写在规则里受检；\n写在这里的话，它不在任何一条规则的名下，删规则的时候没人会删它。\n三类按位置互不重叠（按钮在槽里，量规在隔条里），所以一下点击恰好落进一类。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Hit.lean"}},{"path":"derive/layout/button_pair.py","group":"derive/layout","name":"button_pair","doc":"`button_pair(w, i)` —— 第 `i` 个按钮的**得到方、失去方、隔着的隔条**：`(gain, lose, band)` 或 `None`。\n\n由三样对象组合出来：按钮的位置、槽的轮廓、隔条的位置。\n\n    得到方   按钮所在的那个槽\n    隔条     按钮贴着的那条（离按钮最近的、紧挨得到方的隔条）\n    失去方   隔条另一侧、**深度上盖得住这个按钮**的那个槽 —— 必须恰好一个\n\n读不出唯一答案（按钮不贴任何隔条、对岸没有或不止一个槽）返回 `None`：\n那个按钮点下去会怎样，这一份不猜（语料里 0 次）。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Layout.lean"}},{"path":"derive/layout/capacity.py","group":"derive/layout","name":"capacity","doc":"`capacity(w, i)` —— 第 `i` 个槽最多装到多深（绝对深度）。\n\n= 它自己的深度上界 + 1，和**紧挨着它的每条隔条的墙高**，取最小。\n隔条不是通到底的分割线，是一堵有限高的墙：液面高过它，那几道就和隔壁连成一片。\n所以槽装不过它旁边最矮的那堵墙——而游戏的做法是**整次点击作废**，不溢流、不搬一半。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Layout.lean"}},{"path":"derive/layout/sides.py","group":"derive/layout","name":"sides","doc":"`sides(w, band, depths=None)` —— 贴着第 `band` 条隔条的那几个槽（下标，按道递增）。\n\n「贴着」= 槽的道区间紧挨隔条的道区间（在它正上方或正下方）。\n给了深区间就只留**深度上盖得住它**的那些：一条隔条可以同时贴着好几个槽\n（前墙把一侧切成了两段），而一段量规、一个按钮只跟盖住它那一段深度的槽有关系。\n\n册子在这里吃过亏：槽从「一片道」变成「一块矩形」的那一刻，所有只按道找槽的写法一起失效，\n而它们不报错——它们照旧返回一个合法的槽，只是答案是别人的。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Layout.lean"}},{"path":"derive/move/gauge_move.py","group":"derive/move","name":"gauge_move","doc":"`gauge_move(w, i)` —— 点第 `i` 段量规之后光标们在哪：`(新光标元组, 为什么)`。\n\n由五样对象组合出来：量规的位置、它那条隔条两侧盖得住它的两个槽（`layout/sides`）、\n亮不亮（`gauge/lit`）、站在那两个槽里的光标、落点公式（`move/landing`）。\n\n    (\"moved\", 新光标)   亮着：两个槽里的**每一个**光标都搬进对岸那个槽，在那里居中；深度跟着那个槽的液面\n    (\"dark\",  原光标)   暗着：一个都不动\n    (\"idle\",  原光标)   亮着，但两个槽里一个光标都没有\n    (None,    None)     两侧不是恰好两个槽 / 某一套比对岸的槽还宽：不猜（语料里 0 次）\n\n册子把这件事写成了两条：一个光标叫「搬运」、两个光标叫「对调」，落点公式两条共用。\n这里是**一句话**：亮的量规把两侧的光标**各自**送到对岸——一个时是搬运，两个时恰好是对调。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Move.lean"}},{"path":"derive/move/landing.py","group":"derive/move","name":"landing","doc":"`land_lane(w, dst, width)` —— 一个宽 `width` 的光标落进第 `dst` 个槽时，它最低的那一道。\n\n**两边的中位下标对齐**：槽的中位 = 宽 // 2，这一套的中位 = 宽 // 2，让它们落在同一道。\n宽是偶数时「中位」取靠后那一格、两边都这么取——所以它既不是一律向下取整、也不是一律向上，\n取整方向由宽的奇偶决定。\n\n册子在这里猜错过两次（一律向下、一律向上各死一版），第三次是把语料里全部落点列成表才读出来的。\n**只有这一处写这个公式**：搬运和对调都从这里取，分开写的话改对一处不会让另一处跟着对。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Move.lean"}},{"path":"derive/move/press.py","group":"derive/move","name":"press","doc":"`press(w, i)` —— 点第 `i` 个按钮之后各槽的液面：`(新液面元组, 为什么)`。\n\n由四样对象组合出来：按钮的对家（`layout/button_pair`）、隔条的厚度（搬运量）、\n两个槽的液面、得到方的容量（`layout/capacity`）。\n\n    (\"moved\",   新液面)   得到方 + 厚度、失去方 − 厚度，其余不动\n    (\"starved\", 原液面)   失去方能搬走的（液面 − 起算深度）不够一个厚度：整次作废\n    (\"capped\",  原液面)   得到方加上一个厚度会超过容量：整次作废\n    (None,      None)     按钮的对家读不出唯一答案：不猜\n\n**作废就是整次作废**：不溢流到隔壁、不搬一半（册子各花了一次预算买来这两条）。\n两种作废同时成立时报 starved——两者对世界的主张是同一句「液面一格不动」，先报哪个不影响判决。","isPixelReader":false,"fields":[],"lean":{"path":"Obj/Derive/Move.lean"}}],"objectGroups":{"objects":"这一局的**对象层**。一个文件一个类，按子文件夹归类。\n\n契约（装置按名字找）：\n\n| 名字 | 是什么 |\n|---|---|\n| `World` | `@dataclass(frozen=True)`。字段就是这一局的对象 |\n| `parse(frame) -> World` | 帧 → 世界。**全局唯一碰像素的地方**；读不出来抛 `ParseError` |\n| `ParseError` | 「这一帧读不成一个世界」。**这是一条可判错的话** |\n| `click_of(frame, action)` | 动作 → 规范视图里的落点。同样要看像素，所以也住在 `parse.py` |\n\n## 目录\n\n```\nobjects/\n  parse.py          唯一碰像素的地方（留在根上，它最该显眼）\n  world.py          World —— 这一局的全部状态\n  geometry/         区间、落点：没有任何世界断言\n  board/            版面：一关之内不变的东西（隔条 / 槽 / 按钮 / 目标 / 量规）\n  piece/            会动、而且有形状的东西（光标）\n```\n\n## 三条戒律\n\n1. **像素只许碰一次。** `parse.py` 之外不许再有读帧的代码。\n2. **不按色号认东西。** 标记色是不透明 id，只许判相等。\n3. **上游已经给的事实不进 World。** 关卡号、通没通关，规则要用就从 `ctx` 读。","objects/board":"版面：**一关之内一格都不会变的那些东西**——隔条、槽的轮廓、按钮、嵌在隔条里的标记段。\n\n分成一个子文件夹的理由：它们在同一关里是常量。点击只会改液面、挪光标、改顶栏，\n这一组一样都碰不到（规则 `board_static` 管的就是这句话；形式化那边它们住在 `Board` 里，\n`step` 连碰都碰不到它们，于是「走一步版面不会变」**表示不出来**）。\n\n注意「标记段」分两种，它们住在同一类里但不是同一个对象：\n**配对目标**（颜色配得到某个光标）和**量规**（配不到任何光标）。\n分开的依据是**颜色相等**，不是色号本身——色号在这里是不透明的 id，只许判相等。","objects/geometry":"几何：区间与点击点。**这一类里没有任何世界断言**——\n\n它们只说「第几道到第几道」「点在第几道第几深」，不说「那一段是隔条」「那一下点中了按钮」。\n分成一个子文件夹的理由就是这一句：**它们在任何一局都是同一个意思。**\n\n坐标一律是**规范视图**里的 `(道, 深)`：道 = 沿隔条排列的方向，深 = 从填充起点量过去的距离。\n帧上那四种朝向（从左 / 右 / 上 / 下开始填）在解析那一步就被商掉了（判据 3 · 对称），\n这里再也看不见像素的行列。","objects/piece":"会动的东西里**有形状的那一样**：光标。\n\n液面（`World.levels`）和顶栏（`World.used`）也会动，但它们就是一个数，不配一个类。\n光标配一个类，因为它有颜色、有一套刚性的形状，而且能从一个槽整套搬进另一个槽。","derive/gauge":"**量规此刻亮不亮**：液面的函数，不是独立的一位。","derive/goal":"**什么算过关**：光标和目标按颜色配对，每一对都到位。","derive/hit":"**一次点击点中了什么**：按钮 / 量规 / 别处 / 盘外。只看位置，不说点了会怎样。","derive/layout":"**版面上的关系**：只看隔条、槽、按钮的位置，不看液面、不看光标。\n\n它们一关之内都是常量，所以形式化那边可以只算一次（住在 `Board` 旁边）。","derive/move":"**走一步之后会在哪**：按钮把液面搬成什么样；光标换槽时落在哪一道。"},"card06":{"ablation":{"bands":{"第一帧的值":{"readers":{"press_button":490,"win_align":515,"click_gauge":51,"click_noop":42,"gauge_signal":380},"errors":{"click_gauge":42,"click_noop":42,"press_button":42,"gauge_signal":362,"win_align":42},"witness":{"seq":14,"rule":"press_button","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"press_button":382,"win_align":402,"click_gauge":29,"click_noop":26,"gauge_signal":169},"errors":{"gauge_signal":127,"click_gauge":12,"click_noop":12,"press_button":12,"win_align":12},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"N"}}},"zones":{"第一帧的值":{"readers":{"press_button":448,"win_align":501,"click_gauge":37,"gauge_signal":76},"errors":{},"witness":{"seq":14,"rule":"press_button","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"press_button":370,"win_align":416,"click_gauge":29,"gauge_signal":169},"errors":{"gauge_signal":99},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"N"}}},"buttons":{"第一帧的值":{"readers":{"click_noop":394,"press_button":440,"win_align":62},"errors":{},"witness":{"seq":17,"rule":"click_noop","real":"N","erased":"E"}},"最后一帧的值":{"readers":{"click_noop":318,"press_button":322,"win_align":23,"click_gauge":2},"errors":{},"witness":{"seq":7,"rule":"click_noop","real":"N","erased":"E"}}},"targets":{"第一帧的值":{"readers":{"win_align":45},"errors":{},"witness":{"seq":14,"rule":"win_align","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"win_align":25},"errors":{"win_align":2},"witness":{"seq":13,"rule":"win_align","real":"C","erased":"E"}}},"gauges":{"第一帧的值":{"readers":{"click_gauge":37,"click_noop":37,"gauge_signal":415},"errors":{},"witness":{"seq":45,"rule":"click_gauge","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"click_gauge":33,"click_noop":27,"press_button":7,"gauge_signal":309,"win_align":7},"errors":{"click_gauge":7,"click_noop":7,"press_button":7,"gauge_signal":251,"win_align":7},"witness":{"seq":4,"rule":"click_gauge","real":"N","erased":"C"}}},"levels":{"第一帧的值":{"readers":{"press_button":420,"win_align":394,"gauge_signal":265,"click_gauge":33},"errors":{"win_align":389,"press_button":336,"gauge_signal":227,"click_gauge":18},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"E"}},"最后一帧的值":{"readers":{"press_button":312,"win_align":19,"gauge_signal":74,"click_gauge":33},"errors":{},"witness":{"seq":7,"rule":"press_button","real":"C","erased":"E"}}},"cursors":{"第一帧的值":{"readers":{"win_align":43,"click_gauge":20},"errors":{},"witness":{"seq":14,"rule":"win_align","real":"C","erased":"N"}},"最后一帧的值":{"readers":{"win_align":73,"click_gauge":34},"errors":{"win_align":64},"witness":{"seq":44,"rule":"win_align","real":"C","erased":"E"}}},"gauge_look":{"第一帧的值":{"readers":{"gauge_signal":415},"errors":{"gauge_signal":415},"witness":null},"最后一帧的值":{"readers":{"gauge_signal":74},"errors":{},"witness":{"seq":78,"rule":"gauge_signal","real":"C","erased":"E"}}},"used":{"第一帧的值":{"readers":{},"errors":{},"witness":null},"最后一帧的值":{"readers":{"hud_cost":17},"errors":{},"witness":{"seq":13,"rule":"hud_cost","real":"C","erased":"E"}}}},"mirror":{"rows":538,"same":538,"diff":[]},"card03_cuts":{"base_E":74,"side":0,"step":0,"size":0,"lit":74}}};</script>
+<script>
+// **页面那一侧：只画，不算。**
+//
+// 每一个数、每一个框、每一句「这一下点中了什么」都是 web/export.py 在 Python 那边算好导出来的
+// （window.DATA）。这一份只摆数据、只画图形；新增的只有两样：尺寸和配色。
+// web/check_no_logic.py 会来这里搜世界那一侧的函数名，搜到就算破了。
+
+(function () {
+  const D = window.DATA || {};
+  const P = window.PAGE || { kind: "home", up: "" };
+  const $ = (id) => document.getElementById(id);
+
+  // ---------------------------------------------------------------- 配色（渲染方面的东西）
+  // 帧里的色号 → 屏幕上的颜色。色号本身是不透明 id；这张表只有一个来源：
+  // export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号）。这里不抄。
+  const PAL = D.palette || [];
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function md(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+  function pick(path) {
+    let x = D;
+    for (const k of path.split(".")) {
+      if (x == null) return undefined;
+      x = x[k];
+    }
+    return x;
+  }
+  function chip(cls, text) { return `<span class="chip ${cls}">${esc(text)}</span>`; }
+  function vchip(v) {
+    if (v === "C") return chip("TRUE", "判对");
+    if (v === "E") return chip("FALSE", "判错");
+    if (v === "U") return chip("FALSE", "读不成");
+    if (v === "ERR") return chip("FALSE", "跑不起来");
+    return chip("NA", "不开口");
+  }
+
+  // 散文里的数：`<span data-k="路径">`。缺了就写「缺」，不留旧数。
+  function fillNumbers() {
+    for (const el of document.querySelectorAll("[data-k]")) {
+      const v = pick(el.getAttribute("data-k"));
+      el.textContent = v === undefined ? "缺" : v;
+      if (v === undefined) el.className = "bad";
+    }
+  }
+
+  function gapsBanner() {
+    const g = D.gaps || [];
+    if (!g.length || !$("gaps")) return;
+    $("gaps").innerHTML = `<div class="card gapcard"><h2>缺口（明写的，不是判准没过）</h2><ul class="tight">`
+      + g.map((x) => `<li>${md(x)}</li>`).join("") + "</ul></div>";
+  }
+
+  // ---------------------------------------------------------------- 画一帧
+  function canvasOf(fi, changed, px) {
+    const hex = (D.frames || [])[fi];
+    const c = document.createElement("canvas");
+    const s = px || 5;
+    c.width = 64 * s; c.height = 64 * s;
+    const g = c.getContext("2d");
+    if (!hex) return c;
+    for (let i = 0; i < 4096; i++) {
+      g.fillStyle = PAL[parseInt(hex[i], 16)];
+      g.fillRect((i % 64) * s, Math.floor(i / 64) * s, s, s);
+    }
+    if (changed) {
+      g.strokeStyle = "#ff3b30"; g.lineWidth = 1;
+      for (const [r, cc] of changed) g.strokeRect(cc * s + 0.5, r * s + 0.5, s - 1, s - 1);
+    }
+    return c;
+  }
+  function figure(fi, caption, changed, px) {
+    const f = document.createElement("figure");
+    f.className = "board";
+    const cap = document.createElement("figcaption");
+    cap.innerHTML = caption;
+    f.appendChild(cap);
+    f.appendChild(canvasOf(fi, changed, px));
+    return f;
+  }
+  function rowBySeq(seq) { return (D.rows || []).find((r) => r.seq === seq); }
+  function pairInto(el, seq, text) {
+    const r = rowBySeq(seq);
+    if (!el || !r) { if (el) el.innerHTML = `<p class="note bad">导出里没有这一步（缺）</p>`; return; }
+    el.appendChild(figure(r.prevF, `seq ${r.seq} · 点之前`, null, 4));
+    el.appendChild(figure(r.nextF, `点之后 · ${esc(r.word)}（框出来的是变了的格）`, r.changed, 4));
+    if (text) {
+      const p = document.createElement("p");
+      p.className = "note"; p.innerHTML = text; el.appendChild(p);
+    }
+  }
+
+  // ---------------------------------------------------------------- 首页
+  function home() {
+    const pk = D.picks || {};
+    pairInto($("shotPress"), pk.onButton, "点了一个按钮：它所在的槽涨了一个隔条厚度，隔条对岸的槽落了同样多，光标跟着液面挪。");
+    const blk = $("shotBlock");
+    if (pk.onStarved) pairInto(blk, pk.onStarved, "源槽不够搬：除了顶栏，一格都没变。（这一步在语料的非认证段里）");
+    if (pk.onCapped) pairInto(blk, pk.onCapped, "墙太矮：得到方已经顶到墙高，这一下整次作废。（同样在非认证段里）");
+    pairInto($("shotGauge"), pk.onGauge, "点亮着的量规：隔条两侧的光标整套送到对岸，液面一格没动。");
+    const r = rowBySeq(pk.lastWin);
+    if (r && $("shotWin")) {
+      $("shotWin").appendChild(figure(r.prevF, `seq ${r.seq} · 最后一下之前`, null, 4));
+      $("shotWin").appendChild(figure(r.nextF, `最后一下之后：每个光标都停在自己的目标深度上、贴着嵌目标的那条隔条`, r.changed, 4));
+    }
+  }
+
+  // ---------------------------------------------------------------- 回放
+  function replay() {
+    const rows = D.rows || [];
+    const sl = $("slider");
+    sl.max = rows.length - 1;
+    let i = 0;
+    for (const j of D.jumps || []) {
+      const b = document.createElement("button");
+      b.textContent = j.label;
+      b.onclick = () => { i = j.index; show(); };
+      $("jumps").appendChild(b);
+    }
+    function show() {
+      const r = rows[i];
+      sl.value = i;
+      $("label").textContent = `第 ${i + 1} / ${rows.length} 行 · seq ${r.seq} · 第 ${r.lvl} 关`;
+      $("pair").innerHTML = "";
+      $("pair").appendChild(figure(r.prevF, "点之前", null, 5));
+      $("pair").appendChild(figure(r.nextF, "点之后", r.changed, 5));
+      const leanWord = { yes: chip("TRUE", "模型说对了"), no: chip("FALSE", "模型被驳倒"), na: chip("NA", "模型不描述这一步") }[r.lean] || chip("NA", "缺");
+      $("stepinfo").innerHTML = `<dl class="kv">
+        <dt>动作</dt><dd class="mono">${esc(r.action)}</dd>
+        <dt>点中了什么</dt><dd>${esc(r.word)}</dd>
+        <dt>变了几格</dt><dd>${r.changed.length}</dd>
+        <dt>上游报的关卡</dt><dd>${r.lvl} → ${r.lvlNext}（${esc(r.state)}）</dd>
+        <dt>这一行的标记</dt><dd>${r.marks.length ? r.marks.map((m) => `<b>${esc(m)}</b>：${esc((D.corpus.markWhy || {})[m])}`).join("<br>") : "（无：认证段里同一关的一步）"}</dd>
+        <dt>形式化那一层</dt><dd>${leanWord} <span class="note">（内核逐行算过，和规则那一侧逐行相等：corpus_reconciled）</span></dd></dl>`;
+      const vs = Object.entries(r.verdicts).map(([k, v]) =>
+        `<tr><td class="mono"><a href="rules/${k}.html">${esc(k)}</a></td><td>${vchip(v.startsWith("N:") ? "N" : v)}</td>`
+        + `<td class="why">${v.startsWith("N:") ? esc(v.slice(2)) : ""}</td></tr>`).join("");
+      $("verdicts").innerHTML = `<table><tr><th>规则</th><th>判决</th><th>不开口的理由</th></tr>${vs}</table>`;
+      const w = r.world, n = r.worldNext;
+      const cur = (x) => x.cursors.map((c) => `色 ${c.color} 在槽 ${c.zone}（第 ${c.lane} 道起，宽 ${c.width}）`).join("；") || "（没有光标）";
+      $("world").innerHTML = `<table>
+        <tr><th style="width:120px">液面（每个槽）</th><td class="mono">${w.levels.join(", ")}</td><td class="mono">${n.levels.join(", ")}</td></tr>
+        <tr><th>光标</th><td>${cur(w)}</td><td>${cur(n)}</td></tr>
+        <tr><th>量规显示的颜色</th><td class="mono">${w.look.join(", ") || "（这一关没有量规）"}</td><td class="mono">${n.look.join(", ") || ""}</td></tr>
+        <tr><th>顶栏已消耗</th><td>${w.used}</td><td>${n.used}</td></tr></table>
+        <p class="note">版面（这一关不变的那一半）：${w.bands.length} 条隔条、${w.zones.length} 个槽、${w.buttons} 个按钮、${w.targets.length} 段目标、${w.gauges.length} 段量规。</p>`;
+    }
+    sl.oninput = () => { i = +sl.value; show(); };
+    $("prev").onclick = () => { if (i > 0) { i--; show(); } };
+    $("next").onclick = () => { if (i < rows.length - 1) { i++; show(); } };
+    i = (D.jumps && D.jumps.length) ? D.jumps.find((j) => j.label.indexOf("认证段") >= 0).index : 0;
+    show();
+  }
+
+  // ---------------------------------------------------------------- 对象
+  function objName(p) { return p.replace(/\.py$/, "").replace(/\//g, "-"); }
+  function objIndex() {
+    const groups = D.objectGroups || {};
+    const objs = D.objects || [];
+    const used = new Set();
+    let h = "";
+    for (const g of Object.keys(groups)) {
+      const xs = objs.filter((o) => o.group === g);
+      if (!xs.length) continue;
+      h += `<div class="grouphead">${esc(g)}/</div><p class="note" style="margin:0 0 10px">${md((groups[g] || "").split("\n")[0])}</p><div class="rulelist">`;
+      for (const o of xs) {
+        used.add(o.path);
+        h += `<a class="row" href="${objName(o.path)}.html"><span class="nm">${esc(o.name)}</span>`
+          + `<span class="cl">${md((o.doc || "").split("\n")[0])}</span><span>${o.lean.path ? chip("TRUE", "有 Lean") : chip("NA", "无 Lean")}</span></a>`;
+      }
+      h += "</div>";
+    }
+    const rest = objs.filter((o) => !used.has(o.path));
+    if (rest.length) {
+      h += `<div class="grouphead">还没归类（${rest.length} 样）</div><div class="rulelist">`
+        + rest.map((o) => `<a class="row" href="${objName(o.path)}.html"><span class="nm">${esc(o.path)}</span><span class="cl"></span><span></span></a>`).join("") + "</div>";
+    }
+    $("list").innerHTML = h;
+    const ab = (D.card06 || {}).ablation || {};
+    let t = `<table><tr><th>字段</th><th>扰动</th><th>读它的规则（改判处数）</th><th>一对干净的见证</th></tr>`;
+    for (const [f, per] of Object.entries(ab)) {
+      for (const [lab, x] of Object.entries(per)) {
+        const rd = Object.entries(x.readers).map(([k, v]) => `${k} ${v}`).join("、") || "<b class='bad'>一条都没有</b>";
+        const w = x.witness ? `seq ${x.witness.seq} 上 ${x.witness.rule}：${x.witness.real} → ${x.witness.erased}` : "<b>没有</b>";
+        t += `<tr><td class="mono">${esc(f)}</td><td>${esc(lab)}</td><td>${rd}</td><td>${w}</td></tr>`;
+      }
+    }
+    $("split").innerHTML = t + "</table><p class='note'>「C → N」= 规则从开口判对变成不开口；「C → E」= 从判对变成判错。两种都是「抹掉这一位，规则分不开这一对世界了」。</p>";
+  }
+  function obj() {
+    const o = (D.objects || []).find((x) => x.path === P.key);
+    if (!o) { $("obj").innerHTML = "<p class='bad'>缺</p>"; return; }
+    let h = "";
+    for (const f of o.fields) {
+      const per = f.ablation || {};
+      const readers = Object.entries(per).map(([lab, x]) =>
+        `${esc(lab)}：${Object.entries(x.readers).map(([k, v]) => `${k} ${v}`).join("、") || "<b class='bad'>无</b>"}`).join("<br>");
+      h += `<div class="card"><h2>读数 · 字段 ${esc(f.field)}</h2><p>${readers || "（没有消融读数）"}</p>`
+        + (f.why ? `<pre class="doc">${md(f.why)}</pre>` : "<p class='bad'>analysis/ 里没有这个字段的那一份（缺）</p>") + "</div>";
+    }
+    h += `<div class="card"><h2>它是什么</h2><pre class="doc">${md(o.doc)}</pre></div>`;
+    if (o.lean.path) {
+      h += `<div class="card"><h2>它的 Lean（身份：定义）· ${esc(o.lean.path)}</h2><details><summary>展开源码</summary><pre class="lean">${paint(o.lean.source)}</pre></details></div>`;
+    } else {
+      h += `<div class="card"><h2>它的 Lean</h2><p class="note">没有对应的 Lean 文件。${o.isPixelReader ? "解析（帧 → 世界）不进形式化：形式化那一层吃的是它的输出（lean2/Obs/Replay.lean）。" : ""}</p></div>`;
+    }
+    $("obj").innerHTML = h;
+  }
+
+  // ---------------------------------------------------------------- 规则
+  function ruleRow(r) {
+    const d = r.readings;
+    const id = r.identity || {};
+    return `<a class="row" href="${r.name}.html"><span class="nm">${esc(r.name)}</span>`
+      + `<span class="cl">${md(r.claim)}</span>`
+      + `<span>${chip(d.E ? "FALSE" : "TRUE", `开口 ${d.scope} · 判错 ${d.E}`)} ${chip("NA", id.identity || "没身份")}</span></a>`;
+  }
+  function ruleIndex() {
+    const rules = D.rules || [];
+    const groups = D.ruleGroups || {};
+    const used = new Set();
+    let h = "";
+    for (const g of Object.keys(groups)) {
+      const xs = rules.filter((r) => r.group === g);
+      if (!xs.length) continue;
+      xs.forEach((r) => used.add(r.name));
+      h += `<div class="grouphead">${esc(g)}</div><p class="note" style="margin:0 0 10px">${md((groups[g] || "").split("\n")[0])}</p>`
+        + `<div class="rulelist">${xs.map(ruleRow).join("")}</div>`;
+    }
+    const rest = rules.filter((r) => !used.has(r.name));
+    if (rest.length) h += `<div class="grouphead">还没归类（${rest.length} 条）</div><div class="rulelist">${rest.map(ruleRow).join("")}</div>`;
+    $("list").innerHTML = h;
+    const ret = (D.retired || []).map((r) => `<li><b>${esc(r.rule)}</b>（${esc(r.status)}，身份：${esc(r.identity)}，${esc(r.lean || "")}）：${md(r.why || "")}</li>`).join("");
+    const merges = (D.rules || []).flatMap((r) => (r.note || []).filter((x) => x.startsWith("卡 05")).map((x) => `<li><b>${esc(r.name)}</b>：${md(x)}</li>`)).join("");
+    $("history").innerHTML = `<p class="note">起点是一本 14 条概念的册子（<code>concepts/</code>，只读）。卡 04 把它逐条用对象重写成 13 条规则；卡 05 推倒重排成现在这几条。
+      撤册的源码一字不改地留在 <code>analysis/_history/rules_card04/</code>，死因写在 <code>analysis/record.txt</code>。<b>撤册的不在上面那张现役表里。</b></p>
+      <ul class="tight">${merges}</ul><p class="note" style="margin-top:12px">撤册、进了形式化当推论的：</p><ul class="tight">${ret}</ul>`;
+    const rv = D.reverse || {};
+    const md0 = rv.mutants_data || {};
+    let t = `<p>装置的变异（<code>ledger/criteria_run.py</code>）：造了 ${md0.total} 个错的转移，这一套拒掉 <b>${md0.rejected}</b>（其中解析读不成 ${md0.by_parse}）。</p>`;
+    t += `<p>源码变异（另起进程跑；先种一个<b>必红</b>的，它是${(rv.seed_alive ? "活的" : "<b class='bad'>死的</b>")}）：</p><table><tr><th>突变</th><th>改的文件</th><th>红没红</th><th>红在哪 / 没红的入口</th></tr>`;
+    for (const m of rv.source_mutants || []) {
+      t += `<tr><td>${esc(m.mutant)}<div class="why">${esc(m.why)}</div></td><td class="mono">${esc(m.file)}</td>`
+        + `<td>${m.red ? chip("TRUE", "红") : chip("FALSE", "没红")}</td>`
+        + `<td>${m.red ? esc((m.hits || []).join("、")) : `<b>${esc(m.entrance || "")}</b> —— ${md(m.note || "")}`}</td></tr>`;
+    }
+    t += "</table><p style='margin-top:12px'>解析的良构检查是不是活的（拿真帧动一刀，看它按那条理由读不成）：</p><table>";
+    for (const x of rv.parse_liveness || []) {
+      t += `<tr><td>${esc(x.check)}</td><td>${esc(x.cut)}</td><td>${x.live ? chip("TRUE", "活") : chip("FALSE", "死")}</td><td class="why">${esc(x.raised || "")}</td></tr>`;
+    }
+    $("reverse").innerHTML = t + "</table>";
+  }
+  function rule() {
+    const r = (D.rules || []).find((x) => x.name === P.key);
+    if (!r) { $("rule").innerHTML = "<p class='bad'>缺</p>"; return; }
+    const d = r.readings, id = r.identity || {};
+    const nby = Object.entries(d.N_by || {}).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td></tr>`).join("");
+    let h = `<div class="card"><h2>读数（在这 ${D.readings.rows} 行 / 去重 ${D.readings.distinct} 条转移上）</h2>
+      <table><tr><th>|scope| 开口</th><th>N 不开口</th><th>C 判对</th><th>E 判错</th><th>U 读不成</th><th>去重后 开口 / 判对 / 判错</th></tr>
+      <tr><td class="num">${d.scope}</td><td class="num">${d.N}</td><td class="num">${d.C}</td><td class="num ${d.E ? "bad" : ""}">${d.E}</td><td class="num">${d.U}</td>
+      <td>${d.dedup.scope} / ${d.dedup.C} / ${d.dedup.E}</td></tr></table>
+      ${d.E ? `<p class="bad">判错在 seq ${d.E_seqs.join(", ")}</p>` : ""}
+      <details><summary>不开口的那些，按理由数</summary><table>${nby}</table></details></div>`;
+    h += `<div class="card"><h2>身份：${esc(id.identity || "缺")}</h2>`
+      + (id.identity === "不进模型" ? `<p>论域 ${d.scope} 条，被驳倒 ${d.E} 次。</p>` : "")
+      + (id.why ? `<p>${md(id.why)}</p>` : "")
+      + (id.lean ? `<p class="note">Lean：<a href="../lean/${id.lean.replace(".lean", "").replace(/\//g, "-")}.html">${esc(id.lean)}</a>（${esc(id.name || "")}）</p>` : "") + "</div>";
+    h += `<div class="card"><h2>它说什么</h2><p>${md(r.claim)}</p><p class="note"><b>不管的那些归谁：</b>${md(r.scope_note)}</p></div>`;
+    h += `<div class="card"><h2>它明确不主张什么</h2><ul class="tight">${(r.not_claimed || []).map((x) => `<li>${md(x)}</li>`).join("") || "<li>（没写）</li>"}</ul></div>`;
+    h += `<div class="card"><h2>改版史</h2><ul class="tight">${(r.note || []).map((x) => `<li>${md(x)}</li>`).join("")}</ul>
+      <p class="note">见证（tid，内容哈希）：${(r.evidence || []).map(esc).join("、")}</p></div>`;
+    const dm = r.data_mutants || {};
+    h += `<div class="card"><h2>反向测试里打到它的</h2><p>装置变异：拒掉 ${dm.rejected}，其中独家 ${dm.unique}。</p>`
+      + `<ul class="tight">${(r.mutants || []).map((m) => `<li><b>${esc(m.mutant)}</b>（${esc(m.why)}）：${esc(m.hits.join("、"))}</li>`).join("") || "<li>源码变异里没有一个让它单独红</li>"}</ul></div>`;
+    if (r.lean && r.lean.source) {
+      h += `<div class="card"><h2>它的 Lean · ${esc(r.lean.path)}</h2><details><summary>展开源码</summary><pre class="lean">${paint(r.lean.source)}</pre></details></div>`;
+    }
+    h += `<div class="card"><h2>源码的文件头</h2><pre class="doc small">${md(r.doc)}</pre></div>`;
+    $("rule").innerHTML = h;
+  }
+
+  // ---------------------------------------------------------------- 形式化
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|using|open").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+    "rintro|induction|split|rw|apply|unfold|absurd|first|next|subst|rename_i").split("|");
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/"[^"\n]*"/g, (m) => `\u0003${m}\u0004`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+  function axChip(a) {
+    if (!a) return chip("NA", "没查到公理表");
+    const dirty = a.some((x) => ["propext", "Classical.choice", "Quot.sound"].indexOf(x) < 0);
+    return chip(dirty ? "FALSE" : "TRUE", a.length ? a.join(", ") : "不依赖任何公理");
+  }
+  function leanHref(p) { return p.replace(".lean", "").replace(/\//g, "-") + ".html"; }
+  const ROLE_ORDER = ["对象", "规则", "分发", "推论", "观测", "证明"];
+  function leanPicker(here) {
+    const files = D.lean.files;
+    let opts = "";
+    const used = new Set();
+    for (const role of ROLE_ORDER) {
+      const xs = files.filter((f) => f.role === role);
+      if (!xs.length) continue;
+      opts += `<optgroup label="${role}">` + xs.map((f) => { used.add(f.path); return `<option value="${leanHref(f.path)}"${f.path === here ? " selected" : ""}>${esc(f.path)} —— ${esc(f.title)}</option>`; }).join("") + "</optgroup>";
+    }
+    const rest = files.filter((f) => !used.has(f.path));
+    if (rest.length) opts += `<optgroup label="没归类（${rest.length} 份）">` + rest.map((f) => `<option value="${leanHref(f.path)}">${esc(f.path)}</option>`).join("") + "</optgroup>";
+    opts += `<optgroup label="破坏测试"><option value="Broken.html"${here === "Broken.lean" ? " selected" : ""}>Broken.lean —— 应当编不过</option></optgroup>`;
+    return `<label class="picker"><span>这 ${files.length} 份 Lean（另有一份破坏测试）</span><select onchange="if(this.value)location.href=this.value">${opts}</select></label>　<a href="index.html">回形式化首页</a>`;
+  }
+  function leanIndex() {
+    const L = D.lean;
+    let t = `<table><tr><th>关</th><th>结论</th><th>逐帧核过的步数（只有开局是观测给的）</th><th>见证</th><th>另核的「重来之后」</th><th>Lean</th></tr>`;
+    for (const lv of L.levels) {
+      t += `<tr><td>${lv.level}</td><td>${lv.conclusion === "走得通" ? chip("TRUE", "走得通") : chip("FALSE", lv.conclusion)}</td>`
+        + `<td class="num">${lv.walked}</td><td>认证段 seq ${lv.start_seq} 起，过关那一脚 seq ${lv.win_seq}</td>`
+        + `<td>${lv.after_reset.map((x) => `seq ${x.reset_seq} 那次 RESET 之后 ${x.steps} 步（${esc(x.theorem)}）`).join("<br>") || "—"}</td>`
+        + `<td><a href="Proof-Levels-L${lv.level}.html">L${lv.level}.lean</a></td></tr>`;
+    }
+    $("levels").innerHTML = t + `</table><p class="note">每一关两条：<code>_trace</code>（沿真实走法模型每一帧都和观测对上）和 <code>_winnable</code>（走得通，见证就是那条路 + 过关那一脚）；
+      <code>_walked</code> 钉住核过的步数（切片切歪成空表时它是 0）。「重来一次回到开局」是明写的假设，那两段核对是它被驳倒的机会，<b>没红不构成证明</b>。</p>`;
+    const sc = L.scenes.map((s) => `<li class="mono">${esc(s)}</li>`).join("");
+    const r0 = rowBySeq((L.levelsMeta["0"] || {}).start_seq);
+    $("scenes").innerHTML = `<div class="boards" id="sceneFig"></div>
+      <p>两张盘都从<b>第 0 关的真实开局</b>改一处：只把那一段目标往深处挪。对照盘就是第 0 关本身（它赢得了：<code>L0_winnable</code>）。</p>
+      <table><tr><th>钥匙</th><th>盘</th><th>赢不了</th><th>另一把套不上</th><th>对照盘赢得了</th><th>不是一开局就通</th><th>对照盘上前提不满足</th></tr>
+      <tr><td><b>余数守恒</b>：每次搬一个厚度，液面模厚度不变</td><td>目标 24 → 26</td><td><a href="Proof-Scenes.html">residue_scene_unsolvable</a></td><td>residue_scene_not_capacity</td><td>residue_ctrl_winnable</td><td>residue_ctrl_closed_at_start</td><td>residue_ctrl_not_key</td></tr>
+      <tr><td><b>墙太矮</b>：槽装不过旁边最矮的墙（推论 tank_cap）</td><td>目标 24 → 48</td><td>capacity_scene_unsolvable</td><td>capacity_scene_not_residue</td><td>capacity_ctrl_winnable</td><td>capacity_ctrl_closed_at_start</td><td>capacity_ctrl_not_key</td></tr></table>
+      <p class="note">内核算出来的盘面读数：</p><ul class="tight">${sc}</ul>
+      <p class="note">「赢不了」的准确意思：<b>不经过模型说不出话的那一支、也不经过 RESET</b>，就赢不了。证明里没有一处枚举、没有一处搜索，和盘面多大无关（骨架 <code>unsolvable_of_invariant</code>，对动作串归纳）。</p>`;
+    if (r0) $("sceneFig").appendChild(figure(r0.prevF, "第 0 关的真实开局（两张盘都从它改一处：目标记号挪深）", null, 4));
+    let it = `<table><tr><th>规则</th><th>现役 / 撤册</th><th>身份</th><th>在哪 / 为什么</th></tr>`;
+    for (const r of L.identity) {
+      it += `<tr><td class="mono">${esc(r.rule)}</td><td>${esc(r.status)}</td><td>${chip(r.identity === "不进模型" ? "NA" : "TRUE", r.identity)}</td>`
+        + `<td>${r.lean ? `<a href="${leanHref(r.lean)}">${esc(r.lean)}</a> · ${esc(r.name)}` : ""}`
+        + `${r.identity === "不进模型" ? ` 论域 ${r.scope} 条，被驳倒 ${r.refuted} 次。` : ""}<div class="why">${md(r.why || "")}</div></td></tr>`;
+    }
+    $("identity").innerHTML = it + "</table>";
+    $("corpus").innerHTML = `<p>逐条那一层：每一行都从<b>观测到的那一帧</b>起算一步，和看到的下一帧比（局面 + 版面）。
+      模型说对了 <b>${L.corpus.yes}</b> 行、被驳倒 <b>${L.corpus.no}</b> 行、不描述 <b>${L.corpus.na}</b> 行（RESET）。</p>
+      <p>规则那一份（Python）和模型那一份（Lean）<b>各自独立写</b>；<code>${esc(L.corpus.reconciled_theorem)}</code> 这条定理说
+      「内核自己算的每一行判决 = 规则那一份的判决」——<b>任何一行对不上，那一份就编不过</b>。</p>`;
+    const vm = D.verifyMutants;
+    const dev = L.device;
+    $("trust").innerHTML = `<table>
+      <tr><th style="width:220px">定理条数</th><td>${L.theorems}（公理表逐条查到 ${L.axiomsChecked}，脏 ${Object.keys(L.dirty).length}）</td></tr>
+      <tr><th>只许的公理</th><td>propext / Classical.choice / Quot.sound（白名单）；全文没有 native_decide；不许 sorry</td></tr>
+      <tr><th>破坏测试</th><td>${L.broken.ok ? chip("TRUE", "编不过，只红在标记行") : chip("FALSE", "没过")} 退出码 ${L.broken.rc}，红在第 ${L.broken.error_lines.join(",")} 行，标记在第 ${L.broken.marker_line} 行 · <a href="Broken.html">Broken.lean</a></td></tr>
+      <tr><th>判据自己被判据核</th><td>${vm ? `种子必红：${vm.seed_alive ? "活的" : "<b class='bad'>死的</b>"}<br>` + vm.mutants.map((m) => `${m.red ? chip("TRUE", "红") : chip("FALSE", "没红")} ${esc(m.mutant)}（该红在：${esc(m.want)}）`).join("<br>") : "<b class='bad'>缺（verify_mutants 没跑）</b>"}</td></tr>
+      <tr><th>装置的 lean_check</th><td>${dev ? `ok=${dev.ok}<br>` + dev.owed.map((o) => `${esc(o.kind)}`).join("<br>") : "（这一次没跑）"}</td></tr>
+      </table>`;
+    const groups = {};
+    for (const f of L.files) (groups[f.role] = groups[f.role] || []).push(f);
+    let fl = leanPicker(null);
+    for (const role of ROLE_ORDER) {
+      if (!groups[role]) continue;
+      fl += `<div class="grouphead">${role}</div><div class="rulelist">` + groups[role].map((f) =>
+        `<a class="row" href="${leanHref(f.path)}"><span class="nm">${esc(f.path)}</span><span class="cl">${md(f.title)}</span><span>${chip("NA", `${f.theorems.length} 条定理`)}</span></a>`).join("") + "</div>";
+    }
+    $("files").innerHTML = fl;
+  }
+  function leanFile() {
+    if (P.key === "Broken.lean") {
+      const b = D.lean.broken;
+      $("leanfile").innerHTML = `<div class="card">${leanPicker("Broken.lean")}</div><div class="card"><h2>读数</h2>
+        <p>${b.ok ? chip("TRUE", "编不过，只红在标记行") : chip("FALSE", "没过")} 退出码 ${b.rc}；红在第 ${b.error_lines.join(",")} 行；标记在第 ${b.marker_line} 行。</p></div>
+        <div class="card"><h2>源码</h2><pre class="lean">${paint(b.source || "")}</pre></div>`;
+      return;
+    }
+    const f = D.lean.files.find((x) => x.path === P.key);
+    if (!f) { $("leanfile").innerHTML = "<p class='bad'>缺</p>"; return; }
+    const th = f.theorems.map((t) => `<div class="litem thm"><div class="lhead"><span class="lkind">theorem</span><span class="mono lname">${esc(t.name)}</span>${axChip(t.axioms)}</div>`
+      + (f.thmDocs[t.name] ? `<div class="ldoc">${md(f.thmDocs[t.name])}</div>` : "") + "</div>").join("");
+    $("leanfile").innerHTML = `<div class="card">${leanPicker(f.path)}</div>
+      <div class="card"><h2>${esc(f.role)} · 编译 ${f.rc === 0 ? chip("TRUE", "编过") : chip("FALSE", "没编过")} ${f.seconds} 秒${f.python ? ` · 对应 <code>${esc(f.python)}</code>` : ""}</h2>
+      <pre class="doc">${md(f.head)}</pre></div>
+      <div class="card"><h2>定理与公理表（${f.theorems.length} 条）</h2>${th || "<p class='note'>这一份里一条定理都没有——它只有定义。</p>"}</div>
+      <div class="card"><h2>源码</h2><pre class="lean">${paint(f.source)}</pre></div>`;
+  }
+
+  function howto() {}
+
+  document.addEventListener("DOMContentLoaded", () => {
+    gapsBanner();
+    fillNumbers();
+    ({ home, replay, objIndex, obj, ruleIndex, rule, leanIndex, leanFile, howto }[P.kind] || home)();
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>形式化 · 第 1 关</title>
+<style>
+/* 只有尺寸与配色。形状从 ledger/templates/web/style.css 起手，世界的配色那一块按本局改。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .6px; }
+.gaps { border-color: var(--warn); }
+.gaps h2 { color: var(--warn); }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { color: var(--dim); font-size: 12px; max-width: 300px; margin-top: 6px; }
+canvas.frame { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; min-width: 44px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.U { background: #222732; color: var(--faint); }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 14px; }
+.note { color: var(--dim); font-size: 13px; }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.row .t { font-weight: 600; }
+pre.src { background: #0e1015; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+          overflow-x: auto; font-size: 12px; line-height: 1.45; white-space: pre; }
+pre.txt { white-space: pre-wrap; font-size: 12.5px; }
+details > summary { cursor: pointer; color: var(--dim); }
+.controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; font-size: 13px; }
+input[type=range] { flex: 1; min-width: 200px; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>形式化 · 第 1 关</h1>
+  <div class="sub">Levels 按关拆开的一段</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card "><h2>结论</h2><p>第 1 关：走得通。认证段逐帧核过 <b>8</b> 步（seq 175 起，过关那一下 seq 183）；不认证段另核 8 步。</p><p class='note'>整份：<a href='f-Proof-Levels.html'>Proof/Levels.lean</a> · <a href='level-L0.html'>第 0 关</a> · <a href='level-L1.html'>第 1 关</a> · <a href='level-L2.html'>第 2 关</a> · <a href='level-L3.html'>第 3 关</a> · <a href='level-L4.html'>第 4 关</a> · <a href='level-L5.html'>第 5 关</a> · <a href='level-L6.html'>第 6 关</a></p></div><div class="card "><h2>这一关的定理（从 Proof/Levels.lean 切出来的这一段）</h2><pre class='src'>/-- 第 0 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 1 那一行的前一帧；路 6 步（seq 1..6）。 -/
+def S0_L0_start : World := Replay.startAt 1
+def S0_L0_play : List (Act × Seen) := Replay.playFrom 1 6
+
+#eval match firstSplit (step (Replay.levelLayout 0)) S0_L0_start S0_L0_play 0 with
+  | none   =&gt; &quot;S0_L0  一处都没分家（共 &quot; ++ toString S0_L0_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;S0_L0  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 1 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 8 那一行的前一帧；路 8 步（seq 8..15）。 -/
+def S0_L1_start : World := Replay.startAt 8
+def S0_L1_play : List (Act × Seen) := Replay.playFrom 8 8
+
+
+/-- 第 2 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 17 那一行的前一帧；路 8 步（seq 17..24）。 -/
+def S0_L2_start : World := Replay.startAt 17
+def S0_L2_play : List (Act × Seen) := Replay.playFrom 17 8
+
+#eval match firstSplit (step (Replay.levelLayout 2)) S0_L2_start S0_L2_play 0 with
+  | none   =&gt; &quot;S0_L2  一处都没分家（共 &quot; ++ toString S0_L2_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;S0_L2  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 3 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 26 那一行的前一帧；路 21 步（seq 26..46）。 -/
+def S0_L3_start : World := Replay.startAt 26
+def S0_L3_play : List (Act × Seen) := Replay.playFrom 26 21
+
+#eval match firstSplit (step (Replay.levelLayout 3)) S0_L3_start S0_L3_play 0 with
+  | none   =&gt; &quot;S0_L3  一处都没分家（共 &quot; ++ toString S0_L3_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;S0_L3  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 4 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 48 那一行的前一帧；路 15 步（seq 48..62）。 -/
+def S0_L4_start : World := Replay.startAt 48
+def S0_L4_play : List (Act × Seen) := Replay.playFrom 48 15
+
+#eval match firstSplit (step (Replay.levelLayout 4)) S0_L4_start S0_L4_play 0 with
+  | none   =&gt; &quot;S0_L4  一处都没分家（共 &quot; ++ toString S0_L4_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;S0_L4  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 5 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 64 那一行的前一帧；路 24 步（seq 64..87）。 -/
+def S0_L5_start : World := Replay.startAt 64
+def S0_L5_play : List (Act × Seen) := Replay.playFrom 64 24
+
+#eval match firstSplit (step (Replay.levelLayout 5)) S0_L5_start S0_L5_play 0 with
+  | none   =&gt; &quot;S0_L5  一处都没分家（共 &quot; ++ toString S0_L5_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;S0_L5  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 6 关（成绩单不认证的那一段，只多核一遍）：开局取 seq 89 那一行的前一帧；路 77 步（seq 89..165）。 -/
+def S0_L6_start : World := Replay.startAt 89
+def S0_L6_play : List (Act × Seen) := Replay.playFrom 89 77
+
+#eval match firstSplit (step (Replay.levelLayout 6)) S0_L6_start S0_L6_play 0 with
+  | none   =&gt; &quot;S0_L6  一处都没分家（共 &quot; ++ toString S0_L6_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;S0_L6  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 0 关（成绩单认证的那一段）：开局取 seq 168 那一行的前一帧；路 6 步（seq 168..173）。 -/
+def L0_start : World := Replay.startAt 168
+def L0_play : List (Act × Seen) := Replay.playFrom 168 6
+
+#eval match firstSplit (step (Replay.levelLayout 0)) L0_start L0_play 0 with
+  | none   =&gt; &quot;L0  一处都没分家（共 &quot; ++ toString L0_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;L0  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 0 关的动作串：路上那 6 步，再加过关那一下（seq 174）。 -/
+def L0_acts : List Act := Replay.actsFrom 168 7
+
+/-- 第 1 关（成绩单认证的那一段）：开局取 seq 175 那一行的前一帧；路 8 步（seq 175..182）。 -/
+def L1_start : World := Replay.startAt 175
+def L1_play : List (Act × Seen) := Replay.playFrom 175 8
+
+
+/-- 第 1 关的动作串：路上那 8 步，再加过关那一下（seq 183）。 -/
+def L1_acts : List Act := Replay.actsFrom 175 9
+
+
+/-- 第 2 关（成绩单认证的那一段）：开局取 seq 184 那一行的前一帧；路 8 步（seq 184..191）。 -/
+def L2_start : World := Replay.startAt 184
+def L2_play : List (Act × Seen) := Replay.playFrom 184 8
+
+#eval match firstSplit (step (Replay.levelLayout 2)) L2_start L2_play 0 with
+  | none   =&gt; &quot;L2  一处都没分家（共 &quot; ++ toString L2_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;L2  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 2 关的动作串：路上那 8 步，再加过关那一下（seq 192）。 -/
+def L2_acts : List Act := Replay.actsFrom 184 9
+
+/-- 第 3 关（成绩单认证的那一段）：开局取 seq 193 那一行的前一帧；路 12 步（seq 193..204）。 -/
+def L3_start : World := Replay.startAt 193
+def L3_play : List (Act × Seen) := Replay.playFrom 193 12
+
+#eval match firstSplit (step (Replay.levelLayout 3)) L3_start L3_play 0 with
+  | none   =&gt; &quot;L3  一处都没分家（共 &quot; ++ toString L3_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;L3  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 3 关的动作串：路上那 12 步，再加过关那一下（seq 205）。 -/
+def L3_acts : List Act := Replay.actsFrom 193 13
+
+/-- 第 4 关（成绩单认证的那一段）：开局取 seq 206 那一行的前一帧；路 15 步（seq 206..220）。 -/
+def L4_start : World := Replay.startAt 206
+def L4_play : List (Act × Seen) := Replay.playFrom 206 15
+
+#eval match firstSplit (step (Replay.levelLayout 4)) L4_start L4_play 0 with
+  | none   =&gt; &quot;L4  一处都没分家（共 &quot; ++ toString L4_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;L4  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 4 关的动作串：路上那 15 步，再加过关那一下（seq 221）。 -/
+def L4_acts : List Act := Replay.actsFrom 206 16
+
+/-- 第 5 关（成绩单认证的那一段）：开局取 seq 222 那一行的前一帧；路 19 步（seq 222..240）。 -/
+def L5_start : World := Replay.startAt 222
+def L5_play : List (Act × Seen) := Replay.playFrom 222 19
+
+#eval match firstSplit (step (Replay.levelLayout 5)) L5_start L5_play 0 with
+  | none   =&gt; &quot;L5  一处都没分家（共 &quot; ++ toString L5_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;L5  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 5 关的动作串：路上那 19 步，再加过关那一下（seq 241）。 -/
+def L5_acts : List Act := Replay.actsFrom 222 20
+
+/-- 第 6 关（成绩单认证的那一段）：开局取 seq 242 那一行的前一帧；路 50 步（seq 242..291）。 -/
+def L6_start : World := Replay.startAt 242
+def L6_play : List (Act × Seen) := Replay.playFrom 242 50
+
+#eval match firstSplit (step (Replay.levelLayout 6)) L6_start L6_play 0 with
+  | none   =&gt; &quot;L6  一处都没分家（共 &quot; ++ toString L6_play.length ++ &quot; 步）&quot;
+  | some i =&gt; &quot;L6  第 &quot; ++ toString i ++ &quot; 步分家&quot;
+
+/-- 第 6 关的动作串：路上那 50 步，再加过关那一下（seq 292）。 -/
+def L6_acts : List Act := Replay.actsFrom 242 51
+
+end Levels
+end Game
+
+/-- 第 0 关（成绩单不认证的那一段，只多核一遍）：这条路一共 6 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L0_trace :
+    S0_L0_play.length = 6 ∧
+    traceOk (step (Replay.levelLayout 0)) S0_L0_start S0_L0_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L0_trace
+
+/-- 第 1 关（成绩单不认证的那一段，只多核一遍）：这条路一共 8 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L1_trace :
+    S0_L1_play.length = 8 ∧
+    traceOk (step (Replay.levelLayout 1)) S0_L1_start S0_L1_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L1_trace
+
+
+/-- 第 2 关（成绩单不认证的那一段，只多核一遍）：这条路一共 8 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L2_trace :
+    S0_L2_play.length = 8 ∧
+    traceOk (step (Replay.levelLayout 2)) S0_L2_start S0_L2_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L2_trace
+
+/-- 第 3 关（成绩单不认证的那一段，只多核一遍）：这条路一共 21 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L3_trace :
+    S0_L3_play.length = 21 ∧
+    traceOk (step (Replay.levelLayout 3)) S0_L3_start S0_L3_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L3_trace
+
+/-- 第 4 关（成绩单不认证的那一段，只多核一遍）：这条路一共 15 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L4_trace :
+    S0_L4_play.length = 15 ∧
+    traceOk (step (Replay.levelLayout 4)) S0_L4_start S0_L4_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L4_trace
+
+/-- 第 5 关（成绩单不认证的那一段，只多核一遍）：这条路一共 24 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L5_trace :
+    S0_L5_play.length = 24 ∧
+    traceOk (step (Replay.levelLayout 5)) S0_L5_start S0_L5_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L5_trace
+
+/-- 第 6 关（成绩单不认证的那一段，只多核一遍）：这条路一共 77 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.S0_L6_trace :
+    S0_L6_play.length = 77 ∧
+    traceOk (step (Replay.levelLayout 6)) S0_L6_start S0_L6_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.S0_L6_trace
+
+/-- 第 0 关（成绩单认证的那一段）：这条路一共 6 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.L0_trace :
+    L0_play.length = 6 ∧
+    traceOk (step (Replay.levelLayout 0)) L0_start L0_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.L0_trace
+
+/-- **第 0 关走得通。** 见证是成绩单认证那一段的真实走法（7 下，最后一下 seq 174 过关）；不经过 RESET。 -/
+theorem Game.Levels.L0_winnable :
+    ∃ as : List Act, everWon (step (Replay.levelLayout 0)) L0_start as = true :=
+  ⟨L0_acts, by decide⟩
+
+#print axioms Game.Levels.L0_winnable
+
+/-- 第 1 关（成绩单认证的那一段）：这条路一共 8 步——**空表撑不起来**；模型沿着它一步不差。
+    只有开局那一帧是观测给的，后面全是 step 自己算的。 -/
+theorem Game.Levels.L1_trace :
+    L1_play.length = 8 ∧
+    traceOk (step (Replay.levelLayout 1)) L1_start L1_play = true :=
+  ⟨by decide, by decide⟩
+
+#print axioms Game.Levels.L1_trace
+
+
+/-- **第 1 关走得通。** 见证是成绩单认证那一段的真实走法（9 下，最后一下 seq 183 过关）；不经过 RESET。 -/
+theorem Game.Levels.L1_winnable :
+    ∃ as : List Act, everWon (step (Replay.levelLayout 1)) L1_start as = true :=
+  ⟨L1_acts, by decide⟩
+
+#print axioms Game.Levels.L1_winnable
+</pre></div><div class="card "><h2>这一关的观测（从 Obs/Replay.lean 切出来的这一段）</h2><details><summary>18 行</summary><pre class='src'>  ⟨8, 0, 1, 1, (some ⟨61, ⟨3, 4, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 39 33), (.seen ⟨60, ⟨3, 4, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨9, 0, 1, 1, (some ⟨60, ⟨3, 4, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 44 33), (.seen ⟨59, ⟨3, 4, [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨10, 0, 1, 1, (some ⟨59, ⟨3, 4, [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 49 33), (.seen ⟨58, ⟨3, 4, [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨11, 0, 1, 1, (some ⟨58, ⟨3, 4, [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 54 33), (.seen ⟨57, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨12, 0, 1, 1, (some ⟨57, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 39 48), (.seen ⟨56, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨13, 0, 1, 1, (some ⟨56, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 44 48), (.seen ⟨55, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨14, 0, 1, 1, (some ⟨55, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 49 48), (.seen ⟨54, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨15, 0, 1, 1, (some ⟨54, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 54 48), (.seen ⟨53, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨16, 0, 1, 1, (some ⟨53, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 46 58), .won⟩,
+  ⟨175, 1, 1, 1, (some ⟨61, ⟨3, 4, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 39 33), (.seen ⟨60, ⟨3, 4, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨176, 1, 1, 1, (some ⟨60, ⟨3, 4, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 44 33), (.seen ⟨59, ⟨3, 4, [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨177, 1, 1, 1, (some ⟨59, ⟨3, 4, [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 49 33), (.seen ⟨58, ⟨3, 4, [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨178, 1, 1, 1, (some ⟨58, ⟨3, 4, [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 54 33), (.seen ⟨57, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨179, 1, 1, 1, (some ⟨57, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 39 48), (.seen ⟨56, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨180, 1, 1, 1, (some ⟨56, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 44 48), (.seen ⟨55, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨181, 1, 1, 1, (some ⟨55, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 49 48), (.seen ⟨54, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨182, 1, 1, 1, (some ⟨54, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 54 48), (.seen ⟨53, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨183, 1, 1, 1, (some ⟨53, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 46 58), .won⟩,</pre></details></div>
+</div>
+<script>window.PAGE = {};</script>
+<script>
+// 只画、只翻页。**这里没有一行世界逻辑**：每一帧的像素、哪几格变了、每条规则判了什么、
+// 世界字段读出来是多少——全是 web/export.py 在 Python 那边算好的，这一份只摆出来。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+// ARC-AGI-3 的 16 色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出，
+// pages.py 放进要画帧的那几页的 PAGE.palette（下标 = 色号）。这里不抄。
+const PALETTE = (window.PAGE && window.PAGE.palette) || [];
+const PX = 4;
+
+function paintFrame(cv, hex, marks) {
+  cv.width = 64 * PX; cv.height = 64 * PX;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 4096; i++) {
+    g.fillStyle = PALETTE[parseInt(hex[i], 16)];
+    g.fillRect((i % 64) * PX, Math.floor(i / 64) * PX, PX, PX);
+  }
+  if (marks) {
+    g.strokeStyle = "#ff2d55"; g.lineWidth = 1;
+    for (const rc of marks) g.strokeRect(rc[1] * PX + .5, rc[0] * PX + .5, PX - 1, PX - 1);
+  }
+}
+
+function paintAll() {
+  const P = window.PAGE || {};
+  document.querySelectorAll("canvas[data-frame]").forEach((cv) => {
+    const id = cv.getAttribute("data-frame");
+    const mk = cv.getAttribute("data-marks");
+    paintFrame(cv, P.frames[id], mk ? P.marks[mk] : null);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function replayInit() {
+  const P = window.PAGE;
+  if (!P || !P.rows) return;
+  const box = document.getElementById("replay");
+  const slider = document.getElementById("pos");
+  const label = document.getElementById("where");
+  slider.max = P.rows.length - 1;
+  function show(i) {
+    const s = P.rows[i];
+    slider.value = i;
+    label.textContent = `第 ${i + 1} / ${P.rows.length} 行 · seq ${s.seq} · 段 ${s.seg} · 第 ${s.lvl} 关（本关第 ${s.k} 下）`;
+    paintFrame(document.getElementById("cvA"), P.frames[s.prev], null);
+    paintFrame(document.getElementById("cvB"), P.frames[s.next], s.changed);
+    const chips = Object.entries(s.verdicts).map(([n, v]) =>
+      `<tr><td>${esc(n)}</td><td><span class="chip ${v}">${v}</span></td></tr>`).join("");
+    const wv = (w) => w ? `顶栏 ${w.counter}；件 ${esc(w.piece)}；面板程序 ${esc(w.program)}；看得见的花格 ${esc(w.pads)}` : "（读不成世界：终局画面）";
+    document.getElementById("info").innerHTML =
+      `<dl class="kv"><dt>动作</dt><dd class="mono">${esc(s.action)}（${esc(s.kind)}${s.result ? "，交卷结果 " + esc(s.result) : ""}）</dd>` +
+      `<dt>上游</dt><dd>第 ${s.lvl} 关 → 第 ${s.lvl_next} 关，${esc(s.state)}</dd>` +
+      `<dt>变了几格</dt><dd>${s.n_changed}（右图红框，导出侧比好的）</dd>` +
+      `<dt>前一帧</dt><dd>${wv(s.w)}</dd><dt>后一帧</dt><dd>${wv(s.nw)}</dd>` +
+      `<dt>标记</dt><dd>${esc(s.mark)}</dd></dl>` +
+      `<table style="margin-top:10px"><tr><th>规则</th><th>判决</th></tr>${chips}</table>`;
+  }
+  slider.addEventListener("input", () => show(+slider.value));
+  document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+  document.getElementById("nextBtn").onclick = () => show(Math.min(P.rows.length - 1, +slider.value + 1));
+  const jump = document.getElementById("jump");
+  if (jump) jump.onchange = () => show(+jump.value);
+  show(0);
+  box.style.display = "block";
+}
+
+function navSelect() {
+  document.querySelectorAll("select[data-nav]").forEach((s) => {
+    s.onchange = () => { if (s.value) window.location.href = s.value; };
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => { paintAll(); replayInit(); navSelect(); });
+
+</script>
+</body>
+</html>

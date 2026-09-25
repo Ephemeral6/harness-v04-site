@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · notmodel/budget_curve</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · notmodel/budget_curve</h1><div class="sub">rule/notmodel/budget_curve.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>读数</h2><table>
+<tr><th>开口（行 / 去重）</th><td>2115 / 1433</td></tr>
+<tr><th>判对</th><td>2115 / 1433</td></tr><tr><th>判错</th><td>0 / 0</td></tr>
+<tr><th>读不出</th><td>0 / 0</td></tr><tr><th>沉默</th><td>38</td></tr>
+<tr><th>打红它的突变体</th><td>M11_budget_floor</td></tr>
+<tr><th>独家拒掉的造错转移（装置）</th><td>0</td></tr></table>
+<details><summary>沉默 / 读不出的理由</summary><table><tr><td class='num'>38</td><td>N: 换关 / 终局 / RESET → hud/tick</td></tr></table></details>
+<details><summary>判错的那几条</summary><ul><li>无</li></ul></details></div>
+<div class="card"><h2>它说什么</h2><p>关内第 n 步走完时 spent = ⌊64·n/B + 1/2⌋，B 是这一关的预算常数。</p><pre>HUD「已花掉」= round(64·n / B)：n 是这一关已经走了几步，B 是这一关的预算（每关一个常数）。</pre>
+<p class="note">论域：换关 / 终局 / RESET → hud/tick；ctx 里没有 n 或 B → 不管</p></div>
+<div class="card"><h2>它明确不主张什么</h2><ul><li>B 是**拟合**的：run_rules.py 在每关所有段上找使全部读数成立的整数 B（找不到就是 None，这条就闭嘴）。所以「判错 0」的含义是「每关存在这样一个 B」，而不是「B 是量出来的」</li><li>预算花光（n = B）之后会怎样：语料里 0 次</li></ul></div>
+<div class="card"><h2>改版史</h2><ul><li>v1 册子 spent_resets_on_levelup 的 NOTE 说扣费规则「只依赖本关第几步，assert_ 拿不到——这是接口的墙」。这里把本关步数放进 ctx（历史，不是帧），墙就不在了；代价是这条从此不进模型</li><li>拟合读数：B = 100 / 100 / 200 / 200 / 250 / 200 / 300 / 400（第 0–7 关），三种取整（floor / ceil / round）里只有 round 在每关都找得到 B（runs/_wb-re86/p_hud2.py）</li></ul>
+<p class="note">接手起点册子的：—</p></div>
+<div class="card"><h2>它的 Lean</h2><p><b>不进模型</b>：要本关步数 n 与拟合出来的每关预算 B，帧上都没有</p><p>论域 2115 条 · 被驳倒 0 次</p></div>
+</div></body></html>

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sp80 · 形式化</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  /* 这一局：格盘上每一格按帧里的色号上色，色号 → 颜色只有一个来源——export.py 从官方
+     arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，site.js 读它。这里只留叠在格盘上的标记色。 */
+  --c-water: rgba(90,170,255,.55);  --c-fed: #ffe27a;
+  --c-changed: #ff5d73;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* ── 本局补的几样：缺口框、预算条、读数小表 ─────────────────────────────── */
+.gaps { background: #2a1f14; border: 1px solid #6b4a22; border-radius: 10px; padding: 12px 16px;
+        margin-bottom: 18px; font-size: 13px; }
+.gaps h2 { margin: 0 0 6px; font-size: 13px; color: #ffb35c; text-transform: none; letter-spacing: 0; }
+.gaps ul { margin: 4px 0 0; padding-left: 18px; }
+.gaps li { margin: 3px 0; }
+.hudbar { height: 6px; background: #2a2f3a; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.hudbar i { display: block; height: 100%; background: #6fb3c8; }
+.big { font-size: 22px; font-weight: 600; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #232834;
+        font-size: 11.5px; color: var(--dim); margin-right: 4px; }
+.pill.def { color: #7ab8ff; } .pill.derived { color: #c08cdc; } .pill.outside { color: #d79a5b; }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 4px 14px;
+            font-size: 12.5px; }
+.verdicts div { display: flex; gap: 8px; align-items: baseline; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>sp80 · 形式化</h1><div class="sub">结论表 → 它怎么来的 → 身份表 → 凭什么信</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+<div class="gaps"><h2>缺口（写在最上面，不藏）</h2><ul><li>arrow_blocked_is_still：|scope| = 0 —— 没人做过那个动作：本批语料是三段几乎逐字相同的通关重走，没有一步方向键撞上禁区。所以禁区在这批语料上只被单边检验过——「它没有把真挪得动的一步误判成挪不动」（那种误判会让本条开口、而盘面变了，当场判错）；「它挡住的那些真挡得住」这一半，本批语料说不了。</li><li>fifth_fire_in_a_level_kills：|scope| = 0 —— 没人做过那个动作：本批语料里没有哪一关按到过第 5 发（每关至多 3 发）</li><li>不进模型的 fifth_fire_in_a_level_kills 论域是 0 —— 没人做过那个动作：本批语料里没有哪一关按到过第 5 发（每关至多 3 发）</li><li>起点册子曾经只剩字节码（.pyc），这一份当时按字节码读、按字节码跑；源码恢复后已用源码核过：37 个文件的字节码逐一相同，按源码重跑的新旧对照与 EVIDENCE 读数一致。</li><li>件会互相压住，被压住的那一截帧上读不出来。规则层（Python）在这些步上有两条规则不开口；Lean 的逐条那一层有 12 步记「说不出话」；只有带着状态从开局走的每关那一层替它们说话。</li><li>没过关的一发之后选中谁，模型说不出来（交棒的触发条件没读出来）；那一支在 Lean 里是「说不出话」。所以任何「赢不了」都只能说成「不经过说不出话的那一支就赢不了」——本局六关全部走得通，没有一条「赢不了」的定理。</li></ul></div>
+<div class="card"><h2>结论：每一关一条定理</h2>
+<table><tr><th>关</th><th>结论</th><th>逐帧核过的步数（+ 过关那一发）</th><th>见证段</th><th>定理</th></tr><tr><td>第 0 关</td><td class="ok">走得通</td><td class="num">3 + 1</td><td>seq 234 起</td><td><a href="Proof-Levels-L0.html">L0_trace · L0_winnable · L0_len</a></td></tr><tr><td>第 1 关</td><td class="ok">走得通</td><td class="num">7 + 1</td><td>seq 238 起</td><td><a href="Proof-Levels-L1.html">L1_trace · L1_winnable · L1_len</a></td></tr><tr><td>第 2 关</td><td class="ok">走得通</td><td class="num">10 + 1</td><td>seq 246 起</td><td><a href="Proof-Levels-L2.html">L2_trace · L2_winnable · L2_len</a></td></tr><tr><td>第 3 关</td><td class="ok">走得通</td><td class="num">38 + 1</td><td>seq 257 起</td><td><a href="Proof-Levels-L3.html">L3_trace · L3_winnable · L3_len</a></td></tr><tr><td>第 4 关</td><td class="ok">走得通</td><td class="num">37 + 1</td><td>seq 296 起</td><td><a href="Proof-Levels-L4.html">L4_trace · L4_winnable · L4_len</a></td></tr><tr><td>第 5 关</td><td class="ok">走得通</td><td class="num">37 + 1</td><td>seq 334 起</td><td><a href="Proof-Levels-L5.html">L5_trace · L5_winnable · L5_len</a></td></tr></table>
+<p class="note">「走得通」的见证是成绩单认证的那一段真实走法；只有开局那一帧是观测给的，后面每一帧都是模型自己算出来、再和帧比的。
+没有一关是「走不通」——所以 Unsolvable 骨架在这一局没被用上；它照样在 <a href="Proof-Reachable.html">Proof/Reachable.lean</a> 里。
+<b>削弱写在明处</b>：模型在 RESET、以及一发没过关的水之后说不出话；任何「赢不了」都只能说成「不经过那一支就赢不了」。</p>
+<p class="note">明写的假设「RESET 把局面放回开局」：认证段开头那一步 RESET 之后的第 0 关，从另一段的第 0 关开局起算逐帧对上
+（L0_after_reset_trace：有）。<b>没红不构成证明</b>——那只是这条假设在这批语料上唯一一次被驳倒的机会。</p>
+</div>
+<div class="card"><h2>逐条：模型面对每一条真实转移</h2>
+<p>共 371 步：对上 <b class="ok">353</b>，判错 <b>0</b>，说不出话 18
+（{&quot;occluded&quot;: 12, &quot;fire-miss&quot;: 4, &quot;reset&quot;: 2}）。判错那个数由一条走内核的定理（corpus_no_false）钉住。</p>
+<p class="note">两份现役逐条对账：水流（Lean 的 fireOutcome 与 Python 的 derive/flow.py）20 发，对不上 0；
+规则层与模型的判决配对：{&quot;na / 有 TRUE&quot;: 18, &quot;yes / 有 TRUE&quot;: 353}。</p></div>
+<div class="card"><h2>每条规则的身份（恰好一种）</h2><p class="note">{&quot;def&quot;: 6, &quot;derived&quot;: 2, &quot;outside&quot;: 5}</p>
+<table><tr><th>规则</th><th>身份</th><th>在哪</th><th>不进模型的两个数</th></tr><tr><td><a href="../rules/arrow_blocked_is_still.html" class="mono">arrow_blocked_is_still</a></td><td><span class="pill def">def</span></td><td class="mono">Rule/Move/ArrowBlocked.lean</td><td></td></tr><tr><td><a href="../rules/arrow_shifts_selected.html" class="mono">arrow_shifts_selected</a></td><td><span class="pill def">def</span></td><td class="mono">Rule/Move/ArrowShifts.lean</td><td></td></tr><tr><td><a href="../rules/click_elsewhere_is_still.html" class="mono">click_elsewhere_is_still</a></td><td><span class="pill derived">derived</span></td><td class="mono">Derived/ClickMissStill.lean</td><td></td></tr><tr><td><a href="../rules/click_selects_hit_piece.html" class="mono">click_selects_hit_piece</a></td><td><span class="pill def">def</span></td><td class="mono">Rule/Move/ClickSelects.lean</td><td></td></tr><tr><td><a href="../rules/deselected_rest_color_by_shape.html" class="mono">deselected_rest_color_by_shape</a></td><td><span class="pill def">def</span></td><td class="mono">Rule/Respond/RestColor.lean</td><td></td></tr><tr><td><a href="../rules/fire_miss_moves_nothing.html" class="mono">fire_miss_moves_nothing</a></td><td><span class="pill outside">outside</span></td><td class="mono">没过关的一发之后选中谁，模型说不出（交棒的触发条件没读出来），所以 Lean 的 step 在这一支返回「说不出话」；这一条说的「件不挪」因此没有进模型。</td><td>论域 4，被驳倒 0</td></tr><tr><td><a href="../rules/hud_ticks_every_action.html" class="mono">hud_ticks_every_action</a></td><td><span class="pill def">def</span></td><td class="mono">Rule/Respond/HudTicks.lean</td><td></td></tr><tr><td><a href="../rules/vacated_cells_show_background.html" class="mono">vacated_cells_show_background</a></td><td><span class="pill derived">derived</span></td><td class="mono">Derived/VacatedShowsEmpty.lean</td><td></td></tr><tr><td><a href="../rules/fire_wins_iff_all_mouths_fed.html" class="mono">fire_wins_iff_all_mouths_fed</a></td><td><span class="pill def">def</span></td><td class="mono">Rule/Win/FireWins.lean</td><td></td></tr><tr><td><a href="../rules/fifth_fire_in_a_level_kills.html" class="mono">fifth_fire_in_a_level_kills</a></td><td><span class="pill outside">outside</span></td><td class="mono">「这是本关第几发」是历史，帧上一个像素都看不见；进模型就是给世界加一位读不出来的计数器。</td><td>论域 0，被驳倒 0</td></tr><tr><td><a href="../rules/handoff_goes_to_nearest.html" class="mono">handoff_goes_to_nearest</a></td><td><span class="pill outside">outside</span></td><td class="mono">交棒的**触发条件**没读出来，模型说不出没过关那一发之后选中谁；这一条只说「交给谁」，单独进模型也没有落点。</td><td>论域 1，被驳倒 0</td></tr><tr><td><a href="../rules/levelup_refills_budget.html" class="mono">levelup_refills_budget</a></td><td><span class="pill outside">outside</span></td><td class="mono">Lean 的 step 在过关那一支返回「赢了」、不带下一个世界（下一关的开局模型说不出来），所以「下一帧预算满格」在模型里没有落点。</td><td>论域 15，被驳倒 0</td></tr><tr><td><a href="../rules/reset_returns_to_opening.html" class="mono">reset_returns_to_opening</a></td><td><span class="pill outside">outside</span></td><td class="mono">「开局长什么样」是历史，不是当前状态的函数；硬塞进世界就是加一位帧上读不出来的信息。写成明处的假设：Lean 里每关的逐帧核对从本关开局起算，假设错了第一帧就红。</td><td>论域 2，被驳倒 0</td></tr></table></div>
+<div class="card"><h2>凭什么信上面这些</h2>
+<p>定理 25 条，跟了 #print axioms 的 25 条，公理不在白名单里的 0 条。
+破坏测试 Broken.lean：退出码 1，错误落在第 [17] 行，标记在第 17 行。
+装置的 lean_check：齐了。</p>
+<details><summary>把 Lean 模型故意改坏（lean2/mutate.py，每个突变体另拷一份整个 lean2 编译）</summary>
+<table><tr><th>突变体</th><th>期望</th><th>结果</th><th>红在哪</th><th>没红的入口</th></tr><tr><td>L0 种子：预算条不按比例（64-k）</td><td>red</td><td class="ok">红</td><td class="mono">Obs/Corpus.lean</td><td></td></tr><tr><td>L1 放下的件一律画直件色</td><td>red</td><td class="ok">红</td><td class="mono">Obs/Corpus.lean</td><td></td></tr><tr><td>L2 禁区去掉杯的一圈</td><td>red?</td><td class="">没红</td><td class="mono"></td><td>入口一（这批语料里恰好无所谓）</td></tr><tr><td>L3 允许落空</td><td>red?</td><td class="">没红</td><td class="mono"></td><td>入口一（这批语料里恰好无所谓）</td></tr><tr><td>L4 点击不扣预算</td><td>red</td><td class="ok">红</td><td class="mono">Obs/Corpus.lean</td><td></td></tr><tr><td>L5 选中件不画在最上面</td><td>red</td><td class="ok">红</td><td class="mono">Obs/Corpus.lean</td><td></td></tr><tr><td>L6 记号不出水</td><td>red</td><td class="ok">红</td><td class="mono">Obs/Corpus.lean</td><td></td></tr><tr><td>L7 挪选中件时别的件跟着挪</td><td>red</td><td class="ok">红</td><td class="mono">Obs/Corpus.lean</td><td></td></tr></table></details>
+<details><summary>把 Python 规则层故意改坏（run_rules.py --reverse，另起进程）</summary>
+<table><tr><th>突变体</th><th>期望</th><th>结果</th><th>没红的入口</th></tr><tr><td>M0 种子：预算规则取反（必红）</td><td>red</td><td>红</td><td></td></tr><tr><td>M1 禁区去掉杯的一圈（只剩杯格本身）</td><td>red?</td><td>没红</td><td>入口一（改的那一位在这批语料里恰好无所谓）</td></tr><tr><td>M2 禁区去掉球的横带</td><td>red?</td><td>没红</td><td>入口一（改的那一位在这批语料里恰好无所谓）</td></tr><tr><td>M3 点击按件格命中（不按包围盒）</td><td>red?</td><td>没红</td><td>入口一（改的那一位在这批语料里恰好无所谓）</td></tr><tr><td>M4 沿面流到件的端头不往下漏</td><td>red</td><td>红</td><td></td></tr><tr><td>M5 落到件上一律两边分（不出射流）</td><td>red?</td><td>红</td><td></td></tr><tr><td>M6 件上的记号不出水</td><td>red?</td><td>红</td><td></td></tr><tr><td>M7 第 1 关预算 B 写成 30</td><td>red</td><td>红</td><td></td></tr><tr><td>M8 点击不扣预算（起点册子的说法）</td><td>red</td><td>红</td><td></td></tr><tr><td>M9 选中件画在最底下</td><td>red</td><td>红</td><td></td></tr><tr><td>M10 放下的件颜色反过来（直件画 15）</td><td>red</td><td>红</td><td></td></tr><tr><td>M11 沿面流汇合也算交叉（起点册子的口径）</td><td>mute</td><td>变哑（论域变了、判错没多）</td><td></td></tr><tr><td>M12 杯口要四面贴杯</td><td>red?</td><td>红</td><td></td></tr><tr><td>M13 允许落空（只看杯口全喂到）</td><td>red?</td><td>没红</td><td>入口一（改的那一位在这批语料里恰好无所谓）</td></tr><tr><td>M14 出界也算落空</td><td>red</td><td>红</td><td></td></tr></table></details>
+</div>
+<div class="card"><h2>这 26 份 Lean（分组读目录）</h2><div class="rulelist"><div class="grouphead">Derived</div><a class="row" href="Derived-ClickMissStill.html"><span class="nm">Derived/ClickMissStill.lean</span><span class="cl">ClickMissStill —— **推论**：点击没点中任何件，局面不变（对应 `rule/一步怎么走/click_elsewhere_is_still.py`）</span><span class="pill">推论（rule/一步怎么走/click_elsewhere_is_still.py） · 定理 1 · 0.6s</span></a><a class="row" href="Derived-VacatedShowsEmpty.html"><span class="nm">Derived/VacatedShowsEmpty.lean</span><span class="cl">VacatedShowsEmpty —— **推论**：没有任何件压着、也不是版面的格，画出来就是空地 12</span><span class="pill">推论（rule/世界怎么回应/vacated_cells_show_background.py） · 定理 1 · 0.6s</span></a><div class="grouphead">Obj</div><a class="row" href="Obj-Board-Board.html"><span class="nm">Obj/Board/Board.lean</span><span class="cl">Board —— 版面：一关之内一格都不会动的东西（对应 `objects/board/board.py`）</span><span class="pill">对象（objects/board/board.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Board-Grid.html"><span class="nm">Obj/Board/Grid.lean</span><span class="cl">Grid —— 格盘几何（对应 `objects/board/grid.py`）</span><span class="pill">对象（objects/board/grid.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Board-Source.html"><span class="nm">Obj/Board/Source.lean</span><span class="cl">Source —— 发射口：一颗球 + 它背后那一格发射器（对应 `objects/board/source.py`）</span><span class="pill">对象（objects/board/source.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Composite-Flow.html"><span class="nm">Obj/Composite/Flow.lean</span><span class="cl">Flow —— 一发水怎么走（对应 `derive/flow.py`，那一份的文件头是这一份的讲解）</span><span class="pill">复合（derive/flow.py） · 定理 0 · 0.7s</span></a><a class="row" href="Obj-Composite-Forbidden.html"><span class="nm">Obj/Composite/Forbidden.lean</span><span class="cl">Forbidden —— 件的格子不许落进去的那些格（对应 `derive/forbidden.py`）</span><span class="pill">复合（derive/forbidden.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Composite-Hit.html"><span class="nm">Obj/Composite/Hit.lean</span><span class="cl">Hit —— 一次点击点中的是哪一件（对应 `derive/hit.py`）</span><span class="pill">复合（derive/hit.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Composite-Ladder.html"><span class="nm">Obj/Composite/Ladder.lean</span><span class="cl">Ladder —— 预算条：本关走了 k 步、本关预算 B 时还亮几像素（对应 `derive/ladder.py`）</span><span class="pill">复合（derive/ladder.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Composite-Mouths.html"><span class="nm">Obj/Composite/Mouths.lean</span><span class="cl">Mouths —— 杯口：三面（或四面）贴着杯格的空格（对应 `derive/mouths.py`）</span><span class="pill">复合（derive/mouths.py） · 定理 0 · 0.5s</span></a><a class="row" href="Obj-Composite-Render.html"><span class="nm">Obj/Composite/Render.lean</span><span class="cl">Render —— 一个局面画出来每一格是什么颜色（对应 `derive/render.py`）</span><span class="pill">复合（derive/render.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-Pieces-Piece.html"><span class="nm">Obj/Pieces/Piece.lean</span><span class="cl">Piece —— 件（对应 `objects/pieces/piece.py`）</span><span class="pill">对象（objects/pieces/piece.py） · 定理 0 · 0.6s</span></a><a class="row" href="Obj-World.html"><span class="nm">Obj/World.lean</span><span class="cl">World —— 一个局面的全部**会变**的状态（对应 `objects/world.py`）</span><span class="pill">对象（objects/world.py） · 定理 0 · 0.6s</span></a><div class="grouphead">Obs</div><a class="row" href="Obs-Check.html"><span class="nm">Obs/Check.lean</span><span class="cl">Check —— **判据层**：两把尺子，0 条定理（尺子不自证）</span><span class="pill">观测·判据（两把尺子） · 定理 0 · 0.6s</span></a><a class="row" href="Obs-Corpus.html"><span class="nm">Obs/Corpus.lean</span><span class="cl">Corpus —— **逐条**：模型面对每一条真实转移（从 `Obs/Replay.lean` 切，不另存语料）</span><span class="pill">观测·逐条（从 Replay 切） · 定理 2 · 51.8s</span></a><a class="row" href="Obs-Replay.html"><span class="nm">Obs/Replay.lean</span><span class="cl">Replay —— 整条轨迹，**只存这一份**（`lean2/export_replay.py` 生成，不要手改）</span><span class="pill">观测·轨迹（只存这一份，生成） · 定理 0 · 4.8s</span></a><div class="grouphead">Proof</div><a class="row" href="Proof-Levels.html"><span class="nm">Proof/Levels.lean</span><span class="cl">Levels —— **每一关一条定理**（`lean2/export_levels.py` 生成，不要手改；讲解在生成器文件头）</span><span class="pill">证明·每一关一条（生成） · 定理 19 · 16.6s</span></a><div class="subrows"><a class="sub-row" href="Proof-Levels-L0.html"><span class="cl">第 0 关</span></a></div><div class="subrows"><a class="sub-row" href="Proof-Levels-L1.html"><span class="cl">第 1 关</span></a></div><div class="subrows"><a class="sub-row" href="Proof-Levels-L2.html"><span class="cl">第 2 关</span></a></div><div class="subrows"><a class="sub-row" href="Proof-Levels-L3.html"><span class="cl">第 3 关</span></a></div><div class="subrows"><a class="sub-row" href="Proof-Levels-L4.html"><span class="cl">第 4 关</span></a></div><div class="subrows"><a class="sub-row" href="Proof-Levels-L5.html"><span class="cl">第 5 关</span></a></div><a class="row" href="Proof-Reachable.html"><span class="nm">Proof/Reachable.lean</span><span class="cl">Reachable —— 这个**局面**做不做得了</span><span class="pill">证明·骨架（Winnable / Unsolvable / 不可做的骨架） · 定理 2 · 0.6s</span></a><div class="grouphead">Rule</div><a class="row" href="Rule-Move-ArrowBlocked.html"><span class="nm">Rule/Move/ArrowBlocked.lean</span><span class="cl">ArrowBlocked —— 方向键挪不动时，整张盘不变（对应 `rule/一步怎么走/arrow_blocked_is_still.py`）</span><span class="pill">规则（rule/一步怎么走/arrow_blocked_is_still.py） · 定理 0 · 0.5s</span></a><a class="row" href="Rule-Move-ArrowShifts.html"><span class="nm">Rule/Move/ArrowShifts.lean</span><span class="cl">ArrowShifts —— 方向键挪得动时，选中件整体挪一格（对应 `rule/一步怎么走/arrow_shifts_selected.py`）</span><span class="pill">规则（rule/一步怎么走/arrow_shifts_selected.py） · 定理 0 · 0.6s</span></a><a class="row" href="Rule-Move-ClickSelects.html"><span class="nm">Rule/Move/ClickSelects.lean</span><span class="cl">ClickSelects —— 点中一件：它成为选中件、画到最上面；原选中件放下（对应 `rule/一步怎么走/click_selects_hit_piece.py`）</span><span class="pill">规则（rule/一步怎么走/click_selects_hit_piece.py） · 定理 0 · 0.6s</span></a><a class="row" href="Rule-Respond-HudTicks.html"><span class="nm">Rule/Respond/HudTicks.lean</span><span class="cl">HudTicks —— 每一个动作（点击也算）本关步数加一（对应 `rule/世界怎么回应/hud_ticks_every_action.py`）</span><span class="pill">规则（rule/世界怎么回应/hud_ticks_every_action.py） · 定理 0 · 0.6s</span></a><a class="row" href="Rule-Respond-RestColor.html"><span class="nm">Rule/Respond/RestColor.lean</span><span class="cl">RestColor —— 放下的件画成什么色由形状定（对应 `rule/世界怎么回应/deselected_rest_color_by_shape.py`）</span><span class="pill">规则（rule/世界怎么回应/deselected_rest_color_by_shape.py） · 定理 0 · 0.6s</span></a><a class="row" href="Rule-Win-FireWins.html"><span class="nm">Rule/Win/FireWins.lean</span><span class="cl">FireWins —— 一发水过关 ⟺ 水流模型说每个杯口都喂到、没有落空（对应 `rule/什么算赢什么算砸/fire_wins_iff_all_mouths_fed.py`）</span><span class="pill">规则（rule/什么算赢什么算砸/fire_wins_iff_all_mouths_fed.py） · 定理 0 · 0.6s</span></a><div class="grouphead">根</div><a class="row" href="Step.html"><span class="nm">Step.lean</span><span class="cl">Step —— 一步怎么走：**只做分发，0 条定理**</span><span class="pill">装配（只做分发） · 定理 0 · 0.6s</span></a><a class="row" href="Broken.html"><span class="nm">Broken.lean</span><span class="cl">Broken —— **这一份应当编不过**，而且只在标记那一行红</span><span class="pill">破坏测试（应当编不过） · 定理 0</span></a></div></div>
+
+</div>
+<script>window.DATA={"frames":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"steps":[],"home":{},"palette":["#ffffff","#cccccc","#999999","#666666","#333333","#000000","#e53aa3","#ff7bcc","#f93c31","#1e93ff","#88d8f1","#ffdc00","#ff851b","#921231","#4fcc30","#a356d6"]};</script><script>
+// 画盘与回放。**这里没有一行世界逻辑**：每一格的颜色、哪几格变了、水走过哪几格，
+// 都是 web/export.py 在 Python 那边算好导出来的；这一份只按导出的字母查颜色、画方块。
+// check_no_logic.py 会来这里搜对象层 / 复合层 / 规则层的函数名，搜到就算破。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  // 格盘上每一格的颜色：导出的是一个十六进制字母（帧里的色号）。色号 → 颜色只有一个来源：
+  // export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号），这里不抄。
+  const COLOR = Object.fromEntries(((D && D.palette) || []).map((c, i) => [i.toString(16), c]));
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  // 一张盘 → SVG。opts: {px, wet:[[r,c]], fed:[[r,c]], changed:[[r,c]]}
+  function boardSVG(fr, opts) {
+    opts = opts || {};
+    const px = opts.px || 14, R = fr.rows, C = fr.cols;
+    const out = [`<svg class="grid" width="${C * px}" height="${R * px + 10}" viewBox="0 0 ${C * px} ${R * px + 10}">`];
+    for (let i = 0; i < R * C; i++) {
+      const r = Math.floor(i / C), c = i % C;
+      out.push(`<rect x="${c * px}" y="${r * px}" width="${px - 1}" height="${px - 1}" fill="${COLOR[fr.cells[i]] || "#f0f"}"/>`);
+    }
+    for (const [r, c] of (opts.wet || [])) {
+      out.push(`<rect x="${c * px + px / 4}" y="${r * px + px / 4}" width="${px / 2}" height="${px / 2}" fill="var(--c-water)"/>`);
+    }
+    for (const [r, c] of (opts.fed || [])) {
+      out.push(`<rect x="${c * px + 1}" y="${r * px + 1}" width="${px - 3}" height="${px - 3}" fill="none" stroke="var(--c-fed)" stroke-width="2"/>`);
+    }
+    for (const [r, c] of (opts.changed || [])) {
+      out.push(`<rect x="${c * px}" y="${r * px}" width="${px - 1}" height="${px - 1}" fill="none" stroke="var(--c-changed)" stroke-width="1.5"/>`);
+    }
+    const w = Math.round(C * px * fr.hud / 64);
+    out.push(`<rect x="0" y="${R * px + 3}" width="${C * px}" height="5" fill="#2a2f3a"/>`);
+    out.push(`<rect x="0" y="${R * px + 3}" width="${w}" height="5" fill="#6fb3c8"/>`);
+    out.push("</svg>");
+    return out.join("");
+  }
+
+  function figure(fr, cap, opts) {
+    if (fr === null || fr === undefined) return `<figure class="board"><figcaption>${esc(cap)}</figcaption><div class="note">（这一帧读不成世界：终局画面）</div></figure>`;
+    return `<figure class="board"><figcaption>${esc(cap)}</figcaption>${boardSVG(D.frames[fr], opts)}</figure>`;
+  }
+
+  function stepBySeq(seq) { return D.steps.find((s) => s.seq === seq); }
+
+  // 首页：导出器挑好的几帧
+  function initHome() {
+    document.querySelectorAll("[data-pick]").forEach((el) => {
+      const p = D.home[el.dataset.pick];
+      if (!p) return;
+      el.innerHTML = figure(p.frame, "seq " + p.seq, { px: 16, wet: p.wet, fed: p.fed });
+      const cap = document.querySelector(`[data-cap="${el.dataset.pick}"]`);
+      if (cap) cap.textContent = p.cap;
+    });
+  }
+
+  // 规则 / 对象页：画一条见证转移（导出器给的 seq）
+  function initEvidence() {
+    document.querySelectorAll("[data-seq]").forEach((el) => {
+      const s = stepBySeq(Number(el.dataset.seq));
+      if (!s) { el.innerHTML = '<div class="note">这一条不在本批语料里</div>'; return; }
+      el.innerHTML = `<div class="boards">${figure(s.prev, "seq " + s.seq + " 之前", { px: 11 })}` +
+        `${figure(s.next, s.act + " 之后", { px: 11, changed: s.changed })}</div>`;
+    });
+  }
+
+  // 回放：一步一步看，每一步每条规则说了什么、Lean 的模型说了什么
+  function initReplay() {
+    const slider = $("slider"), label = $("label");
+    if (!slider) return;
+    slider.max = D.steps.length - 1;
+    function show(i) {
+      const s = D.steps[i];
+      label.textContent = `第 ${i + 1} / ${D.steps.length} 行 · seq ${s.seq} · 第 ${s.lv} 关 · ${s.act}`;
+      $("boards").innerHTML = figure(s.prev, "动作之前", { px: 15 }) +
+        figure(s.next, "动作之后（红框 = 这一步变了的格）", { px: 15, changed: s.changed });
+      const kind = { move: "同关一步", levelup: "过关", final: "最后一关过关", reset: "RESET（整局重开）" }[s.kind];
+      $("meta").innerHTML = `<span class="pill">${kind}</span><span class="pill">段 ${s.seg}${s.cert ? "（成绩单认证）" : "（未认证）"}</span>` +
+        `<span class="pill">Lean 模型：<span class="chip ${s.lean === "yes" ? "TRUE" : s.lean === "no" ? "FALSE" : "NA"}">${s.lean}</span></span>`;
+      const rows = Object.entries(s.rules).map(([n, v]) =>
+        `<div><span class="chip ${v === "TRUE" ? "TRUE" : v === "FALSE" ? "FALSE" : "NA"}">${v}</span><a href="rules/${n}.html" class="mono">${n}</a></div>`);
+      $("verdicts").innerHTML = rows.join("");
+    }
+    slider.addEventListener("input", () => show(Number(slider.value)));
+    $("prev").onclick = () => { slider.value = Math.max(0, Number(slider.value) - 1); show(Number(slider.value)); };
+    $("next").onclick = () => { slider.value = Math.min(D.steps.length - 1, Number(slider.value) + 1); show(Number(slider.value)); };
+    const h = Number((location.hash || "#0").slice(1)) || 0;
+    slider.value = h;
+    show(h);
+  }
+
+  window.Render = { boardSVG, figure };
+  document.addEventListener("DOMContentLoaded", () => { initHome(); initEvidence(); initReplay(); });
+})();
+
+</script>
+</body>
+</html>

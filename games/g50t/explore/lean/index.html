@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>形式化</title>
+<style>
+/* 只有尺寸与配色（从 ledger/templates/web/style.css 起手）。 */
+/* 按钮 / 门按世界色号上色：--btnN / --doorN 由 web/export.py 从官方 arc_agi.rendering.COLOR_MAP 生成（只有这一个来源） */
+/* 生成的文件，别手改：web/export.py 从 arc_agi.rendering.COLOR_MAP 按色号取色 */
+:root {
+  --btn8: #F93C31;
+  --btn11: #FFDC00;
+  --btn15: #A356D6;
+  --door8: #F93C31;
+  --door11: #FFDC00;
+  --door15: #A356D6;
+}
+
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;
+  /* ↓ 本局专属：世界的配色（前端配的，不是世界里的色号） */
+  --wall: #0b0d12; --floor: #2a2f3b; --goal: #e8e8e8; --hidden: #3d3340;
+  --me: #59b0ff; --ghost: #e5544b; --walker: #b36bff;
+  --spring: #c9a227; --latch: #3fb6a8;
+  --ok: #4caf7d; --bad: #e5544b; --na: #4a5163;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; color: var(--dim); letter-spacing: .8px; }
+.gaps { border-color: #7a5a20; }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin-top: 22px; font-weight: 600; font-size: 15px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--line); }
+.mono, code, pre { font-family: ui-monospace, Consolas, monospace; }
+pre.src { white-space: pre-wrap; font-size: 12px; background: #0f1116; padding: 10px; border-radius: 6px; overflow-x: auto; }
+.prose { white-space: pre-wrap; }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.cells .row { display: flex; }
+.c { display: inline-block; width: 22px; height: 22px; border: 1px solid #0003; }
+.legend .c { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+.c.wall { background: var(--wall); } .c.floor { background: var(--floor); } .c.goal { background: var(--goal); }
+.c.hidden { background: var(--hidden); } .c.me { background: var(--me); } .c.ghost { background: var(--ghost); }
+.c.walker { background: var(--walker); } .c.spring { background: var(--spring); } .c.latch { background: var(--latch); }
+.c.cart { background: #888; }
+.c.btn8 { background: var(--btn8); } .c.btn11 { background: var(--btn11); } .c.btn15 { background: var(--btn15); }
+.c.door8 { background: var(--door8); } .c.door11 { background: var(--door11); } .c.door15 { background: var(--door15); }
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+input[type=range] { flex: 1; min-width: 180px; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+.v-TRUE { color: var(--ok); } .v-FALSE { color: var(--bad); font-weight: 700; } .v-NA { color: var(--na); }
+@media (max-width: 600px) { .c { width: 14px; height: 14px; } }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>形式化</h1><div class="sub">对象 / 规则 / 分发全是定义；要证的只有「这一关走得通」。</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+
+<div class="card gaps"><h2>明写的缺口（摆在最上面，没藏）</h2><ul><li>逐条那一层（每条转移从观测到的那一帧重新起算）没有建：每段都从开局起全程自算（比逐条严），认证段 280 步 + 未认证段 512 步；断点（过关 / RESET / 收场）那几步不在任何一段里，它们只在 Python 规则层被核</li><li>走不通的钥匙一把都没有：七关都有真人走通的见证，没有一关要宣告不可做；Reachable.lean 里只有骨架（unsolvable_of_invariant）与 not_both，没有挂上任何局面</li></ul></div>
+<div class="card"><h2>每一关一条结论</h2><table>
+<tr><th>关</th><th>结论</th><th>沿真实走法</th><th>逐帧核过的步数</th><th>文件</th></tr><tr><td>第 0 关</td><td>走得通</td><td>逐帧对上</td><td>16</td><td><a href="Proof-Levels-L0.html">Proof/Levels/L0.lean</a></td></tr><tr><td>第 1 关</td><td>走得通</td><td>逐帧对上</td><td>30</td><td><a href="Proof-Levels-L1.html">Proof/Levels/L1.lean</a></td></tr><tr><td>第 2 关</td><td>走得通</td><td>逐帧对上</td><td>63</td><td><a href="Proof-Levels-L2.html">Proof/Levels/L2.lean</a></td></tr><tr><td>第 3 关</td><td>走得通</td><td>逐帧对上</td><td>30</td><td><a href="Proof-Levels-L3.html">Proof/Levels/L3.lean</a></td></tr><tr><td>第 4 关</td><td>走得通</td><td>逐帧对上</td><td>51</td><td><a href="Proof-Levels-L4.html">Proof/Levels/L4.lean</a></td></tr><tr><td>第 5 关</td><td>走得通</td><td>逐帧对上</td><td>48</td><td><a href="Proof-Levels-L5.html">Proof/Levels/L5.lean</a></td></tr><tr><td>第 6 关</td><td>走得通</td><td>逐帧对上</td><td>42</td><td><a href="Proof-Levels-L6.html">Proof/Levels/L6.lean</a></td></tr></table>
+<p class="note">「走得通」的见证是真人走过的那条路：模型从开局起自己算，每一帧和观测对上，最后一脚站上终点格。
+动作里没有 RESET——「重来一次放回开局」是明处的假设，认证段里七关都是从开局一口气走到过关，这批语料上它<b>没有</b>被驳倒的机会。</p></div>
+<div class="card"><h2>未认证段：只做逐帧核对（每段从开局起模型自己算）</h2><table>
+<tr><th>段</th><th>关</th><th>怎么收尾</th><th>RESET 之后？</th><th>逐帧对上</th><th>步数</th></tr>
+<tr><td><a href="Proof-Runs-R0.html">R0</a></td><td>0</td><td>levelup</td><td></td><td>True</td><td>38</td></tr><tr><td><a href="Proof-Runs-R1.html">R1</a></td><td>1</td><td>levelup</td><td></td><td>True</td><td>30</td></tr><tr><td><a href="Proof-Runs-R2.html">R2</a></td><td>2</td><td>levelup</td><td></td><td>True</td><td>65</td></tr><tr><td><a href="Proof-Runs-R3.html">R3</a></td><td>3</td><td>levelup</td><td></td><td>True</td><td>32</td></tr><tr><td><a href="Proof-Runs-R4.html">R4</a></td><td>4</td><td>reset</td><td></td><td>True</td><td>99</td></tr><tr><td><a href="Proof-Runs-R5.html">R5</a></td><td>4</td><td>levelup</td><td>是：这一段检验「重来放回开局」那条假设</td><td>True</td><td>49</td></tr><tr><td><a href="Proof-Runs-R6.html">R6</a></td><td>5</td><td>reset</td><td></td><td>True</td><td>10</td></tr><tr><td><a href="Proof-Runs-R7.html">R7</a></td><td>5</td><td>levelup</td><td>是：这一段检验「重来放回开局」那条假设</td><td>True</td><td>62</td></tr><tr><td><a href="Proof-Runs-R8.html">R8</a></td><td>6</td><td>reset</td><td></td><td>True</td><td>76</td></tr><tr><td><a href="Proof-Runs-R9.html">R9</a></td><td>6</td><td>reset</td><td>是：这一段检验「重来放回开局」那条假设</td><td>True</td><td>9</td></tr><tr><td><a href="Proof-Runs-R10.html">R10</a></td><td>6</td><td>win</td><td>是：这一段检验「重来放回开局」那条假设</td><td>True</td><td>42</td></tr>
+</table><p class="note">RESET 之后的 4 段都从 <code>initWorld</code> 起算而第一帧就对上了——
+那条假设在这批语料上被驳倒的机会有这几次，没有一次被驳倒。<b>这不构成证明。</b></p></div>
+<div class="card"><h2>每条规则的身份</h2><table><tr><th>规则</th><th>身份</th><th>Lean</th><th>备注</th></tr><tr><td>bar_ticks</td><td>不进模型</td><td class="mono">—</td><td>语料里有一拍（seq 726）解释不了：同形的另外几步都没多那一拍。进了模型，那一关的逐帧核对会被一个解释不了的量拖红；不进模型，它照样在规则层挨每一步的打。 论域 792 条，被驳倒 1 次</td></tr><tr><td>ghosts_replay_tapes</td><td>定义</td><td class="mono">Rule/Movers/GhostsReplayTapes.lean</td><td></td></tr><tr><td>goal_is_levelup</td><td>定义</td><td class="mono">Rule/Win/GoalIsLevelup.lean</td><td></td></tr><tr><td>hud_cursor_cycle</td><td>定义</td><td class="mono">Rule/Switch/HudCursorCycle.lean</td><td></td></tr><tr><td>latch_toggles_on_press</td><td>定义</td><td class="mono">Rule/Response/LatchTogglesOnPress.lean</td><td></td></tr><tr><td>me_steps_if_free</td><td>定义</td><td class="mono">Rule/Move/MeStepsIfFree.lean</td><td></td></tr><tr><td>portal_needs_rising_edge</td><td>定义</td><td class="mono">Rule/Move/PortalNeedsRisingEdge.lean</td><td></td></tr><tr><td>reset_restores_start</td><td>不进模型</td><td class="mono">—</td><td>「这一关的开局长什么样」是历史不是状态，一帧上读不出来；硬塞进 World 就是给模型加一位帧上读不出来的信息。写成明处的假设：每关逐帧核对都从开局起算。 论域 4 条，被驳倒 0 次</td></tr><tr><td>spring_follows_button</td><td>定义</td><td class="mono">Rule/Response/SpringFollowsButton.lean</td><td></td></tr><tr><td>switch_restarts_round</td><td>定义</td><td class="mono">Rule/Switch/SwitchRestartsRound.lean</td><td></td></tr><tr><td>switch_rewinds_carts</td><td>定义</td><td class="mono">Rule/Switch/SwitchRewindsCarts.lean</td><td></td></tr><tr><td>walker_patrols</td><td>定义</td><td class="mono">Rule/Movers/WalkerPatrols.lean</td><td></td></tr><tr><td>ghosts_never_outnumber_slots（起点册子）</td><td>推论</td><td class="mono">Derived/GhostsMatchSlots.lean</td><td></td></tr></table></div>
+<div class="card"><h2>凭什么信上面这些</h2><ul>
+<li>44 份 Lean 全部编过；64 条定理，公理表覆盖 64 条，不在白名单的公理 0 处。</li>
+<li><code>Step.lean</code> 里定理 0 条——规则是定义，Step 只做分发。</li>
+<li>破坏测试 <code>Broken.lean</code>：退出码 1，错误行 [18]，标记行 18 ⇒ 只在标记那一行红。</li>
+<li>两份对账：认证段 280 步上 Lean 逐帧全对 = True；
+Python 定义类规则在这些步上判错 0 条；不进模型的规则判错 {&#x27;bar_ticks&#x27;: [726]}。</li>
+</ul>
+<details><summary>把模型改坏一处，哪几关红（lean2/mutate.py，第一行是种下的必红）</summary><table><tr><td>SEED_goal_never</td><td>种下的必红：永远赢不了</td><td>红：第 L0, L1, L2, L3, L4, L5, L6 关</td></tr><tr><td>carts_dont_block</td><td>车不挡路</td><td>红：第 R0, R4, R7, R8 关</td></tr><tr><td>tape_records_bumps</td><td>带子连撞墙的那几下也录</td><td>红：第 R0, R7 关</td></tr><tr><td>portal_ignores_edge</td><td>进门就传</td><td>红：第 R4, R8 关</td></tr><tr><td>walker_prefers_turn</td><td>环不直走</td><td>红：第 L5, L6, R10, R6, R7, R8, R9 关</td></tr><tr><td>spring_no_return</td><td>弹簧松开不回家</td><td>红：第 R0, R2, R6, R8 关</td></tr><tr><td>latch_no_rewind</td><td>换一盘闩不回退</td><td>红：第 L2, L4, L6, R10, R2, R4, R5 关</td></tr><tr><td>switch_keeps_tapes_on_wrap</td><td>游标绕回时带子不清</td><td>红：第 R0, R4 关</td></tr></table></details>
+<details><summary>装置 lean_check 的读数</summary><ul><li>扫目录：44 份 .lean</li><li>分层（按目录认）：对象 11、推论 1、没归类 1、观测 2、规则 10、证明 19</li><li>没归类 Step.lean —— 它们不在任何一层里，下面几条分层检查对它们不起作用</li><li>跑成的分层检查：import 方向、长在世界上</li><li>lean：工具链 leanprover--lean4---v4.34.0（绕开 elan shim）</li><li>可信基：64/64 条定理跑过 `#print axioms`，干净（只有 propext / Classical.choice / Quot.sound）</li></ul></details>
+</div>
+<div class="card"><h2>全部文件（按角色）</h2><div class="grouphead">Obj</div><ul><li><a href="Obj-Geometry-Cell.html">Obj/Geometry/Cell.lean</a>　定理 0 条</li><li><a href="Obj-Panel-Hud.html">Obj/Panel/Hud.lean</a>　定理 0 条</li><li><a href="Obj-World.html">Obj/World.lean</a>　定理 0 条</li><li><a href="Obj-Board-Terrain.html">Obj/Board/Terrain.lean</a>　定理 0 条</li><li><a href="Obj-Pieces-Cart.html">Obj/Pieces/Cart.lean</a>　定理 0 条</li><li><a href="Obj-Board-Rail.html">Obj/Board/Rail.lean</a>　定理 0 条</li><li><a href="Obj-Board-Wire.html">Obj/Board/Wire.lean</a>　定理 0 条</li><li><a href="Obj-Board-Board.html">Obj/Board/Board.lean</a>　定理 0 条</li><li><a href="Obj-Derive-Cells.html">Obj/Derive/Cells.lean</a>　定理 0 条</li><li><a href="Obj-Derive-Links.html">Obj/Derive/Links.lean</a>　定理 0 条</li><li><a href="Obj-Derive-Track.html">Obj/Derive/Track.lean</a>　定理 0 条</li></ul><div class="grouphead">Rule</div><ul><li><a href="Rule-Move-MeStepsIfFree.html">Rule/Move/MeStepsIfFree.lean</a>　定理 0 条</li><li><a href="Rule-Move-PortalNeedsRisingEdge.html">Rule/Move/PortalNeedsRisingEdge.lean</a>　定理 0 条</li><li><a href="Rule-Movers-GhostsReplayTapes.html">Rule/Movers/GhostsReplayTapes.lean</a>　定理 0 条</li><li><a href="Rule-Movers-WalkerPatrols.html">Rule/Movers/WalkerPatrols.lean</a>　定理 0 条</li><li><a href="Rule-Response-SpringFollowsButton.html">Rule/Response/SpringFollowsButton.lean</a>　定理 0 条</li><li><a href="Rule-Response-LatchTogglesOnPress.html">Rule/Response/LatchTogglesOnPress.lean</a>　定理 0 条</li><li><a href="Rule-Switch-SwitchRestartsRound.html">Rule/Switch/SwitchRestartsRound.lean</a>　定理 0 条</li><li><a href="Rule-Switch-SwitchRewindsCarts.html">Rule/Switch/SwitchRewindsCarts.lean</a>　定理 0 条</li><li><a href="Rule-Switch-HudCursorCycle.html">Rule/Switch/HudCursorCycle.lean</a>　定理 0 条</li><li><a href="Rule-Win-GoalIsLevelup.html">Rule/Win/GoalIsLevelup.lean</a>　定理 0 条</li></ul><div class="grouphead">装配</div><ul><li><a href="Step.html">Step.lean</a>　定理 0 条</li></ul><div class="grouphead">Derived</div><ul><li><a href="Derived-GhostsMatchSlots.html">Derived/GhostsMatchSlots.lean</a>　定理 1 条</li></ul><div class="grouphead">Obs</div><ul><li><a href="Obs-Check.html">Obs/Check.lean</a>　定理 0 条</li><li><a href="Obs-Replay.html">Obs/Replay.lean</a>　定理 0 条</li></ul><div class="grouphead">Proof</div><ul><li><a href="Proof-Reachable.html">Proof/Reachable.lean</a>　定理 2 条</li><li><a href="Proof-Levels-L0.html">Proof/Levels/L0.lean</a>　定理 4 条</li><li><a href="Proof-Levels-L1.html">Proof/Levels/L1.lean</a>　定理 4 条</li><li><a href="Proof-Levels-L2.html">Proof/Levels/L2.lean</a>　定理 4 条</li><li><a href="Proof-Levels-L3.html">Proof/Levels/L3.lean</a>　定理 4 条</li><li><a href="Proof-Levels-L4.html">Proof/Levels/L4.lean</a>　定理 4 条</li><li><a href="Proof-Levels-L5.html">Proof/Levels/L5.lean</a>　定理 4 条</li><li><a href="Proof-Levels-L6.html">Proof/Levels/L6.lean</a>　定理 4 条</li><li><a href="Proof-Runs-R0.html">Proof/Runs/R0.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R1.html">Proof/Runs/R1.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R10.html">Proof/Runs/R10.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R2.html">Proof/Runs/R2.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R3.html">Proof/Runs/R3.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R4.html">Proof/Runs/R4.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R5.html">Proof/Runs/R5.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R6.html">Proof/Runs/R6.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R7.html">Proof/Runs/R7.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R8.html">Proof/Runs/R8.lean</a>　定理 3 条</li><li><a href="Proof-Runs-R9.html">Proof/Runs/R9.lean</a>　定理 3 条</li></ul>
+<p><a href="Broken.html">Broken.lean（应当编不过的那一份）</a></p></div>
+
+</div></body></html>

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Obs/Check.lean</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Lean · Obs/Check.lean</h1><div class="sub">源码原样</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class='card'><pre>/-
+# Obs/Check —— 判据层：模型面对一帧观测站不站得住。**0 条定理**，尺子不自证。
+
+## Seen：只装帧上读得出来的
+
+一帧对应的是一组世界（纤维）：某一边读不到底（伸出盘外 / 尽头压在别的东西底下）时，
+那一边只知道**下界**。所以 `SeenPiece` 每一边带一位 `k*`（读没读到底），hub 空不空是 `Option`。
+**东西的次序读不出来**（下标不是身份），所以按集合比：一一配上才算对。
+
+## 三把尺
+
+    agree       一件预测的东西 vs 一件看到的东西（只在读得出的那几位上比）
+    agreesWorld 整个状态 vs 一帧：东西一一配上；光标看得见时，选中那件的包围盒中心就在光标上
+    traceOk     从开局起**带着自己算出来的状态**往下走，逐帧比——错一步后面全错，那正是要的
+-/
+
+import Step
+
+namespace Game
+
+structure SeenPiece where
+  kind   : Kind
+  color  : Nat
+  top    : Int
+  left   : Int
+  bottom : Int
+  right  : Int
+  hr     : Int
+  hc     : Int
+  kt     : Bool
+  kl     : Bool
+  kb     : Bool
+  kr     : Bool
+  hollow : Option Bool
+  deriving DecidableEq, Repr
+
+structure Seen where
+  pieces : List SeenPiece
+  cursor : Option (Int × Int)
+  deriving DecidableEq, Repr
+
+/-- 一边：读到底就相等，读不到底就「模型那一边伸得不比它近」。`out` 为真表示往外是变大的那一侧。 -/
+def sideOk (known : Bool) (out : Bool) (model obs : Int) : Bool :=
+  if known then model == obs
+  else if out then decide (obs ≤ model) else decide (model ≤ obs)
+
+def agree (p : Piece) (o : SeenPiece) : Bool :=
+  p.kind == o.kind &amp;&amp; p.color == o.color &amp;&amp;
+  (match o.hollow with
+   | some h =&gt; p.kind == .cross || p.hollow == h
+   | none   =&gt; true) &amp;&amp;
+  (match p.kind with
+   | .ex | .diamond =&gt;
+       p.hr == o.hr &amp;&amp; p.hc == o.hc &amp;&amp;
+       (if o.kt &amp;&amp; o.kl &amp;&amp; o.kb &amp;&amp; o.kr then p.radius == o.hr - o.top
+        else decide (o.hr - o.top ≤ p.radius))
+   | .cross =&gt;
+       (!(decide (o.left &lt; o.right)) || p.hr == o.hr) &amp;&amp;
+       (!(decide (o.top &lt; o.bottom)) || p.hc == o.hc) &amp;&amp;
+       sideOk o.kt false p.top o.top &amp;&amp; sideOk o.kl false p.left o.left &amp;&amp;
+       sideOk o.kb true p.bottom o.bottom &amp;&amp; sideOk o.kr true p.right o.right
+   | .box =&gt;
+       sideOk o.kt false p.top o.top &amp;&amp; sideOk o.kl false p.left o.left &amp;&amp;
+       sideOk o.kb true p.bottom o.bottom &amp;&amp; sideOk o.kr true p.right o.right)
+
+/-- 从表里拿掉第一件配得上的。 -/
+def takeMatch (p : Piece) : List SeenPiece → Option (List SeenPiece)
+  | [] =&gt; none
+  | o :: os =&gt; if agree p o then some os else (takeMatch p os).map (o :: ·)
+
+def matchAll : List Piece → List SeenPiece → Bool
+  | [], [] =&gt; true
+  | p :: ps, os =&gt; match takeMatch p os with
+    | some rest =&gt; matchAll ps rest
+    | none =&gt; false
+  | [], _ :: _ =&gt; false
+
+def agreesWorld (s : World) (o : Seen) : Bool :=
+  matchAll s.pieces o.pieces &amp;&amp;
+  (match o.cursor with
+   | none =&gt; true
+   | some rc =&gt; match s.pieces[s.active]? with
+     | some p =&gt; p.cr == rc.1 &amp;&amp; p.cc == rc.2
+     | none =&gt; false)
+
+/-- 从 `s` 出发沿 `play` 走，每一步都和当时看到的那一帧比。全对才是 `true`。
+    **下一轮喂进去的是模型自己算出来的 `s&#x27;`**，不是观测。 -/
+def traceOk (b : Board) : World → List (Act × Seen) → Bool
+  | _, [] =&gt; true
+  | s, (a, o) :: rest =&gt;
+      match step b s a with
+      | .ok s&#x27; =&gt; agreesWorld s&#x27; o &amp;&amp; traceOk b s&#x27; rest
+      | _      =&gt; false
+
+/-- 只给读数用：第一处分家在第几步（`none` = 一处都没分家）。**它是读数不是定理**。 -/
+def firstSplit (b : Board) : World → List (Act × Seen) → Nat → Option Nat
+  | _, [], _ =&gt; none
+  | s, (a, o) :: rest, i =&gt;
+      match step b s a with
+      | .ok s&#x27; =&gt; if agreesWorld s&#x27; o then firstSplit b s&#x27; rest (i + 1) else some i
+      | _      =&gt; some i
+
+/-- 逐条：一条真实转移。`prev` 是**从观测那一帧重新起算**的状态（每步都被拉回正轨）；
+    `won` 是现实那一侧这一步过没过关（上游 meta 给的，模型看不到它）。 -/
+structure Case where
+  row  : Nat
+  lvl  : Nat
+  prev : World
+  act  : Act
+  next : Seen
+  won  : Bool
+  deriving Repr
+
+/-- 三值：`some true` 对上 / `some false` 被这一帧证伪 / `none` 模型这一步说不出话。 -/
+def stepJudge (b : Board) (c : Case) : Option Bool :=
+  match step b c.prev c.act with
+  | .ok s&#x27;  =&gt; some (!c.won &amp;&amp; agreesWorld s&#x27; c.next)
+  | .won _  =&gt; some c.won
+  | .na     =&gt; none
+
+end Game
+</pre></div>
+</div></body></html>

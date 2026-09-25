@@ -1,0 +1,71 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Obj/Piece/Bar.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Obj/Piece/Bar.lean</h1><p></p><details><summary>公理表（0 条）</summary><ul></ul></details><pre>/-
+# Obj/Piece/Bar —— 条（对应 `objects/piece/bar.py`）
+
+一排三格的帽 + 从帽往外的 `len` 条 3 格宽的身体；尖（可有可无）在离帽第 `len - 1` 条的正中。
+**只记帽的位置、方向、长度、有没有尖**：「身体是实心的、从帽一路连到自由端」「尖永远在离自由端一格处」
+在这个表示下表示不出反例。
+
+`(r, c)` 是帽左上格（带偏移 `O`）。
+-/
+
+import Obj.Geometry.Grid
+
+namespace Game
+
+structure Bar where
+  color : Nat
+  r     : Nat
+  c     : Nat
+  dir   : Dir
+  len   : Nat
+  tip   : Bool
+  deriving DecidableEq, Repr
+
+/-- 离帽第 `a` 条到第 `b` 条（`a ≤ b`）合起来的长方形。 -/
+def Bar.span (x : Bar) (a b : Nat) : Rect :=
+  match x.dir with
+  | .U =&gt; ⟨x.r - b, x.c, x.r - a, x.c + 2⟩
+  | .D =&gt; ⟨x.r + a, x.c, x.r + b, x.c + 2⟩
+  | .L =&gt; ⟨x.r, x.c - b, x.r + 2, x.c - a⟩
+  | .R =&gt; ⟨x.r, x.c + a, x.r + 2, x.c + b⟩
+
+def Bar.cap (x : Bar) : Rect := x.span 0 0
+def Bar.body (x : Bar) : Rect := x.span 1 x.len
+/-- 帽 + 身体：这根条占的全部格子（一块长方形）。 -/
+def Bar.whole (x : Bar) : Rect := x.span 0 x.len
+/-- 自由端外面紧贴的那一条。 -/
+def Bar.face (x : Bar) : Rect := x.span (x.len + 1) (x.len + 1)
+
+/-- 尖在哪一格（离帽第 `len - 1` 条的正中）。 -/
+def Bar.tipCell (x : Bar) : Nat × Nat :=
+  match x.dir with
+  | .U =&gt; (x.r - (x.len - 1), x.c + 1)
+  | .D =&gt; (x.r + (x.len - 1), x.c + 1)
+  | .L =&gt; (x.r + 1, x.c - (x.len - 1))
+  | .R =&gt; (x.r + 1, x.c + (x.len - 1))
+
+/-- 整根平移：往 `d` 走 3 格。 -/
+def Bar.shift (x : Bar) (d : Dir) : Bar :=
+  match d with
+  | .U =&gt; { x with r := x.r - 3 }
+  | .D =&gt; { x with r := x.r + 3 }
+  | .L =&gt; { x with c := x.c - 3 }
+  | .R =&gt; { x with c := x.c + 3 }
+
+end Game
+</pre></div></main></body></html>

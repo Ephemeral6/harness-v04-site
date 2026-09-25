@@ -1,0 +1,1325 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>方法册 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="index.html">程序化世界模型</a><nav><a href="index.html" class="">各局</a><a href="method.html" class="on">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow">跨局</div><h1>方法册</h1><p class="intro">从各局里归纳出来、对任何一局都成立的做法；只在一局里撞上过的，会标明是单局经验。这里用的是仓库里的原始叫法。</p><div class="md" style="margin-top:20px"><h1>方法册</h1>
+<p><strong>这是你的方法记忆，不是世界的事实。</strong> 世界的事实要写成概念、走强制结算；
+写进这里就绕开了闸，你的概念也就不再可能被判错了。</p>
+<p><strong>比赛中这本册子只翻不改。</strong> 它跨会话、跨压缩存活，是除了 <code>ledger/games/&lt;局&gt;/concepts/</code> 之外
+<strong>唯一长久的东西</strong>（那些每局一份，这份跨局）——也正因为跨局，它是某一局的答案最容易被带出去的那个口子。
+打局时学到的方法追加到 <code>runs/&lt;run&gt;/METHOD.proposals.md</code>；收工后由维护会话去局名化、去读数化，再并进来。
+维护会话里可以随便加一条、改一条、删一条。</p>
+<p><strong>保持它短。</strong> 超过 30 条就该合并或删掉一些了：一份没人读得完的方法册等于没有。
+一条方法反复救不了你，就删掉它，别留着占位置。</p>
+<p><strong>不许写进这里的东西：某一局的答案。</strong> 具体某个物件在哪、某个常数是几、第几关有什么，
+全都属于那一局的概念册，写进方法册就等于给下一局白送答案，而「从空册子起手」是这个台架的全部意义。</p>
+<p><strong>写法口径：只留失败的形状。</strong> 不写物件真名、不写读数表、不写是哪一局哪一步哪一条概念。
+一条方法值钱的是「什么条件下会翻车、翻车长什么样、怎么自检」，不是它当初在哪翻的车。
+你自己往下加条目时照这个口径写；发现旧条目带了出处或读数，当场抹掉。</p>
+<hr />
+<h2>装置给的种子</h2>
+<p>下面十一条不是拍脑袋的，每一条后面都跟着「为什么」——那个「为什么」是它唯一值钱的部分。</p>
+<ol>
+<li><strong>作用域</strong>：这个世界有关卡，过关时世界可能变化。每写一条概念先问：
+   它是<strong>本关之内</strong>成立，还是<strong>跨关</strong>也成立？没声明作用域，等于悄悄断言了
+   「跨关也成立」——那是你还没验证过的强断言。
+   <em>（形状：过关的那一步整批概念一起倒，因为它们全都默认了跨关。）</em></li>
+</ol>
+<p><strong>推论，代价同样贵：过关之后不要继承上一关量出来的任何常数。</strong>
+   在一关里把某个速率算得很熟，会在脑子里凝成习惯；换关后那个速率变了，
+   概念一条没倒（它们声明了 scope，是对的），倒的是<strong>路线规划的全部算术</strong>，
+   而算术不走闸、没人拦。
+   规矩：<strong>进新关第一件事，是把本关要用到的每个速率重新量一遍或查概念册，
+   不许沿用上一关的值。</strong></p>
+<p><strong>第二个推论：不许继承的不只是常数，还有「这个世界里有哪几类东西」。</strong>
+   前几关用同一套词汇一路顺风之后，进新关直接拿旧词汇跑规划器出串，是最省事也最贵的一步：
+   新关第一帧上可能就摆着一类旧词汇里根本没有名字的物件，而它在规划器眼里是空地。
+   规矩：<strong>进新关的第一件事里还有一条——在本关第一帧上重跑一次清点</strong>，
+   列全颜色/类别直方图，把落在有意义位置上的块按「特征集合」分组打出来；
+   出现任何一个旧词汇没名字的组合，先给它起名、写概念，再谈规划。
+   清点脚本写一次整局复用，成本是一次调用；漏掉一个物件的成本是一条命加一次重开。
+   <em>（形状：不是「规律猜错了」，是「有个东西没人认识」——报错不会有，只有一次没来由的失败。）</em></p>
+<p><strong>由此定下规划器里的默认方向：凡是「这格能不能走/安不安全」的判断，一律写成白名单</strong>
+   （我认识的东西才算安全），不写黑名单（我知道的危险才算危险）。
+   黑名单遇到没见过的物件时静默放行，而且放行得毫无异样。</p>
+<ol>
+<li><strong>主动证伪，别等证据上门</strong>：「什么条件下这一关会结束」这类概念，
+   很少会自己撞上反例——因为你很少走到那个状态。对这类概念要<strong>专门设计一段动作去撞它</strong>。
+   <em>（形状：一族「怎样才算过关」的概念常年 C、N 挂零，从没被检验过，却一直挂在册上冒充知识。）</em></li>
+</ol>
+<p>便宜变体，同一家族：碰到没见过的物件，从册子里挑一条「除计数器外整帧不动」式的强预测概念，
+   照它的作用域对它发一发——不动，它是布景或另有触发，那条概念白赚一格覆盖；动了，
+   一条反例外加一个新机制的入口。同理，<strong>全册对某个候选动作都返回弃权的那一步，
+   是没人管的地图，不是已知规律的复查</strong>，值得优先走进去。
+   最强的考题常是帧差只有一两格、或整帧不动的那几步：所有「要么……要么……」式的主张都得在那一步表态，
+   读数零噪声——专门把它们捞出来喂，问路、验「A 挡不挡 B」都用它。同一模式下的多条这类证据只算一条。</p>
+<p><strong>过关那一步是这类概念唯一的考场，也是最会吞考题的一步。</strong> 过关那一步的下一帧已经是下一关的盘，
+   「达成态」从来进不了语料；「看见目标态 ⇒ 过关」式的判据于是要么零反例空转，要么在换关那一步集体判错。
+   写成前瞻式（「这一步走完会不会成为目标态」）。凡是「换关一律弃权」的概念，恰好在唯一能证伪它的那一步闭嘴——
+   预注册的反例若落在过关那一步，会被换关的弃权吞掉；先用一个同样打破它、但不推进关卡的动作去考。
+   最后一关通关时关卡号变了、却没有下一关可画，是这条的边角，单独写明。
+   <em>（形状：一族终止条件的概念在几局里各自零反例，其中没有一条在过关那一步上真开过口。）</em></p>
+<ol>
+<li>
+<p><strong>每次动作都会变一点的量</strong>（计数器、进度条、资源），先问它依赖什么：
+   动作次数？只有生效的动作？某一类事件？——不要一上来就写死一个常数。
+   <em>（形状：这类概念的改版率远高于其它类，改版次数最多的几条也几乎全出自这里。）</em></p>
+</li>
+<li>
+<p><strong>动作被接受 ≠ 动作生效</strong>。至少有三种结局：生效、被受理但没生效、
+   完全不被受理（prev 与 nxt 逐格相同）。把后两种并成「没生效」，
+   计数器概念一定会被推翻，而且推翻的地方不告诉你真原因。</p>
+</li>
+</ol>
+<p><strong>「没生效」本身又分好几种成因，分开它们各要一步实验</strong>：键是死的（根本不认这个动作）、
+   是有条件的（局面没摆到它的前提上）、是幂等的（当前值恰好已是它要设的值，做了等于没做）、
+   还有被吞掉的（世界刚被重新起头之后的第一个动作常常整帧无差——<strong>装置重开会话和世界内部换关
+   是两种「起头」，分开数</strong>，别并成一条无条件的警告；判决实验别把关键动作放在刚起头之后的第一格）。
+   所以「这个动作没用」的结论必须先过两问：<strong>局面摆到它的前提上了吗？这个结论在别的局面复现过吗？</strong>
+   配套一条：一个「设成 X」型动作在当前值已是 X 的局面上按出来的空帧，什么证据都不是——
+   「保留/不变」型的读数要记下当时那个量的实际取值，它恰好等于「会被设成的值」时，
+   这次观测对「保留还是设成」是哑的，得专门在取值不同的局面上再测一次。
+   量动作效果时还有一句：把「这一步改了几样东西」和「这一步改了多少」分开问，
+   <strong>先在空地上量全，再去窄处量阻挡</strong>——反过来做，会把地形的形状写进动作表。</p>
+<p><strong>一个否定性观察，在被当成某条概念的死刑判决之前，先确认那条概念主张的动作真的发生了</strong>——
+   不只是被请求了。「按了、没达成目标」可能一次都没真执行（焦点被移交、空按、被吞），
+   那些负结果是空的；而「这条新概念错了」是收敛的结论，「有个还不知道的机制」是发散的结论，
+   疲劳和预算压力一律往前者推。判决性实验除了预期结果，还要写一条<strong>前置证据</strong>
+   （「怎么知道这一发打出去了」，最好是当场可读的签名），且它不能由被检验的那条概念自己推出来；
+   再加一句「批末盘面应当是什么样」，先核这一句——没做成的实验在帧差上和负结果一模一样。
+   写不出前置证据，这个实验就不能判死刑。</p>
+<ol>
+<li><strong>改到第三版还在挨打，就撤掉重写</strong>。那多半说明你问错了问题，而不是没修对。
+   撤册不丢人，改到 v7 才丢人。
+   <em>（形状：改到 v4 以上的概念远多于被撤册的——舍不得撤是通病。）</em></li>
+</ol>
+<p><strong>撤册门槛挂在什么量上，决定它是不是真的客观。</strong> 版本号混着与对错无关的编辑
+   （提共用词汇、订正主张、写说明都会推高它），也有一版塞好几处修补、把多次挨打并成一个版本——
+   想约束「反复被现实打脸」，就数<strong>挨打次数</strong>，且让每次挨打的记录只能由结算写。
+   门槛可以被推翻，但要带着可审的记录：照实立案、标 retrospective、写明这是作者在给自己豁免。
+   撤册前分辨两种改版史：主张字面从没变过的（词被修、哨兵在干活——否定式哨兵挨打是它的职责），
+   不该按版本撤；主张真的缩水了的，才轮到这条。<strong>换轴的概念不要改版</strong>：词汇被证明只是另一套词汇的特例时，
+   找出两套读法给出不同预测的那一格，撤了重立，那一格就是验收点；拆下来的另一半不许消失——
+   移植进保留那条的 NOTE，或立成新概念。换完守卫回头看一眼 docstring 第一行：
+   主张和代码不符的状态，不改是留假话，改了再推一版，宁可付后者。</p>
+<ol>
+<li>
+<p><strong>连续几批零反例、而关卡纹丝不动，是警告不是成功</strong>：说明你在反复确认已经知道的东西。
+   去做一件你<strong>不知道结果</strong>的事。押注版是同一个警告：连续几批押「什么都不会发生」全中，
+   每一次成功预测「无事发生」都在收紧探索半径。
+   三个数并排读：反例数、新 tid 数、关卡有没有动——前两个同时为零就换方向。
+   「还有一步可走」也不等于有进展：可逆、零代价的动作会让几道启发式互相踢皮球成振荡器，全部仪表是绿的。
+   放行的条件必须是朝目标单调的量；历史去重的坐标系必须在帧间不动（镜头跟着物件走时，
+   屏幕坐标去重会退化成「罚前进、奖后退」）；每步重算、没有「严格变好才动」的规划器会二循环，
+   承诺一条路线落盘走完再重算。</p>
+</li>
+<li>
+<p><strong>优先走「两条在册概念给出相反预测」的那一步</strong>。它保证倒一条、也保证学到东西；
+   而走两条都预测生效的路，最好的结果只是确认已知。
+   设计对赌之前先问一句：我要押的这句话，会不会连它自己的判据也被同一个事件抹掉
+   （那个事件整帧换掉画面、或把对方打成弃权）——<strong>胜方要写成只依赖触发之前就可见的东西</strong>。
+   撞点要有一格<strong>只属于被测的那条约束</strong>（和其余约束的并集作差非空），撞在交集上一个比特也拿不到。</p>
+</li>
+</ol>
+<p><strong>两条读法在现有数据上都全对时，别按「哪条更讲得通」选——去构造它们分岔的那个局面。</strong>
+   把两条都写成判定函数，搜索空间照旧、判据换成「A(x) ≠ B(x)」，搜到就先用最便宜的方式问一次；
+   把「测规则」和「拿结果」捆进同一次昂贵动作，读数到手了，人却已先站在一边。
+   记录里把三样分开标：回归读数 / 机制上说得通 / 它对当前目标有多方便——第三样出现时是加倍验证的理由，
+   不是加倍相信的理由（「它正好解开了卡住的死结」是结论驱动的偏好）。
+   <em>（一局里撞上过：更讲得通、还解开死结的那条被一发打死，丑的那条才是真的，死结也跟着回来。）</em>
+   同一个坑的静态版：主张里的排除性措辞（「只」「不改」「仅当」），在现有语料上去掉后预测一格不变，
+   就是没有证据的分岔——把触发局面按判据输入去重打表，缺的组合就是死角，主动走进去。</p>
+<p><strong>一条概念倒了的时候，先看同一批里没倒的概念</strong>：它们是免费的约束，
+   能把未知量夹出来。别急着去要新证据，先把已有断言当方程解。</p>
+<ol>
+<li><strong>动手之前先把观测坐标系钉死，再把帧压成格点图</strong>。两件事，都是一次性投资：
+   (a) 拿一个坐标对去反查帧里那一格的实际颜色，确认 <code>(a,b)</code> 是 <code>(x,y)</code> 还是 <code>(y,x)</code>——
+   定错了后面每条概念都写反。
+   (b) 一旦测出移动步长是 k 格，就把整帧折叠成 (64/k)×(64/k) 的格位图，每格只报主色
+   （<code>geo.py</code> 的 <code>fold</code> / <code>fold_phase</code>）。之后所有路径规划、「哪里是墙」「哪里有东西」
+   都在这张图上看，不再逐格读帧。
+   <em>（折叠图一眼就能露出地形、通路与标记；逐格读一张帧的开销是它的几十倍。）</em></li>
+</ol>
+<p>(c) <strong>跨约定的坐标不许由人眼搬运，帧差在下结论前先归格。</strong> 装置打印的清单、几何库、动作参数
+   可以各用一套分量顺序，两套序在数字接近时看不出差别；读错一次的失败模式不是「算错了」，
+   而是<strong>凭空冒出一个不存在的现象</strong>——那是最像重大发现、最会让人放下手头实验去追的东西。
+   对表器是免费的：拿一次已知的单格差把顺序钉死，或用<strong>旧值</strong>核（装置报「某格 u→v」时
+   先核对手里那帧的 u，对不上就是读反了）；带坐标的动作在顺序未定时先点对角线（两分量相等），
+   把「坐标序」和「点这里有没有用」两个未知拆开。判读不一致时，先用所有已知读法各读一遍
+   （分量顺序、行列起点、去重前后），全读不通才准动概念。一维的颜色对计数在有缝、有边料的世界里
+   会系统性地放错主角；压在多步累积坐标上的几何结论，回到同时看得见各件东西的那一帧单独验一次。
+   全局配准不可靠时，把「它在哪」换成「它周围长什么样」——局部邻域的分组特征先试，再上全局坐标。</p>
+<ol>
+<li><strong>把「这条转移改了多少格」拆成整数和</strong>（形如 总数 = 腾空 + 新占 + 计数器），再去猜语义：
+   格数能直接定出可动对象的尺寸、以及有没有搭便车的计数器，比从图样上猜快得多、
+   也可证伪得多。</li>
+</ol>
+<p><strong>推论：把拆解式的每一项分开写、各带自己的依据，别写成一个总数。</strong>
+   总数错了你只知道「有地方不对」，分项错了你知道是哪一项不对。</p>
+<p>这条有四种翻车形态：</p>
+<p><strong>① 押注里同一个量出现两次时，先让它们互相对一遍账。</strong> 内部自相矛盾的押注，落空了也学不到东西。
+   <em>（形状：同一份押注里，一个量在拆解式里取一个值、在上一段的扣率里蕴含另一个值，
+   两处从没对过账。这种押注被推翻的是自己的算术，不是任何一条关于世界的主张，等于白扔一次预测机会。）</em></p>
+<p><strong>② 那个「一直对」的常数项，只在无聊步上对。</strong> 把「腾空 + 新占」当成搬得走的常数，会少格：
+   新落点那块里可能有格子 prev 本来就等于玩家块在该位置要涂的颜色，<strong>那些格没有变化</strong>。
+   「新占 = 满格」隐含前提是「目标格是干净地板」，可<strong>每一个值得走的步，按定义都是踩到不是干净地板的东西上</strong>，
+   于是这个常数专门在关键步上失效（「C 高不等于关键情形被覆盖」那条的算术版）。
+   修法事前就能算：新占 = 满格 − |目标格中颜色已等于玩家块在该位置要涂的颜色的格数|。</p>
+<p><strong>③ 腾空那一侧同样不是常数</strong>：玩家块脚下压着别的物件时，物件里与玩家块足迹同色的格不进帧差。
+   顺带一条事实性误解的形状：被当成「吃掉了」的东西，可能只是被压住，走开后逐格恢复。
+   通用形式：<strong>凡是把「腾空 + 新占」当成两倍满格的地方，都要先问这两块里有没有别的物件，
+   以及那物件有几格恰好和玩家块同色。</strong> 这样的步在语料里是少数——<strong>正因为稀少，
+   它才会在你最不设防的一步上把押注打掉。</strong></p>
+<p><strong>④ 分桶边界写错会凭空造出两条假线索。</strong> 把同一行同时算进两个桶，两项都错、和还是对的。
+   分项之后还要确认每一项的<strong>归属判据互斥且穷尽</strong>，<code>其它 = 0</code> 只说明没漏，不说明没串。</p>
+<ol>
+<li>
+<p><strong>别拿「帧差格数」当档位判据</strong>。阈值总是从某一次事件量出来的，换一档就静默失效。
+    改用结构判据（墙集合变没变、记号少没少），它们不依赖你没测过的量级。</p>
+<p><strong>最便宜的自检，先于上面所有讲究：一条概念里每出现一个整数字面量，问一句
+「它能从</strong>这一帧<strong>读出来吗」。读不出来的，就是下一关的反例。</strong>
+这类量通常可以拆成两层：<strong>形状</strong>（「它是把某个总量均匀摊在固定宽度上的舍入」）是世界事实，
+可以写成概念；<strong>标度</strong>（那个总量具体是几）如果单帧读不出来，就一个字也不许进断言。
+只押得住形状那一半——「它只减不增」「它始终是从一端起的连续前缀」——留着的是真知识，
+而且不会在换关那天连本带利还回去。要标度就在本关内现量，量到的数只在本关有效，也别写进概念。
+<em>（形状：模型从头到尾是对的，死的是被当成世界常数的那个标度；一条概念连挨十几条反例，
+而它错的地方只有一个整数。）</em></p>
+<p><strong>同一个病的另一副面孔：拿 3 个以内的离散坐标点去外推第 4 个。</strong>
+典型形状是「每步递减的量」把这一课教两遍：先拿一个关卡的读数押一个常数，下一关一批反例；
+改拿两个关卡的读数押成「关卡号的函数」，再下一关整批全灭，挂在 NOTE 里的备选形式一起死。
+要点不在「选错了函数形状」，在于<strong>两个点能穿过无穷多条曲线，而关卡号只是坐标、不是机制</strong>：
+拿不出任何理由说明它为什么该跟关卡号走，就不该写成关卡号的函数。
+修法三条，缺一不可：
+(a) 找不到机制时，<strong>把表写成表</strong>，在 docstring 第一句就说「这是一张表，不是机制」，
+并写明拟合样本是哪几个点、考场是哪几个还没考过的点。表照样可判错，只是别冒充定律。
+(b) 同时去量那个<strong>可能才是真变量</strong>的东西。一个「每步扣 q」的读数，往往等价于
+「本关的预算 = 某个总量 / q」；预算才是机制那一侧的量，被渲染出来的那条读数只是它的显示。
+(c) <strong>去找机制这件事本身要预先算多重比较，否则你会捡回一个噪声当定律。</strong>
+扫几十个候选量去找「哪个能把观测到的分组分开」之前，先算一遍：
+单个量偶然对上的概率 × 候选量个数 = 期望假阳性数。
+分组点只有几个、特征又是二值时，单个量偶然对上的概率是百分之几量级，
+扫几十个量的期望假阳性就是好几个，至少中一个几乎是必然——
+<strong>意思是捡回来的那个「分开了」的量，绝大概率是搜出来的噪声。</strong>
+所以扫之前就得把这个数算出来写进结论：捡到 1 个不算发现，
+捡到 0 个反而是干净的负结果（说明整族量出不来这个划分，不是「漏了一个」）。
+附带一条便宜的自检：<strong>先确认那个量到底挂在哪个变量上</strong>——怀疑它其实按别的周期分组时，
+一句话就能排除：看各分组内部的取值集合是不是都只有一个元素。
+再两条同族的：拿一个特征去分类之前，先量它在全语料上为真的比例——接近 0 或 1 就什么都分不出；
+只有一个正例时，先把它和同类的差异逐维列全，再在全量同类事件上逐维打表，「同一帧里全部一致」不是证据。
+从一条样本反推出来的候选必然能解释那条样本：候选一次全列出来一起量，假阳率写在跑之前，
+死掉的候选连读数留在 docstring 里免得重猜；在全量上被否掉的量，不许挑催生它的那十几个样本
+重选门槛来复活，子集上只许用无自由参数的判据。</p>
+<p><strong>第三副面孔：宣布「X 不是 Y 的函数」时，你的分组签名就是你给「Y」下的定义。</strong>
+签名逐项对照<strong>册子里所有在册的状态量</strong>（位置、尺寸、朝向、各类读数、面板、关卡号……），
+漏掉的每一项都在替你伪造反例——两个不同的状态被算成同一个，撞出来的「不一致」其实是自己的签名糙。
+然后必报一个数：<strong>按最细签名分组后，重复的输入有几组。</strong> 那个数是 0 或 1 时，这个假设类
+在本语料上不可检验——正确写法是「不可检验」，不是「不是函数」；它告诉下一个人该去攒什么语料
+（故意把同一局面走两遍），而不是去试下一个公式。粗签名上的证伪仍有价值，但要标明证伪的是哪个粗形式。
+连带的实验设计课：立「Y 跟着 A 动」时，把 A 换成每个候选原因各算一遍——有第二个候选也全中，
+说明样本分不开它们，主语待定就写进 scope，等一个能把两者分开的局面。</p>
+</li>
+<li>
+<p><strong>概念的写法卫生，都是让「倒了之后能定位」</strong>：
+    (a) <strong>scope 文字与代码必须说同一件事</strong>。注释里写的判据若从没被代码用到，
+    那就是一个从未被检验的假设——<strong>它会以「已入册」的样子长期冒充已验证</strong>。
+    同病两条：写下的弃权分支要<strong>真的走得道</strong>——读数函数从不返回那个哨兵值时，那道防线是死代码，
+    给的是没被兑现过的安全感，审的时候问每个分支「有没有任何输入能走到这里」；
+    注释里的措辞也会变成代码——「离开」「消失」「翻过来」这类完成时动词，写进代码
+    就成了一步之内必须发生的无条件断言。</p>
+<p>(b) <strong>一条概念只许断言一件事</strong>。<code>A 且 B</code> 写在同一个 <code>assert_</code> 里，倒的时候
+结算只告诉你「这条 FALSE」，不告诉你倒的是 A 还是 B，你会连带把还活着的那一半一起改掉或撤掉。
+捆绑尤其危险的情形是 A 和 B 只有同一个样本支撑。
+合取式概念在 NOTE 里附一张真值表（各条件的取值组合、各自的条数与结论），空着的格要么补实验、
+要么写明「这一格没见证」——0 违反不等于被检验过。反过来，一条概念被反复打死在同一半上时，
+<strong>按挨打的缝拆开</strong>：反例落着的那一半单独立案，另一半以「从没挨过打」的身份重新入册，
+别让活的一半给死的陪葬。</p>
+<p>(c) <strong>主张写成蕴含式（A ⇒ B）时，检查器必须盖住 A 的每一种取值</strong>，不然
+「A 从没成立过」会被打成和「A 成立且 B 也成立」一样的 TRUE。这是 (a) 的算术版，
+但更阴：(a) 是判据没被用到，(c) 是判据用了、只是漏了一支，代码看着完全正常。
+<strong>强制结算查不出这个病</strong>——它只能考代码，考不出代码比主张弱；发现它只能靠回头读源码，
+或者靠「A 的新取值第一次出现」那一步去对开口名单（「静默失效要靠主动体检」那条的动作一）。
+<em>（形状：主张「见到 X ⇒ 处于状态 2」，而 <code>assert_</code> 只写了「状态 1 且见到 X ⇒ FALSE」。
+世界后来长出状态 3，X 在那一支里大量出现、按主张全是反例，按代码一条不响，白拿一路 TRUE。）</em>
+修法通常是把二值的那一头换成<strong>计数上界或等式</strong>：主张从「必须是某一个状态」改成
+「不超过状态编号所允许的个数」，后续新长出来的状态一次全盖住，旧的那一支自动含在里面。</p>
+<p>(d) <strong>主张里的全称量词，检查器必须用性质去认，不许枚举。</strong>「任何一种 X 都算」配上一个
+只列已知几样的过滤器，下一种 X 出现那天它不报错，只静静给出对你有利的错判。
+分辨法：把主张里每个「任何/所有/全部」圈出来，问代码靠什么认它——答案是「在列出的几样里」就是洞。
+守卫同理不许写「恰好 N 个」这类数出来的整数：<strong>数出来的数属于主张</strong>（写进 docstring 去挨打），
+<strong>不属于前提</strong>。否定式作用域（「落点不是 X 就不变」）在替所有没见过的东西担保，
+改成正面枚举（白名单），猜错的代价是弃权而不是反例。预注册一条自己的守卫永远吞成弃权的反例，
+等于没预注册。</p>
+<p>(e) <strong>写新概念之前，先把这个物件的名字在概念目录和撤册档案里各搜一遍。</strong>
+重复立册让同一件事被数两遍、覆盖虚高；确实已有一条，就给旧的升版，或写一条明确断言旧的
+不敢断言那部分的新概念，NOTE 写清分工。</p>
+<p>(f) <strong>主张和判定过程是两件事：主张不必改，判定可以整个换掉。</strong> 判定复杂度是可判错性的一部分——
+算不出来的主张在台架上等于没提；换算法的验收是旧语料上判决逐条不变。</p>
+<p>(g) <strong>「在某种情况下闭嘴」的守卫，自己也会失效——而且是往危险的那一边失效。</strong>
+凡是写成「碰到这种局面就别开口」的保护（弃权分支、抑制预测、跳过某类转移），
+都要再问一层：<strong>判断「是不是这种局面」这件事本身会不会失败？失败时默认落在哪一边？</strong>
+这类判断几乎总要先定位点什么，而定位失灵时它通常返回「不是那种局面」——
+于是保护静默解除，模型在它本该闭嘴的那一帧张口说了错话。
+修法是把默认翻过来：<strong>读不出来的时候当成「是那种局面」，宁可少说，不可说错。</strong>
+<em>（形状：守卫在九次同类场合里生效了八次，第九次那个被它依赖的定位恰好被别的东西挡住；
+失效那次看起来和「模型错了」一模一样，查半天才发现模型没错，是保护没开。）</em>
+还有一种往「永远不会被推翻」那边失效的：<strong>弃权条件只要引用了结论</strong>（读了 nxt，
+或「本来要判 FALSE 时才弃权」），这条概念在那一片就只能被确认，S 满分而心虚。
+弃权先只凭 prev 与动作算，再算判词；缩 scope 挑方案时，不许按「改掉的判词最少」挑。
+「不确定就闭嘴」按<strong>原因</strong>写，不按伴随现象写——按现象会封掉确定的案例，多出来的沉默到下游变成链式预测的错。</p>
+</li>
+</ol>
+<hr />
+<h2>你自己加的</h2>
+<p>（在这条线以下写。每条注明<strong>什么时候用</strong>和<strong>为什么</strong>——没有理由的方法，
+下次你不知道它还适不适用。写形状，不写出处，不写读数。）</p>
+<ol>
+<li>
+<p><strong>上游是会死、会抽风的：整段失效时先 RESET，再不行就换记分卡，都别停下叫人；重走旧路逐字走、逐位比。</strong>
+    <code>/api/cmd/*</code> 连续返回 <code>400 game not found</code>、退避多次全灭，而 <code>play.py games</code> 里那个
+    game_id 还在——说明死的是会话（guid/记分卡），不是局。<strong>这是装置的边界，不是模型的边界</strong>，
+    别写成「做不下去了」。
+    第一档 <code>act RESET</code>：重新取 guid，代价是过关数清零、地图回第一关。
+    第二档 <code>play.py recard</code>：<code>RESET</code> 自己也不通时，<strong>换卡而不是新开 run</strong>。
+    <code>RESET</code> 带的是 <code>card_id</code>，卡失效时上游照样报 <code>game &lt;id&gt; not found</code>——
+    <strong>错误信息指向局，真正死的是卡</strong>；判据是 <code>/api/games</code> 仍实时列着这个 game_id。
+    此时 <code>open</code> 也能救活会话，但它会建新 run、语料从 0 开始，<strong>所有概念的 N 一起归零</strong>——
+    而语料就是这个台架的分母，是产品本身，丢不得。<code>recard</code> 开新 scorecard、用新卡 RESET、
+    只更新 state 里的 card/guid，语料与概念册全留。</p>
+<p><strong>上游会话大约空闲 50 分钟就会被回收，卡一起没了；回来的路在语料里。</strong>
+典型形状：最后一批动作之后结算、改概念、等子 agent，一步没走，一小时就过去了。
+对上游来说，慢就是挂。规矩：
+(a) <strong>想的时间要超过半小时，先走一步再想</strong>——哪怕是一步已知无效的动作。
+(b) <strong>换卡归零后不要重新探索</strong>：沿记录走回断点，每步比帧，再接着做押好的那批。
+    回放不是探索，不产生新证据。
+(c) <strong>回放前先量再动</strong>：这条路多少步、单步耗时什么量级、中途几次装置动作，三个数拿到
+    再决定原样重放还是剪枝；原样重放的每一步都可核，剪过的路只能核终点。
+(d) <strong>「同起点同动作走出同一帧」值得押一次</strong>：装置按转移内容去重，重放的每条都撞已有记录、
+    去重分母一格不涨——它就是现成的重放核对器，不用自己写比对脚本。确定性被押中记下之后，
+    这个世界可回溯，对照实验的代价只是重放到分岔点。
+<em>（死亡时刻从上游查不到——只能从自己的语料里算空闲时长。）</em>
+(e) <strong>离线活排在换卡之前，不是之间。</strong> 离线分析（穷举、读产物、算摆法）是唯一完全不碰世界的活，
+    所以天然是最长的一段空闲；「以后记得续命」这种散文连着几次没拦住。顺序倒过来：换卡之前把分析、搜解、
+    动作串全部算好并落盘可复算，换卡之后只发动作；中途真要算，先发一步再算。
+    本地算出来的空闲倒计时不是远端租约，退化方向永远是「显示还有、实际没了」；
+    会话死后同一个重开键可能从「重开本关」退化成「整局归零」——<code>--help</code> 说不清而又会碰世界的子命令，不执行。
+(f) <strong>重走一条已知通关路：逐字重走某一次真实遍历，别在帧图上求最短路。</strong> 帧只是世界的一扇窗，
+    视口相同、视口外不同的两个态在帧图上是同一个结点，BFS 会把两条世界线接在一起；
+    最短路比原路少几步时计步条一分岔，此后每步都是新 tid，「去重语料不涨」这条核对也跟着失效。
+    只在关卡入口帧上对齐（换关把世界态重置，是天然锚点）；认路撞到多个匹配时接<strong>最后一个</strong>，
+    接第一个会让指针回退、整段回文重走，而内部一致性检查全部给它背书。
+    判据是批后逐位比帧（除计数条外全等）+ 语料 universe 不涨，不是模型的逐格预测——
+    生成器在遮挡处不敢填的残影会让严格模式误停，而世界一格没错。批界压在关卡边界上，
+    分岔了重来最多一关；核对通过的那一段不能外推到下一关。</p>
+<p><strong>上游间歇性抽风时，逐步发 + 每步重试，并且一律放后台</strong>：整批发一旦
+中途失败，前面几条已经真的执行了，重发整批会把它们再走一遍——世界状态就错了。
+改成外层一步一个、每步自己重试，失败最多丢一步。<strong>发动作的命令不分长短，一律放后台</strong>：
+决定耗时的不是步数，是有没有哪一步撞上重试退避——那个不可预知，一步也能跑满上限。
+按步数设阈值等于要在每次调用前做一次预测，而预测错的代价是整段白等、还可能被杀在落盘中途。
+<em>（形状：给一个不可预知的量设阈值判据，等于把「记得判断」塞回每一次调用；改成无条件规则，规则才不用记。）</em></p>
+<p><strong>命令的形态本身也有两处坑</strong>：豁免过的闸门命令裸发，不加管道、不套命令替换——
+豁免按命令字面匹配，管道既会把红读成绿，也让白名单失配；长散文（押注、立案、判据）
+不当命令行参数传，正文里的反引号和美元符会被 shell 静默吃掉一段而退出码照样是 0——
+发完立刻回读盘上那份预注册件的关键句，已被吃了就按只追加纪律记事故、补一份更正件，
+两条都留在账上。</p>
+<p><strong>重试还有一种更阴的后果：一条转移记录未必等于一次世界步。</strong> 请求超时/断连之后的重发，
+可能上一次其实已经到了世界手里——于是世界执行了两次，而账上只落了一条转移，
+它的 prev 和 next 中间隔着两步。这种记录会同时打倒一批本来正确的概念，
+而它们错的地方是「这不是一次世界步」，不是「世界不是这样」。
+<strong>识别签名：不是「玩家走远了」，而是所有东西都整整齐齐走了同样多步</strong>——
+位移恰好是单步的整数倍，且把别的会动的东西按各自规则推同样多步，正好落到这一帧上。
+世界真要一步走两格，别的东西只会走一格，签名就不成立。
+处置：给受影响的概念加一道以<strong>这个签名</strong>为条件的弃权（别以「位移变大」为条件，
+那是在给自己开后门），把 tid 记进依据，事故照实进流水，装置本身留给维护会话。
+<em>（形状：一条概念活了几百条转移，忽然在一条上判错，而那一条的每一个可动物件都恰好多走了一倍。）</em></p>
+</li>
+<li>
+<p><strong>规则看不出来时，先钉死「不可能的部分」，再用「同一个物件连触两次」区分固定与有状态；
+    抓到状态流转之后，轨道长度会泄露它是什么。</strong>
+    一个物件的选择规则有很多种可能时，别急着猜是哪一种——先写一条排除性概念
+    （形如「这一组从不动」），可能性立刻塌掉一大半，而且这条本身就是可判错的产出。
+    然后不要去找新物件，就地把同一个物件再触发一次：如果两次结果不同，
+    「按关卡固定」「按物件形状决定」这类静态解释一次全废，只剩有状态的解释。
+    <em>（形状：几个样本猜不出规则，一条排除性概念把可能性压到两种；再触发同一个点一次，
+    第二次换了另一种结果，一步否掉全部静态解释。总共两步。）</em></p>
+<p><strong>会动的东西先分两类：按自己的节拍走的，和被你触发的。分不清就先设计一个能分开它们的实验，
+别边走边猜。</strong> 第一反应总是「它在追我」，而实际上两类都常见：一类永远不动，只在你踏进它某个
+特定的判定格时才出手；另一类完全不理你，自顾自按固定方向走、到头掉头。把第二类当成第一类，
+规划器算出来的路会在某一步和它撞个正着，而且是算术层面撞上，没有任何东西会先报错。
+两个实验各四步左右，跑完就分清：
+(a) <strong>远处踏步</strong>：站在离它很远处来回走几步。它动了 → 它按自己的节拍走（是步数的函数）；
+    它不动 → 它是被触发的。
+(b) <strong>同一个位置，两种走法</strong>：走到同一格，一次朝它走、一次朝反方向走。只有朝它走时它才动，
+    说明触发条件里有「我的落点」这一项；两次都不动，说明触发条件还要更近或另有其事。
+两个实验都要<strong>先把两种读法各写成一句押注再走</strong>——它们的区别往往只体现在一步上，事后看帧分不清。
+分清之后进规划器的形态也不同：自走的那类是<strong>动态的墙</strong>（它下一步会在哪一格，那格这一步不能去），
+要给状态加相位维；被触发的那类是<strong>静态的墙</strong>（它盯的那格永远不能去），不用加维。
+还有第三个量要单独问：<strong>世界是被「动作次数」推进的，还是被「我真的挪了位置的次数」推进的。</strong>
+这两者在绝大多数步上无法区分，只在「按了一个不生效的动作」那一步分开——那一步不会自己来，
+要专门去走。答案若是后者，撞墙就不是「等一拍」，而是一个只花预算、不推进任何东西的空动作。</p>
+<p><strong>连触两次只是开头。</strong> 状态经 m 步回到原点，轨道长度 m 就是变换的签名。
+抓到一个群作用 R 之后，对付另一个还没解出来的变换 f，不要继续硬解它的闭式：
+先验 <code>f(Rx) = R f(x)</code>。这条若成立，<strong>k 条实测立刻变成 4k 条表</strong>，
+而且推出来的表项是从没观测过的——正好拿去做现场考试。
+<strong>但扩表本身不是证据</strong>：条目之间「0 冲突」多半是构造上必然，真正的经验内容只有那几次
+<strong>两条种子的旋转像撞到同一个 key 还恰好取值相同</strong>，报这个次数，不报表的大小。
+<em>（形状：NOTE 里写「整张表 0 冲突」，其中一条种子本身就等于另一条的旋转像——
+交换律实际只有一个数据点，而且是它生出假设、不是它检验假设。）</em></p>
+<p><strong>间歇性行为的条件不靠猜，靠切表</strong>：把这类动作的每次触发排成一行，手上已能算的每个量各占一列，
+按「这次生效了吗」分两组，逐列找「两组取值无交集」的那一列。切开的列是候选条件不是结论
+（分母小时任何列都容易碰巧切开，NOTE 写明分母）；切不开的列也是产出，记进 NOTE 免得重排。
+列要包含装置给的每个元数据字段，并同时按动作前的值和动作后的值各分组一次——只按一侧分，整张表的主语会错；
+帧特征全分不开时，加一列「本段第几次」。
+触发条件是「状态」还是「变化」要专门对照走：两者在大多数步上判定相同，
+只在「有东西停在机关上按住不放」的那几步分开——那几步不会自己来，是对照组，要去走。</p>
+<p><strong>盘上东西太多不知看哪时，按出现次数排序</strong>：全语料数每类物件出现的次数，
+上千次的是布景，个位数的是机制候选——一次只读扫描不做假设，就能在完全不知道看哪时给你一张地图。
+<strong>看起来不可逆的资源先花几步按到底</strong>，看它会不会绕回来：是循环的，它既是便宜探针又是干净起手点；
+分得清可逆和不可逆之后，先走可逆的，直到可逆那类问不出新东西。
+<strong>给一个物件下判定前，先数这个世界有几类动作能作用到它</strong>，再数手上有几类的读数：
+点它没反应是关于「点」的证据，撞不进去是关于「走」的证据，不能互相顶替。
+分出一族之后，主动找<strong>第二条完全不同的判法</strong>切在同一条线上——两条独立路径认出同一条界线，
+比再加同类样本硬得多。</p>
+</li>
+<li>
+<p><strong>绕不过去的时候，把失败本身当实验，但要先押注</strong>：预算差几步、绕路也补不回来时，
+    不要硬凑，也不要停下——先写一条关于「失败会长什么样」的可反驳概念，再走进去。
+    这样一次注定的失败至少检验了一条从没被检验过的断言（「主动证伪」那条要的就是这个）。
+    押注必须写在动作之前，事后补写等于对着答案填空。</p>
+<p><strong>押注写法规程，每一条都换过代价</strong>：
+· 押「仪器会读出什么」，不押「世界是什么样」——只有前者可判。想押世界，改写成「仪器该读出什么」。
+· 写完把所有排除句（「不会」「不可能」「至少」）和枚举出的可能结局放一起对读：
+  <strong>区间内每格可通行，推不出「不会停在区间内」——落点由区间外那一格决定。</strong>
+  两句能同时写进一份押注而不自知；撞车的那句就是错的，当场改，结算只对帧、不对你的句子。
+· 落空形态预先写：除了押会发生什么，再写一句「这条若落空，最可能因为什么、那意味着哪条要撤」。
+  已经推理到某个合取项要死时，把它写成预注册反例；拆下来的那一半不许消失。
+· 把「这条概念的区分力押在接下来哪个动作上」写死在它的 NOTE 里——预先写死押在哪一步，
+  是把自己将来的措辞空间提前封掉；不写，兑现时你会说早知道，落空时你会说本来只是猜。
+· 有两个互相独立的未知时，找一个只让一种组合产生可观测变化的输入，一步钉住两个，别各花一步。
+· 押聚合数先分开押分子和分母：分子归这一批动作管，分母是全局共享的、装置和你都能动；
+  同一批里不许既押比值又改分子侧的生成器，区间会无从裁决。
+· 分岔列完，选支的理由必须是一条能指到具体转移的观察，不能是「设计意图」「对称性」这类论证；
+  拿不出来就承认均等分岔，别指定主押。押之前问「册子里有没有概念正替这一步说话」，有就照它押。</p>
+<p><strong>预注册判据的卫生</strong>：
+· 判据落空，作废的是方法不是判据——重写探针、另立新判据、旧原文留着不动。
+  「把问题问对」和「把门槛放宽」在改判据这个动作上完全同形，分开它们只有一句话：
+  <strong>改完之后，有没有任何一条原本「必须满足」的观测变成「不用管」？</strong> 有，就是放宽，不管理由多正当。
+· 跑之前两向自问：假设这次改动完全正确，每条判据会是什么读数？（正确的改动也过不了的判据
+  是写错了，不是严格。）假设这次改动完全没用，哪几条仍会通过？（那些是白写的，不区分好坏。）
+· 判据被推翻之后只有三个出口：撤册、推倒重写并显式作废此前全部读数、量一遍后判定不改并把读数落盘。
+  「先放着回头再说」不在选项里——悬着的账在文件里永远像刚量完一样新。
+  兑现任何挂账，第一件事是重量：<strong>结论会随语料长大而失效，文件里那段字一个标点不会变</strong>，
+  当时的分母是唯一会过期的部分，留读数的挂账连分母一起留。
+· 换尺子可以，但要在跑之前写死为什么换、两把尺子的判决都报、这次之后不再挪第三把。
+· 先跑基线，基线可能直接推翻诊断；自检挑<strong>只由这一处改动负责</strong>的那个量——一批改了两处，
+  拿总账去核其中一处，对上是运气、对不上无解，要造一个只差一处的对照。
+· 门槛落笔前写出上次实测值和物理下界，落在下界以下是废票；事件零次的「成立」写「未考」，
+  不许记成成立。两条判据是四格，「都输」「机制不成立而结果成立」这类格子要事先写好动作，漏写就只能临场决定。</p>
+</li>
+<li>
+<p><strong>「到过」不等于「测到」——N 不涨有四种原因，报任何条数之前先想清楚是哪一种。</strong>
+    这是整本册子里最容易自欺的地方：世界按你押的样子动了，你以为验证了，装置一分不给，
+    而<strong>装置是对的</strong>。</p>
+<p><strong>(a) 考卷会随一局变长而变薄。</strong> <code>settle</code> 说 0 反例，永远不等于这条概念站得住。
+<strong>[装置已接管，见 ledger/CRITERIA.md R1]</strong> 全局剔除已取消，held-out 只减该概念自己的
+EVIDENCE，污染改为 <code>seen</code> 列显式计数。要看的是 <strong><code>seen</code> 列</strong>——seen 大而 N 小的概念，
+它的「已验证」大半来自看过答案的题。
+新概念入册后仍要让一双没参与写它的眼睛在 EVIDENCE 上重跑一遍（派 auditor、写个独立脚本、
+或交给用户，选哪个看当下的代价——要的是「不自己批准自己」，不是「必须派子 agent」），
+并问定位函数返回 None 的比例（后者是在查这条概念是不是靠静默弃权撑分，
+见「静默失效不会显红」那条）。
+<em>（形状：一条概念在 settle 的 held-out 上 0 反例，外人拿全量语料一跑就是好几条 FALSE。
+差别不在概念，在考卷。）</em></p>
+<p><strong>(b) 走老路线根本不产生新考题。</strong> <code>tid</code> 是 <code>(prev, action, next)</code> 的哈希，
+同一关、同一格、同一动作、prev 帧逐格相同时，tid 与上一个 run 那条<strong>完全相同</strong>，
+已经躺在某条概念的 EVIDENCE 里，held-out 一格不长。
+<em>（极端形状：一整批步子走通一关、逐项押注全部兑现，而这些转移全部在另一个 run 里走过、
+几乎条条已在 EVIDENCE 里，去重转移数一条没涨。一次完美的长串预测，贡献为 0。
+原因是结构性的：</em><em>最优路线是个不动点</em><em>，谁打得好谁都会走上它，于是中后期「打得好」
+和「产生新考题」互相排斥。）</em>
+推论一：<strong>要给一条概念增加考题，必须走进一个新的世界状态</strong>——换个方向进同一个机关、
+换个顺序凑同一个条件、或者去从没去过的格子。沿最优路线复现通关是外部效度，对这个台架量的东西贡献为零。
+推论二：<strong>过了前几关，路线选择要按新 tid 产出排序，不按步数最短排序</strong>；
+最短路只在「必须省预算才活得下来」时才是对的目标。
+推论三，形式化那一侧同一个病：只拿被认证的最优路线做逐帧核对，模型在撞墙、按住进门这些
+路线从不走的分支上写错也不会红——模型突变体大半只在未认证段红。未认证段也要做成逐帧核对。
+（一局里撞上过。）</p>
+<p><strong>(c) 新鲜度检查本身有个默认口径的坑：EVIDENCE 是跨 run 的，held-out 是按 run 算的。</strong>
+只查本 run 的 <code>transitions.jsonl</code> 会全绿——那里面它们确实是新行——但一条在别的 run 走过
+并被抄进 EVIDENCE 的转移，重走一遍对<strong>那条概念</strong>仍是零分。
+<em>（形状：绕一大圈专程去触发一次事件，那条概念的 N 一动不动；整批拿去比，全部在别的 run 出现过。
+检查只覆盖本 run，所以它报的「全新」是真的，也是没用的。）</em>
+推论：<strong>做定向实验之前，拿这条路线的 tid 去比全部 run 的语料 + 全册 EVIDENCE</strong>，别只比本 run。</p>
+<p><strong>(d) 一条概念自己的 EVIDENCE 会吃掉自己的考场。</strong> held_out = 全部转移 − 它自己的 EVIDENCE。
+<em>（形状：押一条概念连开口好几次、N 该跟着涨，实测只涨一两条。直接调它的 <code>assert_</code> 逐步验，
+每一步</em><em>确实全判 TRUE</em><em>——不是它没说话，是它说的话不算数：它的 EVIDENCE 有近半正落在这一段语料里。）</em>
+所以 EVIDENCE 只写<strong>真正推出主张的那几条</strong>（含把它逼成 iff 的那条反面），其余同类转移留给考场；
+列到「全部支持它的转移」等于入册那一刻把考卷清空。概念只见过一次的机制，把唯一那条放进 EVIDENCE
+是正当的，但 NOTE 要写明「正向考场 n=0」——这类概念常靠平凡的反向命题白拿高分，
+高 C 全来自不要钱的那一侧；入册后把它判 TRUE 的转移按主张两侧分两堆数，
+NOTE 写「正向 n=?、反向 n=?」，别只写一个 N。下一次同类事件发生，<strong>新样本留在考场，
+别补进 EVIDENCE</strong>——依据够了，再补是第二次收走自己的考卷。
+更硬的一条：<strong>「加进 EVIDENCE」是代价不是验收</strong>——装置核对的是那条 tid 在不在列表里，
+不核这条概念在它自己的立论证据上判不判对；入册前自己在 EVIDENCE 上把 <code>assert_</code> 跑一遍，
+判 FALSE 就是入册失败，现在没有闸替你做这件事。EVIDENCE 里的 tid 一律从探针输出复制，
+真的和编的肉眼分不出。
+诊断法：概念该开口而 N 不动时，<strong>先按 CRITERIA 自己重算一遍 N</strong>——独立算出来若与 settle 一致，
+就立刻排除了「装置读数不可信」这个更吓人的假设。
+<strong>两个独立算法算出同一个数，比任何一个数本身更值钱。</strong>
+与 (b) 的补救方式不同：重复 tid 靠错开相位，这个只能去走 <strong>EVIDENCE 没覆盖到的</strong>那部分状态空间。</p>
+<p><strong>(e) 聚合读数掉下去，先查分母里混没混进一类本来就不该被解释的东西。</strong>
+覆盖率、完成度这类「解释了多少」的数，分母里常年混着一小撮<strong>原理上就预测不了</strong>的样本
+（整屏重画的那一帧、观测机制换掉的那一帧）。它们数量少但体量巨大，
+于是这个数会随着局面推进一路往下掉，看上去像册子在退步，而按类拆开之后那一栏其实一直在涨。
+规矩：<strong>这类数一律按「能解释的类 / 原理上不能解释的类」分开报，决策只看前一栏</strong>；
+后一栏的 0 不是欠账，是分类错误——除非你真打算写一条概念去预测那一类，而那通常不可能。
+这一条与「报条数先想清楚是哪一种」同源：<strong>不拆分母的聚合数，报出来的是分母的成分，不是你的进展。</strong></p>
+<p><strong>设计「考场」的操作规矩</strong>（低 C 的概念要专门去考）：
+· 把候选起点的关键量拿去语料里比对，起点全同的一步必然产出重复 tid；
+  要推动 N，就得让起点在<strong>任意一个</strong>量上和所有先例不同，哪怕只差一点点。
+· <strong>凡是路线里含「会把状态拉回某个固定值」的事件（补满、重置、复活），
+  去重预检必须放在那个事件之后重算相位</strong>——它会把你辛苦错开的相位一笔勾销。
+  <em>（形状：一批步子只涨了一半的新 tid；事件之前全新，之后全是旧 run 的重复。）</em>
+· <strong>押注里凡是出现「universe 会涨 N」，必须先跑去重预检再写。</strong>
+  押一个能落空的数是对的，凭印象押一个能落空的数不是。
+· <strong>预检脚本里，去重不许排在过滤前面。</strong> 去重是全局操作、过滤是局部操作，
+  顺序反了，被过滤掉的那一份会<strong>连坐掉它在别处的所有副本</strong>，整类样本静默消失。
+  <em>（形状：预检报的重复数远小于实测。死因是索引构建的两行代码顺序——
+  先查 tid 在不在、后按关卡过滤，而有的老 run 缺关卡字段。）</em>
+  修法：<strong>索引能不过滤就不过滤</strong>——键本身已经足够 specific，过滤只会多一处出错的地方。
+· <strong>工具报错过两次就必须回测</strong>：拿一批已知答案的数据重跑，报不出已知答案就别再拿它写押注。
+  回测同时会暴露键碰撞，所以预检给的是「预计」不是「保证」，押注里要照这个措辞写。</p>
+<p><strong>完成度是一张会自己说谎的账，报它必须连口径。</strong> 它的分母是全语料的帧差格，
+所以走一批已经解释得了的干净步它就涨——不算作假，但把涨幅当「今天理解得更多」是自欺；
+反过来，一条转移收进某条概念的 EVIDENCE 会同时买走它的分母和分子，应声而跌不是退步，是交学费。
+挑步别拿它当指北针（它奖励重复已知），用残差和空槽挑，把它当事后的账。
+<strong>S 要连覆盖一起读：低覆盖加满分是「该去扩 scope」的信号，不是「可以信」的信号</strong>；
+双条件按「贵的那一半兑现过几次」读，不按 TRUE 总条数——便宜那半每步免费兑现，
+会把分数抬满而贵的那半没付过钱。零反例还有一种无害的解释要说在前面：
+<strong>世界还没走到那个组合</strong>（两道挡板互相遮着，漏洞要两个条件同时成立才现形），
+所以「没判过错」有两种读法：它对，或者它没开过口。复盘一条概念为什么活着，不能只数 TRUE，
+要挑「本该出事却没出事」的逐条看——互相抵消的错误只藏在那里。
+两条便宜的账：<strong>花预算做实验之前，先把「我想试试 X」写成一句对语料的查询</strong>——
+这类事发生过几次、结果如何，查完是零次才值得花动作（被会动的东西挡住的局面，
+答案通常就在它还没到的那几帧里）；<strong>先在全语料上验证过才决定入册的概念，那些 TRUE 不是考卷</strong>——
+装置分不出先看后看，只能由入册的人在 NOTE 声明「分数只从声明之后的新转移起算」，
+并在押注里点名它第一次真考试是哪几步。每条要进概念、进押注、进规划的世界事实必须指得出出处
+（哪个脚本、哪次结算、哪条转移）；指不出来先写成对照表去判，「我记得量过」不是出处。</p>
+<p><strong>报数口径：写进概念 NOTE 的分子分母一律用 settle 的口径（去重后）。</strong>
+装置按 tid 去重，而拿脚本扫文件时数的是<strong>行</strong>，两者能差出很远。
+一次性脚本要么自己先去重，要么在数字后面明写「未去重」。
+这种数字总是出现在结论旁边，审计员一复算就是硬错，还会顺带让旁边那个真结论也变得可疑。
+依赖前后顺序的统计（连续几次、段内计数、往回数几步）一律按 run 内的文件顺序扫：同一局的多个 run
+各自从小步号起数，并起来按步号排序会得到两个 run 的行交替排列，每一行都合法、肉眼扫过去完全正常；
+切完段随手打一条最长段的逐行明细。去重后的正例数才是样本厚度——重放会把几次放大成上百行。</p>
+</li>
+<li>
+<p><strong>审计员也是生成者，它的事实主张同样不能自己批准自己。</strong>
+    「派外人重跑」解决的是「不能对着答案给自己打分」，它<strong>不</strong>解决「外人也会看错」。
+    审计报告里凡是形如「这一步在第几关 / 这个现象跟 X 无关 / 这句因果解释被证伪」的话，
+    都是可以用一个客观量当场复核的<strong>事实主张</strong>——在写进只追加的账本之前必须复核，
+    因为账本改不回来，<strong>一条错的「更正」会比原来的错误活得更久</strong>。
+    <em>（形状：审计员声称某句因果解释被两个样本证伪，理由是「这两步不在那个 scope 里」；
+    而它自己在同一份报告里把那两步标成了那个 scope——报告内部就自相矛盾。
+    复核只花一个脚本：那两步确实在里面，「更正」被驳回，原文反而被证实；
+    而同一份报告里的其余几条复核后全部成立、全部接受。）</em>
+    <strong>要点不是「别信审计员」，是「接受与驳回都要有各自的数字」</strong>——
+    每一条单独过一遍，不能因为整体靠谱就整体照抄，也不能因为有一条错就整体不理。</p>
+<p><strong>同一条的另一半：审查者和被审者共用同一个词汇函数时，那个函数本身的错会同时骗过两边。</strong>
+<em>（形状：两边对同一件事给出完全相反的结论，而审计员用的判据是共享词汇里的一个置位标志——
+那个标志恰恰在两种情形下都会被置位，判据是循环的，用的还是被审那边同一个函数。
+拆开只能靠换一族证据：改用坐标去问「玩家块有没有盖住那一格」，在多个 run 上把全部相关转移跑一遍，
+读数一边倒，争议当场结束。）</em>
+推论：<strong>争的是某个词汇函数的语义时，就不能让审计员用那个函数</strong>——
+要么在 prompt 里点名禁用，要么先自问「有没有第二族证据能独立判这件事」。</p>
+<p><strong>借来的眼睛要收两层，也按它的视野边界分堆。</strong> 数字和归因分开验收——数字用装置的口径复跑就能确认，
+归因要拿独立工具核（两个原因同一步发生时，它很容易把甲的结果记在乙名下，而所有数字都对）。
+它的盲点和洞察来自同一个原因：<strong>给它的输入比你手上的窄</strong>——边界外必然误报，边界内必然比你干净，
+两件事都能提前算出来，派活时写进 prompt，收活时按边界分堆，<strong>不能只收让自己舒服的那一半</strong>。
+验收叙述性产物，最便宜的抓手是它内部的不一致，不是每句话的真假：让它自报清点数
+（读了几个文件、覆盖几条），数字对不上不必看内容就该退回；抓到缺陷附上可复现的核对方法退回，
+<strong>不替它改</strong>。派活的产物路径带轮次，一轮一文件只准新建；收活先确认文件是脚本写的，不是手工拼的。
+一份「零反例」的审计几乎不含信息——真正的产出是它顺手挖出的<strong>未声明前提</strong>：
+问「这条判据依赖什么，语料里那东西出现过几次、有没有和它开口的步重合过」。
+它报上来的每个「当时的 0」都有有效期，只到语料下一次长出新形状为止；
+范围错（拿被审对象自己的定义域去审它）和样本还没长出来是两种诊断，混着说既冤枉人也让人误信审计。
+分数落卡之后发现的错：登记随档案，不给概念涨版本号——判断标准是
+「这次编辑会不会让档案里的东西和产生数字的东西分岔」；会让就登记，不会才进版本。
+借来的眼睛报「装置架构冲突」「这里做不到」时，自己跑一次量具，从第一条错误读起（落盘日志可能只留尾部）；
+派活时把实测和「此刻的读法」分开列，前提一旦翻了，主动作废依赖它的那一段。</p>
+<p><strong>外面递进来的世界事实，价值不在真假，在于量具量不量得到。</strong> 把它写成概念、在全量语料上打四格：
+能改变判决的，是可判错的依据；在整份语料上不改变任何一条判决的（先做阳性对照，确认它真被触发过，
+才能说「没区分力」而不是「没跑到」），只能登记成「待判」、当搜索里的前瞻，绝不许进任何论证的前提——
+为真但量不到的断言，是进了册子却没有闸把得住的地基。（一局里撞上过。）</p>
+<p><strong>给借来的眼睛一张不会变的帧</strong>：<code>play.py act</code> 每走一步就覆写 <code>runs/&lt;run&gt;/frame.json</code>，
+而 subagent 读一张帧要几十秒到几分钟。这中间只要发了动作，它读到的就是另一个局面——
+<strong>而它自己多半察觉不到</strong>，会把两帧的读数拼进同一份报告，那份报告再以「实测」的样子进主上下文。
+先把 <code>frame.json</code> 复制成 <code>frame.&lt;步数&gt;.json</code>，把这个路径交给它并写明「这是第 N 步的快照」；
+派完就不要再发动作，除非已经冻过。</p>
+</li>
+<li>
+<p><strong>改 scope 的两个方向各有一个陷阱，方向相反，都会让概念冒充已验证。</strong></p>
+<p><strong>收窄之后</strong>：收窄是合法动作，但它同时把 N 压小；N 小到个位数时，<strong>错的机制也能拿满分</strong>。
+触发信号很具体：<strong>改版理由里写着「某某情形不算」，并且改完 N 只剩个位数</strong>。
+这时不要庆祝分数，要去问「有没有一个更简单的东西同时管住两边」。
+<em>（形状：几条概念各自满分、N 却都是个位数，活着只因为 scope 被收窄、剩下的样本恰好近似对称。
+真相是一条统一得多的规则，通吃被排除的那些样本，几条一起撤册换成一条。）</em></p>
+<p><strong>放宽之后</strong>：断言强度必须跟着降回证据支持的那一档——两头同时往外扩，必倒。
+从邻居概念那里把更强的谓词原样搬过来，是最容易犯又最难自查的错，
+因为<strong>在邻居那里它是对的</strong>：邻居的窄 scope 恰好把反例挡在外面。
+动手前问一句：<strong>这张证据表当初是用哪个谓词统计的？</strong> 断言不许比它更强。
+<em>（形状：scope 放宽的同时把邻居那个更强的谓词一起抄了过来，而证据表查的是弱的那个。
+一入册整批反例，全部落在被邻居 scope 挡掉的那类事件上；降回弱谓词后反例归零。）</em></p>
+<p><strong>收进否定支、放宽措辞、删继承条件，各有一道关</strong>：
+· 「触发不发生就弃权」保住了单一断言，但<strong>触发的否定侧才是判据的鉴别力所在</strong>——
+  配错对的版本、把变化写成状态的版本，恰恰在「看起来该触发、其实不该」的步上垮。
+  收否定支时问一句：这一支判的每一步还在这条概念的题目里吗？前件物件不在场的步别收，
+  那是在重测别人测过的东西，N 虚胖。
+· 概念被打死时的顺序：先问措辞能不能放宽到它真正抓住的那一层（变强），
+  再问能不能加一条<strong>本身可判错</strong>的条件当挡板（变窄但仍可判，挡板自己下海当概念、有自己的分数），
+  都不行才撤。单纯「遇到这种情况弃权」的挡板每次让闸闭嘴，也每次让概念弱一点，弱到只剩恒真。
+· 一条律连死几版，别再劈一档——把继承来的每个前置条件轮流删掉重量一遍。
+  <strong>继承的条件最贵</strong>：它和真条件在旧语料上同义所以永远不挨反例，还默默把反证样本挡在语料外。
+  修完反例的验收是<strong>全语料上的错格、漏格两个数</strong>，不是这条反例过没过——局部特例改成通则，
+  会静默改坏别的转移。一条概念挨反例时先问「错的是结构还是属性」：结构错了改主张；
+  只是属性（颜色、朝向、编号）错了，把属性划出去单写一条，原主张不缩，它继续在每一步受检。
+· 变宽比收窄更需要预注册：拆掉旧挡板后一大批原本沉默的转移开口且几乎全真，看着像大胜，
+  其中绝大多数是平凡真。判据里单列一条：<strong>非平凡实例有几条</strong>（前件真成立且结论兑现的），
+  按新覆盖的那一侧分开数。
+· 「这条概念在这里结构性不可判」这句话，先扣掉自己能改的那部分环境再写：
+  动作集、物件固有后果、观测窗口是世界给定的；我站在哪、哪些格现在是什么、造没造过那种构型，
+  是当前恰好如此。只要世界提供任何改变环境的手段，「能不能造一个」就是比「什么时候会撞上」
+  正确的问法。
+· <strong>缩 scope 只切不补，等于把盲区洗成满分</strong>：切掉一片，就在那片上补一条可判错的概念
+  （哪怕只是「这里什么都没发生」）。缩之前先数会让它闭嘴几条，看完全部反例、按病因分堆；
+  加排除之前在反例上打印中间量，NOTE 里的死因写到是哪个 if 返回的 FALSE，再问排除条件的射程——
+  射程盖满一个局面类型，等于让概念在那里退休。scope 排除越加越多、C 越来越低时，
+  预注册一个全由读数构成的死期，别再写下一道闸。
+· 因反例放宽界之后，报新旧界各筛掉几条：新界一条都不筛，就成了包络拟合、已不可证伪。
+  放宽的动机若是「否则这关无解」，验收必须在已知正例和已知负例上一起校准——这个动机会把错推向误报成功。
+· 收窄的前提优先选自己能改的量（位置、朝向、相对关系），别选场景差异：后者只止血、不解释。
+  新局面里全册同时判 FALSE 时，缩 scope 之前先做名词替换：主语换成「真正跟着动的那一团」重跑，
+  FALSE 原地变 TRUE 就是词汇的锅，不许缩。</p>
+</li>
+<li>
+<p><strong>数量式判据会被「遮挡」和「物件会动」从两个方向骗过；而无论哪种沉默，settle 都不报——体检靠主动动作。</strong>
+    这是本册被同一件事咬得最多的一条，几种面孔：</p>
+<p><strong>① 数量没变少 ≠ 事件没发生。</strong>「这一步吃掉了 X」最省事的判据是「某色格数正好少了 k」。
+物件被别的东西完全盖住，数量不变；物件同帧重生，数量也不变；遮挡挪位把别处的同类揭出来，
+真的少了也会被填平。这些情况闸都返回「没发生」，概念<strong>沉默</strong>——它不是被推翻，是压根没上场，
+而 S 只统计上过场的那些。
+<em>（形状：用「某色恰好少 k 格」认事件，而连续几帧里玩家和目标同向同速移动、目标躲在玩家块身下，
+该色计数恒定，闸一次没触发。做出过多次成功现场预测的概念，恰恰在验证它的那几步上一句话没说。）</em></p>
+<p><strong>② 数量变少 ≠ 事件发生了。</strong> 反方向同样成立，而且这次概念不沉默，它<strong>判 FALSE</strong>：
+触发器响了，但断言描述的那件事根本没发生。
+<em>（形状：一开口就死，那一段里消失的目标色格几乎全是被别的颜色盖过去的，并不是真事件。）</em>
+修法<strong>不是</strong>换成「盯住格子变成了什么」——照这个初稿处方改过的概念，量出来是错的：
+一条多响一大批、一条漏掉一批真事件，因为世界里可能有<strong>会动的同色物体</strong>，
+它们一动就有格子「变成了别的颜色」，而事件根本没发生。
+正确修法是给计数加一道<strong>遮挡闸</strong>：这一步存在 <code>某色 ↔ 遮挡色</code> 的互换就把它划出 scope，计数差不可信。
+自检不是「我在数东西还是在看东西变成了什么」，而是：<strong>「我数的这种颜色，这一步会不会被遮挡动过？」</strong></p>
+<p><strong>③ 定位式判据也一样中招，而且遮挡者常常是玩家自己——遮住的恰好是唯一该说话的地方。</strong>
+「找到那个框」这类判据，在玩家站到框门口时必然失败：玩家的身体压住框的外圈。
+可玩家会站到门口，正是因为那里要发生这条概念管的那件事。
+于是失效不是随机撒在语料里，而是<strong>系统性地集中在关键位置</strong>。
+定位函数一律要有「把玩家自己抹掉再找」的遮罩版，写的时候就该有，不是出了事再补。</p>
+<p><strong>④ scope 里的每一个「在哪」，都是一个隐藏的静止性假设。</strong> X 一动，概念不是判错，是闭嘴。
+<em>（形状：同一类事反复出现，每次都表现为「该说话的那一步 N 一格没涨」——
+触发要求「新站那格在 prev 里就是 X」，而 X 是和玩家同一步移进来的；
+还有一种：被拿来划 scope 的锚点自己从场上没了，而关卡没变，
+于是所有拿「场上有几个」划 scope 的概念，判定含义在那一步前后无声改变。）</em>
+诊断法很便宜：<strong>一条概念该开口却 N 不动时，第一件事不是读它的断言，
+是去看它 scope 里引用的那个东西在这两帧之间自己动没动。</strong>
+修法两条选一：把触发从「prev 里那格是 X」改成「nxt 里那格是 X，或者 X 不在了」；
+或者补一支以<strong>结果</strong>为触发的分支（见「例外条款写并集」那条）。
+识别术：会动的物件常常长得很像，用<strong>格数</strong>区分，别用位置区分——位置正是会变的那个东西。</p>
+<p><strong>⑤ 贴过去和离开测的不是同一件事。</strong> 前者看谁画在谁上面，后者要求模型知道被压住的静态底样——
+过了「贴过去」关的模型会在「离开」那步再挨一次。物件的样子用模板生成，不从上一帧拷贝——
+拷贝会把遮挡色一起搬走；模板重画的概念在 scope 里显式声明「物件处于空载状态」，
+能携带就拆成本体层加载荷层。装饰性的投影自成一层：既要进底样又要被压住，和主人捆成一片必错一个方向。</p>
+<p><strong>⑥ 遮挡处按「纤维」判时，假想的那个被藏起来的东西必须限在走得到的状态里。</strong> 一格只画一只时，
+逐条那一层只能判「存在一种藏法能解释这一帧」；藏法若不受可达性约束，那个假想的东西会替一切错误顶罪——
+距离写错、原地转向写错，都被它解释掉。同一病的另一面：判据读了帧上看不见的一位，读错的是判据不是模型。
+先问数的是<strong>世界状态</strong>还是<strong>世界的显示</strong>：数显示的，要写明依赖可见性、遇遮挡闭嘴，
+否则「还剩几个」在赢的那一步数错，断言方向反过来。</p>
+<p><strong>贯穿四种面孔的唯一可靠替代品是定位，不是计数</strong>：说清楚是哪一格、哪个对象被碰到了。
+从数量闸换成「玩家新站的那一格在 prev 里含不含目标色」，代价通常只有个位数条转移转成弃权——
+因为<strong>新站的那一格永远紧挨着玩家，必在可见区内，遮挡里也读得到</strong>。</p>
+<p><strong>静默不会自己显红，靠两个主动动作去查。</strong>
+<code>settle</code> 只报「有没有反例」，它不报「谁该开口而闭了嘴」，也不报「谁不该开口却开了口」。</p>
+<p><strong>动作一：押注时把「这一步谁会开口」也押进去，事后逐条对。</strong> 成本三行字，
+却能在概念<strong>没倒</strong>的那些步上持续体检整本册子，不必等某条自己出事。
+<em>（形状：押「恰好 2 条开口」，实际开口数是它的两倍多。分项预测全部命中，唯独这一项落空。
+多出来的分两种病：① 近恒真概念（C 接近 1）几乎每步都判，押弃权纯粹是忘了它们存在——
+</em><em>先按 C 从高到低扫一眼，高 C 的默认会开口</em><em>；② 有一条是</em><em>双支</em><em>的，只记得当初写它时
+关心的那一支——</em><em>回忆一条概念时你回忆的是它的动机，不是它的代码</em><em>。）</em></p>
+<p><strong>动作二：把弃权按位置或关卡分组，看有没有成片的空洞。</strong>
+<strong>C 高不等于关键情形被覆盖到了</strong>：C 的分母是全部转移，而转移的绝大多数是走廊里的无聊步。
+一条概念可以在 90% 的无聊步上判 TRUE、在 100% 的关键步上弃权，而 C 看起来很体面。
+<strong>成片的弃权是概念在躲，零散的弃权才是 scope。</strong>
+<strong>还有一条概念的弃权率突然升高，比它的 S 下降更值得警觉</strong>——后者会响，前者不会。</p>
+<p><em>（形状，含一次误判，两截都留着：一条概念 S 满分、C 过半、N 看着很硬，
+按位置给弃权分组立刻看见成片空洞——一整段连续的步子里玩家压住了目标，
+而它的判定一次都没落在那里。发现它靠的不是 settle，是押开口名单时对不上号。
+</em><em>接下来犯的错才是重点</em><em>：当场把成因认定为定位器失手，预测换成遮罩版后 N 会大涨，
+实际只涨了零头。逐条打印每道分支才看清：绝大多数空洞走的是「条件已经满足」这道</em><em>合法出口</em><em>，
+有没有遮罩都会弃权，定位器真正吃掉的只有个位数。病是真的，代价被夸大了一个数量级。）</em>
+<strong>所以这条纪律有两截，第二截更容易漏：看见空洞之后还要逐条查空洞的成因，
+不能停在第一个说得通的候选上。</strong>「我找到病因了」和「我验证了病因」之间，
+差的是一个把每道分支都打出来的脚本，二十行。</p>
+<p><strong>弃权是最贵的失败，因为它只在一个数上现形。</strong> 判 FALSE 会关闸、会逼你改，弃权什么都不做——
+S 照旧满分、反例栏干净。所以每批结算先看的数是<strong>完成度和残差榜</strong>，不是 S：
+残差榜上冒出老转移，基本可以断定有人新弃权了；一条概念 N 停在原地而语料在涨，
+就是它在这段语料里一言不发。「没被检验」和「没被推翻」在记分卡上长得一模一样。
+写完 scope 先数一句：照这个作用域，语料里还剩几条转移给它判——0 或个位数，它还不算写完。</p>
+<p><strong>成片的静默先查共用的词瞎没瞎，按帧的种类查。</strong> 一段连续的步子集体闭嘴，
+病多在它们脚下共用的词汇函数——它在某一类帧上结构性失明（被高亮的、正在换关的、
+镜头在平移的、被压住的）。把「特殊帧清单」单独列一张，每写一个新判据就拿它过一遍：
+这几类帧上它还认得出东西吗。<strong>误判比弃权坏得多</strong>：弃权让概念老实闭嘴，
+误判让概念在管不着的地方开口，而且开口得完全合理。</p>
+<p><strong>押注前把「只会判、不会生成」的那半本册子也跑一遍。</strong> 工具汇总的「谁开口」通常只统计生成器，
+而不变量、死亡条件、终止条件往往只有检查器——它们恰恰是押注最容易押反的地方。
+押注前把全册的 <code>assert_</code> 在预测的那一帧上跑一遍，判 FALSE 的那条就是在说「你押的事不会发生」。
+「全册没提到 X」也不等于「X 没被检验」——共享词汇可能在暗中覆盖它；要判断就跑，别只 grep 措辞。
+<strong>全册弃权的那一步值得优先走</strong>：它是没人管的地图；但先确认「没人开口」量的是概念集合
+还是生成器集合，别把已被解释的一步当成空白走进去。清理候选时，恒真的和从不开口的才该删，
+低分的不是——挨过打的那条带着这批语料唯一的硬信息。</p>
+</li>
+<li>
+<p><strong>例外条款引用了一件观测不到的事，这个主张形式本身就不可判定；救法不是修闸，
+    是把主张挪到结果一侧写成并集。</strong>
+    「除了 E 之外都是 R」要求先认出 E。E 在帧里没有签名时，怎么修闸都补不上——
+    一版漏掉一半、一版靠把几个关卡整个弃权掉换干净，都是在给一个坏形式打补丁。
+    改写成「变化只能是 R 或 T，没有第三种」，不需要认出 E 就能判。
+    反直觉的地方：<strong>这通常是加强不是放宽</strong>。旧版对 E 的那些步一句话不说，
+    新版要求它们必须落在 T 给出的那一个值上；判定条数会涨，允许的像反而更少。
+    动手前的自检：<strong>我这条概念的例外，是我看得见的，还是我推出来的？</strong> 后者一律要换形式。
+    <em>（形状：「变化只能是 R，某类事件除外」死于连续几步——那类事件在帧里根本没有签名，
+    全部语料里它只有一种长相。改成「R 或那张表的像，二者之一」后：判定条数翻倍，反例归零，
+    而每次变化允许的像少了两个数量级。）</em></p>
+<p><strong>替身判据是同一条的另一半：该不该换，看它是不是原话，不看它长在蕴含式的哪一边。</strong>
+做过一次全册迁移：把某个观测量的替身换成上游给的原始字段，唯独跳过一条，
+理由是「别处那个量是 scope 闸，这条的是断言本身」。判断错了：它同样是替身，
+只不过站在蕴含式的<strong>后件</strong>一侧。
+<strong>前件的替身失灵会让概念闭嘴（漏判），后件的替身失灵会让概念乱开口</strong>——
+观测机制一变，那条概念每步都判 FALSE，一口气挨了一串反例。
+自检：迁移时逐个文件问<strong>「这里的 X 是上游原话，还是拿来顶替原话的观测量」</strong>，
+而不是问「它长在 scope 里还是断言里」。<strong>位置不决定性质，来源才决定。</strong></p>
+<p><strong>替身还有第三副面孔：推来的量。</strong> 一个量既能直接量、又能从某条概念的机制推出来时，
+代码会自动选中写起来短的那条路，而推来的那个会把它依赖的概念的适用范围偷偷传染给你，
+你的 scope 里不会写出这件事；机制一变，推的那个照旧给出看起来正常的数。
+能直接量的就别推；真推不出的地方，把传染进来的适用范围显式写进 scope。</p>
+</li>
+<li>
+<p><strong>词汇层不走闸，所以它的错没有分数，只有「哪条概念碰巧走到它」。</strong>
+    概念有 S、有反例、有版本史，词汇什么都没有——它错几百步，只要没有概念在替它承担风险，
+    记分卡逐字节不变。<strong>词错与册错是两本账</strong>：要拿来当规划前提的词，逐帧对答案
+    （世界画了什么 vs 词算出什么，欠近似、过近似两栏各带分母），这活借眼睛干——
+    写词的人验不出自己漏了哪支。</p>
+<p><strong>写死的常数是「某一关的读数」，不是词汇。</strong> 原点、周期、清单、颜色集合，在旧关一路都对，
+换关那一刻静默失效——失效方式是集体弃权或在空集上判 TRUE，册子看着全绿，
+其实已经不量任何东西。放常数之前问「这个量会不会被动作改、换关还能从帧里读出来吗」；
+能读出来的改成现算（连通块、外接框、按周期铺格），验收是<strong>旧语料上读数逐字不变</strong>。
+词汇里留一个不能从帧里算出来的常数，等于埋了一颗只在换关时炸的哑弹。
+换关第一件事：把词汇里所有一帧能算的词，在新关第一帧和旧关某帧并排打一遍——
+<strong>返回空的词就是这一关的入口</strong>。</p>
+<p><strong>记号是约束，不是位图。</strong> 把「某类记号长什么样」写成一张张位图去对表，坏起来不出声：
+漏掉一个自由度，就把能走的地面读成墙。判据里每出现一个具体的数（一根柄、一个朝向、一种颜色），
+问一句「世界凭什么不许它是别的」；给一类物件写「它长什么样」之前，先在全语料上数
+它的相对画法有几种、各有多少见证、跨几关。配对关系同理：写成坐标算术（同列、相距几格）
+只是把配对表换了写法——机制在样本里只出现过一份时，任何配法都拿满分；真判据常常就在
+词汇文件里另一个函数里，找判据先翻自己的词汇层；从载体现算（同色连通块）没有可拧错的自由参数。
+反复走同一串格子的「路线表」通常是定义域几何的影子：先数每格可走邻格的个数——
+邻格数全程只有一两个时，「下一格去哪」根本不需要表，缺的只是朝向。
+改完词汇必须跑<strong>回归差集</strong>：多认出哪些、少认出哪些（必须为空）、最吃这个词汇的几条概念判定变没变。</p>
+<p><strong>「不知道」必须是一等公民。</strong> 感知够不着的时刻（越界、被完全遮住、退化输入），
+函数要么如实交出「不知道」、让依赖它的概念一起弃权，要么给出一个「看着正常的数」替世界做决定——
+后者是把「看不见」答成「不能动」，两种真值装不下它。立第三值的同时写下<strong>拆闸条件</strong>
+（哪天能从窗内推断出窗外，这道闸就收窄到哪一档）；不写还款日，它就变成免罪符。
+真假谓词同理：返回真假的词偷偷断言「这个『是』只有一种样子」，第二种样子出现那天
+它静悄悄说反话——答案多于一种就改成返回种类。补集不是反面：装着、空着、装着别的，
+中间还有第三种；点名调用方时要找「谁对它取反」，取反的地方问的是它从来没答过的问题。
+决定开不开口的门槛词写白名单。</p>
+<p><strong>每个词都带着没写下来的暗押注。</strong>「全图找颜色 X」赌 X 只属于一个东西，
+把作用域收到已定位的物件；「每个邻格都可走」赌窗口装得下整个对象；按形状收「所有 X」的
+收集器赌没有残缺的真对象，通用抽取器还会把会动的东西收成假区域、把隔着缝的两块粘成一块——
+编号当身份用之前问一句「会动的东西停在两块之间时还分得开吗」。数「世界里有几个 X」用质量尺
+（同类等格数，总格数除以每个的格数），识别器回答的是「认得出几个」，和「有几个」是两个问题，
+差就是看不见的部分；除不尽的那一刻不要调容差，去找谁被切了、被谁盖了。从格点集合推区域、
+边界、外沿的词，注释写清用的是外接框还是逐格并集、至今见过的实例是不是全是满矩形——
+那句是这条近似的到期日。把「其它」当一类是错的：兜底类要按签名全图普查分几组，
+组数多于 1 它就不是一种东西。</p>
+<p><strong>认物件的词先写成复数，并用几何和包含关系认，不用颜色白名单或行分组认。</strong>
+单数读法在同屏出现第二个同类物件时整关静默返回弃权；只扫几种颜色、几种宽度的过滤器，
+会让第三种颜色的块对<strong>全册</strong>隐形，而它从没被评过分（改词汇不进 S/C/N）；用会变的东西（光标）定布局是循环定义。
+进新关开局，把词汇里所有「只认这几个值」的地方拉出来，对着当前帧数一遍<strong>盘上有而词汇看不见的东西</strong>；
+每引入一个新形状的物件，把所有涉及「哪一块」的读法重考一遍——前几关形状单一时两种读法答案相同，
+差别要到形状变了才露头，而新形状特有的位置（拐角缺的那个角、非首行）是造反例最便宜的地方。
+计数词要在零上试一次；「X 小于阈值就……」配一句「X 不存在时怎么办」。
+目标判定的分母要独立于「读不读得出」：读不出的物件被踢出分母，「每一个都到位」会提前成立。</p>
+<p><strong>放宽识别判据之前量三样</strong>：老语料上改了多少；同类物件贴在一起时接缝满不满足新判据
+（救假阴性那一刀常造出假阳性）；帧级「读不出的帧数」（物件级多认少认量不到「认太多导致自检投降」）。
+「全部 / 一格都不许」这类量词只算候选自己的私有格，否则邻居的像素会替它作证。
+放宽之后依赖它的概念塌几条是正常的——那是原本就欠着的账；<strong>一条反例都没多，反该怀疑放宽没生效。</strong>
+给每个靠词汇算出来的量配一条<strong>体外读数</strong>的概念（帧差格数、连通块数这类不经过词汇的量）：
+内容类概念会和瞎掉的词自洽，只有体外那条会叫。</p>
+<p><strong>单位、分量顺序、哪一帧的值，都由约定决定、代码里看不出来。</strong> 每个自己解包它的地方
+写一个带注释的小函数，不许在调用处现场写下标算术；受某个可翻转的量控制的读数，
+要写明读的是动作前还是动作后。断口（世界可能整帧不连续的点）是独立的量：
+别用「某个编号变了」去代替它，那只是断口之一的症状；同一句守卫出现在两条以上概念里
+就提进共用词汇，让断口清单成为可补充的单一对象；断口只能由外部信号定义
+（发的是什么、上游报了什么），「这一帧我认不出来」不算。</p>
+<p><strong>证据面比使用面窄。</strong> 一个方向的实测被沿用去回答另一个方向，中间没有任何东西报错。
+写词汇时就问：这个谓词从哪个方向、哪种动作、哪一关的观测读出来？现在有几个地方在用它，
+各是哪个方向？两张单子对不上的格，就是还没有证据的那一半——挑下一批时，
+「使用面越出证据面」的词和没被考的概念一样该去撞。</p>
+</li>
+<li>
+<p><strong>两个巡查时机：观测机制变了，以及任何一条判据被现场纠正的时候。</strong></p>
+<p><strong>时机一：世界的可观测性变了的那一批</strong>（多了遮挡、多了会挡视线的东西、视野变窄、镜头会动）——
+立刻把册子里所有「全图某个量不变 / 某个量变少」式的判据整体翻一遍，
+别等某一条自己倒下，<strong>它们大多数不会倒，只会闭嘴</strong>。
+<em>（形状：可观测性一变，这个假设一夜之间同时废掉好几条概念，失效方式各不相同、都不报错：
+静默弃权（整关一句话没说，目标真的变过好几次，N 卡住不动）、
+假 FALSE（断言里的「某集合不变」在遮挡里每步都变）、
+条件性漏判（触发器要求某色变少，可新出现的偏偏就是那个色，计数反而涨）。
+全程 S 满分。）</em>
+<strong>附带一句：若遮挡只减像素、不加像素，那么单帧读到的任何物件都是下界；
+要读全一个被遮的东西，取本关所有帧的并集</strong>（单帧漏格是常态）。</p>
+<p><strong>时机二，比时机一更常见：任何一条判据被现场纠正的时候，当场 grep 全册。</strong>
+因为规则和世界事实<strong>不会自己传染到姊妹概念上</strong>。「数量判据会被遮挡骗过」那条早就写在册子里，
+某条概念也正确地按定位写了触发器，同一个事实性误解甚至早就被查清过——
+<strong>可共享词汇里那个函数仍然是个纯计数判据</strong>，
+于是同一个病在另一个物件上原封不动地复发，同一件事被从零发现了第二遍。
+<strong>共享词汇是传染路径，也是拦截点：一条判据改对了，当场 grep 全册所有引用它、
+以及所有同族写法的地方</strong>，别指望以后写新概念时会想起来。</p>
+<p><strong>反例一次来一窝时，求交集从最底层求起</strong>：把挨打概念的 import 取交集，
+交集里离像素最近的词先怀疑；交集为空才回到逐条修。但共用依赖不止词汇——
+还有<strong>尺子</strong>（量程、门槛、最小重叠，每个数值旋钮都是一条没写下来的主张：
+「世界的这个量不会超过这个数」；它从不自己挨反例，因为超了它就返回「不知道」）
+和<strong>坐标系</strong>（采样相位一错，每格读出的都是两格的混合，规则一条没错，
+错的是「哪些像素属于哪一格」——一步之内多条概念集体判 FALSE 时先查它）。
+修旋钮的验收只许一条：<strong>够得更远，不许读得更松</strong>——原来读得出的一条不变，
+原来「不知道」的逐条人工核。改宽共用词汇的收尾动作是读一遍所有依赖它的概念的 SCOPE——
+声明比实现窄，是白送的免责声明。</p>
+<p><strong>同一句话在代码里有几份副本，要数到第三份。</strong> 规矩的推翻按文件生效、不按内容生效，
+副本不报错、不进指纹，安静地等一帧来撞。第一次被写进第二个地方时就 grep 份数写进注释；
+合并成词的时候，概念文件里<strong>手写的同义逻辑</strong>要单独扫一遍（按判定本体找，不按函数名找）；
+改完一个写死的假设，按语义再搜一遍文件——同一个假设的第二次出场往往是一个字面量混在算式里。
+把词的值域扩了一档之后，点名所有读它输出的旧词，逐个问「你写的时候它有几档」——
+答「一档」的每个都是待修。「词认错东西」的观察不属于那个词的 NOTE，属于<strong>调用方清单</strong>：
+grep 所有调用处列进去，别的概念正踩着同一个坑。</p>
+<p><strong>两条一直在开口的概念在同一条转移上一起倒，它们引用的往往是同一个代理判据</strong>——
+新机制一出现，等价关系断了，两条一起死。死了别急着各修各的：先找它们共用的那个词，修词救两条。
+一族概念共用的那句话里没写出来的参数（按的是谁、挡的是谁），全部样本取同一个值，
+往往只因为你只用过一种办法——写个脚本按这个参数把语料分堆，看有没有没人看过的一堆，
+语料里常常早就有答案。路线写完逐步问「册子里哪个词知道这一步可行」——答不出的当场写成词或概念；
+规划器比册子多知道的部分，是册子的免费待办清单。</p>
+</li>
+<li>
+<p><strong>多步预测是推演，不是 N 个单步：单步口径和链口径是两个数，混报等于自欺。</strong>
+    装置把上一步的预测帧喂给下一步，所以一批多步的逐格分数是<strong>链口径</strong>，
+    每条概念的分数是<strong>单步口径</strong>（拿真实的上一帧算的），两个数能差一个量级。
+    某一步命中率塌了，先拿真 prev 对那一步单步重跑、逐概念对答案——全满分就说明损失全在链上，
+    别去改概念。</p>
+<p><strong>链子在没人说话的那一步断掉。</strong> 某步的概念弃权、或那块帧差没人认领，
+链子就把「不知道」压成「不变」，从那一步起全部概念都在一张残帧上推理，
+再往后所有预测都在给漂移记账。「不认领的格子被填成什么」这件事必须有人负责——
+照抄上一帧、填哨兵色、或让下游拿到「不知道」就闭嘴，三种填法都行，
+不写，实现会替你选而且从不报错。模型质量至少报两个数：单步命中率、几步之后的漂移。</p>
+<p><strong>批长是一条主张（「链的假设在这一段里成立」），不是效率参数。</strong> 拍一个常数等于没检验；
+严格模式在预测 0 格的步上是瞎的，所以第一处「预测 0 格」或「动到的格子没人认领」就是批尾，
+判别步、决定性动作排在盲区之前或单独成批；另写的回放器、临时规划器照样受这条管，最容易漏。
+但「预测 0 格」有几种来源——真闭嘴、世界真不动、换关重画、全册用一道共用守卫齐声说「这一步要换场」——
+只有第一种该截批，先跑前置读数再动策略；例外按原因写（「全册闭嘴且是最后一步」），不按位置写。
+<strong>停批之后三分诊</strong>：有概念认领且押错，才改概念；认领且押对，查策略读的是哪一帧；没人认领，是地图空白。
+先从帧上不经过那条概念重读位置对照计划：世界对、预测错，就记一条发现、该段改非严格发送并每批自核，
+别为了让预测器闭嘴去改路线。指纹：预测错的格数大于世界实际变的格数，或某步预测格数骤降。
+模拟器把每一处没实测过的交互（交叉、落在没见过的表面上）记成不确定标记，搜解只收零标记的解——
+否则模型会被自己的外推骗去开火。评策略要在真实语料的每个 prev 上问「此刻会走哪步」，
+拿去和实际走的比；在模拟帧上空转的「几步没通关」混着模拟误差。</p>
+<p><strong>「这一步该问哪几条概念」本身是个会出错的选择，而且漏问不报错</strong>——拿到的是一个貌似正确的整数。
+押数之前把这一步物理上会动的区域按物件逐块点名（主角、附属指示物、会出场的布景、计数条），
+逐块问「哪条概念认领它」，点不出名的块就是洞，那一步别押数。模拟器凡是接受外部事实当输入
+（场景编号、状态、计数器原点），就加一句自洽检查：拿链子自己算出来的量去核输入还成不成立——
+说谎的输入和它的反证常常同时出现在一屏上。</p>
+<p><strong>押注里不要写「某步某条概念会开口、预测几格」。</strong> 下注清单只能拿动作之前存在的东西喂给概念，
+结算时的上下文里多了这一步的结果，两份名单不一致是正常的；下注清单真正的用处是反着读——
+它告诉你「如果这一步平平无奇」册子会预测成什么，清单和你的预期差得越远，
+这一步越是真正的分叉点。安排多步时把挪位、滚动、换场景那一步放在批次末尾：
+画面整体挪进视野的那几行在上一帧里不存在，谁也预测不出来，旧内容会在模拟帧里存活一步，
+把下一批全部污染。跨步对齐差一格且不随进度漂移时，语料里枚举偏移解不开——
+每段各带不同污染源（遮挡、序列首尾混进特殊落点）；解法是去活的世界买一步，
+让两个候选假设对同一步给出不同可见读数。</p>
+<p><strong>词汇要考两遍</strong>：在观测帧上考，和在自己生成的合成帧上考。「定位＝全屏该色像素的最小行列」
+这类写法在全语料上可以零差异——它只在合成帧发作，而合成帧正是规划器唯一的用法，
+打算做多步规划，这一关必须过。反过来，一条逐格准确率顶格的生成式概念就是离线模拟器：
+整册 apply 合起来在盘外跑，回答「这条路走完是什么局面」，一个动作不花。
+陷阱：拿册子子集当模拟器会得错结论——必须整个概念目录装载、报告认领冲突的格，
+和结算口径逐字一致。</p>
+</li>
+<li>
+<p><strong>一条概念有两半：检查器判，生成器画——只有判错的那半会关闸。</strong>
+    生成器说错话不进反例、不扣分，只让精度掉几个千分位，混在噪声里。于是挡板单向腐烂：
+    检查器越修越严，生成器留着原始版本，谁都不会去看。机械手续是<strong>静态对照</strong>：
+    把检查器的每个弃权分支和生成器的每个分支列成两栏，少一行就是洞。
+    规矩：<strong>生成器的弃权条件必须是检查器弃权条件的超集</strong>——断言都不敢说的步，生成器凭什么敢画。
+    让完成度变低的改动（收窄生成器）天然不会被刷指标的动机污染；反过来，
+    有人提出一个让完成度变低的改动，通常说明他真的在修东西。</p>
+<p><strong>两条对照缺一不可</strong>：(a) 检查器弃权的转移上，生成器认领了多少、错多少；
+(b) <strong>生成器认领的像素里，有多少是检查器根本不检的</strong>——那批像素判 TRUE 等于一个字没说，
+是更隐蔽的盲区，因为它账面更好看。代码或注释里每处「这一处检查器不管」的标记，
+就是一处要单独量的地方。
+<strong>认领冲突表是唯一会自己冒头的生成器错误探测器</strong>：两条概念认领同一格给出不同颜色，
+装置只报不拦——每格追到底，先分谁对（拿真值比：甲对、乙对、都错三堆），
+「都错」占多数说明那一带的机制没被认出来；它出现在动作发出之前，看到就当场决定押哪边。
+押注核对行是生成器错误唯一显形的地方：认领数、对上的数、实际变的数三个分母不同；
+认领远小于开口而零反例，病在生成器不在世界。</p>
+<p><strong>写生成器有两个硬边界。</strong> 守卫依赖「这一步的结果」的概念天生只能判不能生成
+（生成器只拿得到上一帧和动作），别为了抬完成度硬写——硬写就是把守卫悄悄丢掉；
+挡板里不许引用「模拟时还不知道的量」：要写成「只在已确认的坏值上闭嘴」，
+不要写成「不等于正常值就闭嘴」——前者错是可判的，后者把整条概念从链预测里摘走
+而两个分数都不变红。检查器能量、生成器只能推的量，搬挡板前先在全语料上验证两种表达零分歧
+（拿能看结果的那版当地面真值）。精度明显低于顶格时，先假设它在某一类步骤上<strong>整块搬错</strong>
+（换关、终止、窗口边界），一行挡板能修干净；零散错几格才轮到改主张。</p>
+<p><strong>先给错误分类，再找挡板</strong>：把说错的格子按候选特征分堆、让读数指挡板——说对的也照同一套特征分，
+那一栏是挡板的代价；不看它，你会用消掉十几个错的代价换掉几百个对。
+定位到错而决定不改时，NOTE 写三样：认领量与错误量各带分母、被否掉的候选及其读数、它在等什么。</p>
+<p><strong>超集规矩的另一侧：检查器敢判而生成器不画，丢的不只是完成度，还有链式保护</strong>——
+后面整批集体闭嘴。两半的 scope 要逐支对齐，差的那几支写明理由。生成器画会动的物件，
+「擦旧位置」和「画新位置」必须同时写，否则每步多长一个幽灵；自检是同一动作连发 N 次，
+预测格数应大体持平，单调往上爬就是漏了擦旧。生成器「对了」可能只是押默认值撞上：
+每次生成记下靠的是哪一档依据，无依据的那些从准确率里单独摘出来。验收对齐下游的用法：
+规划器吃读数、逐格预测吃像素，「读数对几条」和「像素对几格」分开报——像素错十几格可能无害，
+少认一个物件路线就完了。检查器只核它自己算出的格子时，「说少了」判不出来；修洞时同时报「说错几格」，
+否则判据会奖励拿错的东西把洞填满。</p>
+</li>
+<li>
+<p><strong>「按我现在的规则无解」是对规则的元级反例，不是对自己的评价；否定结论的作用域只到观测边界。</strong>
+    把它变成可穷举的命题（在已写下的规则下目标可不可能），穷举「能到的每个状态 × 每个动作」。
+    「一步都没有」指向两件事：哪条规则把可能性掐死了，以及<strong>穷举里少了哪个行动者</strong>——
+    状态里放了几件会动的东西，它就只能告诉你那几件的极限。反过来穷举找出可行步，
+    那几步就是这一批该走的。两种结果都有用，永远值得写。
+    合法性判据常能直接推出下界（每块区域的最好结局各自算，加起来够不着过关条件，
+    就不必在这套动作里找解法）。</p>
+<p><strong>无解证明的每一根支柱都要过堂</strong>：把支撑它的断言列全——概念说了什么、
+<strong>规划时用到的每个词汇函数的返回值</strong>（靠归类继承来的性质单独记「继承，未实测」）、
+以及地图的完备性。逐条问「这是量过的，还是推广来的」，按推广来的排序先撞——
+撞它那一步哪怕重来一次也值，绕开它只会让未验证的继承活到下一关。
+「换遍某类取值都救不回来」只证明那一类不是病灶：先列这条规则依赖的所有写死常数，
+逐个问凭什么是这个值——<strong>写死的常数不在任何扫描清单里</strong>。
+搜索的近似有方向：少算可选动作的「没路」一文不值，多算可选动作的「有路」要逐步兑现；
+近似要连同结论一起打印，引用之前出声说一遍它朝哪偏。
+撞过零次的阻挡主张全部翻到宽松侧重跑：结论不变就写进结论（「不依赖未检验推论」），
+变了——你刚找到下一个该做的实验，本来会被自己的推论藏一辈子。
+<strong>最该先撞的支柱，是判 TRUE 上百次、从没挨过打的那条</strong>——在不可达论证里，S 满分且 N 大是危险信号，
+不是安全信号。逐条问每条约束是<strong>世界要的，还是自己为了好想加的</strong>（「同时」「必须先」这类时序词最常混进去）；
+「分配唯一」不等于「路线存在」，顺序也是解的一部分；「一步射程内够不着」不等于不可达；
+论证里从帧读出来的量，只要有概念会改它，就是变量。求解器把「效果算不出」的变量默默剔掉时，
+方程多于未知数、无解是必然的——报无解先打方程数、变量数、剔掉了谁。逐条核前提查不出间接因果
+（A 推 B、B 推 C），要把主张写成检查器，在模拟器搜出的路线上逐步核。
+<strong>报无解之前先排除「盘被读残了」</strong>：残料非空就按「看不全」处理；残料为零也不等于读对了，认错不留残料。
+卡关时先把重开后的帧和语料里历史开局帧逐格比，相等才排除世界那一侧。
+<strong>写阻断主张、或为一关写第一个搜索脚本之前，先读这一关已有的阻断主张和同关概念的首行与 SCOPE</strong>，
+并按事件字段筛一遍全量流水找先例（几百步前成功过的事早已滚出视野，仍然算数）；说得出
+「上次穷尽了哪一族、样本多大」「判据在这一关有没有正例」再动手。新证据比旧结论便宜，
+所以「动手」永远赢过「先看有没有人做过」——判据即引力。判据在这一关一条正例都没有时，
+拿它的零命中当「摆不出来」就是让生成者批准自己的结论，该找的是判据之间的分歧，用实弹去分。</p>
+<p><strong>起点集合和行动者集合要穷举到最宽。</strong> 册子里所有能改变玩家位置的机制（传送、重置、被推走）
+逐条问「它的落点在不在我搜索的起点集合里」，落点不确定就把整个可能区域放进去；
+盘上有几种会动的东西，可达性就有几张图——「我进不去」和「什么都进不去」是两句话，
+反驳常常摆在眼前：那块「孤岛」里站着一件会动的东西。可达性在<strong>能停的格</strong>的图上算，
+不是非障碍格的图：先问这个世界里玩家为什么会停下来，把停的条件写清楚再连边。
+「哪块通到哪块」写成可走格连通块加门贴着哪几块，十行代码出确定的图；用眼睛读地图会错，
+而且错得自信——被物件占着的格算可走，物件会走开。「可达集」只有一种正确问法：
+在测过的算子上跑搜索；先分别量各方向余量再拼的捷径，在偷偷假设状态空间可分解。
+搜索便宜（离线、秒级），一次错误的「无解」贵得多。</p>
+<p><strong>观测边界不是世界边界。</strong> 全图普查的「全图」是我走过的帧拼出来的；镜头覆盖范围由走过的地方决定，
+拿它证明「走遍了」是循环论证；拼图每条边是「越过去是墙」还是「我没走到」，
+在拼图上一模一样。地图完整性的唯一诚实判据是<strong>没有没走过的（位置，动作）边</strong>。
+交叉验证防不住共同的输入缺口：输入相同时，两个判断者是同一个判断者的两份拷贝；
+要独立就让其中一个换一批输入，不是换一套推理。
+「做不到」有两种，强度差一个量级：量过若干次没发生（有分母，关于世界），
+册子没有概念能做到（没分母，关于册子）——第二种必须跟一句「所以下一步撞哪」。
+支持「X 不影响 Y」的样本，只能是「Y 本来会不一样」的实例；「这类事件在语料里没触发过」
+先问这批样本里有没有一条真的满足了「规律若成立就该出事」的前提——
+一条都没有，样本再大信息量也是零。</p>
+<p><strong>收工判据里没有自签的出口。</strong> 残差里还有本关未解释的步，就不许声明无解——那是
+「世界在这里干了大事而我解释不了」的收据，握着它下全称否定自相矛盾。
+先重开本关一次：自己走进去的死局不是关卡的性质。「无解」的举证门槛要比「再试一样」高一个量级，
+两者同门槛就是系统性偏向停。上下文压缩会把带限定词的猜测洗成「已确认死局」、
+顺手把下车票写好——摘要里的负面结论一律降级回假设，并要求指出它当初靠哪几条盘上证据成立。</p>
+</li>
+<li>
+<p><strong>决策的输入只许是「刚读到的观测」和「脚本的输出」，不许是计划，也不许是手写的转述；
+    一个数字第一次拿来做决定之前，先拿一个你已经知道答案的时刻去对表。</strong></p>
+<p><strong>(a) 上一批走偏之后，下一批必须先重读实际状态。</strong>
+一批动作被连续撞墙打断，结束时的实际位置、资源量全部偏离押注里的预期终态，
+而下一批的押注<strong>直接从上一批的计划末态出发，一字没改</strong>：第一步就以为在 A 实际在 B，
+后面每一项跟着错。根本原因不是某个数算错了，是<strong>决策的输入来源错了：用计划替代了观测</strong>。</p>
+<p><strong>(b) 但只读状态还不够，必须把读数和押注的落点链逐条对账。</strong>
+某一步的实际落点和押注写的不一样（那一步帧差极大，汇报里还写了「揭开了一大片」），
+却照着新读到的位置继续往下规划，<strong>从没问过「它为什么不在我押的那一格」</strong>。
+于是「那一处是普通走格」这个错误认知原封不动活了好几批，直到同一处再弹一次、整批作废。
+<strong>只读状态不对账，读数只是替换了计划，错误的世界模型毫发无损地活了下来。</strong>
+对账要落到「每一步的实际落点 == 押注里写的那一格」，有一格不符就当场查为什么。</p>
+<p><strong>(c) 押注文本和实际发出的动作串必须来自同一份脚本输出，不许手打。</strong>
+GAME_OVER 那次比 (a)(b) 更浅一层：不是状态读错了，是<strong>押注文本自身</strong>
+「走到某处」这句里写的步数比那段路实际需要的少了一步。
+照落点链的条数发动作，整串顺移一位——本该踩目标的那步走到了旁边格，
+下一步撞墙（无效动作照样计入消耗），再几步资源走空，最后几条命一起掉光。
+可怕之处在于<strong>押注和动作串是分两条命令发的，中间没有任何东西核对它们一致</strong>：
+闸只查「有没有押注」，不查「押注说的和你发的是不是同一件事」。
+规划脚本本来已经把路线逐步打印出来了，却在写押注时用手重新概括了一遍，错就出在这次转述上。
+一句话：<strong>能从脚本复制的，永远不要手打。</strong> 对话里心算出来的中间量同样不许直接进结论——
+探针的定义写在盘上可以被别人读，心算的定义只在脑子里。</p>
+<p><strong>对表那一半</strong>：最贵的一类自欺，从头到尾没有任何东西报错。用 <code>len(f(g) or [])</code> 读一个量，
+可那个函数返回的是<strong>二元组</strong>——存在时 <code>len</code> 恒为 2，不存在时为 0。
+于是连续几十步，一路读到的都是常数「2」，它和要读的那个量没有半点关系。
+据此宣称的「还剩几步」是编出来的，从来没有被量出来过，却围绕这个数设计了一整段长线计划；
+更糟的是它还伪造了一条世界事实：某个事件之后看见那个数没变，就据此对世界下了一条因果结论。
+五秒钟就能戳穿的自检只有一句：<strong>满的时候这个数应该是几？</strong> 随便挑一个已经知道答案的时刻
+对一下，立刻对不上。更便宜的信号是<strong>这个数走了几十步一动不动</strong>——压根没问过它「应该」怎么动。
+和台架的结构性缺口连起来记：<strong>概念要走闸，工具脚本不走闸。</strong>
+凡是进了决策、却没进过任何一条概念的数字，都是没人审过的数字——
+要么把它写成概念让它去挨打，要么在用它之前手工对一次表，没有第三条路
+（同类读数一律走 <code>lens.py see</code>，或干脆写成概念）。</p>
+<p><strong>探针自己会撒谎，而且没有闸拦它</strong>——概念有结算兜着，词汇有概念兜着，
+探针的数直接变成信念再变成路线。
+· 验证脚本不把「读数→结论」硬编码：判决分支只依赖当场读出的量，互斥性依赖的前提
+  作为另一条读数同时打印，让它能自己作废自己。同一份输出里摆着否证它的读数、
+  你信了自己脚本那一行，是最难受的情形。
+· 分堆脚本把<strong>键的全集</strong>打出来，尤其是你认为不可能出现的键——那行是免费的，
+  而否证得越干净的输出，越容易被顺手丢掉旁边的线索。
+· 每一栏 0 配一个正对照：手里造一个已知满足条件的样本喂进去，返回不了非零，
+  这一栏是仪器的构造不是世界的回答。构造出来的零比硬编码的错更危险——它长得像否证，
+  而否证是我们最想要的东西；它和一条有大量正例的概念矛盾时，先信有正例的那条。
+  全同的列（全空、全假、全零）本身就是待查对象，与反例同等优先；
+  恒真谓词先证明它不是恒真（真假两边的计数都打出来，一边是零就当它没输出）。
+  诊断列必须来自不经过被检验对象的独立通路。
+· 新造的判别量先在<strong>答案已知、且最像新情况</strong>的那段数据上还原已知答案，还原不出就丢——
+  对照挑最像的，不挑最干净的。两个候选定义只差一小片格子时，把差集当数据打出来看帧上是什么，
+  别推理哪个更「自然」。
+· 模式匹配出来的量（对齐、求位移）在重叠不足时给假值而不报错——用之前先让它吐吻合度分布，
+  真峰值是压倒性的，伪峰值的分母只有旁边候选的几分之一。判据的粒度要比要分的两类之间的差更细：
+  粗统计量给「一模一样」这个假答案时，不报错也不缺数据；下判断前问它最小能分辨多大差别。
+· 失败要看形状：给出一个和别的证据打架的答案，是量具坏了，该修；一个候选都给不出，
+  是这个问题在这里没答案——拆成两段各自发布、另找独立线索，别修量具。
+  探针读盘上快照前先看修改时间，第一行输出打一个能对表的特征。
+· 手算配平的直方图错一格是常态，错读法是「还有个没弄懂的机制」：把假设写成逐格预测函数，
+  拿真语料算「错几格、漏几格」。机械复现失败，把结论从「已定事实」打回「未经检验的猜想」，
+  账本补更正说清哪一环塌了——结论的可信度不高于它最脆弱的一环。
+· 探针的第一条判据用来<strong>证伪自己最喜欢的那个解释</strong>：已知弱点最不像这次的病因；
+  顺着喜欢的解释改，会改出消掉几个错的补丁，把真病因埋得更深。
+· <strong>探针按装置的装法装东西</strong>：sys.path、模块注册、ctx 的组装、字段名照抄装置（先打出文件里的键名和频次），
+  第一次跑完与官方读数对账，对不上就是探针错——同源、同帧、不同答案，说明两个进程装的不是同一套东西。
+  <code>except Exception</code> 同时吞掉「不适用」和「没调对」；同一进程里跑对照组会被被测对象的缓存污染；
+  「在不在导出集合里」这类核对先剔掉自己那条记录；工具输出的「第 i 帧」可能是<strong>筛过之后那张列表的下标</strong>，
+  前面有读不成的帧时整体错位——先问它是帧号还是下标。探针吃的动作串必须就是实际要发的那串，
+  让它直接调执行路径上的函数；喂进昂贵计算的盘上产物，验内容不变量，不看时间戳。
+· 聚合表用来确认形状，发现形状要靠摊开一条真实反例的前后帧；借嫌疑代码的坐标系做表，等于让嫌疑人写笔录。
+  沿序列累积状态的脚本，遇到作废条件要分段或重置，不能 continue 了事。</p>
+</li>
+<li>
+<p><strong>册子上的空白有两种：「没人写」和「写不出来」，它们长得一模一样。</strong>
+    碰到一整块没人管的地方，先分清是哪种；分不清就去写一次，写不出来的会自己撞上来。
+    写不成的形状要登记清楚：效果定义在上一条转移上的动作、最小反例需要三帧的事实、
+    以「把世界退回一步之前」为内容的主张——检查器的签名里没有历史，这些是装置边界的形状。
+    登记时写清<strong>被挡住的是哪一条具体主张</strong>，只写「表达不了」，下一个人会以为那只是没人写。
+    影子写法（断言它不换关、不致死、某类计数不减少）加登记，两件都做；
+    写不出的主张常有不需要历史的必要条件，把必要条件写成概念，就是在盲区插一根能判错的桩子。</p>
+<p><strong>世界不回答和装置不转发是两回事。</strong> 动作发出去了但装置在某个状态下只放特定命令通行，
+那一步根本没到世界手里——什么都没被观测到；写成概念就是把装置的实现细节冒充成世界规律，
+而且它永远判 TRUE（世界从没有机会反驳）。分界线是<strong>转移条数</strong>：
+零条 = 装置边界，记事故不入册；大于等于一条而帧没变 = 世界的回答，可以入册。</p>
+<p><strong>装置有意不看的地方，要有一件自己定期做的事去补。</strong> 排除在分数外的立论证据、
+返回弃权的分支、被 scope 挡掉的转移，三处都是盲区——结算查判定，查不出声明和实现不一样宽，
+也查不出「代价公示」用的是另一个形近判据的读数（量代价必须用<strong>实际生效的那道闸</strong>，
+而打桩要打在概念模块自己身上，改词汇模块的桩改不掉它已经 import 过的名字）。
+补法便宜：把每条概念在它自己立论证据上的判定打一遍，全该 TRUE；不是的，
+要么概念错了，要么立论证据不支持它，两种都值钱。
+两处各自正当的排除规则（比如都排除换关转移）的交集是零监督区：那里的生成器说什么都没人核，
+要一个专跑那批转移、按预测时口径调用的探针。
+<strong>开工先核输入真的在盘上、而且是源码</strong>：起点册子的目录被切分支撤空、只剩字节码缓存、
+包导入失败后工具悄悄退回导入某个子模块照样出表——这几种都不报错，下游照常产出一份看着正常的读数。
+<strong>结算超时和判错长得一样</strong>：一批概念同时坏掉、共同点只是引用了同一个词时，先掐表，别先改逻辑——
+超时的主因常是一段没改过的老词汇（失败路径没有记忆、同一块被反复扫）。被中止的概念照样出现在分数表里，
+只是 N 和认领格数悄悄变少；读结算先 grep「中止 / 超时 / error」，这类行按缺失处理，不当读数。
+跑不跑得完取决于「开口面 × 每次开口的单价」：隔壁那条用同一个词没事，可能只是它从没走到那个分支；
+纯提速的验收是拿改前源码在全语料上逐帧对拍，输出摘要逐位相同。</p>
+<p><strong>装置误伤时：绕过去、留痕、不动手。</strong> 命令被拦而命令正文明显不该被拦，
+先读那个 hook 的源码看它拿什么去匹配（入参的哪些字段）——<strong>拦截的输入面常常比意图大</strong>，
+被拦的可能是你对这条命令的<strong>描述</strong>，不是命令本身；两者的处置完全不同，
+前者是边界，后者换个说法就过。别为绕过而改量具，也别宣布做不了；换掉触发词，
+事故记进流水，写清丢的是什么、没丢的是什么，维护会话才知道这是误伤还是断流。</p>
+</li>
+<li>
+<p><strong>规划器说「到不了」、搜索报「零」时，它报的是你规则里缺一条边，不是世界里没有路。</strong>
+    这是「按我现在的规则无解」那条的施工版：那条讲的是<strong>怎么把结论写成能被打的主张</strong>，
+    这条讲的是<strong>在写下那句话之前，先去哪儿找漏掉的边</strong>。</p>
+<p><strong>最常漏的不是规律，是动词。</strong> 会挡路的东西，第一反应总是只按「威胁」建模——
+写的全是「它下一步会在哪一格，那格不能去」。于是整个动作空间里只剩「躲开」一个动词，
+而世界可能还接受「撞上去」「推一把」「站上去」。漏掉一个动词的症状不是报错，
+是搜索空间安安静静地小了一圈，最后给出一句「到不了」。
+<strong>自检：对每一类会挡路的物件，问一句「撞它本体会怎样」，并确认这个问题</strong>有一条概念回答过<strong>。</strong>
+没回答过就去撞一次——这正是「全册都弃权的那一步直接走进去」在规划器上的样子。</p>
+<p><strong>接触往往是有方向性的：同一个动作、同一对物件，进入方向不同，结果可能正好相反。</strong>
+所以这类物件要写<strong>两条互补的概念</strong>（碰它的作用面 / 碰它本体），两条都要有。
+只写一条时，另一面不会以反例现身，只会以一整片「从没开口」的弃权现身——看起来像没测到，
+实际上是没想到。</p>
+<p><strong>规划器里每一条禁令，背后都该有一条走过闸的概念。</strong> 靠沉默维持的禁令
+（「我没写这条边，所以它不存在」）和世界真正的边界长得一模一样，而且永远不会被结算抓到——
+概念只考你写下来的话，不考你没写的那条边。</p>
+<p><strong>诊断法两条，都便宜，都别省：</strong>
+(a) <strong>逐条放松保守假设，看是哪一条把路堵死的。</strong> 把「假装某个物件不存在」「假装某条禁令不成立」
+    各跑一遍搜索，能通的那一次就点名了真正的瓶颈。堵点几乎总是集中在一条假设上，
+    而你事先猜的那条通常不是它。顺带统计每条规则挡掉了多少次扩展——那张表比读代码快得多。
+(b) <strong>把真的走通过的动作串，逐步喂回规划器的转移函数，看它在第几步说「这条边不存在」。</strong>
+    这是把「模型和世界不一致」从一句感想钉成一个具体的步号。
+    能这么做的前提是手上有一条真实走通的轨迹——<strong>所以探索期那些「乱走」的记录不是废料</strong>，
+    它们是规划器唯一的对照组。</p>
+<p><strong>收尾的纪律没变：放松出来的那条边是假设不是事实</strong>，要么去实测它、写成概念，
+要么在阻断主张里写明「我按它不成立算」。放松只用来定位，不用来通关。
+<strong>松弛只许加边</strong>：在耦合的世界里拿掉一个障碍可能反而是减边；有损去重键加启发式会把解从可达闭包里删掉，
+直线距离在有墙或刚体绕路时不是下界。松弛问题说无解而真问题已知有解，就是松弛写反了。</p>
+<p><strong>「搜穷」和「撞上限」只差一个整数。</strong> 一个零命中必须同时报：停止原因（堆空 / 局面上限 / 墙钟 / 被手动停）、
+展开数与上限、扫完的比例、<strong>外层循环的变量</strong>——没扫完就写「前 N/M 个外层取值内命中 0」。
+展开数等于上限或上限加一，是钱花完了，不是此路不通；被中途停掉的搜索，解可能正排在外层循环的末尾。
+返回 None 把「不合法 / 不存在 / 够不着」压成一个值——让搜索说出每个候选被哪条谓词否掉；
+只报极值时，「最小值没刷新」和「全都一样」分不开，要报逐层前沿与估价的最小最大。
+报零之前先<strong>塞一个已知可行的解</strong>（或同量级的解）进去，看它会不会被剪枝剪掉、被抽样漏掉：
+剪枝依赖枚举顺序、而顺序按无关的量排时，真解被剪、报 0 解；随机抽样的零不证明不存在。
+能手推就先手推一个候选去验——分钟级，对比扫一遍的小时级，还顺带告诉你剪枝的必要条件。
+穷举的作用域等于它全部剪枝前提的交集：换问新机制却沿用旧的剪枝或幸存集，旧前提下的零就成了关于世界的墙；
+为慢而调小的资源常数，会活得比它的折算前提久。</p>
+<p><strong>规划器会悄悄收窄册子，也会悄悄放宽它。</strong> 收窄的形状：翻译规则时多加一个 and、静态不可通行排在动态条件前、
+候选落点只枚举平移、<code>if 读数 is None: 跳过</code> 静默删掉一整类移动、ctx 不往下传导致按关划 scope 的概念全哑——
+每个从概念翻译过来的判断，对着概念首行数条件个数，能 import 就别抄。状态表示也会出错：状态里混进路径信息
+（踩过的格打了哨兵、单调消耗的资源进了键），同一局面成了多个，去重失效、状态数爆成指数；
+展开数和直觉差一个量级时，先数状态里有几样是路径决定的。状态粒度由目标判据读到的东西定，
+被抹掉的分量必须仍算得出后继，算不出说明它进了动力学。
+<strong>可达 = 走得到 ∧ 到了还读得出来</strong>：册子写着「这种局面读不出」的，规划器要有对应的回避约束——
+否则它走最短路，一头扎进自己的盲区把读数搞塌；估值排序同理会奖励册子说不出后果的边（罚项只加在说得出的边上），
+给未知那档加下限。规划器只挂「目标达成」不挂「动作可行」时，搜出的解到场会哑火——
+筛摆法必须用<strong>那个动作自己的前置条件的合取</strong>，不是一个看起来相关、形近的函数，而且要在筛选阶段就合进去
+（搬运的成本不可退）；把当前这块盘也喂进筛选器，它必须落在世界刚刚表现出来的那一格上。
+目标判定太紧不会报错，只会永远搜不到：主动量「终点在这一关的语料上成立过几次」。
+所以判据要往「能生成、能枚举」的方向写：试错会死的关上，册子里的判据就是唯一的模拟器，
+只判得出真假、算不出中间量的判据，在那种关上用不了。</p>
+</li>
+<li>
+<p><strong>反向测试的「没红」「没人读」「独家 0」，多半是量具的形状，不是规则的性质。</strong>
+    「扰动太温柔」「补丁没打上」「必红种子」那几条在卡片上；这里是在那之外、多局反复撞上的几种。
+    它们全都长成同一个样子——一片干净的读数，像是「规则冗余」或「字段没人用」。</p>
+<p>· <strong>变哑也是一种红。</strong> 突变体让规则在错的那一步闭嘴（论域缩了、定位失灵返回弃权），判错数一格不变，
+  只有开口条数变了。反向测试的表并排报「判错变化」和「论域变化」两列；只看判错，
+  最危险的那类突变会被读成「挡住了」。同源的写法病：<strong>规则的论域不许按自己的预测切</strong>——
+  预测错的那一步正好闭嘴，任何突变都打不红它。
+· <strong>抽样把稀有类抽没了。</strong> 等距或随机抽样对换关那几步、稀有动作、论域只有个位数的规则、
+  非空帧很少的字段几乎抽不到，「独家拒绝 0」「0 处变」于是是抽样假象。按类别分层（换关、终局、各动作、
+  各规则的论域），每类保底；报「没人用」前先报这个字段在样本里有几帧不是常量，为 0 不许下结论。
+  抽样之外还有一坑：规则经 ctx 或历史引用的帧不在样本里，补丁后的解析对它们抛错，被算成「有人读」。
+· <strong>饱和与独吞。</strong> 随机造错的下一帧几乎总会顺手改坏每步都在变的那一块（计步条、预算条、玩家位置），
+  于是那条规则独吞全部拒绝，别的一律「独家 0」；所有突变被新旧两册全拒时，比拒绝集大小是空比较——饱和要报警。
+  要有「只动一个字段、其余原样」的定点变异，以及动 ctx（关卡号、过关标记）、只动 prev、
+  落在换关那一步的变异：只读 prev 加 ctx 的规则、只在过关那步开口的规则，不动这些永远打不到。
+· <strong>分离表同一个病</strong>：每帧都变的计数字段（时间戳、HUD）让所有字段都「分不开」，先把它商掉再量；
+  一个字段是另一个字段的函数（可见掩码、活物投下的影子）时，会让真有人读的字段显得同生共死——按字段组报。
+· <strong>必红种子只证明机制能红，不证明每个补丁都落了地。</strong> 重载时把对象模块一起清掉（规则拿到另一份没打补丁的模块）、
+  按别名 import 拿到的是同名导出的函数、补丁落点不唯一、改过的形式化文件不再产出编译件而下游读到空——
+  读数都是「全绿」。每个突变体配一个落地探针：补丁后第一帧那个字段确实等于设定值、改过的那一行确实被执行。
+· <strong>拿对象地址当缓存键</strong>：按 <code>id(函数)</code> 记解析缓存，逐字段生成的补丁函数被回收后地址复用，
+  后一个扰动安静地读到前一个的世界，读数两两重复；种子取地址，两轮不可复现、「上一轮 / 这一轮」没法比。
+  键用对象本身或可复现的名字。
+· <strong>扰动的两个同构病</strong>：常量取第一帧，而第一帧恰好是开局局面或恰好等于规则主张的值；
+  前后两帧抹成同一个常量，比较式规则照样相等——读数都和「没人读」一样。第二个常量取语料中位那帧或另一关的值，
+  至少一种扰动只抹一侧。
+· <strong>崩了不等于读了</strong>：扰动让下标越界、解析抛错，只说明有人碰它，不说明它的取值造成区别；
+  「有人读」的见证取不崩且判决真翻的那一例。（一局里撞上过。）
+· <strong>红按对照算</strong>：没改过的拷贝本来就有判错时，「判错 &gt; 0 即红」让每个突变体都显红，红要取相对对照的差；
+  改动在这份语料的取值域上不改变任何判定的<strong>语义等价突变</strong>，是「没红」的又一个入口，单列，不算漏。
+  （各在一局里撞上过。）
+· <strong>两册对照各走各的管线</strong>：拿新对象层的解析去筛变异、再量旧册，会把新层的拒绝记到旧册头上。
+  换了对象层之后还要问：有没有一类错误整类没人管了（「每个像素都有主」没人核），判错照样是 0。
+  良构检查的反向测试按关挑帧——一条检查可能在某几关恒真。（一局里撞上过。）</p>
+</li>
+<li>
+<p><strong>一个分数盖不住它的每一条款：报一条判据，报四格和逐条款的支撑，不报一个 S。</strong>
+    判据有两种烂法，方向相反：误报（它说发生、世界没发生，断言太松）和漏报（它说不发生、世界发生了，断言太严）。
+    S 是个混合数，两种烂法都只让它往下掉，看不出该松还是该紧；而第三种——<strong>闭嘴</strong>——根本不让它掉：
+    S 可以靠不断缩 scope 缩成「从不预测」，每一步缩都被真反例逼出来、看起来全程负责任。
+    所以报判据一律报 <strong>说中 / 误报 / 漏报 / 闭嘴</strong> 四个数加分母；要改之前先看是哪一格在涨。
+    <em>（形状：几条同类判据 S 看着差不多，四格一开，一条是误报全在同一块盘上连炸、一条是漏报全在另一关，
+    该改的方向正好相反。）</em></p>
+<p><strong>分数是整体的，条款是逐条的。</strong> 高分只说明这一整套没被推翻，不说明每一条款被检验过——
+有的条款从没被任何一条转移分辨过，却正是它在新配置上禁掉了整个解空间。两个便宜的办法：
+· <strong>逐条放松</strong>：只改那一处、其余逐字照抄，另立一条交装置打分。放松后仍满分，这条款没有实测支撑，
+  它在新配置上的严格性是纯外推；分数掉下来，掉的那几条转移就是它的正面证据，别再动它。
+  反例还要看落在哪一关：全出在缺某个特征的关上，它在有那个特征的场合仍是外推。
+· <strong>正例参数直方图</strong>：筛出判 TRUE <strong>且目标真达成</strong>的转移（恒真的 TRUE 不算），对每个条款的参数打直方图；
+  当前局面落在直方图之外的条款，是「没被反驳」而不是「被支持」，优先怀疑。说得出「阳性实例的取值集合是 X，
+  此刻取值 y 不在 X 里」才算做了这一步。
+拟合出来的参数同理：把全语料同类事件用「这个数 ±1」各跑一遍，落点真不同的事件数才是有效检验数——
+下游的夹逼（滑动、撞墙）会吃掉参数的自由度，让错的数拿满分；集合或阈值参数逐个数「实际生效过几次」，
+零观测的分支是在替你发明世界。</p>
+<p><strong>「全过」要带覆盖面</strong>：比了几项、共几项，被比的那个量在这批数据上是不是恒定——
+恒定时它同时满足「被检验了」和「什么也没检验」。成绩按世界自带的分区（关卡号）分开报：
+某一区只有「说不发生、也没发生」，说明模型从没被问到，或者缺一条机制；改词汇的验收要逐区不劣，不看加权总分。
+这一条把零读数的解释从两条压成一条：搜完仍零命中时，至少说得清「零命中是在哪些条款被当成真的前提下得到的」，
+以及其中哪几条自己没有证据。</p>
+</li>
+</ol></div><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

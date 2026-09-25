@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Obs/Replay.lean</title>
+<style>
+/* 只有尺寸与配色。形状从 ledger/templates/web/style.css 起手，世界的配色那一块按本局改。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .6px; }
+.gaps { border-color: var(--warn); }
+.gaps h2 { color: var(--warn); }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { color: var(--dim); font-size: 12px; max-width: 300px; margin-top: 6px; }
+canvas.frame { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; min-width: 44px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.U { background: #222732; color: var(--faint); }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 14px; }
+.note { color: var(--dim); font-size: 13px; }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.row .t { font-weight: 600; }
+pre.src { background: #0e1015; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+          overflow-x: auto; font-size: 12px; line-height: 1.45; white-space: pre; }
+pre.txt { white-space: pre-wrap; font-size: 12.5px; }
+details > summary { cursor: pointer; color: var(--dim); }
+.controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; font-size: 13px; }
+input[type=range] { flex: 1; min-width: 200px; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Lean · Obs/Replay.lean</h1>
+  <div class="sub">观测</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card "><h2>它是什么</h2><pre class='txt'># Replay —— 整条轨迹，**只存这一份**（自动生成：lean2/export_replay.py，不要手改）
+
+逐条那一层（Obs/Corpus.lean）和每关那一层（Proof/Levels.lean）都从这里切，**按 seq 切**（seq 唯一；step 有重号）。
+
+## 两套版面，两个口径，都写在明处
+
+    layouts        每一帧**真正读到的**版面：花格只算看得见的那些——逐条判用它
+    levelLayouts   每一关**整关取并集**的版面：件起步时压着的那一格花格也算——每关判用它
+                   这个口径比玩家在第一帧看到的**多知道几格**（件底下那一格是不是花格），代价写在这里
+
+## 一行里装什么
+
+    prev   这一步之前的 World：顶栏、面板、件从帧上读；phase 从 meta（本关已走步数的奇偶）来——帧上读不出
+           前一帧读不成世界（终局画面）的那一行是 `none`
+    obs    现实那一侧：下一帧还在同一关就是 `.seen`（帧上读出的顶栏、面板、件）；
+           上游说关卡前进 / 整局打完是 `.won`；这一下是 RESET 是 `.reset`</pre><p class='note'>角色：观测；定理：无</p></div><div class="card "><h2>源码</h2><pre class='src'>/-
+# Replay —— 整条轨迹，**只存这一份**（自动生成：lean2/export_replay.py，不要手改）
+
+逐条那一层（Obs/Corpus.lean）和每关那一层（Proof/Levels.lean）都从这里切，**按 seq 切**（seq 唯一；step 有重号）。
+
+## 两套版面，两个口径，都写在明处
+
+    layouts        每一帧**真正读到的**版面：花格只算看得见的那些——逐条判用它
+    levelLayouts   每一关**整关取并集**的版面：件起步时压着的那一格花格也算——每关判用它
+                   这个口径比玩家在第一帧看到的**多知道几格**（件底下那一格是不是花格），代价写在这里
+
+## 一行里装什么
+
+    prev   这一步之前的 World：顶栏、面板、件从帧上读；phase 从 meta（本关已走步数的奇偶）来——帧上读不出
+           前一帧读不成世界（终局画面）的那一行是 `none`
+    obs    现实那一侧：下一帧还在同一关就是 `.seen`（帧上读出的顶栏、面板、件）；
+           上游说关卡前进 / 整局打完是 `.won`；这一下是 RESET 是 `.reset`
+-/
+import Obs.Check
+
+namespace Game
+namespace Replay
+
+/-- 每一帧**真正读到的**版面，去重之后共 10 张。 -/
+def layouts : List Layout := [
+  { level := 0, board := ⟨8, 9, [], [], ⟨⟨6, 4⟩, 1, .S⟩⟩,
+    pads := [], toolbox := none,
+    hits := [⟨41, 43, 19, 23, (.piece .bar 0 0)⟩, ⟨44, 46, 19, 23, (.piece .stem 0 0)⟩, ⟨41, 43, 24, 28, (.piece .bar 0 1)⟩, ⟨44, 46, 24, 28, (.piece .stem 0 1)⟩, ⟨41, 43, 29, 33, (.piece .bar 0 2)⟩, ⟨44, 46, 29, 33, (.piece .stem 0 2)⟩, ⟨41, 43, 34, 38, (.piece .bar 0 3)⟩, ⟨44, 46, 34, 38, (.piece .stem 0 3)⟩, ⟨41, 43, 39, 43, (.piece .bar 0 4)⟩, ⟨44, 46, 39, 43, (.piece .stem 0 4)⟩, ⟨51, 59, 32, 40, .disc⟩],
+    scenery := ⟨0⟩ },
+  { level := 1, board := ⟨7, 7, [], [], ⟨⟨1, 3⟩, 1, .N⟩⟩,
+    pads := [], toolbox := (some [.W, .N]),
+    hits := [⟨32, 34, 37, 41, (.piece .bar 0 0)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 0)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 1)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 1)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 2)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 2)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 3)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 3)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 0)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 0)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 1)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 1)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 2)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 2)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 3)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 3)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 0)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 0)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 1)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 1)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 2)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 2)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 3)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 3)⟩, ⟨54, 62, 42, 50, .disc⟩],
+    scenery := ⟨1⟩ },
+  { level := 2, board := ⟨7, 7, [⟨0, 3⟩, ⟨1, 3⟩, ⟨2, 3⟩, ⟨4, 3⟩, ⟨5, 3⟩, ⟨6, 3⟩], [], ⟨⟨2, 5⟩, 1, .N⟩⟩,
+    pads := [], toolbox := (some [.S, .N, .W, .E]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨2⟩ },
+  { level := 3, board := ⟨7, 7, [⟨4, 0⟩, ⟨4, 1⟩, ⟨4, 3⟩, ⟨4, 4⟩, ⟨4, 5⟩, ⟨4, 6⟩], [], ⟨⟨5, 2⟩, 1, .S⟩⟩,
+    pads := [], toolbox := (some [.W, .GROW, .S, .SHRINK]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨3⟩ },
+  { level := 4, board := ⟨7, 7, [⟨3, 0⟩, ⟨3, 1⟩, ⟨3, 2⟩, ⟨3, 3⟩, ⟨3, 5⟩, ⟨3, 6⟩], [], ⟨⟨4, 4⟩, 2, .S⟩⟩,
+    pads := [], toolbox := (some [.SHRINK, .GROW, .S, .ROT, .NOP]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨4⟩ },
+  { level := 5, board := ⟨7, 7, [⟨0, 1⟩, ⟨1, 3⟩, ⟨1, 5⟩, ⟨2, 1⟩, ⟨2, 3⟩, ⟨2, 5⟩, ⟨3, 1⟩, ⟨3, 3⟩, ⟨3, 5⟩, ⟨4, 1⟩, ⟨4, 5⟩, ⟨5, 0⟩, ⟨5, 1⟩, ⟨5, 2⟩, ⟨5, 3⟩, ⟨5, 5⟩], [], ⟨⟨1, 1⟩, 1, .W⟩⟩,
+    pads := [⟨0, 5⟩, ⟨4, 4⟩, ⟨6, 5⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ },
+  { level := 5, board := ⟨7, 7, [⟨0, 1⟩, ⟨1, 3⟩, ⟨1, 5⟩, ⟨2, 1⟩, ⟨2, 3⟩, ⟨2, 5⟩, ⟨3, 1⟩, ⟨3, 3⟩, ⟨3, 5⟩, ⟨4, 1⟩, ⟨4, 5⟩, ⟨5, 0⟩, ⟨5, 1⟩, ⟨5, 2⟩, ⟨5, 3⟩, ⟨5, 5⟩], [], ⟨⟨1, 1⟩, 1, .W⟩⟩,
+    pads := [⟨0, 5⟩, ⟨6, 5⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ },
+  { level := 6, board := ⟨7, 7, [⟨0, 1⟩, ⟨0, 2⟩, ⟨0, 3⟩, ⟨1, 1⟩, ⟨1, 3⟩, ⟨3, 0⟩, ⟨5, 4⟩, ⟨6, 4⟩], [⟨3, 1⟩, ⟨3, 6⟩], ⟨⟨1, 2⟩, 1, .N⟩⟩,
+    pads := [⟨1, 5⟩, ⟨2, 0⟩, ⟨5, 5⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ },
+  { level := 6, board := ⟨7, 7, [⟨0, 1⟩, ⟨0, 2⟩, ⟨0, 3⟩, ⟨1, 1⟩, ⟨1, 3⟩, ⟨3, 0⟩, ⟨5, 4⟩, ⟨6, 4⟩], [⟨3, 1⟩, ⟨3, 6⟩], ⟨⟨1, 2⟩, 1, .N⟩⟩,
+    pads := [⟨1, 5⟩, ⟨2, 0⟩, ⟨6, 2⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ },
+  { level := 6, board := ⟨7, 7, [⟨0, 1⟩, ⟨0, 2⟩, ⟨0, 3⟩, ⟨1, 1⟩, ⟨1, 3⟩, ⟨3, 0⟩, ⟨5, 4⟩, ⟨6, 4⟩], [⟨3, 1⟩, ⟨3, 6⟩], ⟨⟨1, 2⟩, 1, .N⟩⟩,
+    pads := [⟨2, 0⟩, ⟨5, 5⟩, ⟨6, 2⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ }]
+
+/-- 每一关**整关取并集**的版面，共 7 张（第 0..6 关）。 -/
+def levelLayouts : List Layout := [
+  { level := 0, board := ⟨8, 9, [], [], ⟨⟨6, 4⟩, 1, .S⟩⟩,
+    pads := [], toolbox := none,
+    hits := [⟨41, 43, 19, 23, (.piece .bar 0 0)⟩, ⟨44, 46, 19, 23, (.piece .stem 0 0)⟩, ⟨41, 43, 24, 28, (.piece .bar 0 1)⟩, ⟨44, 46, 24, 28, (.piece .stem 0 1)⟩, ⟨41, 43, 29, 33, (.piece .bar 0 2)⟩, ⟨44, 46, 29, 33, (.piece .stem 0 2)⟩, ⟨41, 43, 34, 38, (.piece .bar 0 3)⟩, ⟨44, 46, 34, 38, (.piece .stem 0 3)⟩, ⟨41, 43, 39, 43, (.piece .bar 0 4)⟩, ⟨44, 46, 39, 43, (.piece .stem 0 4)⟩, ⟨51, 59, 32, 40, .disc⟩],
+    scenery := ⟨0⟩ },
+  { level := 1, board := ⟨7, 7, [], [], ⟨⟨1, 3⟩, 1, .N⟩⟩,
+    pads := [], toolbox := (some [.W, .N]),
+    hits := [⟨32, 34, 37, 41, (.piece .bar 0 0)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 0)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 1)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 1)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 2)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 2)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 3)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 3)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 0)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 0)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 1)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 1)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 2)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 2)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 3)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 3)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 0)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 0)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 1)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 1)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 2)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 2)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 3)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 3)⟩, ⟨54, 62, 42, 50, .disc⟩],
+    scenery := ⟨1⟩ },
+  { level := 2, board := ⟨7, 7, [⟨0, 3⟩, ⟨1, 3⟩, ⟨2, 3⟩, ⟨4, 3⟩, ⟨5, 3⟩, ⟨6, 3⟩], [], ⟨⟨2, 5⟩, 1, .N⟩⟩,
+    pads := [], toolbox := (some [.S, .N, .W, .E]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨2⟩ },
+  { level := 3, board := ⟨7, 7, [⟨4, 0⟩, ⟨4, 1⟩, ⟨4, 3⟩, ⟨4, 4⟩, ⟨4, 5⟩, ⟨4, 6⟩], [], ⟨⟨5, 2⟩, 1, .S⟩⟩,
+    pads := [], toolbox := (some [.W, .GROW, .S, .SHRINK]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨3⟩ },
+  { level := 4, board := ⟨7, 7, [⟨3, 0⟩, ⟨3, 1⟩, ⟨3, 2⟩, ⟨3, 3⟩, ⟨3, 5⟩, ⟨3, 6⟩], [], ⟨⟨4, 4⟩, 2, .S⟩⟩,
+    pads := [], toolbox := (some [.SHRINK, .GROW, .S, .ROT, .NOP]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨4⟩ },
+  { level := 5, board := ⟨7, 7, [⟨0, 1⟩, ⟨1, 3⟩, ⟨1, 5⟩, ⟨2, 1⟩, ⟨2, 3⟩, ⟨2, 5⟩, ⟨3, 1⟩, ⟨3, 3⟩, ⟨3, 5⟩, ⟨4, 1⟩, ⟨4, 5⟩, ⟨5, 0⟩, ⟨5, 1⟩, ⟨5, 2⟩, ⟨5, 3⟩, ⟨5, 5⟩], [], ⟨⟨1, 1⟩, 1, .W⟩⟩,
+    pads := [⟨0, 5⟩, ⟨4, 4⟩, ⟨6, 5⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ },
+  { level := 6, board := ⟨7, 7, [⟨0, 1⟩, ⟨0, 2⟩, ⟨0, 3⟩, ⟨1, 1⟩, ⟨1, 3⟩, ⟨3, 0⟩, ⟨5, 4⟩, ⟨6, 4⟩], [⟨3, 1⟩, ⟨3, 6⟩], ⟨⟨1, 2⟩, 1, .N⟩⟩,
+    pads := [⟨1, 5⟩, ⟨2, 0⟩, ⟨5, 5⟩, ⟨6, 2⟩], toolbox := (some [.S, .N, .E, .W]),
+    hits := [⟨32, 34, 32, 36, (.piece .bar 0 0)⟩, ⟨35, 37, 32, 36, (.piece .stem 0 0)⟩, ⟨32, 34, 37, 41, (.piece .bar 0 1)⟩, ⟨35, 37, 37, 41, (.piece .stem 0 1)⟩, ⟨32, 34, 42, 46, (.piece .bar 0 2)⟩, ⟨35, 37, 42, 46, (.piece .stem 0 2)⟩, ⟨32, 34, 47, 51, (.piece .bar 0 3)⟩, ⟨35, 37, 47, 51, (.piece .stem 0 3)⟩, ⟨32, 34, 52, 56, (.piece .bar 0 4)⟩, ⟨35, 37, 52, 56, (.piece .stem 0 4)⟩, ⟨32, 34, 57, 61, (.piece .bar 0 5)⟩, ⟨35, 37, 57, 61, (.piece .stem 0 5)⟩, ⟨38, 40, 32, 36, (.piece .bar 1 0)⟩, ⟨41, 43, 32, 36, (.piece .stem 1 0)⟩, ⟨38, 40, 37, 41, (.piece .bar 1 1)⟩, ⟨41, 43, 37, 41, (.piece .stem 1 1)⟩, ⟨38, 40, 42, 46, (.piece .bar 1 2)⟩, ⟨41, 43, 42, 46, (.piece .stem 1 2)⟩, ⟨38, 40, 47, 51, (.piece .bar 1 3)⟩, ⟨41, 43, 47, 51, (.piece .stem 1 3)⟩, ⟨38, 40, 52, 56, (.piece .bar 1 4)⟩, ⟨41, 43, 52, 56, (.piece .stem 1 4)⟩, ⟨38, 40, 57, 61, (.piece .bar 1 5)⟩, ⟨41, 43, 57, 61, (.piece .stem 1 5)⟩, ⟨44, 46, 32, 36, (.piece .bar 2 0)⟩, ⟨47, 49, 32, 36, (.piece .stem 2 0)⟩, ⟨44, 46, 37, 41, (.piece .bar 2 1)⟩, ⟨47, 49, 37, 41, (.piece .stem 2 1)⟩, ⟨44, 46, 42, 46, (.piece .bar 2 2)⟩, ⟨47, 49, 42, 46, (.piece .stem 2 2)⟩, ⟨44, 46, 47, 51, (.piece .bar 2 3)⟩, ⟨47, 49, 47, 51, (.piece .stem 2 3)⟩, ⟨44, 46, 52, 56, (.piece .bar 2 4)⟩, ⟨47, 49, 52, 56, (.piece .stem 2 4)⟩, ⟨44, 46, 57, 61, (.piece .bar 2 5)⟩, ⟨47, 49, 57, 61, (.piece .stem 2 5)⟩, ⟨54, 62, 53, 61, .disc⟩],
+    scenery := ⟨5⟩ }]
+
+def emptyLayout : Layout :=
+  { level := 0, board := ⟨0, 0, [], [], ⟨⟨0, 0⟩, 1, .N⟩⟩, pads := [], toolbox := none, hits := [], scenery := ⟨0⟩ }
+def layoutAt (i : Nat) : Layout := layouts.getD i emptyLayout
+def levelLayout (lv : Nat) : Layout := levelLayouts.getD lv emptyLayout
+
+/-- 轨迹上的一行。键是 `seq`（唯一）；`step` 有重号：[166]。 -/
+structure Row where
+  seq  : Nat
+  seg  : Nat          -- 第几段（0 = seq 1..166，成绩单不认证；1 = seq 167..292，成绩单认证）
+  lvl  : Nat
+  lay  : Nat          -- 指向 layouts
+  prev : Option World
+  act  : Act
+  obs  : Obs
+
+/-- 整条轨迹，共 292 行。 -/
+def rows : List Row := [
+  ⟨1, 0, 0, 0, (some ⟨61, ⟨1, 5, [true, false, true, false, false, true, false, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩, false⟩),
+    (.click 26 42), (.seen ⟨60, ⟨1, 5, [true, true, true, false, false, true, false, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩⟩)⟩,
+  ⟨2, 0, 0, 0, (some ⟨60, ⟨1, 5, [true, true, true, false, false, true, false, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩, true⟩),
+    (.click 26 44), (.seen ⟨59, ⟨1, 5, [true, true, true, false, false, true, true, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩⟩)⟩,
+  ⟨3, 0, 0, 0, (some ⟨59, ⟨1, 5, [true, true, true, false, false, true, true, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩, false⟩),
+    (.click 36 42), (.seen ⟨58, ⟨1, 5, [true, true, true, true, false, true, true, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩⟩)⟩,
+  ⟨4, 0, 0, 0, (some ⟨58, ⟨1, 5, [true, true, true, true, false, true, true, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩, true⟩),
+    (.click 36 44), (.seen ⟨57, ⟨1, 5, [true, true, true, true, false, true, true, true, true, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩⟩)⟩,
+  ⟨5, 0, 0, 0, (some ⟨57, ⟨1, 5, [true, true, true, true, false, true, true, true, true, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩, false⟩),
+    (.click 41 42), (.seen ⟨56, ⟨1, 5, [true, true, true, true, true, true, true, true, true, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩⟩)⟩,
+  ⟨6, 0, 0, 0, (some ⟨56, ⟨1, 5, [true, true, true, true, true, true, true, true, true, false]⟩, ⟨⟨1, 4⟩, 1, .S⟩, true⟩),
+    (.click 41 44), (.seen ⟨55, ⟨1, 5, [true, true, true, true, true, true, true, true, true, true]⟩, ⟨⟨1, 4⟩, 1, .S⟩⟩)⟩,
+  ⟨7, 0, 0, 0, (some ⟨55, ⟨1, 5, [true, true, true, true, true, true, true, true, true, true]⟩, ⟨⟨1, 4⟩, 1, .S⟩, false⟩),
+    (.click 36 55), .won⟩,
+  ⟨8, 0, 1, 1, (some ⟨61, ⟨3, 4, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 39 33), (.seen ⟨60, ⟨3, 4, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨9, 0, 1, 1, (some ⟨60, ⟨3, 4, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 44 33), (.seen ⟨59, ⟨3, 4, [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨10, 0, 1, 1, (some ⟨59, ⟨3, 4, [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 49 33), (.seen ⟨58, ⟨3, 4, [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨11, 0, 1, 1, (some ⟨58, ⟨3, 4, [true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 54 33), (.seen ⟨57, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨12, 0, 1, 1, (some ⟨57, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 39 48), (.seen ⟨56, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨13, 0, 1, 1, (some ⟨56, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 44 48), (.seen ⟨55, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨14, 0, 1, 1, (some ⟨55, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 49 48), (.seen ⟨54, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨15, 0, 1, 1, (some ⟨54, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false]⟩, ⟨⟨5, 3⟩, 1, .N⟩, true⟩),
+    (.click 54 48), (.seen ⟨53, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]⟩, ⟨⟨5, 3⟩, 1, .N⟩⟩)⟩,
+  ⟨16, 0, 1, 1, (some ⟨53, ⟨3, 4, [true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]⟩, ⟨⟨5, 3⟩, 1, .N⟩, false⟩),
+    (.click 46 58), .won⟩,
+  ⟨17, 0, 2, 2, (some ⟨61, ⟨3, 6, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, false⟩),
+    (.click 34 33), (.seen ⟨60, ⟨3, 6, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨18, 0, 2, 2, (some ⟨60, ⟨3, 6, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, true⟩),
+    (.click 39 36), (.seen ⟨59, ⟨3, 6, [true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨19, 0, 2, 2, (some ⟨59, ⟨3, 6, [true, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, false⟩),
+    (.click 44 36), (.seen ⟨58, ⟨3, 6, [true, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨20, 0, 2, 2, (some ⟨58, ⟨3, 6, [true, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, true⟩),
+    (.click 49 36), (.seen ⟨57, ⟨3, 6, [true, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨21, 0, 2, 2, (some ⟨57, ⟨3, 6, [true, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, false⟩),
+    (.click 54 33), (.seen ⟨56, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨22, 0, 2, 2, (some ⟨56, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, true⟩),
+    (.click 59 36), (.seen ⟨55, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨23, 0, 2, 2, (some ⟨55, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, false⟩),
+    (.click 34 48), (.seen ⟨54, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨24, 0, 2, 2, (some ⟨54, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, true⟩),
+    (.click 54 48), (.seen ⟨53, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, true, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩⟩)⟩,
+  ⟨25, 0, 2, 2, (some ⟨53, ⟨3, 6, [true, false, false, false, true, false, false, true, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, true, false]⟩, ⟨⟨4, 1⟩, 1, .N⟩, false⟩),
+    (.click 57 58), .won⟩,
+  ⟨26, 0, 3, 3, (some ⟨61, ⟨3, 6, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 34 33), (.seen ⟨60, ⟨3, 6, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨27, 0, 3, 3, (some ⟨60, ⟨3, 6, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 34 36), (.seen ⟨59, ⟨3, 6, [true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨28, 0, 3, 3, (some ⟨59, ⟨3, 6, [true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 39 33), (.seen ⟨58, ⟨3, 6, [true, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨29, 0, 3, 3, (some ⟨58, ⟨3, 6, [true, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 39 36), (.seen ⟨57, ⟨3, 6, [true, true, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨30, 0, 3, 3, (some ⟨57, ⟨3, 6, [true, true, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 44 36), (.seen ⟨56, ⟨3, 6, [true, true, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨31, 0, 3, 3, (some ⟨56, ⟨3, 6, [true, true, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 49 33), (.seen ⟨55, ⟨3, 6, [true, true, false, true, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨32, 0, 3, 3, (some ⟨55, ⟨3, 6, [true, true, false, true, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 49 36), (.seen ⟨54, ⟨3, 6, [true, true, false, true, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨33, 0, 3, 3, (some ⟨54, ⟨3, 6, [true, true, false, true, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 54 33), (.seen ⟨53, ⟨3, 6, [true, true, false, true, true, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨34, 0, 3, 3, (some ⟨53, ⟨3, 6, [true, true, false, true, true, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 54 36), (.seen ⟨52, ⟨3, 6, [true, true, false, true, true, false, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨35, 0, 3, 3, (some ⟨52, ⟨3, 6, [true, true, false, true, true, false, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 59 33), (.seen ⟨51, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨36, 0, 3, 3, (some ⟨51, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 59 42), (.seen ⟨50, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨37, 0, 3, 3, (some ⟨50, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 44 48), (.seen ⟨49, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨38, 0, 3, 3, (some ⟨49, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 57 58), (.seen ⟨48, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨39, 0, 3, 3, (some ⟨48, ⟨3, 6, [true, true, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 39 33), (.seen ⟨47, ⟨3, 6, [true, false, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨40, 0, 3, 3, (some ⟨47, ⟨3, 6, [true, false, false, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 44 33), (.seen ⟨46, ⟨3, 6, [true, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨41, 0, 3, 3, (some ⟨46, ⟨3, 6, [true, false, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 44 36), (.seen ⟨45, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨42, 0, 3, 3, (some ⟨45, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 59 36), (.seen ⟨44, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨43, 0, 3, 3, (some ⟨44, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 44 42), (.seen ⟨43, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨44, 0, 3, 3, (some ⟨43, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 59 42), (.seen ⟨42, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨45, 0, 3, 3, (some ⟨42, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 39 48), (.seen ⟨41, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨46, 0, 3, 3, (some ⟨41, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, false⟩),
+    (.click 44 48), (.seen ⟨40, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩⟩)⟩,
+  ⟨47, 0, 3, 3, (some ⟨40, ⟨3, 6, [true, false, true, true, true, true, true, true, false, true, true, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false]⟩, ⟨⟨1, 3⟩, 2, .S⟩, true⟩),
+    (.click 57 58), .won⟩,
+  ⟨48, 0, 4, 4, (some ⟨61, ⟨3, 6, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 34 33), (.seen ⟨60, ⟨3, 6, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨49, 0, 4, 4, (some ⟨60, ⟨3, 6, [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 34 36), (.seen ⟨59, ⟨3, 6, [true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨50, 0, 4, 4, (some ⟨59, ⟨3, 6, [true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 39 33), (.seen ⟨58, ⟨3, 6, [true, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨51, 0, 4, 4, (some ⟨58, ⟨3, 6, [true, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 39 36), (.seen ⟨57, ⟨3, 6, [true, true, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨52, 0, 4, 4, (some ⟨57, ⟨3, 6, [true, true, false, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 44 33), (.seen ⟨56, ⟨3, 6, [true, true, true, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨53, 0, 4, 4, (some ⟨56, ⟨3, 6, [true, true, true, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 44 36), (.seen ⟨55, ⟨3, 6, [true, true, true, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨54, 0, 4, 4, (some ⟨55, ⟨3, 6, [true, true, true, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 49 33), (.seen ⟨54, ⟨3, 6, [true, true, true, true, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨55, 0, 4, 4, (some ⟨54, ⟨3, 6, [true, true, true, true, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 49 36), (.seen ⟨53, ⟨3, 6, [true, true, true, true, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨56, 0, 4, 4, (some ⟨53, ⟨3, 6, [true, true, true, true, false, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 54 33), (.seen ⟨52, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨57, 0, 4, 4, (some ⟨52, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 49 39), (.seen ⟨51, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨58, 0, 4, 4, (some ⟨51, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 49 42), (.seen ⟨50, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨59, 0, 4, 4, (some ⟨50, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 54 39), (.seen ⟨49, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨60, 0, 4, 4, (some ⟨49, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 59 42), (.seen ⟨48, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨61, 0, 4, 4, (some ⟨48, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 49 45), (.seen ⟨47, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, true, false, false, false, true, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨62, 0, 4, 4, (some ⟨47, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, true, false, false, false, true, false, false, false, false, false, false, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, false⟩),
+    (.click 49 48), (.seen ⟨46, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, true, false, false, false, true, false, false, false, false, false, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩⟩)⟩,
+  ⟨63, 0, 4, 4, (some ⟨46, ⟨3, 6, [true, true, true, true, true, false, true, true, true, true, false, false, false, false, false, true, true, false, false, false, false, true, false, true, false, false, false, true, false, false, false, false, false, true, false, false]⟩, ⟨⟨1, 4⟩, 1, .E⟩, true⟩),
+    (.click 57 58), .won⟩,
+  ⟨64, 0, 5, 5, (some ⟨61, ⟨3, 6, [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨6, 0⟩, 1, .W⟩, false⟩),
+    (.click 34 36), (.seen ⟨61, ⟨3, 6, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨6, 0⟩, 1, .W⟩⟩)⟩,
+  ⟨65, 0, 5, 5, (some ⟨61, ⟨3, 6, [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]⟩, ⟨⟨6, 0⟩, 1, .W⟩, true⟩),
+    (.click 39 36), (.seen ⟨60, ⟨3, 6, [false, false, false, false, false, false, true, true, fals
+…（后面是按行的观测数据，按关拆开的段在各关那一页）</pre></div>
+</div>
+<script>window.PAGE = {};</script>
+<script>
+// 只画、只翻页。**这里没有一行世界逻辑**：每一帧的像素、哪几格变了、每条规则判了什么、
+// 世界字段读出来是多少——全是 web/export.py 在 Python 那边算好的，这一份只摆出来。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+// ARC-AGI-3 的 16 色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出，
+// pages.py 放进要画帧的那几页的 PAGE.palette（下标 = 色号）。这里不抄。
+const PALETTE = (window.PAGE && window.PAGE.palette) || [];
+const PX = 4;
+
+function paintFrame(cv, hex, marks) {
+  cv.width = 64 * PX; cv.height = 64 * PX;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 4096; i++) {
+    g.fillStyle = PALETTE[parseInt(hex[i], 16)];
+    g.fillRect((i % 64) * PX, Math.floor(i / 64) * PX, PX, PX);
+  }
+  if (marks) {
+    g.strokeStyle = "#ff2d55"; g.lineWidth = 1;
+    for (const rc of marks) g.strokeRect(rc[1] * PX + .5, rc[0] * PX + .5, PX - 1, PX - 1);
+  }
+}
+
+function paintAll() {
+  const P = window.PAGE || {};
+  document.querySelectorAll("canvas[data-frame]").forEach((cv) => {
+    const id = cv.getAttribute("data-frame");
+    const mk = cv.getAttribute("data-marks");
+    paintFrame(cv, P.frames[id], mk ? P.marks[mk] : null);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function replayInit() {
+  const P = window.PAGE;
+  if (!P || !P.rows) return;
+  const box = document.getElementById("replay");
+  const slider = document.getElementById("pos");
+  const label = document.getElementById("where");
+  slider.max = P.rows.length - 1;
+  function show(i) {
+    const s = P.rows[i];
+    slider.value = i;
+    label.textContent = `第 ${i + 1} / ${P.rows.length} 行 · seq ${s.seq} · 段 ${s.seg} · 第 ${s.lvl} 关（本关第 ${s.k} 下）`;
+    paintFrame(document.getElementById("cvA"), P.frames[s.prev], null);
+    paintFrame(document.getElementById("cvB"), P.frames[s.next], s.changed);
+    const chips = Object.entries(s.verdicts).map(([n, v]) =>
+      `<tr><td>${esc(n)}</td><td><span class="chip ${v}">${v}</span></td></tr>`).join("");
+    const wv = (w) => w ? `顶栏 ${w.counter}；件 ${esc(w.piece)}；面板程序 ${esc(w.program)}；看得见的花格 ${esc(w.pads)}` : "（读不成世界：终局画面）";
+    document.getElementById("info").innerHTML =
+      `<dl class="kv"><dt>动作</dt><dd class="mono">${esc(s.action)}（${esc(s.kind)}${s.result ? "，交卷结果 " + esc(s.result) : ""}）</dd>` +
+      `<dt>上游</dt><dd>第 ${s.lvl} 关 → 第 ${s.lvl_next} 关，${esc(s.state)}</dd>` +
+      `<dt>变了几格</dt><dd>${s.n_changed}（右图红框，导出侧比好的）</dd>` +
+      `<dt>前一帧</dt><dd>${wv(s.w)}</dd><dt>后一帧</dt><dd>${wv(s.nw)}</dd>` +
+      `<dt>标记</dt><dd>${esc(s.mark)}</dd></dl>` +
+      `<table style="margin-top:10px"><tr><th>规则</th><th>判决</th></tr>${chips}</table>`;
+  }
+  slider.addEventListener("input", () => show(+slider.value));
+  document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+  document.getElementById("nextBtn").onclick = () => show(Math.min(P.rows.length - 1, +slider.value + 1));
+  const jump = document.getElementById("jump");
+  if (jump) jump.onchange = () => show(+jump.value);
+  show(0);
+  box.style.display = "block";
+}
+
+function navSelect() {
+  document.querySelectorAll("select[data-nav]").forEach((s) => {
+    s.onchange = () => { if (s.value) window.location.href = s.value; };
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => { paintAll(); replayInit(); navSelect(); });
+
+</script>
+</body>
+</html>

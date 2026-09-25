@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则</title>
+<style>
+/* 只有尺寸与配色（从 ledger/templates/web/style.css 起手）。 */
+/* 按钮 / 门按世界色号上色：--btnN / --doorN 由 web/export.py 从官方 arc_agi.rendering.COLOR_MAP 生成（只有这一个来源） */
+/* 生成的文件，别手改：web/export.py 从 arc_agi.rendering.COLOR_MAP 按色号取色 */
+:root {
+  --btn8: #F93C31;
+  --btn11: #FFDC00;
+  --btn15: #A356D6;
+  --door8: #F93C31;
+  --door11: #FFDC00;
+  --door15: #A356D6;
+}
+
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;
+  /* ↓ 本局专属：世界的配色（前端配的，不是世界里的色号） */
+  --wall: #0b0d12; --floor: #2a2f3b; --goal: #e8e8e8; --hidden: #3d3340;
+  --me: #59b0ff; --ghost: #e5544b; --walker: #b36bff;
+  --spring: #c9a227; --latch: #3fb6a8;
+  --ok: #4caf7d; --bad: #e5544b; --na: #4a5163;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; color: var(--dim); letter-spacing: .8px; }
+.gaps { border-color: #7a5a20; }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin-top: 22px; font-weight: 600; font-size: 15px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--line); }
+.mono, code, pre { font-family: ui-monospace, Consolas, monospace; }
+pre.src { white-space: pre-wrap; font-size: 12px; background: #0f1116; padding: 10px; border-radius: 6px; overflow-x: auto; }
+.prose { white-space: pre-wrap; }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.cells .row { display: flex; }
+.c { display: inline-block; width: 22px; height: 22px; border: 1px solid #0003; }
+.legend .c { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+.c.wall { background: var(--wall); } .c.floor { background: var(--floor); } .c.goal { background: var(--goal); }
+.c.hidden { background: var(--hidden); } .c.me { background: var(--me); } .c.ghost { background: var(--ghost); }
+.c.walker { background: var(--walker); } .c.spring { background: var(--spring); } .c.latch { background: var(--latch); }
+.c.cart { background: #888; }
+.c.btn8 { background: var(--btn8); } .c.btn11 { background: var(--btn11); } .c.btn15 { background: var(--btn15); }
+.c.door8 { background: var(--door8); } .c.door11 { background: var(--door11); } .c.door15 { background: var(--door15); }
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+input[type=range] { flex: 1; min-width: 180px; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+.v-TRUE { color: var(--ok); } .v-FALSE { color: var(--bad); font-weight: 700; } .v-NA { color: var(--na); }
+@media (max-width: 600px) { .c { width: 14px; height: 14px; } }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则</h1><div class="sub">按它管什么分组（分组就是 rule/ 下的子文件夹）。</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+<div class="card"><p>12 条规则面对 811 行转移（去重后 707 条）：
+无人区 0 条；不接手的转移带标记计数 {&#x27;levelup&#x27;: 15, &#x27;reset&#x27;: 5, &#x27;unreadable&#x27;: 3}；读不成的帧 {&#x27;a:收场帧（这一步之后 state == WIN）&#x27;: 2, &#x27;a:收场之后的那一帧（state_prev == WIN）&#x27;: 1}。</p>
+<p class="note">「这套规则在这 811 行转移上判对 / 判错 / 无人区如下」——不说「它完整描述了这个游戏」。</p></div>
+<div class="grouphead">一步怎么走</div><p class="note"><strong>这一组管：按一下方向键，棋子自己落在哪一格。</strong></p><table><tr><th><a href="me_steps_if_free.html">me_steps_if_free</a></th><td>方向键：目标格进得去（地形不是墙、上面没有车）就挪过去，进不去就原地不动。替身、环不挡棋子。</td><td class="mono">|scope| 743 · 对 743 · 错 0 · 闭嘴 65</td><td>定义</td></tr><tr><th><a href="portal_needs_rising_edge.html">portal_needs_rising_edge</a></th><td>走进传送门：同一张网上有按钮在这一步被压下（上升沿）就传到搭档那扇门，否则停在门里。按住不放不算。</td><td class="mono">|scope| 15 · 对 15 · 错 0 · 闭嘴 793</td><td>定义</td></tr></table><div class="grouphead">世界怎么回应</div><p class="note"><strong>这一组管：按钮被压下 / 松开的那一步，车怎么挪。</strong></p><table><tr><th><a href="latch_toggles_on_press.html">latch_toggles_on_press</a></th><td>闩车：按钮每被压下一次，在家和前一格之间翻一次；松开、按住都不动。轨道再长也只用这两格。</td><td class="mono">|scope| 594 · 对 594 · 错 0 · 闭嘴 214</td><td>定义</td></tr><tr><th><a href="spring_follows_button.html">spring_follows_button</a></th><td>弹簧车：按钮压下那一步进到前一格，松开那一步回家；压着不放、一直没人压，都不动。</td><td class="mono">|scope| 758 · 对 758 · 错 0 · 闭嘴 50</td><td>定义</td></tr></table><div class="grouphead">什么算赢</div><p class="note"><strong>这一组管：什么算赢。</strong> 只有一条：走进终点格就过关。</p><table><tr><th><a href="goal_is_levelup.html">goal_is_levelup</a></th><td>方向键的目标格是终点格且进得去 ⇔ 关卡号 +1。两个方向都主张：进了必过关，没进必不过关。</td><td class="mono">|scope| 772 · 对 772 · 错 0 · 闭嘴 38</td><td>定义</td></tr></table><div class="grouphead">换一盘</div><p class="note"><strong>这一组管：ACTION5 —— 换一盘带子。</strong></p><table><tr><th><a href="hud_cursor_cycle.html">hud_cursor_cycle</a></th><td>游标：ACTION5 → (k+1) mod n；方向键不动它。槽的个数 n 一关之内不变。</td><td class="mono">|scope| 792 · 对 792 · 错 0 · 闭嘴 16</td><td>定义</td></tr><tr><th><a href="switch_restarts_round.html">switch_restarts_round</a></th><td>ACTION5：棋子回起点格；替身全收回起点、压在棋子底下看不见；环回它的起点格。</td><td class="mono">|scope| 34 · 对 34 · 错 0 · 闭嘴 774</td><td>定义</td></tr><tr><th><a href="switch_rewinds_carts.html">switch_rewinds_carts</a></th><td>ACTION5：弹簧车回家；闩车回到这一盘开局时的那一格，除非此刻它的按钮正被压着（那就不动）。</td><td class="mono">|scope| 34 · 对 34 · 错 0 · 闭嘴 774</td><td>定义</td></tr></table><div class="grouphead">替身与环</div><p class="note"><strong>这一组管：棋子以外的两种活物各自怎么走。</strong></p><table><tr><th><a href="ghosts_replay_tapes.html">ghosts_replay_tapes</a></th><td>替身 = 之前每一盘的录像：从起点格起每一步放一个录下的动作（只录棋子真挪了窝的那几下），进不去就原地但照样消耗；放完永远停住；和棋子一样过传送门。</td><td class="mono">|scope| 530 · 对 530 · 错 0 · 闭嘴 278</td><td>定义</td></tr><tr><th><a href="walker_patrols.html">walker_patrols</a></th><td>环：棋子挪窝它才走一格；直走 &gt; 唯一的侧路 &gt; 掉头；棋子没挪它不动；它落脚那格同一步被车挪进来就被压掉。</td><td class="mono">|scope| 274 · 对 274 · 错 0 · 闭嘴 534</td><td>定义</td></tr></table><div class="grouphead">说了但不进模型</div><p class="note"><strong>这一组管：写出来了、能判错，但不进形式化那一层的模型。</strong></p><table><tr><th><a href="bar_ticks.html">bar_ticks</a></th><td>每两拍花一格（换一盘也算一拍）：第一格在第 2 + 2×(条右端没画出来的格数) 拍花掉，此后每隔两拍再花一格。等价于花掉的格数 = max(0, ⌊拍数 / 2⌋ − 没画出来的格数)，只要中途没多出一拍。</td><td class="mono">|scope| 792 · 对 791 · 错 1 · 闭嘴 16</td><td>不进模型</td></tr><tr><th><a href="reset_restores_start.html">reset_restores_start</a></th><td>RESET：下一帧 = 这一关开局那一帧（棋子 / 环 / 车 / 游标 / 计数条都回去，替身清空）。</td><td class="mono">|scope| 4 · 对 4 · 错 0 · 闭嘴 804</td><td>不进模型</td></tr></table>
+</div></body></html>

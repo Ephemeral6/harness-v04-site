@@ -1,0 +1,341 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Proof/Levels/Lv5.lean · wa30</title><style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     本局：六种地形 + 玩家 / 甜甜圈四种环 / 两种鼹鼠，都按它们在帧里的色号画；色号 → 颜色只有一个来源——
+     export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，render.js 读它。这里只留格线与高亮。 */
+  --floor-line: #313846;
+  --changed: #ffd84d;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+.gaps { border-color: #6b4a22; background: #211b12; }
+.gaps li { margin: 4px 0; }
+pre.txt { white-space: pre-wrap; background: #0f1218; border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px; font-size: 12.5px; max-height: 520px; overflow: auto; }
+.shots svg { vertical-align: middle; margin: 4px; }
+table.v td, table.v th { padding: 3px 8px; }
+
+</style></head><body><div class="wrap"><header><h1>Proof/Levels/Lv5.lean</h1><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header><div class="card"><h2>Proof/Levels/Lv5.lean（证明）</h2><table><tr><td>Game.Lv5.rows_len</td><td></td></tr><tr><td>Game.Lv5.trace</td><td>propext</td></tr><tr><td>Game.Lv5.winnable</td><td>propext</td></tr></table></div><div class="card"><pre class="lean">/-
+# 第 5 关（`lean2/export_levels.py` 生成，不要手改）
+
+    Lv5.trace      沿段 B 里真人走过的那条路，模型**每一帧都和观测对上**——
+                     只有开局那一帧是观测给的，后面 48 帧全是模型自己算的
+    Lv5.winnable   这一关走得通：见证就是那条路再加上最后那一脚（第 49 步换关）
+    Lv5.rows_len   切出来的那一段恰好 49 行、都属于第 5 关、都在段 B，
+                     只有最后一行是换关（空表会让逐帧核对平凡为真，这一条钉住它）
+
+开局 seq 1194；这一关核过的步数 **48**（+ 最后换关那一步由 `winnable` 核）。
+这一关里没有 RESET，所以「重置放回开局」那条假设在这一关**没被用到**。
+-/
+
+import Obj.World
+import Obs.Replay
+import Proof.Reachable
+
+open Game
+
+namespace Game.Lv5
+
+def board : Board := Replay.board 5
+def rows : List Replay.Row := Replay.slice 1194 49
+def start : St := startOf (Replay.frameAt ((rows.head?.map (·.prev)).getD 0))
+def play : List (Act × Seen) := Replay.playOf (rows.take 48)
+def acts : List Act := Replay.actsOf rows
+
+#eval match firstSplit step board start play 0 with
+  | none   =&gt; s!&quot;Lv5  一处都没分家（{play.length} 帧）&quot;
+  | some i =&gt; s!&quot;Lv5  第 {i} 步分家&quot;
+
+end Game.Lv5
+
+theorem Game.Lv5.rows_len :
+    Replay.stepCount Game.Lv5.rows = 49 ∧
+    Game.Lv5.rows.all (fun r =&gt; r.lvl == 5 &amp;&amp; r.cert &amp;&amp; !r.over) = true ∧
+    (Game.Lv5.rows.take 48).all (fun r =&gt; r.tag == 0) = true ∧
+    (Game.Lv5.rows.drop 48).all (fun r =&gt; r.tag == 1) = true := by
+  decide +kernel
+
+theorem Game.Lv5.trace :
+    Game.Lv5.board.wf = true ∧
+    Game.traceOk Game.step Game.Lv5.board Game.Lv5.start Game.Lv5.play = true := by
+  decide +kernel
+
+theorem Game.Lv5.winnable :
+    ∃ as : List Game.Act, Game.everGoal Game.step Game.Lv5.board Game.Lv5.start as = true :=
+  ⟨Game.Lv5.acts, by decide +kernel⟩
+
+#print axioms Game.Lv5.rows_len
+#print axioms Game.Lv5.trace
+#print axioms Game.Lv5.winnable
+</pre></div></div><script>
+// 画盘面与给 Lean 源码上色。**只画，不算。**
+// 每一格是什么、这一步哪几格变了、每条规则说了什么——全是 web/export.py 算好导出来的；
+// 这里只把名字映射成颜色和方块。check_no_logic.py 会来搜世界那一侧的动词。
+
+(function () {
+  // 配色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号）；
+  // 地形 / 环 / 芯 / 鼹鼠 / 玩家各是帧里的哪个色号（DATA.colors）也是 export.py 取对象层读帧的常量。这里只查表，不抄。
+  const pal = (id) => ((window.DATA || {}).palette || [])[id] || "#888";
+  const COL = () => (window.DATA || {}).colors || { terrain: {} };
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#888";
+
+  function rect(x, y, w, h, fill, extra) {
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" ${extra || ""}/>`;
+  }
+
+  // board: {rows:[16 字符串], home:[[r,c]], den:[[r,c]]}；fr: 导出的一帧；chg: 导出的变化格
+  function board(board, fr, chg, size) {
+    const S = size || 18, out = [], K = COL();
+    const homes = new Set((board.home || []).map((x) => x[0] * 16 + x[1]));
+    for (let r = 0; r < 16; r++) {
+      for (let c = 0; c < 16; c++) {
+        const ch = board.rows[r][c];
+        let col = pal(ch in K.terrain ? K.terrain[ch] : K.terrain["."]);
+        if (ch === "d" && homes.has(r * 16 + c)) col = pal(K.home);
+        out.push(rect(c * S, r * S, S, S, col, `stroke="${css("--floor-line")}" stroke-width="0.5"`));
+      }
+    }
+    if (fr) {
+      for (const [r, c, v] of fr.d) {
+        out.push(rect(c * S + 1, r * S + 1, S - 2, S - 2, pal(v)));
+        out.push(rect(c * S + S / 4 + 1, r * S + S / 4 + 1, S / 2 - 2, S / 2 - 2, pal(K.core)));
+      }
+      for (const [r, c, k, a] of fr.m) {
+        out.push(rect(c * S + 1, r * S + 1, S - 2, S - 2, pal(k === "thief" ? K.thief : K.helper),
+          a ? `stroke="${pal(K.alert)}" stroke-width="2"` : ""));
+      }
+      const [pr, pc] = fr.p;
+      out.push(rect(pc * S + 1, pr * S + 1, S - 2, S - 2, pal(K.body)));
+      const H = 4, x = pc * S + 1, y = pr * S + 1, w = S - 2;
+      const head = { up: [x, y, w, H], down: [x, y + w - H, w, H], left: [x, y, H, w], right: [x + w - H, y, H, w] }[fr.f];
+      out.push(rect(head[0], head[1], head[2], head[3], pal(K.head)));
+    }
+    for (const [r, c] of chg || []) {
+      out.push(rect(c * S + 0.5, r * S + 0.5, S - 1, S - 1, "none", `stroke="${css("--changed")}" stroke-width="1.5"`));
+    }
+    return `<svg width="${16 * S}" height="${16 * S}" viewBox="0 0 ${16 * S} ${16 * S}">${out.join("")}</svg>`;
+  }
+
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|open|" +
+    "by|fun|match|with|let|have|show|if|then|else|where|from|at|using").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|cases|rcases|obtain|refine|constructor|injection|subst|" +
+    "induction|split|rw|apply|unfold|absurd|first|next|rename_i").split("|");
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  // 哨兵写成转义（见模板 lean.js 的说明）
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+
+  window.Render = { board, paint, esc };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    for (const el of document.querySelectorAll("pre.lean")) el.innerHTML = paint(el.textContent);
+    const D = window.DATA || {};
+    for (const el of document.querySelectorAll("[data-shot]")) {
+      const s = D.shots[el.dataset.shot];
+      el.innerHTML = board(D.boards[s.lv], D.frames[s.a], null, 16) + " → " + board(D.boards[s.lvn], D.frames[s.b], s.chg, 16);
+    }
+  });
+})();
+
+</script></body></html>

@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>形式化 · su15</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  /* 这一局：底色、圈、件、会动的东西都按帧里的色号上色，色号 → 颜色只有一个来源——export.py 从官方
+     arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，render.js 读它。这里只留高亮色。 */
+  --changed: #ffffff;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body data-page="">
+<div class="wrap">
+<header>
+<h1>形式化</h1>
+<div class="sub">每一关走得通还是走不通；结论在最前，堆料收在后面。</div>
+<nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../share.html">怎么给别人看</a></nav>
+</header>
+<div class="card" style="border-color:#6b4a2a"><h2>明写的缺口（4 条）—— 摆在最上面</h2><ul class="tight"><li>第 4 关：从开局起既没有 `_winnable` 也没有 `_unsolvable`。路断在 第 862 行（模型说不出话（na））、第 864 行（模型说不出话（na））、第 866 行（模型算出来的下一帧和观测对不上）、第 867 行（模型说不出话（na））；断点之间的每一段各自对上了（`_seg&lt;k&gt;_trace`，起点取观测）。**这是模型的缺口，不是「这一关走不通」**：成绩单上这一关是过了的。</li><li>第 5 关：从开局起既没有 `_winnable` 也没有 `_unsolvable`。路断在 第 868 行（模型说不出话（na））、第 872 行（模型说不出话（na））；断点之间的每一段各自对上了（`_seg&lt;k&gt;_trace`，起点取观测），尾段从第 873 行起接上过关那一脚走得通（`_tail_winnable`）。**这是模型的缺口，不是「这一关走不通」**：成绩单上这一关是过了的。</li><li>第 7 关：从开局起既没有 `_winnable` 也没有 `_unsolvable`。路断在 第 887 行（模型算出来的下一帧和观测对不上）、第 890 行（模型说不出话（na））、第 891 行（模型说不出话（na））、第 894 行（模型说不出话（na））；断点之间的每一段各自对上了（`_seg&lt;k&gt;_trace`，起点取观测）。**这是模型的缺口，不是「这一关走不通」**：成绩单上这一关是过了的。</li><li>第 8 关：从开局起既没有 `_winnable` 也没有 `_unsolvable`。路断在 第 898 行（模型算出来的下一帧和观测对不上）、第 899 行（模型算出来的下一帧和观测对不上）、第 900 行（模型说不出话（na））、第 901 行（模型算出来的下一帧和观测对不上）、第 902 行（模型说不出话（na））、第 903 行（模型说不出话（na））、第 904 行（模型说不出话（na））；断点之间的每一段各自对上了（`_seg&lt;k&gt;_trace`，起点取观测）。**这是模型的缺口，不是「这一关走不通」**：成绩单上这一关是过了的。</li></ul></div><div class="card"><h2>每一关一条结论（认证段 b99b56c2-927c-4317-9c5b-cabe92435957）</h2><table><tr><th>关</th><th>结论</th><th class="num">核过的步数</th><th>逐步判决（T 对 / F 错 / N 闭嘴）</th></tr><tr><td><a href="Proof-Levels-L0.html">第 0 关</a></td><td class="ok">走得通（从开局，见证 = 真人那条路）</td><td class="num">7 / 7</td><td class="mono">TTTTTTT</td></tr><tr><td><a href="Proof-Levels-L1.html">第 1 关</a></td><td class="ok">走得通（从开局，见证 = 真人那条路）</td><td class="num">12 / 12</td><td class="mono">TTTTTTTTTTTT</td></tr><tr><td><a href="Proof-Levels-L2.html">第 2 关</a></td><td class="ok">走得通（从开局，见证 = 真人那条路）</td><td class="num">16 / 16</td><td class="mono">TTTTTTTTTTTTTTTT</td></tr><tr><td><a href="Proof-Levels-L3.html">第 3 关</a></td><td class="ok">走得通（从开局，见证 = 真人那条路）</td><td class="num">12 / 12</td><td class="mono">TTTTTTTTTTTT</td></tr><tr><td><a href="Proof-Levels-L4.html">第 4 关</a></td><td class="bad">缺口：从开局起两样都没有</td><td class="num">2 / 6</td><td class="mono">NTNTFN</td></tr><tr><td><a href="Proof-Levels-L5.html">第 5 关</a></td><td class="bad">缺口：从开局起两样都没有；尾段从第 873 行起走得通</td><td class="num">9 / 11</td><td class="mono">NTTTNTTTTTT</td></tr><tr><td><a href="Proof-Levels-L6.html">第 6 关</a></td><td class="ok">走得通（从开局，见证 = 真人那条路）</td><td class="num">6 / 6</td><td class="mono">TTTTTT</td></tr><tr><td><a href="Proof-Levels-L7.html">第 7 关</a></td><td class="bad">缺口：从开局起两样都没有</td><td class="num">6 / 10</td><td class="mono">TTFTTNNTTN</td></tr><tr><td><a href="Proof-Levels-L8.html">第 8 关</a></td><td class="bad">缺口：从开局起两样都没有</td><td class="num">3 / 10</td><td class="mono">TTTFFNFNNN</td></tr></table><p class="note">`Winnable` = 「**不经过模型说不出话的那几支**（撤销 / RESET / 甩飞 / 并 / 目标并列）就走得通」；见证路线里一步 na 都没有，这一条是内核算出来的。</p><p class="note">「重来一次把局面放回这一关的开局」：认证段关内 0 次 RESET，每关定理都没用到它；规则层 reset_refills_budget 在全语料 27 次 RESET 上逐次核（被驳倒 0 次）——没被驳倒不构成证明。</p></div><div class="card"><h2>模型面对全部 904 行（逐条那一层）</h2><p>Lean：{&#x27;N&#x27;: 230, &#x27;T&#x27;: 571, &#x27;F&#x27;: 103}；Python：{&#x27;N&#x27;: 230, &#x27;T&#x27;: 571, &#x27;F&#x27;: 103}；两份逐字对不上 <b>0</b> 行。认证段：{&#x27;N&#x27;: 13, &#x27;T&#x27;: 73, &#x27;F&#x27;: 5}。</p><h3 class="lsec">判错的归因</h3><table><tr><td class='num'>2</td><td>件的去向（咬）：单只追旧件，落点差一两格（没归因到上面几类）</td></tr><tr><td class='num'>13</td><td>件的去向（咬）：几只一起挪：互相挡 / 抢同一件（这一版只描述各走各的）</td></tr><tr><td class='num'>5</td><td>驳回（触发条件说不出；模型照常算了一步）</td></tr><tr><td class='num'>26</td><td>会动的东西落点：甩飞：追新件的那只一步挪了 &gt;4 格（没压上新件也会甩，这一版说不出触发条件）</td></tr><tr><td class='num'>1</td><td>会动的东西落点：单只追旧件，落点差一两格（没归因到上面几类）</td></tr><tr><td class='num'>45</td><td>会动的东西落点：几只一起挪：互相挡 / 抢同一件（这一版只描述各走各的）</td></tr><tr><td class='num'>6</td><td>新件被菱形 / 蟹咬了（新件只对追猎者免疫；菱形扑、蟹咬这一版说不出）</td></tr><tr><td class='num'>2</td><td>会动的东西落点：追新件、挨着新件停下的位置差一两格（甩飞的边界说不出）</td></tr><tr><td class='num'>3</td><td>件的去向（咬）：甩飞：追新件的那只一步挪了 &gt;4 格（没压上新件也会甩，这一版说不出触发条件）</td></tr></table><h3 class="lsec">闭嘴的理由</h3><table><tr><td class='num'>27</td><td>RESET：要历史，模型不描述</td></tr><tr><td class='num'>92</td><td>ACTION7：要历史，模型不描述</td></tr><tr><td class='num'>7</td><td>会动的东西盯的目标并列或没有件</td></tr><tr><td class='num'>90</td><td>碰上刚落下的新件：被甩开，说不出</td></tr><tr><td class='num'>14</td><td>两只挪完压在一起：并成高一级，说不出</td></tr></table></div><div class="card"><h2>每条规则的身份（恰好一种）</h2><p>{&#x27;定义&#x27;: 7, &#x27;推论&#x27;: 3, &#x27;不进模型&#x27;: 4}</p><table><tr><td><a href="../rules/click_lands_fresh.html">click_lands_fresh</a></td><td>定义</td><td>Rule/Click/LandsFresh.lean resolve</td></tr><tr><td><a href="../rules/click_top_band_inert.html">click_top_band_inert</a></td><td>定义</td><td>Rule/Click/TopBandInert.lean isTopBand</td></tr><tr><td><a href="../rules/budget_step_cost.html">budget_step_cost</a></td><td>定义</td><td>Rule/Budget/StepCost.lean nextBar</td></tr><tr><td><a href="../rules/budget_game_over_at_zero.html">budget_game_over_at_zero</a></td><td>定义</td><td>Rule/Budget/GameOverAtZero.lean overAt</td></tr><tr><td><a href="../rules/creature_chases_target.html">creature_chases_target</a></td><td>定义</td><td>Rule/Creature/Chase.lean chase</td></tr><tr><td><a href="../rules/bite_demotes_and_flings.html">bite_demotes_and_flings</a></td><td>定义</td><td>Rule/Creature/Bite.lean bitten</td></tr><tr><td><a href="../rules/levelup_iff_covered_after_step.html">levelup_iff_covered_after_step</a></td><td>定义</td><td>Rule/Goal/Covered.lean covered</td></tr><tr><td><a href="../rules/pieces_out_of_reach_stay_or_bitten.html">pieces_out_of_reach_stay_or_bitten</a></td><td>推论</td><td>Derived/OutOfReach.lean resolve_keeps_far</td></tr><tr><td><a href="../rules/creature_step_bounded.html">creature_step_bounded</a></td><td>推论</td><td>Derived/StepBounded.lean chase_bounded</td></tr><tr><td><a href="../rules/still_uncovered_while_playing.html">still_uncovered_while_playing</a></td><td>推论</td><td>Derived/StillUncovered.lean step_keeps_uncovered</td></tr><tr><td><a href="../rules/levelup_starts_fresh.html">levelup_starts_fresh</a></td><td>不进模型</td><td> 换关那一步的下一帧是下一关的开局——那是下一关的版面，不是这一步的函数；模型在那一步只说 `won`（论域 42，被驳倒 0）</td></tr><tr><td><a href="../rules/undo_restores_before_last_click.html">undo_restores_before_last_click</a></td><td>不进模型</td><td> 撤销回到哪一帧是历史（撤销栈），当前这一帧上读不出来（论域 92，被驳倒 0）</td></tr><tr><td><a href="../rules/reset_refills_budget.html">reset_refills_budget</a></td><td>不进模型</td><td> 「这一关的开局长什么样」是历史，不是当前这一帧的函数（论域 27，被驳倒 0）</td></tr><tr><td><a href="../rules/refusal_freezes_board.html">refusal_freezes_board</a></td><td>不进模型</td><td> 哪一下会被驳回说不出；罚几步要数这一条命里驳回过几次（历史）（论域 17，被驳倒 0）</td></tr></table></div><div class="card"><h2>凭什么信上面这些</h2><p>59 条定理，每条都跟了 <code>#print axioms</code>；破坏测试 Broken.lean：退出码 1、报错行 [18]、标记行 18。</p><details><summary>装置 lean_check 的读数</summary><pre class="doc">扫目录：22 份 .lean
+分层（按目录认）：对象 6、推论 3、没归类 1、观测 3、规则 7、证明 2
+没归类 Step.lean —— 它们不在任何一层里，下面几条分层检查对它们不起作用
+跑成的分层检查：import 方向、长在世界上
+lean：工具链 leanprover--lean4---v4.34.0（绕开 elan shim）
+可信基：59/59 条定理跑过 `#print axioms`，干净（只有 propext / Classical.choice / Quot.sound）</pre></details><details><summary>全部 23 份文件</summary><table><tr><td><a href="Derived-OutOfReach.html">Derived/OutOfReach.lean</a></td><td>推论</td><td>OutOfReach —— **推论**：点击这一相碰不到射程外的件</td></tr><tr><td><a href="Derived-StepBounded.html">Derived/StepBounded.lean</a></td><td>推论</td><td>StepBounded —— **推论**：会动的东西一步最多挪 4 格（行、列各自）</td></tr><tr><td><a href="Derived-StillUncovered.html">Derived/StillUncovered.lean</a></td><td>推论</td><td>StillUncovered —— **推论**：模型交回一个「还在玩」的世界，那个世界上样板一定没配齐</td></tr><tr><td><a href="Obj-Board-Board.html">Obj/Board/Board.lean</a></td><td>对象</td><td>Board —— 版面：圈与样板，一关之内不变</td></tr><tr><td><a href="Obj-Board-Ring.html">Obj/Board/Ring.lean</a></td><td>对象</td><td>Ring —— 圈：9×9 八边形框的左上角</td></tr><tr><td><a href="Obj-Board-Sample.html">Obj/Board/Sample.lean</a></td><td>对象</td><td>Sample —— 样板：这一关要往圈里交的一样东西</td></tr><tr><td><a href="Obj-Creature-Creature.html">Obj/Creature/Creature.lean</a></td><td>对象</td><td>Creature —— 会自己动的东西：种类 + 4×5 框的左上角</td></tr><tr><td><a href="Obj-Piece-Piece.html">Obj/Piece/Piece.lean</a></td><td>对象</td><td>Piece —— 件：级 + 左上角</td></tr><tr><td><a href="Obj-World.html">Obj/World.lean</a></td><td>对象</td><td>World —— 状态：件、会动的东西、预算条上剩几格</td></tr><tr><td><a href="Obs-Check.html">Obs/Check.lean</a></td><td>观测</td><td>Check —— 判据层：两把尺子，**0 条定理**（尺子不自证，它只是被用）</td></tr><tr><td><a href="Obs-Corpus.html">Obs/Corpus.lean</a></td><td>观测</td><td>Corpus —— 模型面对全部 904 行真实转移（`lean2/export_corpus.py` 生成，不要手改）</td></tr><tr><td><a href="Obs-Replay.html">Obs/Replay.lean</a></td><td>观测</td><td>Replay —— 整条轨迹，**只存这一份**（`lean2/export_replay.py` 生成，不要手改）</td></tr><tr><td><a href="Proof-Levels.html">Proof/Levels.lean</a></td><td>证明</td><td>Levels —— 每一关一条定理（`lean2/export_levels.py` 生成，不要手改）</td></tr><tr><td><a href="Proof-Reachable.html">Proof/Reachable.lean</a></td><td>证明</td><td>Reachable —— 这个局面走得通 / 走不通</td></tr><tr><td><a href="Rule-Budget-GameOverAtZero.html">Rule/Budget/GameOverAtZero.lean</a></td><td>规则</td><td>GameOverAtZero —— 条上 0 格 ⇔ 终局</td></tr><tr><td><a href="Rule-Budget-StepCost.html">Rule/Budget/StepCost.lean</a></td><td>规则</td><td>StepCost —— 条上格数 = 64 − ⌊64k/N⌋；一下棋盘点击 k+1</td></tr><tr><td><a href="Rule-Click-LandsFresh.html">Rule/Click/LandsFresh.lean</a></td><td>规则</td><td>LandsFresh —— 射程里 n 件同级（n = 1, 2）：变成一件 t+n−1 级的新件，落在点击处</td></tr><tr><td><a href="Rule-Click-TopBandInert.html">Rule/Click/TopBandInert.lean</a></td><td>规则</td><td>TopBandInert —— 点在顶带（第 0..9 行）：世界一位都不变</td></tr><tr><td><a href="Rule-Creature-Bite.html">Rule/Creature/Bite.lean</a></td><td>规则</td><td>Bite —— 挪完压在旧件上：那件降一级，沿「咬它的那只 → 件心」甩开 10 格</td></tr><tr><td><a href="Rule-Creature-Chase.html">Rule/Creature/Chase.lean</a></td><td>规则</td><td>Chase —— 会动的东西盯点击之前最近的那一件（认身份），最多 4 小步，压上就停</td></tr><tr><td><a href="Rule-Goal-Covered.html">Rule/Goal/Covered.lean</a></td><td>规则</td><td>Covered —— 样板都配上了：每个样板配一样**不同的**东西，整块落在某个圈的 9×9 框里</td></tr><tr><td><a href="Step.html">Step.lean</a></td><td>没归类</td><td>Step —— 一步怎么走：**只做分发，0 条定理**</td></tr><tr><td><a href="Broken.html">Broken.lean</a></td><td>破坏测试</td><td>Broken —— **这一份应当编不过**，而且只在标记的那一行红</td></tr></table></details></div>
+</div>
+</body>
+</html>

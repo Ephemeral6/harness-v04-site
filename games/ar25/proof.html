@@ -1,0 +1,2986 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>ar25 的证明与验证 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← ar25 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从录像里的开局画面出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">8 关全部被证明可以打通。每关沿录像核对 10 到 52 步，每一步都和录像一致，再加上盖满目标的最后一步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：8/8 关，100 分，共 253 步（<a href="https://arcprize.org/replay/98f557f1-7b5e-40c5-9304-456b1ec2a3ed" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像全部 253 步上逐步检验，0 次说错；Lean 里的模型逐步推演，253/253 步与录像一致。</li><li>把 Python 规则与对象代码故意改错 13 种，检验抓住了 13 种。</li><li>把 Lean 模型故意改错 8 种，抓住了 6 种。没抓住的是「分隔带在目标处不让位」和「点在镜像上当作点穿」：录像里的 16 次点击，没有一次点在带线上的目标块或镜像上，这两支从来没被走到。</li><li>全部 43 条定理都查过依赖，只用到 Lean 自带的基础；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>写过、但没被检验过的说法</h2><p class="prose">另有 3 条说法写过，却从没被检验过：认证的那一遍没有按过 ACTION5、ACTION7，也没有一次推不动的推。它们留在代码里、不进模型——模型在这几种情况下给出「说不准」，而不是「不动」：</p><div class="rules"><article class="rule"><h3>ACTION5 不改盘面</h3><p>物件、分隔带、选中都保持原样。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">0/0 步</span></div></article><article class="rule"><h3>ACTION7 让被选中的那一件退回一步</h3><p>朝上下左右之一走一格，或者不动；往哪退由之前的操作决定，单看一帧看不出来。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">0/0 步</span></div></article><article class="rule"><h3>推不动的推，盘面和计数带都不变</h3><p>推出盘外、撞上另一件物件、把带朝它自己的方向推，都算推不动。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">0/0 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 253 步，是一遍完整通关，也就是官方认证的那一遍：其中 16 次点击选中，其余是方向键，没有一次重开。规则最初是在更早的一遍边摸索边打的通关里写出来的；那一遍的录像不在这份数据里，本站所有检验与证明都只用认证的那一遍。</p><h2>适用范围</h2><ul class="lst"><li>模型描述两种操作：按方向键推、点击选中。录像里没出现过的情况（ACTION5、ACTION7、推不动的推、点在空白处或两条带的交点）在模型里一律是「说不准」。</li><li>每一关的开局画面与版面从录像里读出，换关之后下一关长什么样不由模型算出。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>带 / 轴</dt><dd>分隔带；它所在的那条线就是镜像的轴</dd><dt>可动组</dt><dd>早期说法里对「被选中的那一件」的叫法</dd><dt>色4 / 色5 / 色10 / 色11</dt><dd>镜像 / 物件 / 分隔带 / 目标（官方色号）</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。
+
+    objects/
+      parse.py        帧 → 世界。**唯一碰像素的那一份，留在根上**
+      world.py        World —— 这一局的全部状态
+      geometry/       Cell · Line —— 只有几何，没有世界断言
+      movable/        Band · Piece —— 能被选中、能被推的东西
+
+契约（装置按名字找）：`World`（dataclass）、`parse(frame) -&gt; World`、`ParseError`。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .geometry.cell import NB, Cell                 # noqa: F401
+from .geometry.line import Line                     # noqa: F401
+from .movable.band import Band                      # noqa: F401
+from .movable.piece import Piece                    # noqa: F401
+from .world import World                            # noqa: F401
+from .parse import ParseError, parse                # noqa: F401  （最后导：它要用上面几样和 derive）
+
+__all__ = [&quot;World&quot;, &quot;parse&quot;, &quot;ParseError&quot;, &quot;Cell&quot;, &quot;Line&quot;, &quot;Band&quot;, &quot;Piece&quot;, &quot;NB&quot;]
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">geometry/__init__.py</span></div><div class="one">几何：格坐标与线。<b>这一类里没有任何世界断言</b>——</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;几何：格坐标与线。**这一类里没有任何世界断言**——
+
+它们只说「第几行第几列」「第几行 / 第几列这一整条」，不说「那一格是物件」。
+分成一个子文件夹的理由就是这一句：**它们在任何一局都是同一个意思。**
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .cell import NB, Cell        # noqa: F401
+from .line import Line            # noqa: F401
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">geometry/cell.py</span></div><div class="one"><code>Cell</code> —— 盘上一块的坐标（块，不是像素）。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Cell` —— 盘上一块的坐标（块，不是像素）。
+
+## 判据 1：世界层不许出现像素
+
+帧是 64×64 像素，盘是 21×21 块，一块 3×3 像素。一块占几个像素是**解析**的事，
+不是**世界**的事；这里只有块坐标。
+
+## 判据 4：不带原点
+
+`Cell(0, 0)` 是盘的左上角那一块。坐标可以出界（镜像落到盘外时就是这样），
+**出没出界是 `inside` 判的，不是构造时挡的**——镜像的算法要能先算出盘外的点再丢掉。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+NB = 21            # 盘面边长（块）。**量出来的**：64 像素 = 21 块 × 3 + 一条 1 像素的边
+
+
+@dataclass(frozen=True, order=True)
+class Cell:
+    &quot;&quot;&quot;一块的坐标。行在前、列在后，从 0 数起。&quot;&quot;&quot;
+
+    row: int
+    col: int
+
+    def shifted(self, dr: int, dc: int) -&gt; &quot;Cell&quot;:
+        return Cell(self.row + dr, self.col + dc)
+
+    @property
+    def inside(self) -&gt; bool:
+        return 0 &lt;= self.row &lt; NB and 0 &lt;= self.col &lt; NB
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">geometry/line.py</span></div><div class="one"><code>Line</code> —— 一整条块行或一整条块列。分隔带住在一条线上，镜像轴就是这条线。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Line` —— 一整条块行或一整条块列。分隔带住在一条线上，镜像轴就是这条线。
+
+**线不是带。** 带是「住在线上的那件东西」（见 `movable/band.py`），
+线只是几何：第几行、或第几列。分开的理由：带要问「能不能推」「被没被选中」，线不问。
+
+一条线的反射：横线 `row k` 把 `(r, c)` 映成 `(2k - r, c)`；竖线 `col k` 映成 `(r, 2k - c)`。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .cell import NB, Cell
+
+
+@dataclass(frozen=True, order=True)
+class Line:
+    &quot;&quot;&quot;`horizontal=True` 是第 `k` 块行，`False` 是第 `k` 块列。&quot;&quot;&quot;
+
+    horizontal: bool
+    k: int
+
+    @property
+    def cells(self) -&gt; frozenset:
+        &quot;&quot;&quot;这条线上的全部 21 块（盘内）。&quot;&quot;&quot;
+        if self.horizontal:
+            return frozenset(Cell(self.k, c) for c in range(NB))
+        return frozenset(Cell(r, self.k) for r in range(NB))
+
+    def reflect(self, p: Cell) -&gt; Cell:
+        if self.horizontal:
+            return Cell(2 * self.k - p.row, p.col)
+        return Cell(p.row, 2 * self.k - p.col)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">movable/__init__.py</span></div><div class="one"><b>能被选中、能被推的东西</b>：物件与分隔带。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**能被选中、能被推的东西**：物件与分隔带。
+
+它们是一类的理由只有一句：**选中与推动对它们一视同仁**——
+点中它就选中它，推一下就是被选中的那一件走一格。
+差别只在「走一格」怎么算：物件整体平移；带换一条线，再按新线重算占位。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .band import Band        # noqa: F401
+from .piece import Piece      # noqa: F401
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">movable/band.py</span></div><div class="one"><code>Band</code> —— 分隔带：住在一条线上的那件东西，它就是镜像轴。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Band` —— 分隔带：住在一条线上的那件东西，它就是镜像轴。
+
+## 它记什么
+
+    line    住在哪条线上
+
+第 1 轮它还带着一位 `fixed`（中心格实心带色 = 推不动）。第 2 轮拆出去成了 `World.frozen`：
+那一位在带**被选中时读不出来**（中心格全是标记色），挂在带上就得记成 `None`，
+而 `None` 让「同一条带选中前后是不是同一件」这个相等判断跟着变——
+一位帧上时有时无的信息，不该让物件的身份跟着它变。见 `analysis/record.txt` 第 2 轮。
+
+## 它占哪些块不是字段
+
+带占的块 = 那条线上的全部块 − 线上的目标块（目标让带真的让位）。
+这是**算出来的**（`derive/band_cells.py`），不存：存了就得另配一条检查去核它和 `line` 对不对得上。
+被物件或镜像盖住的块照样是带的——**盖住只是看不见，不是让位**。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..geometry.line import Line
+
+
+@dataclass(frozen=True, order=True)
+class Band:
+    line: Line
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">movable/piece.py</span></div><div class="one"><code>Piece</code> —— 物件：一片八邻连通的块，被推时整体平移。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Piece` —— 物件：一片八邻连通的块，被推时整体平移。
+
+## 它记什么
+
+    cells   占的块（盘内），**八邻连通**
+
+第 1 轮它还带着一位 `fixed`（从册子搬来：中心格实心 = 推不动）。第 2 轮按区分检验**删掉**：
+全语料 253 个世界里每一片物件都是「能推」（取值集合 `{False}`），一位信息都不带。
+删了之后，一张画着「推不动的物件」的帧会**读不成世界**（解析画不回去）——
+那是响的，不是静悄悄的：它会以 (b) 档出现在解析读数里。见 `analysis/Piece.txt`。
+
+## 为什么是八邻
+
+册子里记过一次：两片对角相连的物件被世界当成一件一起选中。
+**但两件不同的物件推到对角相邻时，帧上就分不开了**（粘连）。
+这一批语料里没有粘连（全语料每一帧的标记都恰好等于某一片的露出部分），
+所以解析碰到「标记是某一片的真子集」时**抛**，不猜着切。
+
+## 物件压在目标上
+
+物件的边框照画，中心格透出目标色——目标画在地板上，不会被压没。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Piece:
+    cells: frozenset
+
+    @property
+    def anchor(self):
+        &quot;&quot;&quot;排序用的键：最靠左上的那一块。**不是身份**，身份是 `cells` 本身。&quot;&quot;&quot;
+        return min(self.cells)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">parse.py</span></div><div class="one">帧 → 世界。<b>全局唯一碰像素的地方。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;帧 → 世界。**全局唯一碰像素的地方。**
+
+上面每一层只认 `World` 的字段（块坐标、线、角色），读不到帧，也不知道色号。
+
+## 版面（量出来的，不是猜的）
+
+    64×64 像素 = 左上 21×21 块（一块 3×3 像素：8 格边框 + 1 格中心）
+               + 最后一列（计数带，64 格）
+               + 最后一行前 63 格（装饰带）
+
+## 色号只在这里出现
+
+    9 底色 · 5 物件 · 4 镜像 · 10 分隔带 · 11 目标（也是计数带的空格色） · 0 标记
+
+八关里这六个色号的**角色**一次都没换过（逐帧量过：每一块的边框都是纯色，
+边框色只出现过这五种）。计数带的填充色**换过**（前两关 5、后面 12），所以它不写死。
+
+## 读不出来就抛
+
+`ParseError` 说的是「这一帧读不成一个世界」。**这里只管抛，不管归类**：
+一帧是「本来就不是局面」还是「是局面而我读不出」，由拿得到 meta 的那一层判
+（`run_rules.py` 的解析读数），这里判不了。
+
+## 良构检查：同一个量的两种读法必须对得上
+
+最后一步把读出来的世界**画回去**（`derive/render.py`），逐块逐格和帧比。
+对不上就抛。它把册子里好几条「每帧要判的话」变成了「这一帧根本读不成世界」：
+渲染优先级、标记穿透、带在目标处让位、镜像与目标叠画——对不上的帧不会拿着半个世界往下走。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .geometry.cell import NB, Cell
+from .geometry.line import Line
+from .movable.band import Band
+from .movable.piece import Piece
+from .world import World, canonical
+
+from derive.render import render     # 画法在复合层；这里只拿它画回去比   # noqa: E402
+
+CELL = 3
+BG, PIECE, GHOST, BAND, TARGET, MARK = 9, 5, 4, 10, 11, 0
+EDGE_ROLE = {BG: &quot;bg&quot;, PIECE: &quot;piece&quot;, GHOST: &quot;ghost&quot;, BAND: &quot;band&quot;, TARGET: &quot;target&quot;}
+CENTER_ROLE = {BG: &quot;bg&quot;, PIECE: &quot;piece&quot;, GHOST: &quot;ghost&quot;, BAND: &quot;band&quot;, TARGET: &quot;target&quot;, MARK: &quot;mark&quot;}
+N8 = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+
+
+class ParseError(Exception):
+    &quot;&quot;&quot;这一帧读不成一个世界。**这是一条可判错的话**，不是一次异常处理。&quot;&quot;&quot;
+
+
+def _blocks(g):
+    &quot;&quot;&quot;每一块（边框色, 中心色）。边框不是纯色就抛。&quot;&quot;&quot;
+    out = {}
+    for br in range(NB):
+        for bc in range(NB):
+            px = [g[br * CELL + i][bc * CELL + j] for i in range(CELL) for j in range(CELL)]
+            edge = set(px[:4] + px[5:])
+            if len(edge) != 1:
+                raise ParseError(f&quot;块 ({br},{bc}) 的边框不是纯色：{sorted(edge)}&quot;)
+            out[Cell(br, bc)] = (edge.pop(), px[4])
+    return out
+
+
+def _components(cells):
+    left, out = set(cells), []
+    while left:
+        s = min(left)
+        left.remove(s)
+        cur, st = {s}, [s]
+        while st:
+            p = st.pop()
+            for dr, dc in N8:
+                q = p.shifted(dr, dc)
+                if q in left:
+                    left.remove(q)
+                    cur.add(q)
+                    st.append(q)
+        out.append(frozenset(cur))
+    return out
+
+
+def _lines(bv, cover):
+    &quot;&quot;&quot;分隔带住在哪几条线上。一条线 = 线上每一块要么是看得见的带、要么被目标 / 物件 / 镜像占着，
+    且看得见的带不少于 2 块。看得见的带有一块不在任何一条线上就抛。&quot;&quot;&quot;
+    out = []
+    for k in range(NB):
+        for hz in (True, False):
+            ln = Line(hz, k)
+            if ln.cells &lt;= cover and len(ln.cells &amp; bv) &gt;= 2:
+                out.append(ln)
+    covered = frozenset().union(*[l.cells for l in out]) if out else frozenset()
+    if not bv &lt;= covered:
+        raise ParseError(&quot;有分隔带的块不在任何一条整行 / 整列上&quot;)
+    return out
+
+
+def _counter(g):
+    &quot;&quot;&quot;计数带：最后一列自上而下，前若干格不是目标色（用掉了），其余全是目标色。
+
+    填充色**不认领**：第 5 轮（卡 06）把 `World.fill` 删了——消融 0 处判决变化、没有一条规则读它、
+    全语料它被（目标, used）唯一决定。于是这几格只认「不是目标色」，是哪一种颜色没人管。&quot;&quot;&quot;
+    col = [g[r][len(g[0]) - 1] for r in range(len(g))]
+    used = 0
+    while used &lt; len(col) and col[used] != TARGET:
+        used += 1
+    if any(v != TARGET for v in col[used:]):
+        raise ParseError(&quot;计数带不是「前面一段用掉、后面全空」&quot;)
+    return used
+
+
+def read(frame) -&gt; World:
+    &quot;&quot;&quot;帧 → 世界，**不做**画回去那一道检查（给探针用；正式入口是 `parse`）。&quot;&quot;&quot;
+    g = frame
+    if len(g) != 64 or any(len(r) != 64 for r in g):
+        raise ParseError(f&quot;帧不是 64×64：{len(g)}×{len(g[0]) if g else 0}&quot;)
+    B = _blocks(g)
+    for c, (e, m) in B.items():
+        if e not in EDGE_ROLE or m not in CENTER_ROLE:
+            raise ParseError(f&quot;块 {c} 的颜色不在这一局的角色表里：边框 {e} 中心 {m}&quot;)
+    T = frozenset(c for c, (e, m) in B.items() if m == TARGET)
+    if any(e == TARGET and m != TARGET for c, (e, m) in B.items()):
+        raise ParseError(&quot;边框是目标色而中心不是&quot;)
+    P = frozenset(c for c, (e, m) in B.items() if e == PIECE)
+    G = frozenset(c for c, (e, m) in B.items() if e == GHOST)
+    BV = frozenset(c for c, (e, m) in B.items() if e == BAND)
+    M = frozenset(c for c, (e, m) in B.items() if m == MARK)
+    lines = _lines(BV, BV | T | P | G)
+    comps = _components(P)
+
+    # 可推状态：看这件东西**露得出自己中心格**的那些块（不压目标、不是标记、上面没有更高的层）
+    def mode(own, color):
+        cs = {B[c][1] for c in own}
+        if not cs:
+            return None                          # 读不出（多半是它正被选中）
+        if cs == {BG}:
+            return False
+        if cs == {color}:
+            return True
+        raise ParseError(f&quot;一件东西露出来的中心格不一致：{sorted(cs)}&quot;)
+
+    bands, frozen = [], set()
+    for ln in lines:
+        own = (ln.cells - T - M) &amp; BV
+        # 两条带交叉的那一块是两条带共有的，读它不能单说哪一条
+        others = [l for l in lines if l != ln]
+        own = frozenset(c for c in own if not any(c in l.cells for l in others))
+        bands.append(Band(ln))
+        if mode(own, BAND):
+            frozen.add(ln)
+    pieces = [Piece(cs) for cs in comps]
+
+    # 谁被选中：标记 == 某一件露在目标外的全部块；零标记时 == 唯一一件整片压在目标上的
+    objs = [(b, b.line.cells - T) for b in bands] + [(p, p.cells) for p in pieces]
+    if M:
+        hits = [o for o, cs in objs if M == cs - T]
+        if len(hits) != 1:
+            if any(M &lt; cs for o, cs in objs):
+                raise ParseError(&quot;标记是某一件的真子集（粘连）：这一批语料里没见过，不猜着切&quot;)
+            raise ParseError(f&quot;标记指认了 {len(hits)} 件东西&quot;)
+        sel = hits[0]
+    else:
+        hid = [o for o, cs in objs if cs &lt;= T]
+        if len(hid) != 1:
+            raise ParseError(f&quot;零标记，而整片压在目标上的有 {len(hid)} 件：选中的是哪一件读不出&quot;)
+        sel = hid[0]
+    return canonical(T, bands, frozen, pieces, sel, _counter(g))
+
+
+def ghosts_seen(frame) -&gt; frozenset:
+    &quot;&quot;&quot;帧上**直接读到**的镜像块（边框色 4）。给形式化那一边当观测用：
+    Lean 的模型自己算镜像，再和这一份逐块比（它不进 World —— 第 2 轮展开掉了）。&quot;&quot;&quot;
+    return frozenset(c for c, (e, m) in _blocks(frame).items() if e == GHOST)
+
+
+def parse(frame) -&gt; World:
+    &quot;&quot;&quot;帧 → 世界，并把世界**画回去**逐块比。对不上就抛。
+
+    镜像不是世界的字段（第 2 轮展开掉了），画回去时由 `derive/ghosts.py` 算——
+    所以帧上每一块色 4 都要恰好是反射像，多一块少一块这一帧都读不成世界。&quot;&quot;&quot;
+    w = read(frame)
+    try:
+        blocks, counter = render(w)
+    except ValueError as e:
+        raise ParseError(f&quot;画不回去：{e}&quot;) from None
+    g = frame
+    for c, (er, cr) in blocks.items():
+        e = g[c.row * CELL][c.col * CELL]
+        m = g[c.row * CELL + 1][c.col * CELL + 1]
+        if EDGE_ROLE.get(e) != er or CENTER_ROLE.get(m) != cr:
+            raise ParseError(f&quot;块 {c} 画回去对不上：帧 ({e},{m})，世界 ({er},{cr})&quot;)
+    for r, role in enumerate(counter):
+        if (g[r][63] == TARGET) != (role == &quot;target&quot;):
+            raise ParseError(f&quot;计数带第 {r} 格画回去对不上&quot;)
+    return w
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">world.py</span></div><div class="one"><code>World</code> —— 这一局的<b>全部状态</b>。字段就是这一局的对象。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`World` —— 这一局的**全部状态**。字段就是这一局的对象。
+
+第 1 轮照册子搬进来 8 个字段；第 2 轮凭区分检验动了五刀（见 `analysis/record.txt`）：
+
+    删  deco           最后一行装饰带，全语料只取过 1 个值
+    删  Piece.fixed    物件的「推不动」，全语料只取过 False
+    展开 ghosts        镜像块是（物件, 轴）的函数（全语料函数依赖冲突 0）→ `derive/ghosts.py`，
+                       「镜像 = 反射像」从每帧要判的一句话变成解析的良构检查
+    拆  sel            原来存的是「被选中那一件的值」，把「谁被选中」和「它在哪」糊成一位：
+                       一推，sel 跟着 pieces 一起变，两个字段谁也分不开。
+                       拆成**引用**：按规范次序（带在前按线、物件在后按左上角）的下标
+    拆  Band.fixed     被选中时读不出（记成 None），挂在带上会让带的身份跟着选中变。
+                       拆出去成 `frozen`：画成「推不动」的那几条线
+    欠账 fill / frozen / used / targets    要规则才判得了，交卡 06
+
+第 5 轮（卡 06，规则简化完之后重取三样读数）：
+
+    删  fill           消融 0 处判决变化（分母 320）；一条规则都点不出；fill ←（targets, used）冲突 0
+    留  frozen         消融 2 处；读它的是 derive/move（推一条画成推不动的带 → 说不准）——
+                       这一支是这一轮**补上的**：原来 move 让推不动的带照样走，规则少了一支
+    留  used / targets / bands / pieces / sel     消融 187 / 6 / 457 / 420 / 421 处
+
+**`sel` 是引用，只许判相等、取对应那一件。** 不许拿它比大小、做算术。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class World:
+    targets: frozenset          # 目标块（Cell 的集合）。关内不变
+    bands: tuple                # 分隔带（Band），按线排好
+    frozen: frozenset           # 画成「推不动」的那几条线（Line 的集合）
+    pieces: tuple              # 物件（Piece），按左上角那一块排好
+    sel: int                    # 被选中的那一件：在 bands + pieces 里的下标
+    used: int                   # 计数带已用掉几格
+
+    @property
+    def things(self) -&gt; tuple:
+        &quot;&quot;&quot;能被选中的全部东西，规范次序：带在前、物件在后。&quot;&quot;&quot;
+        return self.bands + self.pieces
+
+    @property
+    def selected(self):
+        return self.things[self.sel]
+
+
+def canonical(targets, bands, frozen, pieces, selected, used) -&gt; World:
+    &quot;&quot;&quot;按规范次序装配一个世界：`selected` 给的是那一件东西本身，这里换成它的下标。
+
+    解析和规则都走这一个口：**规范次序只许有一份**，两处各排一次会慢慢分叉。
+    &quot;&quot;&quot;
+    bs = tuple(sorted(bands, key=lambda b: (b.line.horizontal, b.line.k)))
+    ps = tuple(sorted(pieces, key=lambda p: p.anchor))
+    things = bs + ps
+    ix = [i for i, t in enumerate(things) if t == selected]
+    if len(ix) != 1:
+        raise ValueError(f&quot;被选中的那一件在世界里出现 {len(ix)} 次&quot;)
+    return World(targets=frozenset(targets), bands=bs, frozen=frozenset(frozen), pieces=ps,
+                 sel=ix[0], used=used)
+</code></pre></div></details></div><div class="group"><b>由对象算出来的量（derive/）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one"><b>复合概念</b>：由 <code>objects/</code> 里的对象算出来的量。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**复合概念**：由 `objects/` 里的对象算出来的量。
+
+和 `objects/` 的分界是一句话：**对象是世界的状态，`derive` 是从状态算出来的量。**
+
+    band_cells   带占哪些块        = 它那条线 − 线上的目标块
+    ghosts       镜像落在哪些块    = 全部物件块在这组轴生成的反射群下的像，盘内、减去物件本体
+    render       这个世界画出来每一块长什么样（按**角色**，不按色号；色号只有 parse 知道）
+    cover        每一块目标是不是都被物件或镜像盖住了
+
+这里的东西**同样不许碰像素**：输入是 `World`，输出是块坐标与角色名。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">band_cells.py</span></div><div class="one">带占哪些块：<b>它那条线上的全部块，减去线上的目标块。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;带占哪些块：**它那条线上的全部块，减去线上的目标块。**
+
+由来（册子 `band_is_line` 的改版史）：带从一条线走到另一条线，块数跟着新线上有几个目标变——
+它不是一个形状固定的东西，它是一条线，目标处让位。
+被物件或镜像盖住的块**不减**：那只是看不见，块照样是带的（推带时它们跟着走）。
+
+组合分解：`band_cells = Band.line.cells − World.targets`。两个对象，一个减号。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+
+def band_cells(band, targets) -&gt; frozenset:
+    return band.line.cells - targets
+
+
+def cells_of(obj, targets) -&gt; frozenset:
+    &quot;&quot;&quot;一件能被选中的东西（带或物件）逻辑上占的块。&quot;&quot;&quot;
+    if hasattr(obj, &quot;line&quot;):
+        return band_cells(obj, targets)
+    return obj.cells
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">click.py</span></div><div class="one">带坐标的点击点中了哪一件：<b>点中块上画在最上面的是物件，就是那片物件；是带，就是那一条带。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;带坐标的点击点中了哪一件：**点中块上画在最上面的是物件，就是那片物件；是带，就是那一条带。**
+
+组合分解：像素坐标 `(x, y)` → 块 `(y // 3, x // 3)`（折算只在这一处，3 是一块的边长）
+→ 那一块 `render` 出来的边框角色 → 同角色里包含这一块的那一件。
+
+说不准返回理由字符串：
+
+    点在盘外 / 读不出坐标
+    点中的块上面是镜像、目标或底色   点了会怎样，语料里没有
+    点在两条带的交点                 两条带都占这一块，分不清点的是哪条（册子 act6_select v4）
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from objects.geometry.cell import NB, Cell
+from objects.movable.band import Band
+
+from .band_cells import band_cells
+from .render import render
+
+PX = 3                       # 一块几个像素。**折算**：动作坐标是像素，世界是块
+
+
+def clicked(w, action: str):
+    &quot;&quot;&quot;点中那一件在 `w.things` 里的下标；说不准返回理由字符串。&quot;&quot;&quot;
+    try:
+        x, y = (int(v) for v in action.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except (IndexError, ValueError):
+        return &quot;读不出坐标&quot;
+    c = Cell(y // PX, x // PX)
+    if not (0 &lt;= c.row &lt; NB and 0 &lt;= c.col &lt; NB):
+        return &quot;点在盘外&quot;
+    blocks, _ = render(w)
+    top = blocks[c][0]
+    if top == &quot;piece&quot;:
+        hits = [i for i, t in enumerate(w.things) if not isinstance(t, Band) and c in t.cells]
+    elif top == &quot;band&quot;:
+        hits = [i for i, t in enumerate(w.things) if isinstance(t, Band) and c in band_cells(t, w.targets)]
+        if len(hits) &gt; 1:
+            return &quot;点在两条带的交点&quot;
+    else:
+        return f&quot;点中的块上面是{ {&#x27;ghost&#x27;: &#x27;镜像&#x27;, &#x27;target&#x27;: &#x27;目标&#x27;, &#x27;bg&#x27;: &#x27;底色&#x27;}[top] }&quot;
+    return hits[0] if len(hits) == 1 else &quot;点中的块归属不唯一&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">cover.py</span></div><div class="one">每一块目标是不是都被物件或它的某个镜像盖住了 —— <b>这一局「赢」的判据</b>，是<b>状态</b>的性质。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;每一块目标是不是都被物件或它的某个镜像盖住了 —— **这一局「赢」的判据**，是**状态**的性质。
+
+组合分解：`covered = ⋃ Piece.cells ∪ ghosts(World)`；`covers_all = targets ⊆ covered`。
+说不准（平行轴，镜像数不完）返回 None。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .ghosts import ghosts
+
+
+def covers_all(w):
+    gh = ghosts(w)
+    if gh is None:
+        return None
+    body = frozenset().union(*[p.cells for p in w.pieces]) if w.pieces else frozenset()
+    return bool(w.targets) and w.targets &lt;= (body | gh)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">ghosts.py</span></div><div class="one">镜像落在哪些块：<b>全部物件块在「这组轴生成的反射群」下的像，落在盘内、又不在物件本体上的那些。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;镜像落在哪些块：**全部物件块在「这组轴生成的反射群」下的像，落在盘内、又不在物件本体上的那些。**
+
+## 群，不是各画各的
+
+一条轴给一个镜像；一横一竖两条轴还多给一个绕交点的点对称（两次反射的复合）。
+「群」这个词可判错：世界要是只画两条轴各自的镜像、不画点对称那一份，
+解析的良构检查当场对不上（见 `objects/parse.py`）。
+
+变换写成 `(sr, ar, sc, ac)`：`row&#x27; = sr·row + ar`，`col&#x27; = sc·col + ac`。
+两条**平行**轴生成无穷多个平移，数不完——那时返回 `None`（说不准），不猜。
+
+## 为什么它在这里而不在 World 里
+
+第 1 轮它是 `World.ghosts`（帧上直接读的色 4）。第 2 轮区分检验：全语料找不到一对世界
+「只差镜像」——它是物件与轴的函数，一位自己的信息都不带。于是展开成这里的一个函数，
+原来那条「镜像 = 反射像」的规律从「每帧要判的一句话」变成解析里的**良构检查**：
+对不上的帧读不成世界。见 `analysis/record.txt` 第 2 轮。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from objects.geometry.cell import Cell
+
+IDENT = (1, 0, 1, 0)
+
+
+def _compose(a, b):
+    &quot;&quot;&quot;先做 a 再做 b。&quot;&quot;&quot;
+    sr1, ar1, sc1, ac1 = a
+    sr2, ar2, sc2, ac2 = b
+    return (sr1 * sr2, sr2 * ar1 + ar2, sc1 * sc2, sc2 * ac1 + ac2)
+
+
+def transforms(lines):
+    &quot;&quot;&quot;这组轴生成的全部变换，不含恒等。平行轴（无穷群）返回 None。&quot;&quot;&quot;
+    gens = [(-1, 2 * l.k, 1, 0) if l.horizontal else (1, 0, -1, 2 * l.k) for l in lines]
+    grp, front = {IDENT}, [IDENT]
+    while front:
+        t = front.pop()
+        for g in gens:
+            n = _compose(t, g)
+            if n not in grp:
+                if len(grp) &gt;= 8:
+                    return None
+                grp.add(n)
+                front.append(n)
+    return frozenset(grp - {IDENT})
+
+
+def apply(t, p: Cell) -&gt; Cell:
+    sr, ar, sc, ac = t
+    return Cell(sr * p.row + ar, sc * p.col + ac)
+
+
+def ghost_cells(pieces, lines):
+    &quot;&quot;&quot;镜像块集合；说不准（平行轴）返回 None。&quot;&quot;&quot;
+    ts = transforms(lines)
+    if ts is None:
+        return None
+    body = frozenset().union(*[p.cells for p in pieces]) if pieces else frozenset()
+    img = {apply(t, c) for t in ts for c in body}
+    return frozenset(c for c in img if c.inside) - body
+
+
+def ghosts(w):
+    return ghost_cells(w.pieces, [b.line for b in w.bands])
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">move.py</span></div><div class="one">推一下之后会在哪：<b>被选中的那一件走一格，别的一概不动。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;推一下之后会在哪：**被选中的那一件走一格，别的一概不动。**
+
+    物件   整体平移一格
+    带     换到相邻那条线（横带只能上下走，竖带只能左右走），占位按新线重算（目标处让位）
+
+组合分解：`moved = World.selected` 换成 `Band.line` 挪一格 / `Piece.cells` 平移一格，再按规范次序装回去。
+规范次序只有一份（`objects/world.py` 的 `canonical`），这里不另排。
+
+## 说不准就返回理由（字符串），不猜
+
+    计数带已用满                   64 格用完之后再推——语料里最多用到 53 格
+    推的是画成推不动的带           第 0 关那条带就是这样，全程没人选过它——语料里没有这种一步
+    横带被左右推 / 竖带被上下推   那等于把线推出它自己的方向——语料里没有这种一步
+    推出盘外                       会被挡住？会穿过去？语料里没有这种一步
+    撞上另一片物件                 两片叠在一起帧上画不出来——语料里没有这种一步
+
+这三类在规则层是**有名字的「我不管」**，条数进读数。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from objects.geometry.cell import NB
+from objects.geometry.line import Line
+from objects.movable.band import Band
+from objects.movable.piece import Piece
+from objects.world import World, canonical
+
+DELTA = {&quot;ACTION1&quot;: (-1, 0), &quot;ACTION2&quot;: (1, 0), &quot;ACTION3&quot;: (0, -1), &quot;ACTION4&quot;: (0, 1)}
+BUDGET = 64                 # 计数带格数。用满之后再推会怎样，语料里没有（最多用到 53）
+
+
+def base(action: str) -&gt; str:
+    return action.upper().split(&quot;:&quot;)[0]
+
+
+def is_push(action: str) -&gt; bool:
+    return base(action) in DELTA
+
+
+def moved(w: World, action: str):
+    &quot;&quot;&quot;推完之后的世界（`used` 不动——计数是另一条规则的事）；说不准返回理由字符串。&quot;&quot;&quot;
+    dr, dc = DELTA[base(action)]
+    if w.used &gt;= BUDGET:
+        return &quot;计数带已用满&quot;
+    s = w.selected
+    if isinstance(s, Band):
+        ln = s.line
+        if ln in w.frozen:
+            return &quot;推的是画成推不动的带&quot;
+        if (ln.horizontal and dc != 0) or (not ln.horizontal and dr != 0):
+            return &quot;带被推向它自己的方向&quot;
+        k = ln.k + (dr if ln.horizontal else dc)
+        if not 0 &lt;= k &lt; NB:
+            return &quot;推出盘外&quot;
+        new = Band(Line(ln.horizontal, k))
+        if new in w.bands:
+            return &quot;带推到另一条带上&quot;
+        bands = [new if b == s else b for b in w.bands]
+        return canonical(w.targets, bands, w.frozen, w.pieces, new, w.used)
+    cells = frozenset(c.shifted(dr, dc) for c in s.cells)
+    if not all(c.inside for c in cells):
+        return &quot;推出盘外&quot;
+    others = [p for p in w.pieces if p != s]
+    if any(cells &amp; p.cells for p in others):
+        return &quot;撞上另一片物件&quot;
+    new = Piece(cells)
+    return canonical(w.targets, w.bands, w.frozen, others + [new], new, w.used)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">render.py</span></div><div class="one">这个世界<b>画出来</b>每一块长什么样——按<b>角色</b>，不按色号（色号只有 <code>objects/parse.py</code> 知道）。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这个世界**画出来**每一块长什么样——按**角色**，不按色号（色号只有 `objects/parse.py` 知道）。
+
+解析拿它做良构检查：`render(parse(帧)) == 帧`，对不上这一帧就读不成世界。
+所以它说的每一句都可判错，而且是在**每一帧、每一块**上判。
+
+## 一块 = 边框 + 中心格
+
+**边框**取最上面那一层：物件 &gt; 镜像 &gt; 带 &gt; 目标 &gt; 底色。
+
+**中心格**按下面的顺序取第一个成立的：
+
+    压在目标上            → 目标      目标画在地板上，压不没，从中心透出来
+    属于被选中的那一件    → 标记      **标记穿透所有层**：一块上只要有被选中那件的一部分，就是标记
+    是镜像                → 镜像      镜像是实心的，没有状态可写
+    有物件 / 带在上面     → 那一件的状态：能推 = 底色，推不动 = 它自己的颜色
+    什么都没有            → 同边框
+
+「被选中的那一件」占的块按**逻辑占位**算（带 = 线 − 目标），被盖住的块也算。
+
+## 计数带
+
+最后一列 64 格，自上而下：前 `used` 格是填充色，其余是目标色。
+
+## 说不准就抛
+
+两片物件叠在一起（边框都是物件色，分不出来）、两条带交叉处一能推一推不动（没见过怎么画）
+—— `ValueError`。解析把它转成「读不成世界」。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from objects.geometry.cell import NB, Cell
+
+from .band_cells import band_cells, cells_of
+from .ghosts import ghosts
+
+COUNTER_LEN = 64
+
+
+def render(w, ghost_cells=None) -&gt; tuple[dict, list]:
+    &quot;&quot;&quot;（块 → (边框角色, 中心角色)，计数带 64 格的角色表）。
+
+    `ghost_cells` 不给就按 `derive/ghosts.py` 算——第 2 轮之后世界里没有镜像这个字段，
+    镜像**只能**是算出来的，于是「帧上的色 4 = 反射像」成了画回去那一道检查的一部分。&quot;&quot;&quot;
+    if ghost_cells is None:
+        ghost_cells = ghosts(w)
+        if ghost_cells is None:
+            raise ValueError(&quot;轴的组合生成不出有限多个变换（平行轴）：镜像说不准&quot;)
+    tg = w.targets
+    body: dict = {}
+    for p in w.pieces:
+        for c in p.cells:
+            if c in body:
+                raise ValueError(&quot;两片物件叠在同一块上：画法没见过&quot;)
+            body[c] = p
+    band_at: dict = {}
+    for b in w.bands:
+        for c in band_cells(b, tg):
+            band_at.setdefault(c, []).append(b)
+    sel_cells = cells_of(w.selected, tg)
+    gh = ghost_cells
+    out = {}
+    for r in range(NB):
+        for col in range(NB):
+            c = Cell(r, col)
+            on_t = c in tg
+            if c in body:
+                edge = &quot;piece&quot;
+            elif c in gh:
+                edge = &quot;ghost&quot;
+            elif c in band_at:
+                edge = &quot;band&quot;
+            elif on_t:
+                edge = &quot;target&quot;
+            else:
+                edge = &quot;bg&quot;
+            if on_t:
+                center = &quot;target&quot;
+            elif c in sel_cells:
+                center = &quot;mark&quot;
+            elif c in gh and c not in body:
+                center = &quot;ghost&quot;
+            elif c in body:
+                center = &quot;bg&quot;                       # 物件一律「能推」（第 2 轮删掉了 Piece.fixed）
+            elif c in band_at:
+                modes = {b.line in w.frozen for b in band_at[c]}
+                if len(modes) != 1:
+                    raise ValueError(&quot;带交叉处一条能推一条推不动：画法没见过&quot;)
+                center = &quot;band&quot; if modes.pop() else &quot;bg&quot;
+            else:
+                center = edge
+            out[c] = (edge, center)
+    if not 0 &lt;= w.used &lt;= COUNTER_LEN:
+        raise ValueError(&quot;计数超出计数带&quot;)
+    counter = [&quot;fill&quot;] * w.used + [&quot;target&quot;] * (COUNTER_LEN - w.used)
+    return out, counter
+</code></pre></div></details></div><div class="group"><b>规则层：世界怎么运转（rule/）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>规则层</b>。一条规则一个文件，按<b>它管什么</b>收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**规则层**。一条规则一个文件，按**它管什么**收进子文件夹。
+
+组的说明写在各子文件夹的 `__init__.py` 里；页面和验收都**读目录**，不另写分类表。
+
+一条规则的形状（`run_rules.py` 按名字找）：
+
+    CLAIM        一句人话
+    SCOPE_NOTE   论域：什么时候我不管、交给谁
+    NOT_CLAIMED  明确不主张什么
+    HISTORY      改版史，一版一行
+    EVIDENCE     这一批语料里的见证（tid —— 注意 tid 是**内容哈希**，不是身份）
+    scope_(w, action, nw, ctx) -&gt; None | str     None = 我管；字符串 = 我不管，**理由有名字**
+    assert_(w, action, nw, ctx) -&gt; bool          管的时候，这一步对不对
+
+规则读的是**世界**（`objects.World`），不读帧。`w` / `nw` 是这一步前后的世界；
+`nw` 读不成世界时是 None —— 那一类由驱动单独计数（U），不和判对混在一起。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">_common.py</span></div><div class="one">规则层共用的小东西。<b>这里不许放判断。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;规则层共用的小东西。**这里不许放判断。**
+
+放得进来的：比较两个世界的某几个字段、取动作名。
+放不进来的：任何「这一步该变成什么样」的推断 —— 那是规则自己的活（或 `derive/` 的量）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+BOARD_FIELDS = (&quot;targets&quot;, &quot;bands&quot;, &quot;frozen&quot;, &quot;pieces&quot;, &quot;sel&quot;)
+
+
+def same(a, b, fields=BOARD_FIELDS) -&gt; bool:
+    &quot;&quot;&quot;两个世界在这几个字段上逐个相等。**只是比较。**&quot;&quot;&quot;
+    return all(getattr(a, f) == getattr(b, f) for f in fields)
+
+
+def level_changed(ctx) -&gt; bool:
+    return bool(ctx) and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">budget/__init__.py</span></div><div class="one"><b>世界怎么回应：计数带</b>。最后一列 64 格，每推一下用掉一格。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**世界怎么回应：计数带**。最后一列 64 格，每推一下用掉一格。
+
+这一组只管 `World.used`，不管盘面。换关那一步不管（计数带清零，那是换关的一部分）。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">budget/click_is_free.py</span></div><div class="one">计数带：<b>点一下不花钱。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;计数带：**点一下不花钱。**
+
+卡 08 从 `push_costs_one` 拆出来。在规则层它仍是一句要对着语料判的话（点击规则 click_selects 只管
+盘面与选中，不管计数带），但在形式化里它**不是独立的规则**：点的定义只改「选中」一个字段，
+计数带不变是那个定义的推论（`lean2/Derived/ClickIsFree.lean`）。身份：**推论**。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.move import base
+from rule._common import level_changed
+
+CLAIM = &quot;计数带：点击（ACTION6）一格不用。&quot;
+SCOPE_NOTE = &quot;只管 ACTION6；换关不管。&quot;
+NOT_CLAIMED = &quot;不主张点在空白处是否花钱（那种点这批语料里没有；这里只看计数带，点在哪都算）。&quot;
+HISTORY = [
+    &quot;册子 counter_tick v3 起「ACTION6 不花钱」那一支&quot;,
+    &quot;v1（卡 08）：从 push_costs_one 拆出；形式化身份是推论&quot;,
+]
+EVIDENCE = [&quot;ae3dbeefdd2ae169&quot;]          # seq 18：点带，计数带不动
+
+
+def scope_(w, action, nw, ctx):
+    if base(action) != &quot;ACTION6&quot;:
+        return &quot;不是 ACTION6&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    return None
+
+
+def assert_(w, action, nw, ctx):
+    return nw.used == w.used
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">budget/push_costs_one.py</span></div><div class="one">计数带：<b>推一下用掉一格。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;计数带：**推一下用掉一格。**
+
+卡 05 由册子 `counter_tick` 收窄说法而来：册子那一版还管 ACTION5 / ACTION7 和「被挡住的推不花钱」，
+那三支在这一批语料里**各 0 次**——它们挪进 `offmodel/`（论域 0，死因写明），不是删掉。
+卡 08 再拆一刀：「点一下不花钱」拆成 `click_is_free`——形式化那边它是点的定义的推论，不是独立的规则，
+两句话挤在一条规则里，身份就落不成恰好一种。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.move import is_push, moved
+from rule._common import level_changed
+
+CLAIM = &quot;计数带：推（ACTION1–4，推得动的）用掉恰好一格。&quot;
+SCOPE_NOTE = (&quot;只管推；换关那一步不管（计数带清零是换关的一部分）；推不出来的推不管（交 offmodel/blocked_push_free）；&quot;
+              &quot;计数带已用满不管（语料最多用到 53 格）。点击交 budget/click_is_free。&quot;)
+NOT_CLAIMED = &quot;不主张填充色；不主张用满 64 格之后会怎样。&quot;
+HISTORY = [
+    &quot;册子 counter_tick 七版（v4 填充色不写死、v5 换关闭嘴、v6 被挡住的推不花钱）&quot;,
+    &quot;v1（卡 04）：改写成读世界&quot;,
+    &quot;v2（卡 05）：只留这一批语料检验得到的两支；ACTION5/7 与「被挡住的推」三支挪进 offmodel/&quot;,
+    &quot;v3（卡 08）：「点一下不花钱」拆出去成 click_is_free（形式化里它是推论）；「用满之后」进论域外&quot;,
+]
+EVIDENCE = [&quot;acb49b92929d3998&quot;]
+
+
+def scope_(w, action, nw, ctx):
+    if not is_push(action):
+        return &quot;不是推&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    m = moved(w, action)
+    return m if isinstance(m, str) else None
+
+
+def assert_(w, action, nw, ctx):
+    return nw.used == w.used + 1
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">move/__init__.py</span></div><div class="one"><b>一步怎么走</b>：按一下之后，谁被选中、被选中的那一件走到哪、别的动没动。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**一步怎么走**：按一下之后，谁被选中、被选中的那一件走到哪、别的动没动。
+
+这一组只说**位置与选中**，不说计数带（隔壁 `budget/`），不说算不算赢（`win/`）。
+换关那一步一律不管：下一帧已经是另一关的盘，交给 `win/level_clear`。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">move/click_selects.py</span></div><div class="one">带坐标的 ACTION6 只换「谁被选中」：选中的变成点中的那一件，别的一格不动。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;带坐标的 ACTION6 只换「谁被选中」：选中的变成点中的那一件，别的一格不动。
+
+点中的是哪一件：点中块上**画在最上面**的是物件就是那片物件，是带就是**那一条带**（不是同色连通片）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import replace
+
+from derive.click import clicked
+from derive.move import base
+from rule._common import level_changed, same
+
+CLAIM = &quot;ACTION6:x,y 只换「谁被选中」：选中的变成点中块上画在最上面的那一件（物件或那一条带），别的一格不动。&quot;
+SCOPE_NOTE = (&quot;只管 ACTION6；换关不管；点在盘外 / 两条带的交点 / 块上面是镜像·目标·底色的，不管&quot;
+              &quot;（那几种点了会怎样，这一批语料里没有）。计数带不管（budget/）。&quot;)
+NOT_CLAIMED = &quot;不主张点在空白处会怎样；不主张点交叉点时世界选哪一条。&quot;
+HISTORY = [
+    &quot;v1（卡 04）：从册子 act6_select v4 改写成读世界。册子判「点中的是什么」靠数那一块里有几种颜色&quot;
+    &quot;（物件压在目标上时两种颜色 ⇒ 册子不管）；这里改成读 render 的最上层，于是压在目标上的物件也管。&quot;,
+]
+EVIDENCE = [&quot;ae3dbeefdd2ae169&quot;]          # seq 18：第 1 关点带 (46,19)，选中从物件换到带
+
+
+def scope_(w, action, nw, ctx):
+    if base(action) != &quot;ACTION6&quot;:
+        return &quot;不是 ACTION6&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    k = clicked(w, action)
+    return k if isinstance(k, str) else None
+
+
+def assert_(w, action, nw, ctx):
+    return same(nw, replace(w, sel=clicked(w, action)))
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">move/push_moves_selected.py</span></div><div class="one">推（ACTION1–4）：<b>被选中的那一件朝那个方向走一格，别的一概不动</b>，选中的还是它。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;推（ACTION1–4）：**被选中的那一件朝那个方向走一格，别的一概不动**，选中的还是它。
+
+    物件   整体平移一格
+    带     改占相邻那条线（横带上下、竖带左右），占位按新线重算——线上的目标处让位
+
+卡 05 由册子的四条 `act1_up` / `act2_down` / `act3_mover_left` / `act4_mover_right` 合成：
+四条的论域结构、判法逐字相同，只差「哪个动作 ↦ 哪个方向」那一张表——那张表是
+`derive/move.py` 的 `DELTA`，不是四条规则。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.move import is_push, moved
+from rule._common import level_changed, same
+
+CLAIM = &quot;推（ACTION1–4）：被选中的那一件朝那个方向走一格（物件平移；带换到相邻那条线，目标处让位），别的一概不动。&quot;
+SCOPE_NOTE = (&quot;只管 ACTION1–4；换关那一步不管（下一帧是另一关，交 win/level_clear）；&quot;
+              &quot;推不出来的三种不管：推出盘外、带被推向自己的方向、撞上另一片物件——这一批语料里各 0 次，&quot;
+              &quot;它们会怎样模型说不出来。计数带不管（交 budget/push_costs_one）。&quot;)
+NOT_CLAIMED = &quot;不主张推出界 / 撞物件时会怎样；不主张两件物件对角挨上时（粘连）世界怎么认。&quot;
+HISTORY = [
+    &quot;册子 act1_up 六版、act2_down 六版、act3/act4 各四版（读帧、量色号；最后一版为粘连加了「落点全在色 5 里也算对」）&quot;,
+    &quot;v1（卡 04）：四条各改写成读世界，粘连那一支删掉（这一批语料没有粘连）&quot;,
+    &quot;v2（卡 05）：四条合一。凭据：论域同形、判法同形，只差动作名；合完拒绝集包含原来四条的并集（见 record.txt 第 4 轮）&quot;,
+]
+EVIDENCE = [&quot;acb49b92929d3998&quot;]          # seq 1：ACTION2，被选中的物件下移一格
+
+
+def scope_(w, action, nw, ctx):
+    if not is_push(action):
+        return &quot;不是推&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    m = moved(w, action)
+    return m if isinstance(m, str) else None
+
+
+def assert_(w, action, nw, ctx):
+    return same(nw, moved(w, action))
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">offmodel/__init__.py</span></div><div class="one"><b>说了但不进模型</b>：册子里写过、这一批语料却一次都没碰到的说法。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**说了但不进模型**：册子里写过、这一批语料却一次都没碰到的说法。
+
+它们留着，是因为「没见过反例」不等于「不存在反例」，删掉就是让册子从此少说一件事；
+它们不进模型，是因为**一条都没被检验过**的话写进 `step`，等于把一句猜测签成定义。
+
+这一组固定打两个数：**论域条数**、**被驳倒几次**。论域是 0 的照样判红，
+并写明死因（三种之一：没人做过那个动作 / 论域把自己写没了 / 唯一那条被别的原因挡住）。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">offmodel/act5_inert.py</span></div><div class="one">ACTION5 不改盘面：物件、带、选中一格不变。（册子 <code>act5_inert</code>，从未改版。）</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;ACTION5 不改盘面：物件、带、选中一格不变。（册子 `act5_inert`，从未改版。）
+
+**这一批语料里 ACTION5 一次都没有**，所以这条是「说了但没被检验过」的话：
+论域 0 条，被驳倒 0 次。死因：**没人做过那个动作**。它不进模型——
+`step` 里没有 ACTION5 这一支，而不是有一支写着「不动」。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.move import base
+from rule._common import level_changed, same
+
+CLAIM = &quot;ACTION5 不改盘面：物件、带、选中一格不变。&quot;
+SCOPE_NOTE = &quot;只管 ACTION5；换关不管。&quot;
+NOT_CLAIMED = &quot;不主张计数带（册子 counter_tick 说它也花一格，那一条同样没被这批语料检验过）。&quot;
+HISTORY = [&quot;v1（卡 04）：从册子 act5_inert 改写成读世界。这批语料 ACTION5 为 0 次，论域 0。&quot;]
+EVIDENCE = []
+DEATH = &quot;没人做过那个动作&quot;
+
+
+def scope_(w, action, nw, ctx):
+    if base(action) != &quot;ACTION5&quot;:
+        return &quot;不是 ACTION5&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    return None
+
+
+def assert_(w, action, nw, ctx):
+    return same(w, nw)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">offmodel/act7_undo_step.py</span></div><div class="one">ACTION7 让被选中那件东西回退一步（上下左右之一），或者不动。（册子 <code>act7_undo_step</code> v3。）</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;ACTION7 让被选中那件东西回退一步（上下左右之一），或者不动。（册子 `act7_undo_step` v3。）
+
+它走哪个方向**由历史决定**（像撤销栈），单帧看不出来——所以即使语料里有它，
+它也进不了只读当前状态的 `step`。**这一批语料里 ACTION7 一次都没有**：论域 0，被驳倒 0。
+死因：**没人做过那个动作**。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.move import base, moved
+from rule._common import level_changed, same
+
+CLAIM = &quot;ACTION7：被选中那件东西朝上下左右之一走一格（落点按推动的算法算），或者不动。&quot;
+SCOPE_NOTE = &quot;只管 ACTION7；换关不管。&quot;
+NOT_CLAIMED = &quot;不主张它朝哪个方向（历史决定，单帧读不出）。&quot;
+HISTORY = [&quot;v1（卡 04）：从册子 act7_undo_step v3 改写成读世界。这批语料 ACTION7 为 0 次，论域 0。&quot;]
+EVIDENCE = []
+DEATH = &quot;没人做过那个动作&quot;
+
+
+def scope_(w, action, nw, ctx):
+    if base(action) != &quot;ACTION7&quot;:
+        return &quot;不是 ACTION7&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    return None
+
+
+def assert_(w, action, nw, ctx):
+    if same(w, nw):
+        return True
+    for a in (&quot;ACTION1&quot;, &quot;ACTION2&quot;, &quot;ACTION3&quot;, &quot;ACTION4&quot;):
+        m = moved(w, a)
+        if not isinstance(m, str) and same(nw, m):
+            return True
+    return False
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">offmodel/blocked_push_free.py</span></div><div class="one">被挡住的推不花钱：推不出来（出界 / 撞物件 / 带被推向自己的方向）时，盘面不变、计数带也不变。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;被挡住的推不花钱：推不出来（出界 / 撞物件 / 带被推向自己的方向）时，盘面不变、计数带也不变。
+
+册子 `counter_tick` v6 的那一支（被别的跑里的 4 条转移逼出来的）。**这一批语料里一条推不出来的推都没有**：
+论域 0，被驳倒 0。死因：**没人做过那个动作**（没人往墙上推过）。它不进模型——
+模型在「推不出来」那一支上说的是「说不准」，不是「不动」。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.move import is_push, moved
+from rule._common import level_changed, same
+
+CLAIM = &quot;推不出来的推（出界 / 撞物件 / 带被推向自己的方向）：盘面不变，计数带也不变。&quot;
+SCOPE_NOTE = &quot;只管推不出来的 ACTION1–4；换关不管。&quot;
+NOT_CLAIMED = &quot;不主张这种推被世界接受还是拒绝（只说结果）。&quot;
+HISTORY = [&quot;从册子 counter_tick v6 那一支拆出来（卡 05）。这批语料论域 0。&quot;]
+EVIDENCE = []
+DEATH = &quot;没人做过那个动作&quot;
+
+
+def scope_(w, action, nw, ctx):
+    if not is_push(action):
+        return &quot;不是推&quot;
+    if level_changed(ctx):
+        return &quot;换关&quot;
+    m = moved(w, action)
+    return None if isinstance(m, str) else &quot;推得出来&quot;
+
+
+def assert_(w, action, nw, ctx):
+    return same(w, nw) and nw.used == w.used
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">win/__init__.py</span></div><div class="one"><b>什么算赢</b>：这一关什么时候过。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**什么算赢**：这一关什么时候过。
+
+「赢」是**状态**的性质（每一块目标都被物件或镜像盖住），不是一个转移事件——
+这样「这个局面赢不赢得了」才问得出来。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">win/level_clear.py</span></div><div class="one">这一关什么时候过：一次推动之后，每一块目标都被物件或它的镜像盖住 —— <b>当且仅当</b>这一步换关。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一关什么时候过：一次推动之后，每一块目标都被物件或它的镜像盖住 —— **当且仅当**这一步换关。
+
+双向：盖满就该换关，没盖满就不该换关。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.cover import covers_all
+from derive.move import is_push, moved
+
+CLAIM = &quot;推一下之后，每一块目标都被物件或它关于分隔带的镜像盖住，当且仅当这一步换关。&quot;
+SCOPE_NOTE = &quot;只管 ACTION1–4；推不出来的（出界等，move 说不准）不管；ctx 缺关号不管；平行轴（镜像数不完）不管。&quot;
+NOT_CLAIMED = &quot;不主张换关之后新的一关长什么样（那一帧整屏重画，算不出来）。&quot;
+HISTORY = [&quot;v1（卡 04）：从册子 level_clear 改写成读世界；「盖住」读 derive/cover.py。&quot;]
+EVIDENCE = [&quot;eddd21b47c9e7b33&quot;]          # seq 15：第 0 关最后一推，盖满 ⇒ 换关
+NEEDS_NEXT = False            # 它只读 prev 与 ctx：换关那一步的下一帧是另一张盘
+
+
+def scope_(w, action, nw, ctx):
+    if not is_push(action):
+        return &quot;不是推&quot;
+    if not ctx or ctx.get(&quot;level_prev&quot;) is None or ctx.get(&quot;level_next&quot;) is None:
+        return &quot;缺关号&quot;
+    m = moved(w, action)
+    if isinstance(m, str):
+        return m
+    if covers_all(m) is None:
+        return &quot;平行轴&quot;
+    return None
+
+
+def assert_(w, action, nw, ctx):
+    return covers_all(moved(w, action)) == (ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;])
+</code></pre></div></details></div></div></details><details class="apx" id="apx-lean"><summary>Lean 文件清单、逐关步数与源码</summary><div class="apxb"><div class="group"><b>逐关读数</b>（关号 0 起）</div><div class="tbox"><table class="t"><thead><tr><th>关</th><th>结论</th><th>核过的步数（各局口径见验收日志）</th><th>逐帧对上的步数</th></tr></thead><tbody><tr><td class="m">L0</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L1</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L2</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L3</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L4</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L5</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L6</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr><tr><td class="m">L7</td><td>走得通</td><td class="m"></td><td class="m">—</td></tr></tbody></table></div><div class="group"><b>对象</b> · Obj/</div><div class="list"><details class="item" id="lean-Obj-Derive-BandCells"><summary><div class="top"><span class="name">Obj/Derive/BandCells.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# BandCells —— 带占哪些块（对应 `derive/band_cells.py`）
+
+**它那条线上的全部块，减去线上的目标块。** 目标让带真的让位；被物件或镜像盖住的块照样是带的。
+
+**这一份里没有一条定理。**
+-/
+import Obj.World
+
+namespace Game
+
+def bandMask (b : Board) (x : Band) : Nat := minusMask x.line.mask b.targets
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obj-Derive-Ghosts"><summary><div class="top"><span class="name">Obj/Derive/Ghosts.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Ghosts —— 镜像落在哪些块（对应 `derive/ghosts.py`，**独立写的**，不是从 Python 导出来的）
+
+全部物件块在「这组轴生成的反射群」下的像：落在盘内、又不在物件本体上的那些。
+
+    没有轴           没有镜像
+    一条轴           它的反射
+    一横一竖两条     两个反射 + 两次反射的复合（绕交点的点对称）
+    两条平行 / 更多   **说不准**（群是无穷的或没见过）—— `none`
+
+Python 那一份用「生成元闭包」算群；这里按轴的条数分情形写。两份各自写、逐帧和观测对账
+（`Obs/Check.lean` 的 `agrees` 比的就是这一位：模型算出来的镜像掩码 == 帧上读到的色 4）。
+
+**这一份里没有一条定理。**
+-/
+import Obj.World
+
+namespace Game
+
+/-- 一个变换：一串「关于某条线反射」依次做。 -/
+abbrev Xform := List Line
+
+def applyX : Xform → Cell → Option Cell
+  | [], x =&gt; some x
+  | l :: rest, x =&gt; match l.reflect x with
+    | some y =&gt; applyX rest y
+    | none =&gt; none
+
+/-- 这组轴生成的全部非恒等变换；说不准返回 `none`。 -/
+def transforms : List Line → Option (List Xform)
+  | [] =&gt; some []
+  | [l] =&gt; some [[l]]
+  | [l1, l2] =&gt; if l1.horiz != l2.horiz then some [[l1], [l2], [l1, l2]] else none
+  | _ =&gt; none
+
+/-- 一串块在这些变换下的像（盘内）的掩码。 -/
+def imageMask (ts : List Xform) (xs : List Cell) : Nat :=
+  ts.foldl (fun m t =&gt; xs.foldl (fun m x =&gt; match applyX t x with
+    | some y =&gt; m ||| bit y
+    | none =&gt; m) m) 0
+
+/-- 镜像块的掩码；说不准返回 `none`。 -/
+def ghostMask (w : World) : Option Nat :=
+  match transforms w.lines with
+  | some ts =&gt; some (minusMask (imageMask ts (w.pieces.foldl (fun acc p =&gt; acc ++ p.cells) [])) w.body)
+  | none =&gt; none
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obj-Geometry-Cell"><summary><div class="top"><span class="name">Obj/Geometry/Cell.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Cell —— 盘上一块的坐标（对应 `objects/geometry/cell.py`）
+
+一块编码成一个自然数 `r * 32 + c`（`r, c ∈ [0, 21)`）。步长取 32 而不是 21，
+是为了让「一块的集合」可以写成一个位掩码：同一行的块挨着放，行与行之间空出 11 位，
+左右平移一格 = 移一位，**不会从一行的末尾溜进下一行的开头**（中间隔着永远是 0 的那 11 位）。
+
+集合一律用位掩码（`Nat`）：并 = `|||`，交 = `&amp;&amp;&amp;`，相等 = `==`。
+这样内核判「两个集合相等」是一次大数比较，不是逐个元素比。
+
+**这一份里没有一条定理。** 它是定义。
+-/
+
+namespace Game
+
+/-- 一块的编号：`r * 32 + c`。 -/
+abbrev Cell := Nat
+
+/-- 盘面边长（块）。 -/
+def NB : Nat := 21
+/-- 编码的行步长。 -/
+def STRIDE : Nat := 32
+
+def cellAt (r c : Nat) : Cell := r * STRIDE + c
+def rowOf (x : Cell) : Nat := x / STRIDE
+def colOf (x : Cell) : Nat := x % STRIDE
+
+/-- 一块对应的那一位。 -/
+def bit (x : Cell) : Nat := 1 &lt;&lt;&lt; x
+
+/-- 一串块 → 位掩码。 -/
+def maskOf (xs : List Cell) : Nat := xs.foldl (fun m x =&gt; m ||| bit x) 0
+
+/-- 掩码里有没有这一块。 -/
+def memMask (m : Nat) (x : Cell) : Bool := (m &gt;&gt;&gt; x) &amp;&amp;&amp; 1 == 1
+
+/-- 掩码 a 是不是 b 的子集。 -/
+def subMask (a b : Nat) : Bool := a &amp;&amp;&amp; b == a
+
+/-- 从 a 里去掉 b。 -/
+def minusMask (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obj-Geometry-Line"><summary><div class="top"><span class="name">Obj/Geometry/Line.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Line —— 一整条块行或块列（对应 `objects/geometry/line.py`）
+
+分隔带住在一条线上，镜像轴就是这条线。**线不是带**：带要问「推不推得动」「选没选中」，线不问。
+
+一条线的反射：横线 `row k` 把 `(r, c)` 映成 `(2k − r, c)`，竖线 `col k` 映成 `(r, 2k − c)`。
+落到盘外的像**不存在**（`none`），而不是被夹回盘内——镜像落到盘外就不画，那是这一局真有的事。
+
+**这一份里没有一条定理。**
+-/
+import Obj.Geometry.Cell
+
+namespace Game
+
+structure Line where
+  horiz : Bool      -- true = 第 k 块行；false = 第 k 块列
+  k     : Nat
+deriving DecidableEq, BEq, Repr
+
+/-- 一整行 21 块的掩码（第 0 行）。 -/
+def ROW0 : Nat := (1 &lt;&lt;&lt; NB) - 1
+/-- 一整列 21 块的掩码（第 0 列）。 -/
+def COL0 : Nat := (List.range NB).foldl (fun m r =&gt; m ||| bit (cellAt r 0)) 0
+
+/-- 这条线上的全部 21 块。 -/
+def Line.mask (l : Line) : Nat :=
+  if l.horiz then ROW0 &lt;&lt;&lt; (l.k * STRIDE) else COL0 &lt;&lt;&lt; l.k
+
+/-- 一个坐标关于 k 的反射 `2k − x`，落在 `[0, 21)` 里才有。 -/
+def reflect1 (k x : Nat) : Option Nat :=
+  if x ≤ 2 * k ∧ 2 * k - x &lt; NB then some (2 * k - x) else none
+
+/-- 一块关于这条线的像。 -/
+def Line.reflect (l : Line) (x : Cell) : Option Cell :=
+  if l.horiz then (reflect1 l.k (rowOf x)).map (fun r =&gt; cellAt r (colOf x))
+  else (reflect1 l.k (colOf x)).map (fun c =&gt; cellAt (rowOf x) c)
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obj-Movable-Band"><summary><div class="top"><span class="name">Obj/Movable/Band.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Band —— 分隔带（对应 `objects/movable/band.py`）
+
+住在一条线上的那件东西，它就是镜像轴。它**占哪些块不是字段**：
+= 那条线 − 线上的目标（`Obj/Derive/BandCells.lean`）。
+
+「推不推得动」不挂在带上（第 2 轮拆出去了：被选中时读不出），在 `Board.frozen` 里。
+
+**这一份里没有一条定理。**
+-/
+import Obj.Geometry.Line
+
+namespace Game
+
+structure Band where
+  line : Line
+deriving DecidableEq, BEq, Repr
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obj-Movable-Piece"><summary><div class="top"><span class="name">Obj/Movable/Piece.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Piece —— 物件（对应 `objects/movable/piece.py`）
+
+一片八邻连通的块，被推时整体平移。存成**块的列表**（平移要逐块算），比较时换成掩码
+（两片是不是同一片 = 掩码相等，与列表里的先后无关）。
+
+**这一份里没有一条定理。**
+-/
+import Obj.Geometry.Cell
+
+namespace Game
+
+structure Piece where
+  cells : List Cell
+deriving DecidableEq, BEq, Repr
+
+def Piece.mask (p : Piece) : Nat := maskOf p.cells
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obj-World"><summary><div class="top"><span class="name">Obj/World.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# World —— 这一局的全部状态（对应 `objects/world.py`）
+
+## 两半：`Board` 与 `World`
+
+    Board   关内不变的那半边：目标块、画成推不动的线。**`step` 碰不到它**（它是参数，不是结果）
+    World   会变的那半边：带、物件、选中、计数
+
+Python 那边 `targets` / `frozen` 是 `World` 的字段；这里把它们搬进 `Board`，
+于是「走一步目标不变」「走一步推不动的线不变」**不用证——表示不出来**。
+（代价写在明处：`frozen` 关内恒定这件事，是分离表 `frozen ← targets` 冲突 0 量出来的，
+不是这里证出来的。）
+
+## 选中是引用
+
+`sel` 是 `bands ++ pieces` 里的下标（带在前）。模型自己保持先后不变；
+和观测比的时候**不比下标**，比「被选中的那一件是哪条线 / 哪一片」（观测那边的先后是按左上角排的）。
+
+**这一份里没有一条定理。**
+-/
+import Obj.Movable.Band
+import Obj.Movable.Piece
+
+namespace Game
+
+/-- 关内不变的那半边。 -/
+structure Board where
+  targets : Nat          -- 目标块的掩码
+  frozen  : List Line    -- 画成「推不动」的那几条线
+deriving DecidableEq, BEq, Repr
+
+/-- 会变的那半边。 -/
+structure World where
+  bands  : List Band
+  pieces : List Piece
+  sel    : Nat           -- 被选中那一件在 `bands ++ pieces` 里的下标
+  used   : Nat           -- 计数带用掉几格
+deriving DecidableEq, BEq, Repr
+
+/-- 全部物件本体的掩码。 -/
+def World.body (w : World) : Nat := w.pieces.foldl (fun m p =&gt; m ||| p.mask) 0
+
+/-- 全部轴。 -/
+def World.lines (w : World) : List Line := w.bands.map (·.line)
+
+end Game
+</code></pre></div></details></div><div class="group"><b>规则</b> · Rule/</div><div class="list"><details class="item" id="lean-Rule-Budget-PushCostsOne"><summary><div class="top"><span class="name">Rule/Budget/PushCostsOne.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# PushCostsOne —— 推一下用掉一格（对应 `rule/budget/push_costs_one.py`）
+
+**这是定义。** 计数带 64 格；推得动的一推用掉一格。用满之后再推会怎样，语料里没有（最多用到 53 格）
+——模型在那一支上**不说话**。
+
+「点一下不花钱」**不在这里**：它不是一条独立的规则，是点的定义只改 `sel` 的推论
+（`Derived/ClickIsFree.lean`）。
+-/
+import Obj.World
+
+namespace Game
+
+/-- 计数带的格数。 -/
+def BUDGET : Nat := 64
+
+/-- 还推得动吗（计数带没用满）。 -/
+def canSpend (w : World) : Bool := w.used &lt; BUDGET
+
+/-- 推一下：用掉一格。 -/
+def spend (w : World) : World := { w with used := w.used + 1 }
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Rule-Move-ClickSelects"><summary><div class="top"><span class="name">Rule/Move/ClickSelects.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# ClickSelects —— 点：选中换成点中的那一件（对应 `rule/move/click_selects.py`）
+
+**这是定义。** 点中块上**画在最上面**的是物件就是那片物件，是带就是**那一条带**。
+
+    像素 (x, y) → 块 (y / 3, x / 3)            折算只在这一处（动作坐标是像素）
+    最上层：物件 &gt; 镜像 &gt; 带 &gt; 目标 &gt; 底色      和 `derive/render.py` 的边框优先级同一条
+    点在盘外 / 镜像 / 目标 / 底色 / 两条带的交点   说不准（`none`）
+
+别的一格不动——这不是一句要另证的话，是这个定义只改 `sel` 一个字段
+（它的推论在 `Derived/ClickIsFree.lean`）。
+-/
+import Obj.Derive.BandCells
+import Obj.Derive.Ghosts
+
+namespace Game
+
+/-- 一块像素几格。**折算**：动作坐标是像素，世界是块。 -/
+def PX : Nat := 3
+
+/-- 第一个满足条件的下标。 -/
+def firstIx {α} (p : α → Bool) : List α → Nat → Option Nat
+  | [], _ =&gt; none
+  | a :: as, i =&gt; if p a then some i else firstIx p as (i + 1)
+
+/-- 点中那一件在 `bands ++ pieces` 里的下标；说不准返回 `none`。 -/
+def clickedIx (b : Board) (w : World) (x y : Nat) : Option Nat :=
+  if y / PX ≥ NB ∨ x / PX ≥ NB then none else
+  match firstIx (fun p =&gt; memMask p.mask (cellAt (y / PX) (x / PX))) w.pieces 0 with
+  | some j =&gt; some (w.bands.length + j)
+  | none =&gt;
+    match ghostMask w with
+    | none =&gt; none
+    | some g =&gt;
+      if memMask g (cellAt (y / PX) (x / PX)) then none else
+      match w.bands.filter (fun z =&gt; memMask (bandMask b z) (cellAt (y / PX) (x / PX))) with
+      | [z] =&gt; firstIx (fun u =&gt; u == z) w.bands 0
+      | _ =&gt; none
+
+/-- **点**：选中换成点中的那一件，别的字段原样。 -/
+def click (b : Board) (w : World) (x y : Nat) : Option World :=
+  match clickedIx b w x y with
+  | some i =&gt; some { w with sel := i }
+  | none =&gt; none
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Rule-Move-PushMovesSelected"><summary><div class="top"><span class="name">Rule/Move/PushMovesSelected.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# PushMovesSelected —— 推：被选中的那一件走一格（对应 `rule/move/push_moves_selected.py`）
+
+**这是定义，不是定理。** 「推一下被选中的那件走一格」就是「推」的意思。
+
+    物件   整体平移一格（任何一块出盘 ⇒ 说不准；撞上另一片 ⇒ 说不准）
+    带     换到相邻那条线：横带只能上下、竖带只能左右（推向自己的方向 ⇒ 说不准）；
+           新线出盘、新线上已有一条带、这条带画成推不动 ⇒ 说不准
+
+「说不准」一律是 `none`：模型在这几支上**不说话**，而不是说「不动」。
+这一批语料里这几支各 0 次（`analysis/record.txt` 第 4 轮「这批语料说不了的」）。
+
+计数带不在这里（`Rule/Budget/PushCostsOne.lean`），赢不赢不在这里（`Rule/Win/LevelClear.lean`）。
+-/
+import Obj.World
+
+namespace Game
+
+inductive Dir
+  | up | down | left | right
+deriving DecidableEq, BEq, Repr
+
+/-- 一块朝某个方向走一格；出盘 ⇒ `none`。 -/
+def stepCell : Dir → Cell → Option Cell
+  | .up, x    =&gt; if rowOf x ≥ 1 then some (x - STRIDE) else none
+  | .down, x  =&gt; if rowOf x + 1 &lt; NB then some (x + STRIDE) else none
+  | .left, x  =&gt; if colOf x ≥ 1 then some (x - 1) else none
+  | .right, x =&gt; if colOf x + 1 &lt; NB then some (x + 1) else none
+
+/-- 一串块整体走一格；有一块出盘 ⇒ `none`。 -/
+def stepCells (d : Dir) : List Cell → Option (List Cell)
+  | [] =&gt; some []
+  | x :: xs =&gt; match stepCell d x, stepCells d xs with
+    | some y, some ys =&gt; some (y :: ys)
+    | _, _ =&gt; none
+
+/-- 一条线朝某个方向挪一格；方向不对或出盘 ⇒ `none`。 -/
+def stepLine : Dir → Line → Option Line
+  | .up, l    =&gt; if l.horiz ∧ l.k ≥ 1 then some { l with k := l.k - 1 } else none
+  | .down, l  =&gt; if l.horiz ∧ l.k + 1 &lt; NB then some { l with k := l.k + 1 } else none
+  | .left, l  =&gt; if !l.horiz ∧ l.k ≥ 1 then some { l with k := l.k - 1 } else none
+  | .right, l =&gt; if !l.horiz ∧ l.k + 1 &lt; NB then some { l with k := l.k + 1 } else none
+
+/-- 推被选中的那条带（它是 `bands` 里第 `i` 条）。 -/
+def pushBand (b : Board) (w : World) (i : Nat) (d : Dir) : Option World :=
+  match w.bands[i]? with
+  | none =&gt; none
+  | some x =&gt;
+    if b.frozen.contains x.line then none else
+    match stepLine d x.line with
+    | none =&gt; none
+    | some l&#x27; =&gt;
+      if w.bands.any (fun y =&gt; y.line == l&#x27;) then none
+      else some { w with bands := w.bands.set i { line := l&#x27; } }
+
+/-- 推被选中的那片物件（它是 `pieces` 里第 `j` 片）。 -/
+def pushPiece (w : World) (j : Nat) (d : Dir) : Option World :=
+  match w.pieces[j]? with
+  | none =&gt; none
+  | some p =&gt;
+    match stepCells d p.cells with
+    | none =&gt; none
+    | some cs =&gt;
+      let others := minusMask w.body p.mask
+      if maskOf cs &amp;&amp;&amp; others != 0 then none
+      else some { w with pieces := w.pieces.set j { cells := cs } }
+
+/-- **推**：被选中的那一件走一格，别的一概不动，选中的还是它（下标不变）。 -/
+def push (b : Board) (w : World) (d : Dir) : Option World :=
+  if w.sel &lt; w.bands.length then pushBand b w w.sel d
+  else pushPiece w (w.sel - w.bands.length) d
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Rule-Win-LevelClear"><summary><div class="top"><span class="name">Rule/Win/LevelClear.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# LevelClear —— 什么算赢（对应 `rule/win/level_clear.py` 与 `derive/cover.py`）
+
+**这是赢的定义，不是一条要证的话。** 而且是**状态**的性质：
+
+    isGoal b w  ⇔  目标非空，且每一块目标都被物件本体或它的镜像盖住
+
+写成状态性质（而不是「换关」那个转移事件），「这个局面赢不赢得了」才问得出来。
+镜像说不准（平行轴）时 `isGoal = false`——那是「说不准」被折成了「没赢」，
+这一局的语料里一次都没发生（每一关的轴都是一条，或一横一竖）。
+-/
+import Obj.Derive.Ghosts
+
+namespace Game
+
+def isGoal (b : Board) (w : World) : Bool :=
+  match ghostMask w with
+  | some g =&gt; b.targets != 0 &amp;&amp; subMask b.targets (w.body ||| g)
+  | none =&gt; false
+
+end Game
+</code></pre></div></details></div><div class="group"><b>推论</b> · Derived/</div><div class="list"><details class="item" id="lean-Derived-ClickIsFree"><summary><div class="top"><span class="name">Derived/ClickIsFree.lean</span><span class="chip c-lv">1 条定理</span></div><div class="top"><span class="chip c-mute" title="">Game.click_is_free</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# ClickIsFree —— 点一下不花钱、盘面不动（**推论**，对应 `rule/budget/click_is_free.py`）
+
+在规则层它是一句要对着语料判的话；在这里它**不是独立的规则**：
+点的定义（`Rule/Move/ClickSelects.lean`）只改 `sel` 一个字段，于是
+
+    计数带不变、带不变、物件不变
+
+都是从定义推出来的。一条规则重排之后掉进这里，说明它本来就不是一条独立的规则。
+
+它会失败吗：把 `click` 改成顺手动一下 `used`（点一下也花钱），这一条当场编不过。
+-/
+import Step
+import Obj.World
+
+/- 定理一律写**全名**（`Game.…`），不包在 `namespace` 里：装置的公理表探针（`ledger/lean_check.py`）
+   按源码里的名字逐条 `#print axioms`，不带 `open`，短名它找不到——那时读数是「跑不起来」，不是「干净」。 -/
+
+theorem Game.click_is_free (b : Board) (w w&#x27; : World) (x y : Nat)
+    (h : step b w (.click x y) = .ok w&#x27;) :
+    w&#x27;.used = w.used ∧ w&#x27;.bands = w.bands ∧ w&#x27;.pieces = w.pieces := by
+  simp only [step] at h
+  cases hc : click b w x y with
+  | none =&gt; simp [hc] at h
+  | some w&#x27;&#x27; =&gt;
+    simp only [hc, Res.ok.injEq] at h
+    subst h
+    simp only [click] at hc
+    cases hi : clickedIx b w x y with
+    | none =&gt; simp [hi] at hc
+    | some i =&gt;
+      simp only [hi, Option.some.injEq] at hc
+      subst hc
+      exact ⟨rfl, rfl, rfl⟩
+
+#print axioms Game.click_is_free
+</code></pre></div></details></div><div class="group"><b>观测</b> · Obs/</div><div class="list"><details class="item" id="lean-Obs-Check"><summary><div class="top"><span class="name">Obs/Check.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Check —— 判据层：两把尺子（**0 条定理**，尺子不自证）
+
+    agrees      **一条转移**对不对：从观测到的那一帧起算一步，和看到的下一帧比
+    traceOk     **一整条路**对不对：从开局起带着**自己算出来的状态**往下走，逐帧比
+
+两把尺子的分量差得很远：`agrees` 每一步都被观测拉回正轨；`traceOk` 只有开局那一帧是观测给的。
+一个「每步单独看都对、走两步就和现实分家」的模型，在前者满分，在后者过不了。
+
+尺子吃的是一个 `stepFn` 参数，不直接写死 `step`：**判据不依赖被判的那一份**，
+同一把尺子可以量模型、也可以量破坏测试里改坏的那一份。
+
+## `SeenWorld`：一帧**看得见**的世界
+
+    bands / pieces / sel / used      解析（`objects/parse.py`）从帧上读出来的状态
+    ghosts                           帧上色 4 的块（掩码）——**模型算出来的镜像要和它逐块相等**
+
+比的时候：带和物件**按集合比**（观测那边按左上角排、模型自己保持原来的先后，先后不是帧上的信息）；
+选中**比那一件是谁**（哪条线 / 哪一片），不比下标。
+-/
+import Step
+
+namespace Game
+
+/-- 一帧看得见的世界。`sel` 是观测那一边 `bands ++ pieces` 的下标。 -/
+structure SeenWorld where
+  bands  : List Band
+  pieces : List Piece
+  sel    : Nat
+  used   : Nat
+  ghosts : Nat
+deriving DecidableEq, BEq, Repr
+
+/-- 从观测起算的那个世界（逐条判用它当 `prev`，每关判用它当开局）。 -/
+def SeenWorld.world (o : SeenWorld) : World :=
+  { bands := o.bands, pieces := o.pieces, sel := o.sel, used := o.used }
+
+/-- 被选中的是谁：一条线，或一片物件的掩码。 -/
+inductive Who
+  | band (l : Line)
+  | piece (m : Nat)
+  | nobody
+deriving DecidableEq, BEq, Repr
+
+def whoOf (bands : List Band) (pieces : List Piece) (sel : Nat) : Who :=
+  if sel &lt; bands.length then
+    match bands[sel]? with
+    | some x =&gt; .band x.line
+    | none =&gt; .nobody
+  else
+    match pieces[sel - bands.length]? with
+    | some p =&gt; .piece p.mask
+    | none =&gt; .nobody
+
+/-- 两串掩码作为集合相等（每片物件互不重叠，所以「一样长 + 互相包含」就够）。 -/
+def sameMasks (a b : List Nat) : Bool :=
+  a.length == b.length &amp;&amp; a.all (fun m =&gt; b.contains m) &amp;&amp; b.all (fun m =&gt; a.contains m)
+
+def sameLines (a b : List Line) : Bool :=
+  a.length == b.length &amp;&amp; a.all (fun l =&gt; b.contains l) &amp;&amp; b.all (fun l =&gt; a.contains l)
+
+/-- 模型算出来的世界 `w`，和看到的这一帧 `o` 对不对得上。 -/
+def seenAs (w : World) (o : SeenWorld) : Bool :=
+  sameLines w.lines (o.bands.map (·.line))
+  &amp;&amp; sameMasks (w.pieces.map (·.mask)) (o.pieces.map (·.mask))
+  &amp;&amp; whoOf w.bands w.pieces w.sel == whoOf o.bands o.pieces o.sel
+  &amp;&amp; w.used == o.used
+  &amp;&amp; ghostMask w == some o.ghosts
+
+/-- 语料里的一条转移。`up` = 这一步换关了（下一帧是另一关的盘，模型说的该是 `won`）。 -/
+structure Case where
+  seq   : Nat
+  board : Board
+  prev  : SeenWorld
+  act   : Act
+  next  : SeenWorld
+  up    : Bool
+
+/-- 一条转移对不对。**每一支都要对上一种观测**，没有「算不出来就算它对」的那一支：
+    模型说 `unknown` 就是没对上。 -/
+def agrees (stepFn : Board → World → Act → Res) (c : Case) : Bool :=
+  match stepFn c.board c.prev.world c.act with
+  | .ok w  =&gt; !c.up &amp;&amp; seenAs w c.next
+  | .won   =&gt; c.up
+  | .unknown =&gt; false
+
+/-- 从 `w` 出发沿 `play` 走，每一步都和当时看到的那一帧比。全对才是 `true`。
+    **下一轮喂进去的是模型自己算出来的 `w&#x27;`**，不是观测到的那一帧。 -/
+def traceOk (stepFn : Board → World → Act → Res) (b : Board) : World → List (Act × SeenWorld) → Bool
+  | _, [] =&gt; true
+  | w, (a, o) :: rest =&gt;
+    match stepFn b w a with
+    | .ok w&#x27; =&gt; seenAs w&#x27; o &amp;&amp; traceOk stepFn b w&#x27; rest
+    | _ =&gt; false
+
+/-- **只给读数用**：第一处分家在第几步（`none` = 一处都没分家）。`#eval` 走求值器，不是证明。 -/
+def firstSplit (stepFn : Board → World → Act → Res) (b : Board) :
+    World → List (Act × SeenWorld) → Nat → Option Nat
+  | _, [], _ =&gt; none
+  | w, (a, o) :: rest, i =&gt;
+    match stepFn b w a with
+    | .ok w&#x27; =&gt; if seenAs w&#x27; o then firstSplit stepFn b w&#x27; rest (i + 1) else some i
+    | _ =&gt; some i
+
+end Game
+</code></pre></div></details><details class="item" id="lean-Obs-Corpus"><summary><div class="top"><span class="name">Obs/Corpus.lean</span><span class="chip c-lv">16 条定理</span></div><div class="top"><span class="chip c-mute" title="">Game.Corpus.C0_agrees</span><span class="chip c-mute" title="">Game.Corpus.C0_count</span><span class="chip c-mute" title="">Game.Corpus.C1_agrees</span><span class="chip c-mute" title="">Game.Corpus.C1_count</span><span class="chip c-mute" title="">Game.Corpus.C2_agrees</span><span class="chip c-mute" title="">Game.Corpus.C2_count</span><span class="chip c-mute" title="">Game.Corpus.C3_agrees</span><span class="chip c-mute" title="">Game.Corpus.C3_count</span><span class="chip c-mute" title="">Game.Corpus.C4_agrees</span><span class="chip c-mute" title="">Game.Corpus.C4_count</span><span class="chip c-mute" title="">Game.Corpus.C5_agrees</span><span class="chip c-mute" title="">Game.Corpus.C5_count</span><span class="chip c-mute" title="">Game.Corpus.C6_agrees</span><span class="chip c-mute" title="">Game.Corpus.C6_count</span><span class="chip c-mute" title="">Game.Corpus.C7_agrees</span><span class="chip c-mute" title="">Game.Corpus.C7_count</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Corpus —— 逐条：每一条真实转移，模型都对（自动生成：`python lean2/export_corpus.py`，不要手改）
+
+    C&lt;n&gt;_agrees     第 n 关的每一条转移 `agrees step` 为真（253 条分到 8 关）
+
+每一条都从**观测到的那一帧**起算（被观测拉回正轨），所以它比 `Proof/Levels.lean` 的 `_trace` 弱；
+它多核的一件事是**换关那一步**：模型要在那一步说 `won`（每关那一层不走那一步）。
+另一件：语料里没有的动作（ACTION5 / ACTION7 / RESET）这里一条都没有——`Act` 里本来就没有它们。
+-/
+import Obs.Replay
+import Obj.World
+
+namespace Game
+namespace Corpus
+
+open Replay
+
+set_option maxRecDepth 20000
+
+/-- 第 n 关的全部用例（按步号，含换关那一步）。 -/
+def casesOf (n : Nat) : List Case := (steps.filter (fun s =&gt; s.lvl == n)).map caseOf
+
+end Corpus
+end Game
+
+open Game Game.Replay Game.Corpus
+
+-- 定理一律写全名：装置的公理表探针按源码里的名字 `#print axioms`，不带 `open`。
+
+/-- 第 0 关：15 条转移（步号 1–15，最后一条是换关）。 -/
+theorem Game.Corpus.C0_agrees : (casesOf 0).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C0_count :
+    (casesOf 0 : List Case).length = 15 ∧ (casesOf 0).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C0_agrees⟩
+
+#print axioms Game.Corpus.C0_agrees
+#print axioms Game.Corpus.C0_count
+
+/-- 第 1 关：11 条转移（步号 16–26，最后一条是换关）。 -/
+theorem Game.Corpus.C1_agrees : (casesOf 1).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C1_count :
+    (casesOf 1 : List Case).length = 11 ∧ (casesOf 1).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C1_agrees⟩
+
+#print axioms Game.Corpus.C1_agrees
+#print axioms Game.Corpus.C1_count
+
+/-- 第 2 关：40 条转移（步号 27–66，最后一条是换关）。 -/
+theorem Game.Corpus.C2_agrees : (casesOf 2).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C2_count :
+    (casesOf 2 : List Case).length = 40 ∧ (casesOf 2).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C2_agrees⟩
+
+#print axioms Game.Corpus.C2_agrees
+#print axioms Game.Corpus.C2_count
+
+/-- 第 3 关：22 条转移（步号 67–88，最后一条是换关）。 -/
+theorem Game.Corpus.C3_agrees : (casesOf 3).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C3_count :
+    (casesOf 3 : List Case).length = 22 ∧ (casesOf 3).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C3_agrees⟩
+
+#print axioms Game.Corpus.C3_agrees
+#print axioms Game.Corpus.C3_count
+
+/-- 第 4 关：28 条转移（步号 89–116，最后一条是换关）。 -/
+theorem Game.Corpus.C4_agrees : (casesOf 4).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C4_count :
+    (casesOf 4 : List Case).length = 28 ∧ (casesOf 4).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C4_agrees⟩
+
+#print axioms Game.Corpus.C4_agrees
+#print axioms Game.Corpus.C4_count
+
+/-- 第 5 关：53 条转移（步号 117–169，最后一条是换关）。 -/
+theorem Game.Corpus.C5_agrees : (casesOf 5).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C5_count :
+    (casesOf 5 : List Case).length = 53 ∧ (casesOf 5).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C5_agrees⟩
+
+#print axioms Game.Corpus.C5_agrees
+#print axioms Game.Corpus.C5_count
+
+/-- 第 6 关：37 条转移（步号 170–206，最后一条是换关）。 -/
+theorem Game.Corpus.C6_agrees : (casesOf 6).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C6_count :
+    (casesOf 6 : List Case).length = 37 ∧ (casesOf 6).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C6_agrees⟩
+
+#print axioms Game.Corpus.C6_agrees
+#print axioms Game.Corpus.C6_count
+
+/-- 第 7 关：47 条转移（步号 207–253，最后一条是换关）。 -/
+theorem Game.Corpus.C7_agrees : (casesOf 7).all (agrees step) = true := by decide +kernel
+
+theorem Game.Corpus.C7_count :
+    (casesOf 7 : List Case).length = 47 ∧ (casesOf 7).all (agrees step) = true :=
+  ⟨by decide +kernel, Game.Corpus.C7_agrees⟩
+
+#print axioms Game.Corpus.C7_agrees
+#print axioms Game.Corpus.C7_count
+
+-- 读数：每一关（关号, 对上几条, 共几条, 第一条没对上的步号）。求值器算的，**不是证明**；证明是上面的 `C&lt;n&gt;_agrees`。
+#eval (List.range 8).map (fun n =&gt;
+  (n, ((casesOf n).filter (agrees step)).length, (casesOf n).length,
+   ((casesOf n).find? (fun c =&gt; !agrees step c)).map (·.seq)))
+</code></pre></div></details><details class="item" id="lean-Obs-Replay"><summary><div class="top"><span class="name">Obs/Replay.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Replay —— 整条轨迹，**只存这一份**（自动生成：`python lean2/export_replay.py`，不要手改）
+
+逐条那一层（`Obs/Corpus.lean`）和每关那一层（`Proof/Levels.lean`）都从这里切。
+
+    frames       去重之后每一帧**看得见的世界**（253 帧；读不成的 1 帧不在这里）
+    boards       每一帧**真正读到的**那张盘（去重，8 张）—— 逐条判用它
+    levelBoards  **整关取并集**的那张（8 张）—— 每关判用它
+    steps        253 步，按**步号**（语料的 `seq`）切，步号唯一已核
+
+两个口径这一局逐关相同：0 步的「这一帧的盘」和「整关的盘」不一样。
+（目标永远从中心格透出来、一帧就读全；推不动的那条线全程没被选中过。）
+**相同是导出时逐帧量出来的，不是假定的**——哪天不同，上面那个数就不是 0。
+
+换关那一步的下一帧是下一关的盘：它的目标 / 推不动的线**没有并进本关**。
+最后一步（WIN）的下一帧读不成世界（零标记且两件整片压在目标上：选中的是哪一件读不出），
+它的 `next` 指向表外，`frameAt` 给空帧——那一步只在逐条层当「该说 won」的用例核，从不拿下一帧比。
+-/
+import Obs.Check
+import Obj.World
+
+namespace Game
+namespace Replay
+
+set_option maxRecDepth 20000
+
+/-- 去重之后每一帧看得见的世界。 -/
+def frames : List SeenWorld := [
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[166, 167, 168, 200, 232]⟩], 1, 0, 110427941574360029349004113150655449187412396718722699522699970817818624⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[198, 199, 200, 232, 264]⟩], 1, 1, 474284397626475078183572836151548675224126018771891705342831184282685364139720704⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[230, 231, 232, 264, 296]⟩], 1, 2, 2037035976808770484557488415704868059839746720807956958501128404543082858037951598254096384⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[262, 263, 264, 296, 328]⟩], 1, 3, 8749002901169083677144485777351261105006683166793417833337975676609198698291212841332274667311857664⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[294, 295, 296, 328, 360]⟩], 1, 4, 37576681333130334559622989080460803950360526062811442782249784045879980581926530237697356765393708899886956544⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[326, 327, 328, 360, 392]⟩], 1, 5, 161390617418008468239119300190344265576666066849130788564338071780117080140489496045665253653010324289158616453453185024⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[358, 359, 360, 392, 424]⟩], 1, 6, 693167423691594332538072102159935195632919337829966502910522810183303362254413470947653587003223874772290705024188935945116975104⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[390, 391, 392, 424, 456]⟩], 1, 7, 2977131415407973248349968353666892626722750576985681738776184283999303706129546689382018284115937188713388025083674368809316258966126198784⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[422, 423, 424, 456, 488]⟩], 1, 8, 12786682065071435599306000041634265509717749387318633328308126563446185504597997770200838980751986497914181885092409077549455792380578795586074968064⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[454, 455, 456, 488, 520]⟩], 1, 9, 54918381293831559802789430475393808757218503809257567276499034601030235798197658050093526774091755495574983411067526925928440450872351912593261140839124434944⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[486, 487, 488, 520, 552]⟩], 1, 10, 235872651606264715885648813466282141333131877786812673493083142986997270660427397068942827236024469956722826466277552594462066172780246135191107149891689445358959591424⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[485, 486, 487, 519, 551]⟩], 1, 11, 471745303212529431771297626932564282666263755573625346986166285973994541320854794137885654472048939913445652932555105188924132345560492270382214299783378890717919182848⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[484, 485, 486, 518, 550]⟩], 1, 12, 943490606425058863542595253865128565332527511147250693972332571947989082641709588275771308944097879826891305865110210377848264691120984540764428599566757781435838365696⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[483, 484, 485, 517, 549]⟩], 1, 13, 1886981212850117727085190507730257130665055022294501387944665143895978165283419176551542617888195759653782611730220420755696529382241969081528857199133515562871676731392⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[482, 483, 484, 516, 548]⟩], 1, 14, 3773962425700235454170381015460514261330110044589002775889330287791956330566838353103085235776391519307565223460440841511393058764483938163057714398267031125743353462784⟩,
+  ⟨[⟨⟨false, 12⟩⟩], [⟨[207, 208, 209, 241, 273, 305, 306, 307]⟩], 0, 0, 111400404970613595268632969778124519312238073879359826793285546616031201839641393748770816⟩,
+  ⟨[⟨⟨false, 11⟩⟩], [⟨[207, 208, 209, 241, 273, 305, 306, 307]⟩], 0, 1, 27850101242653398817158242444531129828059518469839956698321386654007800459910348437192704⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[207, 208, 209, 241, 273, 305, 306, 307]⟩], 0, 2, 6962525310663349704289560611132782457014879617459989174580346663501950114977587109298176⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[207, 208, 209, 241, 273, 305, 306, 307]⟩], 1, 2, 6962525310663349704289560611132782457014879617459989174580346663501950114977587109298176⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[239, 240, 241, 273, 305, 337, 338, 339]⟩], 1, 3, 29903818506871327045734933739025074166361433742367644093336623444083592576052176407426843432452096⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[271, 272, 273, 305, 337, 369, 370, 371]⟩], 1, 4, 128435922512531900941551836693839692468496821239139920989448369211405914804332490459521064054894137406652416⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[303, 304, 305, 337, 369, 401, 402, 403]⟩], 1, 5, 551628086822914664700676746088774243818891357502064155817704706843521714265570285633874981938891468903702379559387136⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[335, 336, 337, 369, 401, 433, 434, 435]⟩], 1, 6, 2369224592459467028288212253518981289929268527448409801730889853678193152236481035586871677180129529434802693524946638923104256⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[367, 368, 369, 401, 433, 465, 466, 467]⟩], 1, 7, 10175742141492339092088178491170485555482102478592998425640016114526064897226835305969826020437325829966346932902356774319853438318411776⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[399, 400, 401, 433, 465, 497, 498, 499]⟩], 1, 8, 43704479710238601035061058967787860221236023658877468332703357080802439273162858732718556320588142057401516857405528707027823161090731812581277696⟩,
+  ⟨[⟨⟨false, 10⟩⟩], [⟨[431, 432, 433, 465, 497, 529, 530, 531]⟩], 1, 9, 187709311044170347802378997629776377116028046311960986560236565931456506115260488738894204569260161621941669643349441206273665838956032823743389046214230016⟩,
+  ⟨[⟨⟨true, 16⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 0, 0⟩,
+  ⟨[⟨⟨true, 15⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 1, 898107310697693884399077348238890946722582245194864525214652888763436518114693726178915925082201925303626181354942911890294450146993312219080039875464678418529028647658469434893913618995359460098048⟩,
+  ⟨[⟨⟨true, 14⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 2, 72999572028844046549618857839743373888530319949252453073529691685684495025951703486463546825622358022385514143119347332613690302759446305531758115126542172730118704413325639941218490962107432960⟩,
+  ⟨[⟨⟨true, 13⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 3, 16996415774093861887276061500629800235060644363165566936431667456227571213011365570937455298592116712093700917843636029423071235388481520104036574463865834296957121823230743841033158656⟩,
+  ⟨[⟨⟨true, 12⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 4, 921377545336973080530475411165580129194208642334988577169366266729335496904829777030022024965703274315909343671431075971837598898531939388500856383249991643814690816⟩,
+  ⟨[⟨⟨true, 11⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 5, 49947976816685378473633782554296603179778656205215619090063097476765257909166064128108124750869390097392520512738606782085362965869923371713560576⟩,
+  ⟨[⟨⟨true, 10⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 6, 2707685248795294869797899606281856945285281775129397828038842675412060565289733848406021659861576544832450340862359588713791488⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 0, 7, 146783911423364576743092560090922072970401536919094113149263964295600685777026528730996362844605177227378688⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[228, 260, 292, 324, 325, 326, 327]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 1, 7, 146783911423364576743092560090922072970401536919094113149263964295600685777026528730996362844605177227378688⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[260, 292, 324, 356, 357, 358, 359]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 1, 8, 22765651080776732937037560374138832270836589856503932929331086414023249458708348928⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[292, 324, 356, 388, 389, 390, 391]⟩, ⟨[303, 304, 305, 306, 336, 337]⟩], 1, 9, 22767503754198490968112402271001458669366070368449258297944933212438280228369858560⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[324, 356, 388, 420, 421, 422, 423]⟩], 2, 10, 22767503754198490968110996200213082813267930568318828665027578192743437708449284096⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[356, 388, 420, 452, 453, 454, 455]⟩], 2, 11, 22765651080770693908984219064452616430375597794078561815831649633908691793856167936⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[388, 420, 452, 484, 485, 486, 487]⟩], 2, 12, 22765651080770262549837544654215901758134129256737612346064076612277951870560894976⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[420, 452, 484, 516, 517, 518, 519]⟩], 2, 13, 22765651080770262549837444220588135571241907884106823276293020206597797182456201216⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[452, 484, 516, 548, 549, 550, 551]⟩], 2, 14, 22765651080770262549837444220588112187215710589660132017335692613998811207388102656⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[453, 485, 517, 549, 550, 551, 552]⟩], 2, 15, 22765651080770262549837444220588112187215716034178004020001708551369837822527668224⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[454, 486, 518, 550, 551, 552, 553]⟩], 2, 16, 22765651080770262549837444220588112187215726923213748025333740426111891052806799360⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[455, 487, 519, 551, 552, 553, 554]⟩], 2, 17, 22765651080770262549837444220588112187215748701285236035997804175595997513365061632⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[456, 488, 520, 552, 553, 554, 555]⟩], 2, 18, 22765651080770262549837444220588112187215792257428212057325931674564210434481586176⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[457, 489, 521, 553, 554, 555, 556]⟩], 2, 19, 22765651080770262549837444220588112187215879369714164099982186672500636276714635264⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[458, 490, 522, 554, 555, 556, 557]⟩], 2, 20, 22765651080770262549837444220588112187216053594286068185294696668373487961180733440⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 2, 21, 22765651080770262549837444220588112187216402043429876355919716660119191330112929792⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[303, 304, 305, 306, 336, 337]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 21, 22765651080770262549837444220588112187216402043429876355919716660119191330112929792⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[302, 303, 304, 305, 335, 336]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 22, 11382825540385131274918722110294056093608549470858746348584878321805299033988661248⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[301, 302, 303, 304, 334, 335]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 23, 5691412770192565637459361055147028046804623184573181344917459152648352885926526976⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[300, 301, 302, 303, 333, 334]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 24, 2845706385096282818729680527573514023402660041430398843083749568069879811895459840⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[299, 300, 301, 302, 332, 333]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 25, 1422853192548141409364840263786757011701678469859007592166894775780643274879926272⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[298, 299, 300, 301, 331, 332]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 26, 711426596274070704682420131893378505851187684073311966708467379636025006372159488⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[297, 298, 299, 300, 330, 331]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 27, 355713298137035352341210065946689252925942291180464153979253681563715872118276096⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[296, 297, 298, 299, 329, 330]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 28, 177856649068517676170605032973344626463319594734040247614646832527561304991334400⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[295, 296, 297, 298, 328, 329]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 29, 88928324534258838085302516486672313232008246510828294432343408009484021427863552⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[294, 295, 296, 297, 327, 328]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 30, 44464162267129419042651258243336156616352572399222317841191695750445379646128128⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[293, 294, 295, 296, 326, 327]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 31, 22232081133564709521325629121668078308524735343419329545615839620926058755260416⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[292, 293, 294, 295, 325, 326]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 32, 11116040566782354760662814560834039154610816815517835397827911556166398309826560⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[291, 292, 293, 294, 324, 325]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 33, 5558020283391177380331407280417019577653857551567088323933947523786568087109632⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[323, 324, 325, 326, 356, 357]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 34, 13895050709772020890851748911186565667266238719827791867056841051449286713147392⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[355, 356, 357, 358, 388, 389]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 35, 3235193600359377658658602487803371860766766568717765250473444750917632⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[387, 388, 389, 390, 420, 421]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 36, 753252208316553770949076358475038091942647729685906768003072⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[419, 420, 421, 422, 452, 453]⟩, ⟨[459, 491, 523, 555, 556, 557, 558]⟩], 1, 37, 175380197192940191412988476212179434922174643699712⟩,
+  ⟨[⟨⟨true, 3⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 0, 272⟩,
+  ⟨[⟨⟨true, 4⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 1, 5017514390179301818368⟩,
+  ⟨[⟨⟨true, 5⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 2, 92556803841792430669113004667838752882752⟩,
+  ⟨[⟨⟨true, 6⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 3, 724904812116127847429027677028456969370334830526528⟩,
+  ⟨[⟨⟨true, 7⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 4, 31495448272550005155211307922363110936111213900542244082796212334254983529627712⟩,
+  ⟨[⟨⟨true, 8⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 5, 580988474017159867670700078587187770253160501281994087894776231559452235095329482470268532070285312⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 0, 6, 10717345689382463954170742479302561462071106008974254031472235865325104146084149741585521502916201361204391737896730624⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[196, 200, 228, 229, 230, 231, 232]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 6, 10717345689382463954170742479302561462071106008974254031472235865325104146084149741585521502916201361204391737896730624⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[197, 201, 229, 230, 231, 232, 233]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 7, 21434691379352063554034943265577493073332135581081240463664041420775316725275046014049755783455815224874283913384558592⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[198, 202, 230, 231, 232, 233, 234]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 8, 40347654362722016084177486271718165012329091411985424741298560019292950942712131589324626013571777800453998374771752960⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[199, 203, 231, 232, 233, 234, 235]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 9, 85738765519756796798913606290199452890095647270568805130628652362100273632269045161476926354802465753128619773125459968⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[200, 204, 232, 233, 234, 235, 236]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 10, 171477531039513593597827212580398905780183883847424696588163096805701974265796215341190800599119376662487757177028083712⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[201, 205, 233, 234, 235, 236, 237]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 11, 342955062079027187195654425160797811560360357001136479503231985692905375532850555700618549087753198481206031984833331200⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[202, 206, 234, 235, 236, 237, 238]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 12, 685910124158054374391308850321595623120713303308560045333369763467312178066959236419474046065020842118642581600443826176⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 1, 13, 1371820248316108748782617700643191246241419195923407176993645319016125783135176597857185040019556129393515680831664816128⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[326, 358, 390, 422, 454, 486]⟩], 2, 13, 1371820248316108748782617700643191246241419195923407176993645319016125783135176597857185040019556129393515680831664816128⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[327, 359, 391, 423, 455, 487]⟩], 2, 14, 1371820248316108748782617700643191246241426606617120090666739526934624356133918472838948092130041684237285163200887652352⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[328, 360, 392, 424, 456, 488]⟩], 2, 15, 1371820248316108748782617700643191246241441428004545918012927942771621502131402222802474196351012793924824127939333324800⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[329, 361, 393, 425, 457, 489]⟩], 2, 16, 1371820248316108748782617700643191246241471070779397572705304774445615794126369722729526404792955013299902057416224669696⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[330, 362, 394, 426, 458, 490]⟩], 2, 17, 1371820248316108748782617700643191246241530356329100882090058437793604378116304722583630821676839452050057916370007359488⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[331, 363, 395, 427, 459, 491]⟩], 2, 18, 1291124939607104514693679560694981280394530925183533591721553920617374430166788210858388032434296889614527947992696094720⟩,
+  ⟨[⟨⟨true, 9⟩⟩], [⟨[203, 207, 235, 236, 237, 238, 239]⟩, ⟨[332, 364, 396, 428, 460, 492]⟩], 2, 19, 1371820248278532067458236368996959556693256677189199389674498650929620270417602944899184370141172174391954170456611749888⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 5⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 1, 0, 0⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 6⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 1, 1, 245760⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 1, 2, 4533471824117809358962688⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 8⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 1, 3, 83627794504874430505082153698306023261405184⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 1, 4, 1542660522680192607262324187154262403106919622871138070737977344⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 0, 4, 1542660522680192607262324187154262403106919622871138070737977344⟩,
+  ⟨[⟨⟨false, 4⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 0, 5, 1542660522680192607262324187154262403106919622871138070737977344⟩,
+  ⟨[⟨⟨false, 5⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 0, 6, 1542660522680192607262324187154262403106919622871138070737977344⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 0, 7, 1542660522680192607262324187154262403106919622871138070737977344⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 0, 8, 39402006196394479212279040100143613805079739270465448210615093186173715714585233555099877028220640867389162762797056⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 0, 9, 13407807929942597099574024998205846127755179863967154732209514724422769326709105151695132426385245943912092224614637562813878603367973337238073437627351040⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[398, 399, 400, 401, 433, 465, 466, 498, 528, 529, 530]⟩], 2, 9, 13407807929942597099574024998205846127755179863967154732209514724422769326709105151695132426385245943912092224614637562813878603367973337238073437627351040⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[366, 367, 368, 369, 401, 433, 434, 466, 496, 497, 498]⟩], 2, 10, 3121748550315992231381597229793166305812816103912693153184259944693830179787934653185381544179361604545610237413188308292720429558224401014456320⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[334, 335, 336, 337, 369, 401, 402, 434, 464, 465, 466]⟩], 2, 11, 726838724295606890549323807888004534368593269938764459316129750245009685605412623144416619568865754888664152914235212537894408919449600⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[302, 303, 304, 305, 337, 369, 370, 402, 432, 433, 434]⟩], 2, 12, 169230328010303641331690318856389386199552876670825229746548524201382310987399662973577285946439284838562516322118534512508928⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[270, 271, 272, 273, 305, 337, 338, 370, 400, 401, 402]⟩], 2, 13, 39402006196394724199312125048925544457106321106311439502877346860114865913648138437967397061977605483512067484811264⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[238, 239, 240, 241, 273, 305, 306, 338, 368, 369, 370]⟩], 2, 14, 450984394133791794529330903918655654209623481687156613868524946472550494343923613684249288900636533147079540736⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[206, 207, 208, 209, 241, 273, 274, 306, 336, 337, 338]⟩], 2, 15, 9683712858071735774944387596958445520506843900474883057334297217172140163816561030071295368036559574507288854233626968064⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[174, 175, 176, 177, 209, 241, 242, 274, 304, 305, 306]⟩], 2, 16, 41591230029272794778946713181390632644838646127119550859138400445557608907879476486250149816367516752656643330782511014538045816832⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[173, 174, 175, 176, 208, 240, 241, 273, 303, 304, 305]⟩], 2, 17, 20797561163408555283354876597835841039686725717151899586032413295954283966486878937805654983651505923679528786688235606110915002368⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[172, 173, 174, 175, 207, 239, 240, 272, 302, 303, 304]⟩], 2, 18, 10402588264084568576616718857797169736295079449367367457957927217728357676934684407206684585694678617027381695381074160320482639872⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[171, 172, 173, 174, 206, 238, 239, 271, 301, 302, 303]⟩], 2, 19, 5208909496802866158186915959659850252914431475508068994388304360631379469164090974801455864399968140938603743828241812182817308672⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[170, 171, 172, 173, 205, 237, 238, 270, 300, 301, 302]⟩], 2, 20, 2619685477922596818850571041352455895990999239402805028012833683850090995975543029796955075305241735319127664189530370136560631808⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[169, 170, 171, 172, 204, 236, 237, 269, 299, 300, 301]⟩], 2, 21, 1340304198003625888939511643721289487063066622998943575643779848993848020774766599690931823863136197359215416645584113158584270848⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[168, 169, 170, 171, 203, 235, 236, 268, 298, 299, 300]⟩], 2, 22, 687752053115830171317295346323532138800472988791806777109577195187425598026910194925955727546074517027821964384704950031341322240⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[167, 168, 169, 170, 202, 234, 235, 267, 297, 298, 299]⟩], 2, 23, 335752970815311807172814000460305177071921519677826233143124395527612516358045613119538738195525854159250581276453299191210311680⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[166, 167, 168, 169, 201, 233, 234, 266, 296, 297, 298]⟩], 2, 24, 335752970797659708383618721742982456060529395190913219812756675426269802954607037742066713354803384059347720394024180998922567680⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[165, 166, 167, 168, 200, 232, 233, 265, 295, 296, 297]⟩], 2, 25, 687752053043960911966486341551785347767074307356721480172668436190474620630849291613630326674364418801873021304222825572724637696⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 0⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 0, 6277101736848182401506974708332289712282013071551735267328⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 1⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 1, 6277101736848182401506974708332289712282013071551735267328⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 2⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 2, 6277101736848182401506974708332289712282014056714154033153⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 3⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 3, 6277101736848182401506974708332294850235193248172476481537⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 4⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 4, 6277436970247746814694741894897921940887002929420831031296⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 5⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 5, 5300541195980663823172835392566126237014510527904140725298372784961880064⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 6⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 6, 48888863433924919453037861109981555964787839194193575896545227026582125605992631278006960128⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 7, 2104294154760288905325138420293120584840180108749577672952918547283890121835766685761790543049550168285408919552⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 8⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 8, 38817375728666009418123672377847028042633853265765303849148732481820149542771503099041786908874452972431535764784611115649032257536⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 9, 716054195679726697107489176723944352469676745388415916253925789611371734319862230389803163549565247175910104187350017368425272100568670203719628881920⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 10⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 10, 13208868490609858067815572511015031512148816716408624111721977790589213263017665321666385001569494662398845774546228235023782461056233358995803104235114213521602830663680⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 1, 11, 243660616549566229450891849892217436825795305667110225212607836587198098821332793729689843476573714651952841727544413325529981896305657053633726170370056116531372122988265536914299457372160⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 0, 11, 243660616549566229450891849892217436825795305667110225212607836587198098821332793729689843476573714651952841727544413325529981896305657053633726170370056116531372122988265536914299457372160⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 0, 12, 243660616549565982120490319201586792762552656102430192126665943637388943014377976550400029789624068018743010327231664796181286194268956801432527917665482810195965900127251345728229221597184⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[274, 305, 306, 307, 308]⟩], 3, 12, 243660616549565982120490319201586792762552656102430192126665943637388943014377976550400029789624068018743010327231664796181286194268956801432527917665482810195965900127251345728229221597184⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[306, 337, 338, 339, 340]⟩], 3, 13, 243660616549565982120490319201586792762552656102239655715835838416561683825029435672285225698770752613539385610424802119639086773740970138498566979139181124208288308182133974807866773602304⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[338, 369, 370, 371, 372]⟩], 3, 14, 243660616549565982120490319201586792762552656102239655715791475701388612290445921422007882461043691311600800194608514635015655689546023290357489517581144111773446465189418035187311752249344⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[370, 401, 402, 403, 404]⟩], 3, 15, 243660616549565982120490319201586792762552656102239655715791475701378283290933573787653458305747262646998276575713263573985811137427175667747359632366932640118788715636263567799305025617920⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[402, 433, 434, 435, 436]⟩], 3, 16, 243660616549565982120490319201586792762552656102239655715791475701378283290933573787649818720542201492424761285328748705964299965011474067082106799478171825743811057123906043491706694795264⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[401, 432, 433, 434, 435]⟩], 3, 17, 243660616549565982120490319201586792762552656102239655715791475701378283290933573787649538752448940378264121328382973223464316508565667383475764476140398678052068485493790232995563728535552⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[400, 431, 432, 433, 434]⟩], 3, 18, 243660616549565982120490319201586792762552656102239655715791475701378283290933573787649398768402309821183801349910085482214324780342764041672593314471512104206197199678732327747492245405696⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[399, 430, 431, 432, 433]⟩], 3, 19, 243660616549565982120490319201586792762552656102239655715791475701378283290933573787649328776378994542643641360673641611589328916231312370771007733637068817283261556771203375123456503840768⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[398, 429, 430, 431, 432]⟩], 3, 20, 243660616549565982120490319201586792762552656102239655715791475701378283290933573787649293780367336903373561366055419676276830984175586535320214943219847173821793735317438898811438633058304⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[397, 428, 429, 430, 431]⟩], 3, 21, 243660616549565982120490319201586792762552656102239655715791475870608611301237215119339595138750894280307443444012087487646055856542427014190979230057021942098636722467066436073942799089664⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[396, 427, 428, 429, 430]⟩], 3, 22, 243660616549565982120490319201586792762552656102239655715791476209069267361246503979114703316941779399692291483363850538503877832868900275122976937988539930484909543522201058662554611482624⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[395, 426, 427, 428, 429]⟩], 3, 23, 243660616549565982120490319201586792762552656102239655715791476885990579441863075502270453582412894117123743672574448889326709727491746058678645108813781804319019638012075791627194860568576⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[394, 425, 426, 427, 428]⟩], 3, 24, 243660616549565982120490319201586792762552656102239655715791478239833203603096218548581960675107309359349788049986562203843466878997886219937005098667494610136265043514406096864978709512192⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[393, 424, 425, 426, 427]⟩], 3, 25, 243660616549565982120490319201586792762552656102239655715791480778288123915258863309514659284982846550914524729040468360287054024745687442931076220430749160837691564903847351576284981362688⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[392, 423, 424, 425, 426]⟩], 3, 26, 243660616549565982120490319201586792762552656102239655715791485855197964539584152831380058145171967385884783086896009826392001656806402037455974376008065526777800911813375070826023362756608⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[391, 422, 423, 424, 425]⟩], 3, 27, 243660616549565982120490319201586792762552656102239655715791485178276653128801686646930449876848515701334679485471115477580457933949369918619864992257824130441726293601127487454224553345024⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[390, 421, 422, 423, 424]⟩], 3, 28, 243660616549565982120490319201586792762552656102239655715791478409063531455791835094694360623289028946859633325668635634806728911482207724452722724872762242526327638565384596681224204845056⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[389, 420, 421, 422, 423]⟩], 3, 29, 243660616549565982120490319201586792762552656102239655715791519024342258972122547838864225533513604270833289611235458895482887070215211173112862891056804270592602974780146239569101523517440⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[388, 419, 420, 421, 422]⟩], 3, 30, 243660616549565982120490319201586792762552656102239655715791627331752190609909793259161633033668450856789125690608538123707284198091346429998458290389474119700830301268206491733617866178560⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[387, 418, 419, 420, 421]⟩], 3, 31, 243660616549565982120490319201586792762552656102239655715791800623608083247752103187034820849558966658676771112557445685672831241692207169794288107585290502994388357361907151730394269745152⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 142, 146, 174, 206, 239]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 31, 243660616549565982120490319201586792762552656102239655715791800623608083247752103187034820849558966658676771112557445685672831241692207169794288107585290502994388357361907151730394269745152⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[143, 144, 145, 174, 178, 206, 238, 271]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 32, 56731658184334165910373050533604527069850046211444086219682872740676645019117064157565030673457543965742749324387734224659569879627834901410337304228604468704919172382803835748352⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[175, 176, 177, 206, 210, 238, 270, 303]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 33, 13208868490609844660007639446669380895293187755577847247154188519584393870168794189519963830739265668801199029471648938347485443269445046739584184727002734097312411287552⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[207, 208, 209, 238, 242, 270, 302, 335]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 34, 3075429352608007532546212767872674489776510057157334701044291882967848972498167797036107027799178311038095772780396351916245262528493358882209087506082013642752⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[239, 240, 241, 270, 274, 302, 334, 367]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 35, 716054195679725970269089634116525710258450115233490572308711896082360154304533388687684305203776132803369740028838352701696250043937063848626066817024⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[271, 272, 273, 302, 306, 334, 366, 399]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 36, 166719359271489433157141069659003095735379300726914901599968065344879484691144480126834248668535586258563339451971419401661150949889108082688⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[303, 304, 305, 334, 338, 366, 398, 431]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 37, 33596958569578734645818003953902746332536686975118363193610593727196282692176567889413012434433228984351689355513184780812187336704⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[335, 336, 337, 366, 370, 398, 430, 463]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 38, 324922238837831391833579449392778316902612468142803650309311105096425117813998559846910989431358890329978394341791187967267569664⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[367, 368, 369, 398, 402, 430, 462, 495]⟩, ⟨[387, 418, 419, 420, 421]⟩], 2, 39, 324922229799956818529399386156997400436521960626296807959959114706098149376803572581067567297700008591751557084024613765178720256⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[399, 400, 401, 430, 434, 462, 494, 527]⟩], 3, 40, 324922229799956818529399386052009365777307690741823810579052101461357310988492679207334139749598051227765853197823326396404989952⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[431, 432, 433, 462, 466, 494, 526, 559]⟩], 3, 41, 324922229799956818529399385562065203401468587996723680110510584094348568795128270748275269219238437972449665871152700581480497152⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[463, 464, 465, 494, 498, 526, 558, 591]⟩], 3, 42, 324922229799956818529399385562065203287394573316301046516352448165077568039408257416335707819826359531710914025877605074287460352⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[495, 496, 497, 526, 530, 558, 590, 623]⟩], 3, 43, 324922229799956818529399385562065203287394573289741120254128673226662266092189192781176256926550090589566196367767001420164759552⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[494, 495, 496, 525, 529, 557, 589, 622]⟩], 3, 44, 324922229799956818529399385562065203287394573289741120251036690862425919219329558823565519795761362326004847300248116196836114432⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[493, 494, 495, 524, 528, 556, 588, 621]⟩], 3, 45, 247330401530690630644063242649564680033085942217872038955763773346578675375752152934027783121141432998020048376009782483151943043012855803673333600447033780679859655407566848⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[492, 493, 494, 523, 527, 555, 587, 620]⟩], 3, 46, 1062275986128195000440557674393063739961437344070551722741091721742171014191211048810429078261978721249945776457089196091412864394197936868856830002567741983935253100178217840335126528⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[491, 492, 493, 522, 526, 554, 586, 619]⟩], 3, 47, 2124551972256390000881115348786127479925996436691419437388642810914178376158771310201457924387422026169775804403893982878114499618306872775829764866869157066631372583559392137331081216⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[490, 491, 492, 521, 525, 553, 585, 618]⟩], 3, 48, 4249103944512780001762230697572254959855114621933154866683744989258193100093891832983515616638308636009435860298083303144812085105185925956827647807494873781441364500481531710697111552⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[387, 418, 419, 420, 421]⟩, ⟨[489, 490, 491, 520, 524, 552, 584, 617]⟩], 3, 49, 8498207889025560003524461395157917727640171840965883758040773594843908747478976673782689591432944462759204147324733898742954350049363103609041756230648847316208716965455815071240290304⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 5⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 1, 0, 1062275986375525401971248305010311366747995081354173622081326011613269252532057568163938730582914672771832503264477299521465443089376743812656977054820548160063215598312262695552811008⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 6⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 1, 1, 1062275986375525401971248305010311366747995081354173622081326011613269252532057568163938730582914672771832503264477299521465443089376743812656977054820548160063215598312262695552811008⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 1, 2, 1062275986375525401971248305010311366747995081354173622081326011613269252532057568163938730582914672771832503264477299521465443089376743812656977054820548160063215598314514495367020544⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 2, 1062275986375525401971248305010311366747995081354173622081326011613269252532057568163938730582914672771832503264477299521465443089376743812656977054820548160063215598314514495367020544⟩,
+  ⟨[⟨⟨false, 4⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 3, 5311379931877627009856241525051556833739975406770868110406630058066346262660287840819693652914573363859162516322386497607327215446883719063284885274102740800316077991563565277578264576⟩,
+  ⟨[⟨⟨false, 5⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 4, 21245519720090595993504247181286564293371239139078114934784201341415557380743544470199872965570950081396847092137721758503255051923721901496625030632074767467628247099297079626037723136⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 5, 16996415776072476794803397745029251434696991311262491947827361073132445904594835576159898372456760065117477673710177406802604041538977521197300024505659813974102597679438114060793020416⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 6, 2251799814209536⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 7, 1087770610048538011618558264330558839549946963306673789011277835891987714592826949799873260116904624918356483342824754709980613723521785664160744504136241315904732772671759252045892681728⟩,
+  ⟨[⟨⟨false, 9⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 8, 5440977602214451787290668641836848943850125472408692367167999563505268379446601362426044697423617040591790410203109965945649331386137322606032051613414714162855408296306532983676980428800⟩,
+  ⟨[⟨⟨false, 10⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 9, 21763910409364339811497528978878978105706294158979703960134345583171985125638925350191023558737826288461516348548798005898748913535070148524959073379226650419352700608484390057774970044418⟩,
+  ⟨[⟨⟨false, 11⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 10, 87055641605031354283710451477314462309343843075003669487968869803822080274747172930423550187996802963508921094458633220180550364527436052683900347519695514828656714156715264761503532187656⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 0, 11, 348222566517379688288034317710339366958948884045414821998823091942495998137174053167924260541633161132244793042996166219893575825455919400076458976483416514469635627057072253914318931230752⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[435, 467, 498, 499, 530, 561, 562, 593, 625]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 11, 348222566517379688288034317710339366958948884045414821998823091942495998137174053167924260541633161132244793042996166219893575825455919400076458976483416514469635627057072253914318931230752⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[403, 435, 466, 467, 498, 529, 530, 561, 593]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 12, 348086595191218595925865632828749816598733659287704959271278440180816416934445655182890848353386193929182705455400114809018574746924463791047365602420200288180753985107885688460779392335968⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[371, 403, 434, 435, 466, 497, 498, 529, 561]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 13, 348086595223636686307748390320642779435808127537874845857968602005040349302685581567829549993670541371661857072310231665376363054412414763251605355167310576487356010244152253830100844544064⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[339, 371, 402, 403, 434, 465, 466, 497, 529]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 14, 348086595223636686315296315170285862140291036907944256451656340445962019902253709877776531276145145350869653847972019384659814147862612921296020849833609451994292406248697403715780916674752⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[307, 339, 370, 371, 402, 433, 434, 465, 497]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 15, 348086595223636686315296315170284145940876004255515464458778236840298691444706861978007108545603721857571448792049007441205508871918589342909888804546613736107091048779484590303387574206592⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[275, 307, 338, 339, 370, 401, 402, 433, 465]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 16, 348086595223636686315296315170284145940875604671701024011772609165112290303443473774189957082066844968034028786209175999582583460051828354301754168437408083694896931567315979444463843016832⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[243, 275, 306, 307, 338, 369, 370, 401, 433]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 17, 348086595223636686315296315170284145940875604671700930976415899327430297468267668714634181548679139409230892118614531757187907158045609991429625835338142143078437037203608266750064068657152⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[211, 243, 274, 275, 306, 337, 338, 369, 401]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 18, 348086595223636686315296315170284145940875604671700930976415877665948312149401577671137722510785739921658238536573580945814219969690306525713853756023652450017768571223892221260804235722752⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[179, 211, 242, 243, 274, 305, 306, 337, 369]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 19, 348086595223636686315296315170284145940875604671700930976415877665948307105944784532644383202365697624514175561273352293053890061513839729083367416953017143394730858684496552743690309730304⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[147, 179, 210, 211, 242, 273, 274, 305, 337]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 20, 348086595223636686315296315170284145940875604671700930976415877665948307105944783358374211756171757699519591408980859748346634114911988235180787094143880288283310788636627581979745224491008⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[115, 147, 178, 179, 210, 241, 242, 273, 305]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 21, 348086595223636686315296315170284145940875604671700930976415877665948307105949593467151555139945418646221542202746353577772990183047691804774301085410810986078744454829019767530547423739904⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[83, 115, 146, 147, 178, 209, 210, 241, 273]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 22, 348086595223636686315296315170284145940875604671700930976415877665968966365838487020492697359139179875626017605707270219056081064846935211538168496107654014288551900511722270075674660175872⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[51, 83, 114, 115, 146, 177, 178, 209, 241]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 23, 348086595223636686315296315170284145940875604671700930976504608511551328771063924383214765600070561134064668479669821230219024488309163511607070915580953784528022362719093644149481235546112⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[50, 82, 113, 114, 145, 176, 177, 208, 240]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 24, 348086595223636686315296315170284145940875604671700930976460251211805564324375436539919438882476930179777811926180757631931005865725856167485250782420750671107939267704921728463329692745728⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 2, 25, 348086595223636686315296315170284145940875604671700930976438080684988428486902275287397285835100523200433886270526129155482376459548367474893312461827534808333738786689725697603673805291520⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[518, 520, 549, 550, 551, 552, 553, 581, 582, 583, 584, 585, 614, 616]⟩], 3, 25, 348086595223636686315296315170284145940875604671700930976438080684988428486902275287397285835100523200433886270526129155482376459548367474893312461827534808333738786689725697603673805291520⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[486, 488, 517, 518, 519, 520, 521, 549, 550, 551, 552, 553, 582, 584]⟩], 3, 26, 81045226013203311319299115606184151475521643802476183561856314611861270877366804294243272706016012781246936762473225119256444431766255713922270994807873545137612292026324221952000⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[454, 456, 485, 486, 487, 488, 489, 517, 518, 519, 520, 521, 550, 552]⟩], 3, 27, 18869812137727465322077999731102993589736755248881822262401454670412150823924861801669687697048234288981982872319169652505183770447557107741930258028153183923231135170880⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[422, 424, 453, 454, 455, 456, 457, 485, 486, 487, 488, 489, 518, 520]⟩], 3, 28, 4393470505654687369726132538914297435051840467593745766856435319134519046445501956392404837888834787614581893302540757060320376737328474195165580876549624660960⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[390, 392, 421, 422, 423, 424, 425, 453, 454, 455, 456, 457, 486, 488]⟩], 3, 29, 1022934565705872925400299145587323567609869130976548261092782271527689198096347895156684743859364928724986957438492291648969108058444573487239781123040⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[358, 360, 389, 390, 391, 392, 393, 421, 422, 423, 424, 425, 454, 456]⟩], 3, 30, 238170513349089986970717819777159850953301764769234638012017039749539248234186872201688004268408022150519366679433940098286789133584644243776⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[326, 328, 357, 358, 359, 360, 361, 389, 390, 391, 392, 393, 422, 424]⟩], 3, 31, 77656412957393008053952153625633199183945312958825411440865708985354190910412331626527147771560732465991786930848268437921739046912⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[327, 329, 358, 359, 360, 361, 362, 390, 391, 392, 393, 394, 423, 425]⟩], 3, 32, 27726696961220585155617191895977986716602303515565407875817208515363173031262529512689385906752449219177988883321619634827468734464⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[49, 81, 112, 113, 144, 175, 176, 207, 239]⟩, ⟨[328, 330, 359, 360, 361, 362, 363, 391, 392, 393, 394, 395, 424, 426]⟩], 3, 33, 36066367515562130320526365781877015397716726671210865443690531546242535674903649758959630487026065744689659377328569669991645839360⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 5⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 0, 70988433622225579451753693184512⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 6⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 1, 1309505467222713586614586922623785458432613699026944⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 7⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 2, 3213876089266269389571571050706697151895694033587936075718656⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 8⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 3, 190972122781358070587666783291593078687841431295578869977887890288470065835683719642349568⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 9⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 4, 3522813874160749841834220895184005541063523823362479806096854321540145400959622901863898290912853971188056064⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 10⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 5, 151630373917405889805748499052011758562953682827815795461776478408194945134975136322404566855138123334949191768049066442802331648⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 1, 6, 2797086701455270466243907773817380091123781674028036762117595887421106639763042407509432848932433493910166062342718481611904769250742943444098875392⟩,
+  ⟨[⟨⟨false, 3⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 6, 2797086701455270466243907773817380091123781674028036762117595887421106639763042407509432848932433493910166062342718481611904769250742943444098875392⟩,
+  ⟨[⟨⟨false, 4⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 7, 2806451947106218442938052565506759590041027468456031675570173358299982754979501785249633768693543353824690804194974722392024380799498251610848493568⟩,
+  ⟨[⟨⟨false, 5⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 8, 2840791181161148034932179809471682478315112574679123170349756874435512953864096950304143355124538204103020166782965657581025212029660177130296705024⟩,
+  ⟨[⟨⟨false, 6⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 9, 2971904620278780740996995916434589639889105276632382395046239835478731896167260578688274873700852334681582480103707185488386540366411878188890193920⟩,
+  ⟨[⟨⟨false, 7⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 10, 3106139807961266213782659595327202056506272396637574350854741402585225207346317849346562118392010215183256860570524143667882279982308849377517502464⟩,
+  ⟨[⟨⟨false, 8⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 11, 2843912929808860416242526515305471590163528672110833108588839146460314277605803201852433117109788169857887040017398550760624145485082430000571875328⟩,
+  ⟨[⟨⟨false, 9⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 12, 12580646658168848958579415968231236229976225533544479562989623285075645818326301627521452259619528825298976320445512081457406819989569657409665761280⟩,
+  ⟨[⟨⟨false, 10⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 13, 22351719622216246868064549349900877901589288854766564518433049556831668199897645619320884020078707017439383344468131074471594778900833527180900171776⟩,
+  ⟨[⟨⟨false, 11⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 14, 3096774562285605720499864072170943023492576753724360241057500558379862392853788768090215336234837591642103525709612889606039329577008544543850627072⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 0, 15, 12387098273331615632189238922287652122484089809657203614896037656465976432096205057826066043491106398408402432883218543973444528760292611213284605952⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[231, 232, 233, 265, 297, 329, 361]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 15, 12387098273331615632189238922287652122484089809657203614896037656465976432096205057826066043491106398408402432883218543973444528760292611213284605952⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[199, 200, 201, 233, 265, 297, 329]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 16, 3087442747656128817586441500019045838389216178361635084234222093730424230873172750734713326431675947203412926409791474593437079124437969761134473567320959614976⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[167, 168, 169, 201, 233, 265, 297]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 17, 13260465629848463591441495267243045274524708851811412168663710316072302850548786797600470162828963640595999777968745816103452207987876284078381813849332853139412411744256⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[135, 136, 137, 169, 201, 233, 265]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 18, 56953266209931192561480937336092238909175026483969849670661158450340185747464694137566300490239288491053279304028489075010857052543451965646475858851997483748089219248061505601536⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[103, 104, 105, 137, 169, 201, 233]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 19, 244612415772036342461839095186334536220270032460228432607044170288359224480717998068440334818705414206429694143272451574200987266290948951718795746078672934231895770526477431726713461538816⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[104, 105, 106, 138, 170, 202, 234]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 20, 123733906810899590940572731096714944350758021753954459327896976169237612726487531568967936638384110150317199217529870050822675931009188625790571510117917798104671845102320643171908946231296⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[105, 106, 107, 139, 171, 203, 235]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 21, 64722351255212634889592732555452824656618828375533144501257270406591151359577862842291517931641008747289441712508480402955831987621207134202578587764331149082538642561400912329899692261376⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[106, 107, 108, 140, 172, 204, 236]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 22, 33720888888963974886274284880721211253818998567980559485141570342909951256411235839469144102629110467070211330170486128499673066621898399417499099785081549664021613124588255019533546291200⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[107, 108, 109, 141, 173, 205, 237]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 23, 15228788532575009565302145116067588087538023293257401769840267832524746037504207454885399320557882991519658433662086286699863977081333293176068508555482001915541593851935820129019996667904⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[108, 109, 110, 142, 174, 206, 238]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 24, 33720888892256437191450838555854981139957216906518905239440779180138820629749180287476589054491172649439186770836702616645079533648399100439927916507728030502407973904262489929055222104064⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[109, 110, 111, 143, 175, 207, 239]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 25, 64722351260911127340859844685492041767264798603495444602470834009540943598565673679598865251499437901804904918234595768695245105494798001663454053595991778481590721811686872786994909413376⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[110, 111, 112, 144, 176, 208, 240]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 26, 123733906822866425088233666569797300283114559232675289540445459735432176428361934327313366010086811374799671949554712318875443478543729447458409988364405119842681211527921160131808902250496⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[111, 112, 113, 145, 177, 209, 241]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 27, 244612415796254935379724321739001208940515405929068208037201815600895841496416194126996560928103738113120412767608441878593493017253710138427516475863230609177867107340192763669368134434816⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 2, 28, 487797132667770913361077137777705722068986309484751915032124185385093377887453311400281944220083159313996947254315109400542619413886761802877894597040682451979275725479981433097480182956032⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[429, 430, 461, 493, 494, 495, 496, 497]⟩], 3, 28, 487797132667770913361077137777705722068986309484751915032124185385093377887453311400281944220083159313996947254315109400542619413886761802877894597040682451979275725479981433097480182956032⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[428, 429, 460, 492, 493, 494, 495, 496]⟩], 3, 29, 487797132667770913361077137777705722068985909900935986019411037845880236796078897295546817903537690316834523927762290293071146167512784013025213467684111466435973845292456503953745543954432⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[427, 428, 459, 491, 492, 493, 494, 495]⟩], 3, 30, 487797132667770913361077137777705722068978717392282012236140404008645468707117012963890596496421649992652639681630020780295237978274879516865997613261415070256227398028284933389920319307776⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[426, 427, 458, 490, 491, 492, 493, 494]⟩], 3, 31, 487797132667770913361077137777705722068973922386514681134905204156642007279165180064473031214464123894554780812003527025235523809058819368937724055149146327962412968099168694049519704211456⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[425, 426, 457, 489, 490, 491, 492, 493]⟩], 3, 32, 487797132667770913361077137777705722069127362571271721310725090651516742332983139847948364562079820310474371463332403990379725086618203217836076046340844708793339613691298921614036183285760⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[424, 425, 456, 488, 489, 490, 491, 492]⟩], 3, 33, 487797132667770913361077137777705722069357522848413235837286429507746815585488981866944896926307699646706536407213671400342349774154123252768573203634414629978543403057011157309989874302976⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[423, 424, 455, 487, 488, 489, 490, 491]⟩], 3, 34, 487797132667770913361077137777705722069766696674447887673690151131194030853747280872968538767427782464460732592945757089696755892987370829131499658134360531365502921244594271568355477422080⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[422, 423, 454, 486, 487, 488, 489, 490]⟩], 3, 35, 487797132667770913361077137777705722069740923518511747047132010487152389221189457947239214250475632344544608640502243730285945579627538352283750799891853902823163559022495873589287833305088⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[421, 422, 453, 485, 486, 487, 488, 489]⟩], 3, 36, 487797132667770913361077137777705722071326472094401977176027940891928319057469268939364358727620287904080351778534730944897970307109456702927836240324925602886814865727593881622825167486976⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[420, 421, 452, 484, 485, 486, 487, 488]⟩], 3, 37, 487797132667770913361077137777705722074497569246182437433819801701480178730028890923614647681909599094766384103167002168004641516267053673563230862451310020763748126387093351756708186161152⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[388, 389, 420, 452, 453, 454, 455, 456]⟩], 3, 38, 487797132667770913361077137777705722068973922387979429791118180477842027120980675910911633112278751015700896902435618606396486214333449025997205102531420219111024519970804815402985049817088⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[356, 357, 388, 420, 421, 422, 423, 424]⟩], 3, 39, 487797132667770913361077137777705722068973922386502772609585996970918362976258918718805005825104754821433479037884105739646876187354829606096959299976806308857693093819822229004432950951936⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[324, 325, 356, 388, 389, 390, 391, 392]⟩], 3, 40, 487797132667770913361077137777705722068973922386502772609242185928886115681837689173608682106449144738703564839657785550109165215070826135124013384495247721325745621574673776720164423729152⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[292, 293, 324, 356, 357, 358, 359, 360]⟩], 3, 41, 487797132667770913361077137777705722068973922386502772609508370342538725285201814773404302659532070576850731772079656558029322754195189921805405879562078621495357531674539238607089393729536⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[260, 261, 292, 324, 325, 326, 327, 328]⟩], 3, 42, 487797132667770913361077137777705722068973922387646025960928891122422833550407159757820842618201450420857082870101742012513490359625832203974569527390506225754890782395559690796132296818688⟩,
+  ⟨[⟨⟨false, 12⟩⟩, ⟨⟨true, 11⟩⟩], [⟨[112, 113, 114, 146, 178, 210, 242]⟩, ⟨[228, 229, 260, 292, 293, 294, 295, 296]⟩], 3, 43, 487797132667770913361077137777705722073884158143039557853819550791603065439469736706600260281744150799698182611415158211238533339342005051880123787193860901141236400673714863105461702361088⟩]
+
+def emptyFrame : SeenWorld := ⟨[], [], 0, 0, 0⟩
+def frameAt (i : Nat) : SeenWorld := (frames[i]?).getD emptyFrame
+
+/-- 每一帧真正读到的那张盘（去重）。 -/
+def boards : List Board := [⟨7547924851400470908340762030921028522660220089178005551778660575583912661133676706206170471552783038615130446920881683022786117528967876326115428796534062251486706925568, [⟨false, 10⟩]⟩, ⟨806205352089403255264163265817151055506703256328645850904111584698953471411467805654526891828906161081913787137821833880820184804348563759880388249694750528541556736, []⟩, ⟨1769044886662556699510294333661216751884881098471641602594270180415218653960232845691027576551907640564111127305371998911831822372924107577600100367666196148998094454784, []⟩, ⟨25573364130142871190293991002600687923777228544715121149248773726693474879631588699272206843119372462871072130935765209663503605847532384378911981568, []⟩, ⟨1302396604387470650868288295024327897062091439004564338103628370506473198381241075450820647729021381879324185594747353189339627520, []⟩, ⟨288939068131894165932046485295079058353292911264500974031141148214985802196788033424805008428719286923199306265068977788191869279933623096327418924787554289724111573856573970177247412224, []⟩, ⟨29567922910101469004917317994008542986216353892367614704026670469428935246576448272039669568609578491964584540586648272620853657600, []⟩, ⟨487797132667770913361077137798795024058949233232937916036814825884823133531979440723375683288193474166642728517086955301462244785785392549693312300516152336684659592415786848699640778326016, []⟩]
+
+/-- 每一关整关取并集的那张盘。 -/
+def levelBoards : List Board := [⟨7547924851400470908340762030921028522660220089178005551778660575583912661133676706206170471552783038615130446920881683022786117528967876326115428796534062251486706925568, [⟨false, 10⟩]⟩, ⟨806205352089403255264163265817151055506703256328645850904111584698953471411467805654526891828906161081913787137821833880820184804348563759880388249694750528541556736, []⟩, ⟨1769044886662556699510294333661216751884881098471641602594270180415218653960232845691027576551907640564111127305371998911831822372924107577600100367666196148998094454784, []⟩, ⟨25573364130142871190293991002600687923777228544715121149248773726693474879631588699272206843119372462871072130935765209663503605847532384378911981568, []⟩, ⟨1302396604387470650868288295024327897062091439004564338103628370506473198381241075450820647729021381879324185594747353189339627520, []⟩, ⟨288939068131894165932046485295079058353292911264500974031141148214985802196788033424805008428719286923199306265068977788191869279933623096327418924787554289724111573856573970177247412224, []⟩, ⟨29567922910101469004917317994008542986216353892367614704026670469428935246576448272039669568609578491964584540586648272620853657600, []⟩, ⟨487797132667770913361077137798795024058949233232937916036814825884823133531979440723375683288193474166642728517086955301462244785785392549693312300516152336684659592415786848699640778326016, []⟩]
+
+def emptyBoard : Board := ⟨0, []⟩
+def boardAt (i : Nat) : Board := (boards[i]?).getD emptyBoard
+def levelBoard (lv : Nat) : Board := (levelBoards[lv]?).getD emptyBoard
+
+/-- 轨迹上的一步。`prev` / `next` 指向 `frames`；`up` = 这一步换关了。 -/
+structure Step where
+  step  : Nat
+  lvl   : Nat
+  board : Nat
+  act   : Act
+  prev  : Nat
+  next  : Nat
+  up    : Bool
+
+/-- 整条轨迹，253 步。 -/
+def steps : List Step := [
+  ⟨1, 0, 0, .push .down, 0, 1, false⟩,
+  ⟨2, 0, 0, .push .down, 1, 2, false⟩,
+  ⟨3, 0, 0, .push .down, 2, 3, false⟩,
+  ⟨4, 0, 0, .push .down, 3, 4, false⟩,
+  ⟨5, 0, 0, .push .down, 4, 5, false⟩,
+  ⟨6, 0, 0, .push .down, 5, 6, false⟩,
+  ⟨7, 0, 0, .push .down, 6, 7, false⟩,
+  ⟨8, 0, 0, .push .down, 7, 8, false⟩,
+  ⟨9, 0, 0, .push .down, 8, 9, false⟩,
+  ⟨10, 0, 0, .push .down, 9, 10, false⟩,
+  ⟨11, 0, 0, .push .left, 10, 11, false⟩,
+  ⟨12, 0, 0, .push .left, 11, 12, false⟩,
+  ⟨13, 0, 0, .push .left, 12, 13, false⟩,
+  ⟨14, 0, 0, .push .left, 13, 14, false⟩,
+  ⟨15, 0, 0, .push .left, 14, 15, true⟩,
+  ⟨16, 1, 1, .push .left, 15, 16, false⟩,
+  ⟨17, 1, 1, .push .left, 16, 17, false⟩,
+  ⟨18, 1, 1, .click 46 19, 17, 18, false⟩,
+  ⟨19, 1, 1, .push .down, 18, 19, false⟩,
+  ⟨20, 1, 1, .push .down, 19, 20, false⟩,
+  ⟨21, 1, 1, .push .down, 20, 21, false⟩,
+  ⟨22, 1, 1, .push .down, 21, 22, false⟩,
+  ⟨23, 1, 1, .push .down, 22, 23, false⟩,
+  ⟨24, 1, 1, .push .down, 23, 24, false⟩,
+  ⟨25, 1, 1, .push .down, 24, 25, false⟩,
+  ⟨26, 1, 1, .push .down, 25, 26, true⟩,
+  ⟨27, 2, 2, .push .up, 26, 27, false⟩,
+  ⟨28, 2, 2, .push .up, 27, 28, false⟩,
+  ⟨29, 2, 2, .push .up, 28, 29, false⟩,
+  ⟨30, 2, 2, .push .up, 29, 30, false⟩,
+  ⟨31, 2, 2, .push .up, 30, 31, false⟩,
+  ⟨32, 2, 2, .push .up, 31, 32, false⟩,
+  ⟨33, 2, 2, .push .up, 32, 33, false⟩,
+  ⟨34, 2, 2, .click 13 22, 33, 34, false⟩,
+  ⟨35, 2, 2, .push .down, 34, 35, false⟩,
+  ⟨36, 2, 2, .push .down, 35, 36, false⟩,
+  ⟨37, 2, 2, .push .down, 36, 37, false⟩,
+  ⟨38, 2, 2, .push .down, 37, 38, false⟩,
+  ⟨39, 2, 2, .push .down, 38, 39, false⟩,
+  ⟨40, 2, 2, .push .down, 39, 40, false⟩,
+  ⟨41, 2, 2, .push .down, 40, 41, false⟩,
+  ⟨42, 2, 2, .push .right, 41, 42, false⟩,
+  ⟨43, 2, 2, .push .right, 42, 43, false⟩,
+  ⟨44, 2, 2, .push .right, 43, 44, false⟩,
+  ⟨45, 2, 2, .push .right, 44, 45, false⟩,
+  ⟨46, 2, 2, .push .right, 45, 46, false⟩,
+  ⟨47, 2, 2, .push .right, 46, 47, false⟩,
+  ⟨48, 2, 2, .push .right, 47, 48, false⟩,
+  ⟨49, 2, 2, .click 46 28, 48, 49, false⟩,
+  ⟨50, 2, 2, .push .left, 49, 50, false⟩,
+  ⟨51, 2, 2, .push .left, 50, 51, false⟩,
+  ⟨52, 2, 2, .push .left, 51, 52, false⟩,
+  ⟨53, 2, 2, .push .left, 52, 53, false⟩,
+  ⟨54, 2, 2, .push .left, 53, 54, false⟩,
+  ⟨55, 2, 2, .push .left, 54, 55, false⟩,
+  ⟨56, 2, 2, .push .left, 55, 56, false⟩,
+  ⟨57, 2, 2, .push .left, 56, 57, false⟩,
+  ⟨58, 2, 2, .push .left, 57, 58, false⟩,
+  ⟨59, 2, 2, .push .left, 58, 59, false⟩,
+  ⟨60, 2, 2, .push .left, 59, 60, false⟩,
+  ⟨61, 2, 2, .push .left, 60, 61, false⟩,
+  ⟨62, 2, 2, .push .down, 61, 62, false⟩,
+  ⟨63, 2, 2, .push .down, 62, 63, false⟩,
+  ⟨64, 2, 2, .push .down, 63, 64, false⟩,
+  ⟨65, 2, 2, .push .down, 64, 65, false⟩,
+  ⟨66, 2, 2, .push .down, 65, 66, true⟩,
+  ⟨67, 3, 3, .push .down, 66, 67, false⟩,
+  ⟨68, 3, 3, .push .down, 67, 68, false⟩,
+  ⟨69, 3, 3, .push .down, 68, 69, false⟩,
+  ⟨70, 3, 3, .push .down, 69, 70, false⟩,
+  ⟨71, 3, 3, .push .down, 70, 71, false⟩,
+  ⟨72, 3, 3, .push .down, 71, 72, false⟩,
+  ⟨73, 3, 3, .click 13 19, 72, 73, false⟩,
+  ⟨74, 3, 3, .push .right, 73, 74, false⟩,
+  ⟨75, 3, 3, .push .right, 74, 75, false⟩,
+  ⟨76, 3, 3, .push .right, 75, 76, false⟩,
+  ⟨77, 3, 3, .push .right, 76, 77, false⟩,
+  ⟨78, 3, 3, .push .right, 77, 78, false⟩,
+  ⟨79, 3, 3, .push .right, 78, 79, false⟩,
+  ⟨80, 3, 3, .push .right, 79, 80, false⟩,
+  ⟨81, 3, 3, .click 19 31, 80, 81, false⟩,
+  ⟨82, 3, 3, .push .right, 81, 82, false⟩,
+  ⟨83, 3, 3, .push .right, 82, 83, false⟩,
+  ⟨84, 3, 3, .push .right, 83, 84, false⟩,
+  ⟨85, 3, 3, .push .right, 84, 85, false⟩,
+  ⟨86, 3, 3, .push .right, 85, 86, false⟩,
+  ⟨87, 3, 3, .push .right, 86, 87, false⟩,
+  ⟨88, 3, 3, .push .right, 87, 88, true⟩,
+  ⟨89, 4, 4, .push .down, 88, 89, false⟩,
+  ⟨90, 4, 4, .push .down, 89, 90, false⟩,
+  ⟨91, 4, 4, .push .down, 90, 91, false⟩,
+  ⟨92, 4, 4, .push .down, 91, 92, false⟩,
+  ⟨93, 4, 4, .click 10 1, 92, 93, false⟩,
+  ⟨94, 4, 4, .push .right, 93, 94, false⟩,
+  ⟨95, 4, 4, .push .right, 94, 95, false⟩,
+  ⟨96, 4, 4, .push .right, 95, 96, false⟩,
+  ⟨97, 4, 4, .push .right, 96, 97, false⟩,
+  ⟨98, 4, 4, .push .right, 97, 98, false⟩,
+  ⟨99, 4, 4, .click 43 37, 98, 99, false⟩,
+  ⟨100, 4, 4, .push .up, 99, 100, false⟩,
+  ⟨101, 4, 4, .push .up, 100, 101, false⟩,
+  ⟨102, 4, 4, .push .up, 101, 102, false⟩,
+  ⟨103, 4, 4, .push .up, 102, 103, false⟩,
+  ⟨104, 4, 4, .push .up, 103, 104, false⟩,
+  ⟨105, 4, 4, .push .up, 104, 105, false⟩,
+  ⟨106, 4, 4, .push .up, 105, 106, false⟩,
+  ⟨107, 4, 4, .push .left, 106, 107, false⟩,
+  ⟨108, 4, 4, .push .left, 107, 108, false⟩,
+  ⟨109, 4, 4, .push .left, 108, 109, false⟩,
+  ⟨110, 4, 4, .push .left, 109, 110, false⟩,
+  ⟨111, 4, 4, .push .left, 110, 111, false⟩,
+  ⟨112, 4, 4, .push .left, 111, 112, false⟩,
+  ⟨113, 4, 4, .push .left, 112, 113, false⟩,
+  ⟨114, 4, 4, .push .left, 113, 114, false⟩,
+  ⟨115, 4, 4, .push .left, 114, 115, false⟩,
+  ⟨116, 4, 4, .push .left, 115, 116, true⟩,
+  ⟨117, 5, 5, .push .down, 116, 117, false⟩,
+  ⟨118, 5, 5, .push .down, 117, 118, false⟩,
+  ⟨119, 5, 5, .push .down, 118, 119, false⟩,
+  ⟨120, 5, 5, .push .down, 119, 120, false⟩,
+  ⟨121, 5, 5, .push .down, 120, 121, false⟩,
+  ⟨122, 5, 5, .push .down, 121, 122, false⟩,
+  ⟨123, 5, 5, .push .down, 122, 123, false⟩,
+  ⟨124, 5, 5, .push .down, 123, 124, false⟩,
+  ⟨125, 5, 5, .push .down, 124, 125, false⟩,
+  ⟨126, 5, 5, .push .down, 125, 126, false⟩,
+  ⟨127, 5, 5, .push .down, 126, 127, false⟩,
+  ⟨128, 5, 5, .click 22 4, 127, 128, false⟩,
+  ⟨129, 5, 5, .push .left, 128, 129, false⟩,
+  ⟨130, 5, 5, .click 55 25, 129, 130, false⟩,
+  ⟨131, 5, 5, .push .down, 130, 131, false⟩,
+  ⟨132, 5, 5, .push .down, 131, 132, false⟩,
+  ⟨133, 5, 5, .push .down, 132, 133, false⟩,
+  ⟨134, 5, 5, .push .down, 133, 134, false⟩,
+  ⟨135, 5, 5, .push .left, 134, 135, false⟩,
+  ⟨136, 5, 5, .push .left, 135, 136, false⟩,
+  ⟨137, 5, 5, .push .left, 136, 137, false⟩,
+  ⟨138, 5, 5, .push .left, 137, 138, false⟩,
+  ⟨139, 5, 5, .push .left, 138, 139, false⟩,
+  ⟨140, 5, 5, .push .left, 139, 140, false⟩,
+  ⟨141, 5, 5, .push .left, 140, 141, false⟩,
+  ⟨142, 5, 5, .push .left, 141, 142, false⟩,
+  ⟨143, 5, 5, .push .left, 142, 143, false⟩,
+  ⟨144, 5, 5, .push .left, 143, 144, false⟩,
+  ⟨145, 5, 5, .push .left, 144, 145, false⟩,
+  ⟨146, 5, 5, .push .left, 145, 146, false⟩,
+  ⟨147, 5, 5, .push .left, 146, 147, false⟩,
+  ⟨148, 5, 5, .push .left, 147, 148, false⟩,
+  ⟨149, 5, 5, .push .left, 148, 149, false⟩,
+  ⟨150, 5, 5, .click 46 10, 149, 150, false⟩,
+  ⟨151, 5, 5, .push .down, 150, 151, false⟩,
+  ⟨152, 5, 5, .push .down, 151, 152, false⟩,
+  ⟨153, 5, 5, .push .down, 152, 153, false⟩,
+  ⟨154, 5, 5, .push .down, 153, 154, false⟩,
+  ⟨155, 5, 5, .push .down, 154, 155, false⟩,
+  ⟨156, 5, 5, .push .down, 155, 156, false⟩,
+  ⟨157, 5, 5, .push .down, 156, 157, false⟩,
+  ⟨158, 5, 5, .push .down, 157, 158, false⟩,
+  ⟨159, 5, 5, .push .down, 158, 159, false⟩,
+  ⟨160, 5, 5, .push .down, 159, 160, false⟩,
+  ⟨161, 5, 5, .push .down, 160, 161, false⟩,
+  ⟨162, 5, 5, .push .down, 161, 162, false⟩,
+  ⟨163, 5, 5, .push .left, 162, 163, false⟩,
+  ⟨164, 5, 5, .push .left, 163, 164, false⟩,
+  ⟨165, 5, 5, .push .left, 164, 165, false⟩,
+  ⟨166, 5, 5, .push .left, 165, 166, false⟩,
+  ⟨167, 5, 5, .push .left, 166, 167, false⟩,
+  ⟨168, 5, 5, .push .left, 167, 168, false⟩,
+  ⟨169, 5, 5, .push .left, 168, 169, true⟩,
+  ⟨170, 6, 6, .push .down, 169, 170, false⟩,
+  ⟨171, 6, 6, .push .down, 170, 171, false⟩,
+  ⟨172, 6, 6, .click 10 1, 171, 172, false⟩,
+  ⟨173, 6, 6, .push .right, 172, 173, false⟩,
+  ⟨174, 6, 6, .push .right, 173, 174, false⟩,
+  ⟨175, 6, 6, .push .right, 174, 175, false⟩,
+  ⟨176, 6, 6, .push .right, 175, 176, false⟩,
+  ⟨177, 6, 6, .push .right, 176, 177, false⟩,
+  ⟨178, 6, 6, .push .right, 177, 178, false⟩,
+  ⟨179, 6, 6, .push .right, 178, 179, false⟩,
+  ⟨180, 6, 6, .push .right, 179, 180, false⟩,
+  ⟨181, 6, 6, .push .right, 180, 181, false⟩,
+  ⟨182, 6, 6, .click 58 40, 181, 182, false⟩,
+  ⟨183, 6, 6, .push .up, 182, 183, false⟩,
+  ⟨184, 6, 6, .push .up, 183, 184, false⟩,
+  ⟨185, 6, 6, .push .up, 184, 185, false⟩,
+  ⟨186, 6, 6, .push .up, 185, 186, false⟩,
+  ⟨187, 6, 6, .push .up, 186, 187, false⟩,
+  ⟨188, 6, 6, .push .up, 187, 188, false⟩,
+  ⟨189, 6, 6, .push .up, 188, 189, false⟩,
+  ⟨190, 6, 6, .push .up, 189, 190, false⟩,
+  ⟨191, 6, 6, .push .up, 190, 191, false⟩,
+  ⟨192, 6, 6, .push .up, 191, 192, false⟩,
+  ⟨193, 6, 6, .push .up, 192, 193, false⟩,
+  ⟨194, 6, 6, .push .up, 193, 194, false⟩,
+  ⟨195, 6, 6, .push .left, 194, 195, false⟩,
+  ⟨196, 6, 6, .push .left, 195, 196, false⟩,
+  ⟨197, 6, 6, .click 19 49, 196, 197, false⟩,
+  ⟨198, 6, 6, .push .up, 197, 198, false⟩,
+  ⟨199, 6, 6, .push .up, 198, 199, false⟩,
+  ⟨200, 6, 6, .push .up, 199, 200, false⟩,
+  ⟨201, 6, 6, .push .up, 200, 201, false⟩,
+  ⟨202, 6, 6, .push .up, 201, 202, false⟩,
+  ⟨203, 6, 6, .push .up, 202, 203, false⟩,
+  ⟨204, 6, 6, .push .right, 203, 204, false⟩,
+  ⟨205, 6, 6, .push .right, 204, 205, false⟩,
+  ⟨206, 6, 6, .push .right, 205, 206, true⟩,
+  ⟨207, 7, 7, .push .down, 206, 207, false⟩,
+  ⟨208, 7, 7, .push .down, 207, 208, false⟩,
+  ⟨209, 7, 7, .push .down, 208, 209, false⟩,
+  ⟨210, 7, 7, .push .down, 209, 210, false⟩,
+  ⟨211, 7, 7, .push .down, 210, 211, false⟩,
+  ⟨212, 7, 7, .push .down, 211, 212, false⟩,
+  ⟨213, 7, 7, .click 10 1, 212, 213, false⟩,
+  ⟨214, 7, 7, .push .right, 213, 214, false⟩,
+  ⟨215, 7, 7, .push .right, 214, 215, false⟩,
+  ⟨216, 7, 7, .push .right, 215, 216, false⟩,
+  ⟨217, 7, 7, .push .right, 216, 217, false⟩,
+  ⟨218, 7, 7, .push .right, 217, 218, false⟩,
+  ⟨219, 7, 7, .push .right, 218, 219, false⟩,
+  ⟨220, 7, 7, .push .right, 219, 220, false⟩,
+  ⟨221, 7, 7, .push .right, 220, 221, false⟩,
+  ⟨222, 7, 7, .push .right, 221, 222, false⟩,
+  ⟨223, 7, 7, .click 22 22, 222, 223, false⟩,
+  ⟨224, 7, 7, .push .up, 223, 224, false⟩,
+  ⟨225, 7, 7, .push .up, 224, 225, false⟩,
+  ⟨226, 7, 7, .push .up, 225, 226, false⟩,
+  ⟨227, 7, 7, .push .up, 226, 227, false⟩,
+  ⟨228, 7, 7, .push .right, 227, 228, false⟩,
+  ⟨229, 7, 7, .push .right, 228, 229, false⟩,
+  ⟨230, 7, 7, .push .right, 229, 230, false⟩,
+  ⟨231, 7, 7, .push .right, 230, 231, false⟩,
+  ⟨232, 7, 7, .push .right, 231, 232, false⟩,
+  ⟨233, 7, 7, .push .right, 232, 233, false⟩,
+  ⟨234, 7, 7, .push .right, 233, 234, false⟩,
+  ⟨235, 7, 7, .push .right, 234, 235, false⟩,
+  ⟨236, 7, 7, .push .right, 235, 236, false⟩,
+  ⟨237, 7, 7, .click 40 40, 236, 237, false⟩,
+  ⟨238, 7, 7, .push .left, 237, 238, false⟩,
+  ⟨239, 7, 7, .push .left, 238, 239, false⟩,
+  ⟨240, 7, 7, .push .left, 239, 240, false⟩,
+  ⟨241, 7, 7, .push .left, 240, 241, false⟩,
+  ⟨242, 7, 7, .push .left, 241, 242, false⟩,
+  ⟨243, 7, 7, .push .left, 242, 243, false⟩,
+  ⟨244, 7, 7, .push .left, 243, 244, false⟩,
+  ⟨245, 7, 7, .push .left, 244, 245, false⟩,
+  ⟨246, 7, 7, .push .left, 245, 246, false⟩,
+  ⟨247, 7, 7, .push .up, 246, 247, false⟩,
+  ⟨248, 7, 7, .push .up, 247, 248, false⟩,
+  ⟨249, 7, 7, .push .up, 248, 249, false⟩,
+  ⟨250, 7, 7, .push .up, 249, 250, false⟩,
+  ⟨251, 7, 7, .push .up, 250, 251, false⟩,
+  ⟨252, 7, 7, .push .up, 251, 252, false⟩,
+  ⟨253, 7, 7, .push .up, 252, 10253, true⟩]
+
+def dummy : Step := ⟨0, 0, 0, .push .up, 0, 0, false⟩
+
+/-- 按**步号**取，不按下标取。 -/
+def byStep (n : Nat) : Step := (steps.find? (fun s =&gt; s.step == n)).getD dummy
+
+/-- 从步号 `want` 那一步起连着取 `len` 步：（动作, 动作之后看到的那一帧）。取不到给空表——
+    **空表会让 `traceOk` 平凡为真**，所以每一段都另配一条 `_len` 定理。 -/
+def playFrom (want len : Nat) : List (Act × SeenWorld) :=
+  ((steps.dropWhile (fun s =&gt; s.step != want)).take len).map (fun s =&gt; (s.act, frameAt s.next))
+
+/-- 一步 → 逐条那一层的用例：用**这一帧真正读到的**那张盘。 -/
+def caseOf (s : Step) : Case := ⟨s.step, boardAt s.board, frameAt s.prev, s.act, frameAt s.next, s.up⟩
+
+#eval &quot;REPLAY steps=&quot; ++ toString steps.length ++ &quot; frames=&quot; ++ toString frames.length
+  ++ &quot; boards=&quot; ++ toString boards.length ++ &quot; levelBoards=&quot; ++ toString levelBoards.length
+
+end Replay
+end Game
+</code></pre></div></details></div><div class="group"><b>要证的东西</b> · Proof/</div><div class="list"><details class="item" id="lean-Proof-Levels"><summary><div class="top"><span class="name">Proof/Levels.lean</span><span class="chip c-lv">24 条定理</span></div><div class="top"><span class="chip c-mute" title="">Game.Levels.L0_len</span><span class="chip c-mute" title="">Game.Levels.L0_trace</span><span class="chip c-mute" title="">Game.Levels.L0_winnable</span><span class="chip c-mute" title="">Game.Levels.L1_len</span><span class="chip c-mute" title="">Game.Levels.L1_trace</span><span class="chip c-mute" title="">Game.Levels.L1_winnable</span><span class="chip c-mute" title="">Game.Levels.L2_len</span><span class="chip c-mute" title="">Game.Levels.L2_trace</span><span class="chip c-mute" title="">Game.Levels.L2_winnable</span><span class="chip c-mute" title="">Game.Levels.L3_len</span><span class="chip c-mute" title="">Game.Levels.L3_trace</span><span class="chip c-mute" title="">Game.Levels.L3_winnable</span><span class="chip c-mute" title="">Game.Levels.L4_len</span><span class="chip c-mute" title="">Game.Levels.L4_trace</span><span class="chip c-mute" title="">Game.Levels.L4_winnable</span><span class="chip c-mute" title="">Game.Levels.L5_len</span><span class="chip c-mute" title="">Game.Levels.L5_trace</span><span class="chip c-mute" title="">Game.Levels.L5_winnable</span><span class="chip c-mute" title="">Game.Levels.L6_len</span><span class="chip c-mute" title="">Game.Levels.L6_trace</span><span class="chip c-mute" title="">Game.Levels.L6_winnable</span><span class="chip c-mute" title="">Game.Levels.L7_len</span><span class="chip c-mute" title="">Game.Levels.L7_trace</span><span class="chip c-mute" title="">Game.Levels.L7_winnable</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Levels —— 每一关一条定理（自动生成：`python lean2/export_levels.py`，不要手改）
+
+    L&lt;n&gt;_len        那一段路切出来恰好这么多步（空表会让下一条平凡为真）
+    L&lt;n&gt;_trace      沿着真人走过的那条路，模型**每一帧都和观测对上**
+                    —— 只有开局那一帧是观测给的，后面全是模型自己算的
+    L&lt;n&gt;_winnable   这一关走得通 —— 见证就是那条路再加上过关那一脚
+
+开局**从语料的帧里读出来**（`Replay.frameAt`），盘用**整关取并集**的那张（`Replay.levelBoard`）。
+每关核过的步数：14 / 10 / 39 / 21 / 27 / 52 / 36 / 46（共 245 步；另有 8 步过关的脚不在路里，由 `_winnable` 与逐条层核）。
+
+这一局 0 次 RESET、每关一段：没有尾段、也没有「重来放回开局」那条假设（见 `export_levels.py`）。
+-/
+import Obs.Replay
+import Proof.Reachable
+import Obj.World
+
+set_option maxRecDepth 20000
+
+-- 定理一律写全名（`Game.Levels.…`）：装置的公理表探针按源码里的名字 `#print axioms`，不带 `open`。
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 0 关的真实开局（步号 1 那一步之前的那一帧）。 -/
+def L0_start : World := (frameAt (byStep 1).prev).world
+def L0_board : Board := levelBoard 0
+
+/-- 开局之后、过关那一脚之前的 14 步：（动作, 动作之后看到的那一帧）。 -/
+def L0_play : List (Act × SeenWorld) := playFrom 1 14
+
+/-- 路 + 过关那一脚（步号 15，.push .left）。 -/
+def L0_acts : List Act := L0_play.map Prod.fst ++ [.push .left]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L0_len : (L0_play : List (Act × SeenWorld)).length = 14 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：14 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L0_trace : traceOk step L0_board (L0_start : World) L0_play = true := by
+  decide +kernel
+
+/-- **第 0 关走得通。** 见证：那 14 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L0_winnable : Winnable L0_board (L0_start : World) :=
+  ⟨L0_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L0_len
+#print axioms Game.Levels.L0_trace
+#print axioms Game.Levels.L0_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L0_board L0_start L0_play 0, L0_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 1 关的真实开局（步号 16 那一步之前的那一帧）。 -/
+def L1_start : World := (frameAt (byStep 16).prev).world
+def L1_board : Board := levelBoard 1
+
+/-- 开局之后、过关那一脚之前的 10 步：（动作, 动作之后看到的那一帧）。 -/
+def L1_play : List (Act × SeenWorld) := playFrom 16 10
+
+/-- 路 + 过关那一脚（步号 26，.push .down）。 -/
+def L1_acts : List Act := L1_play.map Prod.fst ++ [.push .down]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L1_len : (L1_play : List (Act × SeenWorld)).length = 10 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：10 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L1_trace : traceOk step L1_board (L1_start : World) L1_play = true := by
+  decide +kernel
+
+/-- **第 1 关走得通。** 见证：那 10 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L1_winnable : Winnable L1_board (L1_start : World) :=
+  ⟨L1_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L1_len
+#print axioms Game.Levels.L1_trace
+#print axioms Game.Levels.L1_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L1_board L1_start L1_play 0, L1_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 2 关的真实开局（步号 27 那一步之前的那一帧）。 -/
+def L2_start : World := (frameAt (byStep 27).prev).world
+def L2_board : Board := levelBoard 2
+
+/-- 开局之后、过关那一脚之前的 39 步：（动作, 动作之后看到的那一帧）。 -/
+def L2_play : List (Act × SeenWorld) := playFrom 27 39
+
+/-- 路 + 过关那一脚（步号 66，.push .down）。 -/
+def L2_acts : List Act := L2_play.map Prod.fst ++ [.push .down]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L2_len : (L2_play : List (Act × SeenWorld)).length = 39 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：39 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L2_trace : traceOk step L2_board (L2_start : World) L2_play = true := by
+  decide +kernel
+
+/-- **第 2 关走得通。** 见证：那 39 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L2_winnable : Winnable L2_board (L2_start : World) :=
+  ⟨L2_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L2_len
+#print axioms Game.Levels.L2_trace
+#print axioms Game.Levels.L2_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L2_board L2_start L2_play 0, L2_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 3 关的真实开局（步号 67 那一步之前的那一帧）。 -/
+def L3_start : World := (frameAt (byStep 67).prev).world
+def L3_board : Board := levelBoard 3
+
+/-- 开局之后、过关那一脚之前的 21 步：（动作, 动作之后看到的那一帧）。 -/
+def L3_play : List (Act × SeenWorld) := playFrom 67 21
+
+/-- 路 + 过关那一脚（步号 88，.push .right）。 -/
+def L3_acts : List Act := L3_play.map Prod.fst ++ [.push .right]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L3_len : (L3_play : List (Act × SeenWorld)).length = 21 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：21 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L3_trace : traceOk step L3_board (L3_start : World) L3_play = true := by
+  decide +kernel
+
+/-- **第 3 关走得通。** 见证：那 21 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L3_winnable : Winnable L3_board (L3_start : World) :=
+  ⟨L3_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L3_len
+#print axioms Game.Levels.L3_trace
+#print axioms Game.Levels.L3_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L3_board L3_start L3_play 0, L3_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 4 关的真实开局（步号 89 那一步之前的那一帧）。 -/
+def L4_start : World := (frameAt (byStep 89).prev).world
+def L4_board : Board := levelBoard 4
+
+/-- 开局之后、过关那一脚之前的 27 步：（动作, 动作之后看到的那一帧）。 -/
+def L4_play : List (Act × SeenWorld) := playFrom 89 27
+
+/-- 路 + 过关那一脚（步号 116，.push .left）。 -/
+def L4_acts : List Act := L4_play.map Prod.fst ++ [.push .left]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L4_len : (L4_play : List (Act × SeenWorld)).length = 27 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：27 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L4_trace : traceOk step L4_board (L4_start : World) L4_play = true := by
+  decide +kernel
+
+/-- **第 4 关走得通。** 见证：那 27 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L4_winnable : Winnable L4_board (L4_start : World) :=
+  ⟨L4_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L4_len
+#print axioms Game.Levels.L4_trace
+#print axioms Game.Levels.L4_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L4_board L4_start L4_play 0, L4_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 5 关的真实开局（步号 117 那一步之前的那一帧）。 -/
+def L5_start : World := (frameAt (byStep 117).prev).world
+def L5_board : Board := levelBoard 5
+
+/-- 开局之后、过关那一脚之前的 52 步：（动作, 动作之后看到的那一帧）。 -/
+def L5_play : List (Act × SeenWorld) := playFrom 117 52
+
+/-- 路 + 过关那一脚（步号 169，.push .left）。 -/
+def L5_acts : List Act := L5_play.map Prod.fst ++ [.push .left]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L5_len : (L5_play : List (Act × SeenWorld)).length = 52 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：52 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L5_trace : traceOk step L5_board (L5_start : World) L5_play = true := by
+  decide +kernel
+
+/-- **第 5 关走得通。** 见证：那 52 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L5_winnable : Winnable L5_board (L5_start : World) :=
+  ⟨L5_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L5_len
+#print axioms Game.Levels.L5_trace
+#print axioms Game.Levels.L5_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L5_board L5_start L5_play 0, L5_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 6 关的真实开局（步号 170 那一步之前的那一帧）。 -/
+def L6_start : World := (frameAt (byStep 170).prev).world
+def L6_board : Board := levelBoard 6
+
+/-- 开局之后、过关那一脚之前的 36 步：（动作, 动作之后看到的那一帧）。 -/
+def L6_play : List (Act × SeenWorld) := playFrom 170 36
+
+/-- 路 + 过关那一脚（步号 206，.push .right）。 -/
+def L6_acts : List Act := L6_play.map Prod.fst ++ [.push .right]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L6_len : (L6_play : List (Act × SeenWorld)).length = 36 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：36 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L6_trace : traceOk step L6_board (L6_start : World) L6_play = true := by
+  decide +kernel
+
+/-- **第 6 关走得通。** 见证：那 36 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L6_winnable : Winnable L6_board (L6_start : World) :=
+  ⟨L6_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L6_len
+#print axioms Game.Levels.L6_trace
+#print axioms Game.Levels.L6_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L6_board L6_start L6_play 0, L6_play.length)
+
+namespace Game.Levels
+open Game.Replay
+
+/-- 第 7 关的真实开局（步号 207 那一步之前的那一帧）。 -/
+def L7_start : World := (frameAt (byStep 207).prev).world
+def L7_board : Board := levelBoard 7
+
+/-- 开局之后、过关那一脚之前的 46 步：（动作, 动作之后看到的那一帧）。 -/
+def L7_play : List (Act × SeenWorld) := playFrom 207 46
+
+/-- 路 + 过关那一脚（步号 253，.push .up）。 -/
+def L7_acts : List Act := L7_play.map Prod.fst ++ [.push .up]
+
+end Game.Levels
+
+open Game Game.Levels
+
+theorem Game.Levels.L7_len : (L7_play : List (Act × SeenWorld)).length = 46 := by decide +kernel
+
+/-- **模型沿着真人的路一步不差**：46 步，只有开局那一帧是观测给的。 -/
+theorem Game.Levels.L7_trace : traceOk step L7_board (L7_start : World) L7_play = true := by
+  decide +kernel
+
+/-- **第 7 关走得通。** 见证：那 46 步再加过关那一脚，从开局算下去中途赢了。 -/
+theorem Game.Levels.L7_winnable : Winnable L7_board (L7_start : World) :=
+  ⟨L7_acts, by decide +kernel, by decide +kernel⟩
+
+#print axioms Game.Levels.L7_len
+#print axioms Game.Levels.L7_trace
+#print axioms Game.Levels.L7_winnable
+
+-- 读数（求值器，不是证明）：第一处分家在第几步（none = 一处都没分家）
+#eval (firstSplit step L7_board L7_start L7_play 0, L7_play.length)
+
+</code></pre></div></details><details class="item" id="lean-Proof-Reachable"><summary><div class="top"><span class="name">Proof/Reachable.lean</span><span class="chip c-lv">2 条定理</span></div><div class="top"><span class="chip c-mute" title="">Game.not_both</span><span class="chip c-mute" title="">Game.unsolvable_of_invariant</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Reachable —— 这个**局面**做不做得了
+
+整套形式化里真正要证的只有两句话：
+
+    Winnable   b w  :=  ∃ as, 每一下合法 ∧ 照着走中途赢过
+    Unsolvable b w  :=  ∀ as, 每一下合法 → 照着走从没赢过
+
+## 一条必须写在明处的削弱
+
+`step` 有一支 `unknown`（模型说不出话：推出盘外、点在空白处、计数带用满……），
+`everWon` 碰到它返回 `false`。所以 `Unsolvable` 准确的意思是
+**「不经过模型说不出话的那几支，就赢不了」**——`∀ as` 这个形状一个字都看不出来，所以写在这里。
+这一局的八关全部是 `Winnable`（见 `Proof/Levels.lean`），这一局没有用到 `Unsolvable`；
+骨架留着，是给「宣告某个局面不可做」的那一天用的。
+-/
+import Step
+import Obj.World
+
+namespace Game
+
+/-- 一下动作合法：点击要点在 64×64 的帧里。 -/
+def Act.legal : Act → Bool
+  | .push _ =&gt; true
+  | .click x y =&gt; x &lt; 64 &amp;&amp; y &lt; 64
+
+/-- 从 `w` 起照着 `as` 走，中途有没有哪一步赢过。`unknown` 当「没赢」（见文件头那条削弱）。 -/
+def everWon (b : Board) : World → List Act → Bool
+  | _, [] =&gt; false
+  | w, a :: rest =&gt;
+    match step b w a with
+    | .won =&gt; true
+    | .ok w&#x27; =&gt; everWon b w&#x27; rest
+    | .unknown =&gt; false
+
+def Winnable (b : Board) (w : World) : Prop :=
+  ∃ as : List Act, as.all Act.legal = true ∧ everWon b w as = true
+
+def Unsolvable (b : Board) (w : World) : Prop :=
+  ∀ as : List Act, as.all Act.legal = true → everWon b w as = false
+
+end Game
+
+/- 定理一律写**全名**：装置的公理表探针按源码里的名字 `#print axioms`，不带 `open`。 -/
+
+theorem Game.not_both (b : Board) (w : World) : Winnable b w → Unsolvable b w → False := by
+  intro ⟨as, hl, hw⟩ hu
+  have := hu as hl
+  simp [this] at hw
+
+/-- **骨架：不变量 ⇒ 不可做。** 全文唯一做归纳的地方，不枚举任何状态、与盘面大小无关。 -/
+theorem Game.unsolvable_of_invariant (b : Board) (P : World → Prop)
+    (hkeep : ∀ w w&#x27; a, Act.legal a = true → P w → step b w a = .ok w&#x27; → P w&#x27;)
+    (hwin : ∀ w a, P w → step b w a ≠ .won) :
+    ∀ (w : World), P w → Unsolvable b w := by
+  intro w hp as
+  induction as generalizing w with
+  | nil =&gt; intro _; rfl
+  | cons a t ih =&gt;
+    intro hall
+    simp only [List.all_cons, Bool.and_eq_true] at hall
+    simp only [everWon]
+    cases hstep : step b w a with
+    | won =&gt; exact absurd hstep (hwin w a hp)
+    | unknown =&gt; rfl
+    | ok w&#x27; =&gt; exact ih w&#x27; (hkeep w w&#x27; a hall.1 hp hstep) hall.2
+
+#print axioms Game.not_both
+#print axioms Game.unsolvable_of_invariant
+</code></pre></div></details></div><div class="group"><b>装配与破坏测试</b> · 根目录</div><div class="list"><details class="item" id="lean-Broken"><summary><div class="top"><span class="name">Broken.lean</span><span class="chip c-gap">破坏测试 · 应当编不过</span></div><div class="top"><span class="chip c-mute" title="">Game.Broken.level0_in_one_push</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Broken.lean —— **这一份应当编不过**，而且只在标记那一行红
+
+一套证明如果什么都证得出来，它一条也没证。验收对这一份的要求是两句：
+编不过（退出码非 0），而且**只在标记那一行**红（`verify.py` 按标记定位，取最后一处）。
+
+## 挑哪一条来弄坏
+
+和现有主张**正面冲突**的一条：第 0 关的真实开局，声称**推一下就赢**。
+`Proof/Levels.lean` 说这一关要走 14 步再加一脚才盖满；两者必有一错，
+而内核会当场算出错的是这一条。它不是语法错——语法错谁都会红，证明不了这套证明有分辨力。
+-/
+import Proof.Levels
+
+open Game Game.Levels
+
+theorem Game.Broken.level0_in_one_push :
+    everWon L0_board (L0_start : World) [.push .up] = true := by
+  decide +kernel      -- ← 这一行应当红
+</code></pre></div></details><details class="item" id="lean-Step"><summary><div class="top"><span class="name">Step.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Step —— 一步怎么走：**只做分发，0 条定理**
+
+    推  (ACTION1–4)   计数带没满 → 被选中的那一件走一格（Rule/Move/PushMovesSelected）
+                      → 用掉一格（Rule/Budget/PushCostsOne）→ 盖满了就是赢（Rule/Win/LevelClear）
+    点  (ACTION6)     选中换成点中的那一件（Rule/Move/ClickSelects）
+
+结果三种：`ok`（走到了某个状态）、`won`（这一步盖满了：下一帧是另一关，模型不描述它）、
+`unknown`（**模型说不出话**：推出盘外、点在空白处……这一批语料里没有的那些）。
+
+ACTION5 / ACTION7 / RESET **不在 `Act` 里**：这批语料一次都没有，它们是 `offmodel/` 的话，不进模型。
+-/
+import Rule.Move.PushMovesSelected
+import Rule.Move.ClickSelects
+import Rule.Budget.PushCostsOne
+import Rule.Win.LevelClear
+
+namespace Game
+
+inductive Act
+  | push (d : Dir)
+  | click (x y : Nat)
+deriving DecidableEq, BEq, Repr
+
+inductive Res
+  | ok (w : World)
+  | won
+  | unknown
+deriving DecidableEq, BEq, Repr
+
+/-- 推完之后：盖满了就是赢，否则走到这个状态。 -/
+def settle (b : Board) (w : World) : Res := if isGoal b w then .won else .ok w
+
+def step (b : Board) (w : World) : Act → Res
+  | .push d =&gt; if canSpend w then (match push b w d with
+      | some w&#x27; =&gt; settle b (spend w&#x27;)
+      | none =&gt; .unknown) else .unknown
+  | .click x y =&gt; match click b w x y with
+      | some w&#x27; =&gt; .ok w&#x27;
+      | none =&gt; .unknown
+
+end Game
+</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>ar25 · 统一到对象-规则-形式化-前端那一条链：报告</h1>
+<p>语料：封存局 <code>ar25-20260920</code> · run <code>ar25-0920-0548</code> · <code>runs/ar25-0920-0548/transitions.jsonl</code> 253 行。
+所有数字都是本会话实际跑出来的；命令在每节开头。工作区只写了 <code>ledger/games/ar25/{objects,derive,rule,analysis,lean2,web}</code>、
+驱动脚本（<code>corpus.py</code> <code>parse_report.py</code> <code>run_rules.py</code> <code>mutants.py</code>）与 <code>runs/_wb-ar25/</code>。<code>concepts/</code>、<code>formal/</code> 未改。</p>
+<h2>0. 语料认领（卡 00）</h2>
+<pre><code>python ledger/trace_source.py ar25   → ar25-20260920  ar25-0920-0548  100.0  8/8  253      （与任务书一致）
+python corpus.py                      → 1 段（guid 98f557f1…，seq 1–253），certified=True，reconciled=True
+                                        逐关 [15,11,40,22,28,53,37,47] == 成绩单 level_actions
+                                        标记：接手 245、换关 8；RESET 0；ACTION5/ACTION7 0 次
+                                        tid：253/253 按 sha1(动作+两帧) 重算相等 ⇒ 内容哈希
+                                        册子 EVIDENCE 引 62 个 tid，命中 9 个（只量内容重叠；册子出自 792 步那一跑）
+</code></pre>
+<p>落盘 <code>analysis/corpus.json</code>。</p>
+<h2>1. 解析：两档（绿，(b) = 0）</h2>
+<pre><code>python parse_report.py
+帧位置 506（去重后 254 帧），读成世界 505
+(a) 不是局面：1  {'a:终局画面': 1}   seq 253 next：零标记，而整片压在目标上的有 2 件：选中的是哪一件读不出
+(b) 是局面却读不出：0
+</code></pre>
+<p>(a) 判据只有一条且来自 meta（state=WIN）；归类自检（(a) 帧那一关后面还有读得成的帧 ⇒ 判错）0 条。
+明写：那一帧<strong>是一张盘</strong>，读不出的是「选中」那一位；它被归 (a) 是因为游戏已结束。提出过又被证伪的判据：无。
+解析的良构检查是「画回去逐块比」：册子里 frame_is_render / mirror / band_is_line / overlap_render / one_selected
+五条从每帧要判的话变成了「对不上就读不成世界」。</p>
+<h2>2. 规则：S/C/N 与判错（绿，判错 0；3 条 |scope|=0 带死因）</h2>
+<pre><code>python run_rules.py
+规则                  组          |scope|     N     C   E   U
+click_is_free       budget          16   237    16   0   0
+push_costs_one      budget         229    24   229   0   0
+click_selects       move            16   237    16   0   0
+push_moves_selected move           229    24   229   0   0
+act5_inert          offmodel         0   253     0   0   0   ← |scope|=0 判红（死因：没人做过那个动作）
+act7_undo_step      offmodel         0   253     0   0   0   ← 同上
+blocked_push_free   offmodel         0   253     0   0   0   ← 同上（没有一次推不出来的推）
+level_clear         win            237    16   237   0   0
+无人区 0；拒绝集 = FALSE 0 ∪ 读不成 1 = 1
+</code></pre>
+<p>253 行 = 253 条去重转移。落盘 <code>analysis/readings.json</code>。册子 14 条 → 卡 04 9 条 → 卡 05 合 act1–4 为一条、counter_tick 收窄
+（拒绝集 118 ⊇ 118，无人区 0→0）→ 卡 08 拆出 click_is_free。全过程与每刀的读数在 <code>analysis/record.txt</code> 第 0–6 轮。</p>
+<h2>3. 反向测试（绿）</h2>
+<pre><code>python run_rules.py --reverse
+字段消融（分母 320）：6 个字段，0 个抹掉之后判决不变（targets 6 / frozen 9 / used 187 / pieces 420 / sel 421 / bands 457）
+装置变异（criteria_run.make_mutants，120 个）：拒掉 118（对象层读不成 21）
+模型变异（另起进程，改拷贝里的源码，13 个）：变异机制是活的（种下的必红 seed_budget_false 判错 229）；13/13 红
+</code></pre>
+<p>没红的：Python 侧 0 个。独家拒绝 0 的 4 条规则各有交代（<code>analysis/规则-*.txt</code>：push_moves_selected / level_clear 靠模型变异才打得到；
+act5/act7 论域 0）。Lean 侧另有变异表（见 5）。<code>check_no_logic.py</code> 也故意弄坏过一次（塞 <code>moved(...)</code> 进 site.js）⇒ 当场红。</p>
+<h2>4. 对象：每个字段的见证或欠账（绿，3 条欠账明写）</h2>
+<p>World = <code>targets, bands, frozen, pieces, sel, used</code>（第 1 轮 8 个字段：删 deco、删 Piece.fixed、展开 ghosts、拆 sel（值→引用）、拆 Band.fixed→frozen、卡 06 删 fill）。</p>
+<pre><code>python ledger/field_split.py ledger/games/ar25/objects runs/ar25-0920-0548/transitions.jsonl   → 只有 sel 单独分得开（33/35）
+python runs/_wb-ar25/split_probe.py（用装置 table()，投影掉 used）  → bands 分得开 15/16，pieces 0/1，sel 17/18
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>见证</th>
+<th>消融</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sel</td>
+<td>帧 33/35（一次点击只换选中）</td>
+<td>421</td>
+</tr>
+<tr>
+<td>pieces</td>
+<td>帧 0/1（投影掉 used）</td>
+<td>420</td>
+</tr>
+<tr>
+<td>bands</td>
+<td>帧 15/16（投影掉 used）</td>
+<td>457</td>
+</tr>
+<tr>
+<td>used</td>
+<td><strong>欠账</strong>：语料无「只差 used」的一对；实验：推一下再推回来</td>
+<td>187</td>
+</tr>
+<tr>
+<td>targets</td>
+<td><strong>欠账</strong>：关内恒定，跨关别的也变；玩家造不出这一对</td>
+<td>6</td>
+</tr>
+<tr>
+<td>frozen</td>
+<td><strong>欠账</strong>：第 0 关那条带没人点过；实验：点它再推</td>
+<td>9</td>
+</tr>
+</tbody>
+</table>
+<p>每对象一份 <code>analysis/&lt;对象&gt;.txt</code>，分离表三份在 <code>analysis/field_split.txt</code>。</p>
+<h2>5. Lean（绿）</h2>
+<pre><code>python lean2/verify.py   （先按 import 拓扑序编，再交 ledger/lean_check.py 扫目录编 + 逐条 #print axioms）
+18 份 .lean 全部编过；定理 43 条；公理表 43/43，只有 propext（干净）；sorryAx 0；native_decide 0
+Step.lean 定理 0 条
+身份：push_moves_selected / click_selects / push_costs_one / level_clear = 定义；click_is_free = 推论（Derived/ClickIsFree.lean）；
+      act5_inert / act7_undo_step / blocked_push_free = 不进模型（论域 0，被驳倒 0，理由写在 verify.py 身份表）
+观测只存一份：Obs/Replay.lean（253 步、253 帧，步号唯一已核，两口径不同的步 0），逐条 Obs/Corpus.lean 与每关 Proof/Levels.lean 都从它切
+每一关：L&lt;n&gt;_len / L&lt;n&gt;_trace / L&lt;n&gt;_winnable 三条，8 关全部「走得通」
+每关核过的步数：14 / 10 / 39 / 21 / 27 / 52 / 36 / 46（另 8 步过关的脚在 _winnable 与逐条层里核）
+逐条层：253/253 对上（C&lt;n&gt;_agrees，内核 decide）；与 Python 规则层逐关对账：两边没对上的条数逐关相等（都是 0）
+破坏测试 Broken.lean：rc=1，错误 1 处，在第 19 行 = 标记行
+Lean 模型变异（python lean2/mutate.py，8 个）：必红种子红（逐条错 16）；no_point_symmetry 错 129、push_up_is_down 36、
+  push_free 229、goal_body_only 8、click_selects_first 12；**没红 2 个**：band_no_giveway、click_ghost_transparent
+  —— 入口都是「真没人读它」：语料 16 次点击没有一次点在带线上的目标块、也没有一次点在镜像块上。
+</code></pre>
+<p>削弱写在明处：<code>Unsolvable</code> 的意思是「不经过 <code>unknown</code> 那几支就赢不了」（本局没用到 Unsolvable）；0 次 RESET，
+「重来放回开局」那条假设<strong>没用到、没被检验</strong>。</p>
+<h2>6. 前端（绿）</h2>
+<pre><code>python web/export.py        导出：254 帧、253 步、12 样对象、8 条规则、18 份 Lean，缺口 8 条（验收有 problems 就停）
+python web/pages.py         生成 52 页
+python web/bundle.py        打包 52 页，1.57 MB；死链 0
+python web/check_no_logic.py   干净；9 个世界算法入口各 1 份
+node runs/_wb-ar25/smoke.js web/dist   52 页 0 抛错；Chrome headless 截了首页与回放页，目测正常
+</code></pre>
+<p><code>web/dist/index.html</code> 自包含可双击。页面上每个数都来自 <code>lean2/readings.json</code> / <code>analysis/*.json</code>（导出侧读，页面不算）。</p>
+<h2>gap（做不到的，写在明处）</h2>
+<ul>
+<li>used / targets / frozen 三个字段的「只差这一位」见证：这批语料里不存在，需要上世界做实验（不许上世界，没做）。</li>
+<li>offmodel 三条规则论域 0：这批语料没按过 ACTION5 / ACTION7、没推过墙。</li>
+<li>WIN 那一帧读不出选中的是哪一件（归 (a)）。</li>
+<li>两个 Lean 突变体没红（见 5），语料里没有能打到那两支的点击。</li>
+</ul></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/98f557f1-7b5e-40c5-9304-456b1ec2a3ed" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

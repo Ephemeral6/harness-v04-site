@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>形式化 · ka59</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+   形状从 ledger/templates/web/style.css 起手；「本局专属」那一块换成了这一局的东西。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275; --link: #7ab8ff;
+
+  /* ↓↓↓ 本局专属：世界的配色（前端配的，不是世界里的颜色） ↓↓↓ */
+  --floor: #262b36;
+  --wall: #07080b;
+  --band: #1f6f78;
+  --slot: #e0b84a;
+  --piece: #59b0ff;  --piece-sel: #9fd4ff;  --piece-ret: #4a6f96;
+  --bare: #e0873a;
+  --gate: #8e5cc9;  --gate-on: #d7a6ff;
+  --chg: #ff5d8f;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+.gaps { border-color: #6b4a1f; background: #231d14; margin-bottom: 16px; }
+.gaps h2 { color: #e0b84a; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; max-width: 360px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 260px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE, .chip.T { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.F { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.N { background: #222732; color: var(--faint); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0; font-family: inherit; }
+pre.src { white-space: pre; font-size: 12px; line-height: 1.55; margin: 0; padding: 12px;
+          background: #0f1218; border: 1px solid var(--line); border-radius: 8px; overflow: auto; max-height: 640px;
+          font-family: ui-monospace, Consolas, monospace; color: #cfd6e6; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 230px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--link); }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 20px 0 4px; font-size: 12px; color: var(--dim); letter-spacing: .8px; }
+.grouphead:first-child { margin-top: 0 }
+
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain b { color: #ffd88a; }
+
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+details summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+details summary:hover { color: var(--ink); }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; white-space: pre; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }
+pre.lean i.s { color: #b5cea8; }
+pre.lean i.k { color: #c08cdc; }
+pre.lean i.t { color: #6fb3c8; }
+pre.lean i.p { color: #d79a5b; }
+
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); margin-top: 8px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.verdicts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; margin-top: 8px; }
+
+</style>
+</head>
+<body data-page="">
+<div class="wrap">
+<header>
+<h1>形式化</h1>
+<div class="sub">每一关走得通还是走不通，用 Lean 证出来。</div>
+<nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../share.html">怎么给别人看</a></nav>
+</header>
+<div class="card gaps"><h2>明写的缺口（摆在最上面）</h2><ul class="tight"><li>「重来一次把局面放回开局」不进模型，是一条明写的假设：语料里 102 次 RESET 全都对上（reset_restores），<b>没被驳倒不构成证明</b>。被认证那一段每关一口气走完，每关的见证路线用不上它。</li><li><code>Unsolvable</code> 的准确意思是「<b>不经过 RESET</b> 赢不了」——RESET 不是模型里的动作。</li></ul></div>
+<div class="card"><h2>结论：每一关一条</h2><table>
+<tr><th>关</th><th>结论</th><th class="num">逐帧核过的步数</th><th class="num">成绩单这一关的动作数</th><th>求值器读数（不是定理）</th><th>在哪</th></tr><tr><td>第 0 关</td><td class='ok'>走得通</td><td class='num'>14</td><td class='num'>15</td><td>L0  一处都没分家（共 14 步）</td><td><a href='Proof-Levels-L0.html'>Proof/Levels/L0.lean</a></td></tr><tr><td>第 1 关</td><td class='ok'>走得通</td><td class='num'>70</td><td class='num'>71</td><td>L1  一处都没分家（共 70 步）</td><td><a href='Proof-Levels-L1.html'>Proof/Levels/L1.lean</a></td></tr><tr><td>第 2 关</td><td class='ok'>走得通</td><td class='num'>46</td><td class='num'>47</td><td>L2  一处都没分家（共 46 步）</td><td><a href='Proof-Levels-L2.html'>Proof/Levels/L2.lean</a></td></tr><tr><td>第 3 关</td><td class='ok'>走得通</td><td class='num'>65</td><td class='num'>66</td><td>L3  一处都没分家（共 65 步）</td><td><a href='Proof-Levels-L3.html'>Proof/Levels/L3.lean</a></td></tr><tr><td>第 4 关</td><td class='ok'>走得通</td><td class='num'>41</td><td class='num'>42</td><td>L4  一处都没分家（共 41 步）</td><td><a href='Proof-Levels-L4.html'>Proof/Levels/L4.lean</a></td></tr><tr><td>第 5 关</td><td class='ok'>走得通</td><td class='num'>50</td><td class='num'>51</td><td>L5  一处都没分家（共 50 步）</td><td><a href='Proof-Levels-L5.html'>Proof/Levels/L5.lean</a></td></tr><tr><td>第 6 关</td><td class='ok'>走得通</td><td class='num'>128</td><td class='num'>129</td><td>L6  一处都没分家（共 128 步）</td><td><a href='Proof-Levels-L6.html'>Proof/Levels/L6.lean</a></td></tr></table>
+<p class="note">「走得通」= <code>L<n>_winnable</code>：见证是被认证那一段真人走过的路；「逐帧核过」= <code>L<n>_trace</code>：<b>只有开局那一帧是观测给的，后面全是模型自己算的</b>，
+每一步和观测对上（过关那一脚不在逐帧里——它的下一帧是下一关的盘——它在 <code>_winSteps</code> 里，结果是「赢了」）。</p></div>
+
+<div class="card"><h2>它怎么来的：模型 = 对象 + 规则，全是定义</h2>
+<p class="note" style="margin-top:0"><code>Step.lean</code> 只做分发（0 条定理）。每条规则的身份恰好落一种：</p>
+<table><tr><th>规则</th><th>身份</th><th>Lean</th></tr><tr><td class='mono'><a href='../rules/click_selects.html'>click_selects</a></td><td>定义</td><td>Rule/Move/ClickSelects.lean</td></tr><tr><td class='mono'><a href='../rules/mover_steps.html'>mover_steps</a></td><td>定义</td><td>Rule/Move/MoverSteps.lean</td></tr><tr><td class='mono'><a href='../rules/push_shoves.html'>push_shoves</a></td><td>定义</td><td>Rule/Move/PushShoves.lean</td></tr><tr><td class='mono'><a href='../rules/board_static.html'>board_static</a></td><td>推论</td><td>Derived/BoardStatic.lean</td></tr><tr><td class='mono'><a href='../rules/gate_keeps_heading.html'>gate_keeps_heading</a></td><td>推论</td><td>Derived/GateKeepsHeading.lean</td></tr><tr><td class='mono'><a href='../rules/gate_strikes.html'>gate_strikes</a></td><td>定义</td><td>Rule/World/GateStrikes.lean</td></tr><tr><td class='mono'><a href='../rules/gate_ticks.html'>gate_ticks</a></td><td>定义</td><td>Rule/World/GateTicks.lean</td></tr><tr><td class='mono'><a href='../rules/bar_empty_ends.html'>bar_empty_ends</a></td><td>定义</td><td>Rule/Outcome/BarEmptyEnds.lean</td></tr><tr><td class='mono'><a href='../rules/bar_ticks.html'>bar_ticks</a></td><td>定义</td><td>Rule/Outcome/BarTicks.lean</td></tr><tr><td class='mono'><a href='../rules/level_solved.html'>level_solved</a></td><td>定义</td><td>Rule/Outcome/LevelSolved.lean</td></tr><tr><td class='mono'><a href='../rules/reset_restores.html'>reset_restores</a></td><td>不进模型</td><td>—</td></tr></table></div>
+
+<div class="card"><h2>逐条：模型面对每一条真实转移</h2>
+<p class="note" style="margin-top:0">17 份，模型描述的转移 3959 条，每一条从观测到的那一帧起算，全部对上（每份一条 <code>_stepAgrees</code> 走内核）；
+另一条 <code>_stepCount</code> 钉住每一份的条数（空表会让「全对」平凡为真）。
+和 Python 规则逐条对账：Lean 判错 0 行、Python 判错 0 行，只一边判错的 0 行。</p>
+<details><summary>17 份的分段</summary><table><tr><th>文件</th><th class="num">row</th><th class="num">模型描述的</th><th class="num">RESET（不在这一层）</th></tr><tr><td><a href='Obs-Corpus-C00.html'>Obs/Corpus/C00.lean</a></td><td class='num'>0..249</td><td class='num'>240</td><td class='num'>10</td></tr><tr><td><a href='Obs-Corpus-C01.html'>Obs/Corpus/C01.lean</a></td><td class='num'>250..499</td><td class='num'>242</td><td class='num'>8</td></tr><tr><td><a href='Obs-Corpus-C02.html'>Obs/Corpus/C02.lean</a></td><td class='num'>500..749</td><td class='num'>240</td><td class='num'>10</td></tr><tr><td><a href='Obs-Corpus-C03.html'>Obs/Corpus/C03.lean</a></td><td class='num'>750..999</td><td class='num'>248</td><td class='num'>2</td></tr><tr><td><a href='Obs-Corpus-C04.html'>Obs/Corpus/C04.lean</a></td><td class='num'>1000..1249</td><td class='num'>246</td><td class='num'>4</td></tr><tr><td><a href='Obs-Corpus-C05.html'>Obs/Corpus/C05.lean</a></td><td class='num'>1250..1499</td><td class='num'>240</td><td class='num'>10</td></tr><tr><td><a href='Obs-Corpus-C06.html'>Obs/Corpus/C06.lean</a></td><td class='num'>1500..1749</td><td class='num'>241</td><td class='num'>9</td></tr><tr><td><a href='Obs-Corpus-C07.html'>Obs/Corpus/C07.lean</a></td><td class='num'>1750..1999</td><td class='num'>243</td><td class='num'>7</td></tr><tr><td><a href='Obs-Corpus-C08.html'>Obs/Corpus/C08.lean</a></td><td class='num'>2000..2249</td><td class='num'>243</td><td class='num'>7</td></tr><tr><td><a href='Obs-Corpus-C09.html'>Obs/Corpus/C09.lean</a></td><td class='num'>2250..2499</td><td class='num'>241</td><td class='num'>9</td></tr><tr><td><a href='Obs-Corpus-C10.html'>Obs/Corpus/C10.lean</a></td><td class='num'>2500..2749</td><td class='num'>243</td><td class='num'>7</td></tr><tr><td><a href='Obs-Corpus-C11.html'>Obs/Corpus/C11.lean</a></td><td class='num'>2750..2999</td><td class='num'>243</td><td class='num'>7</td></tr><tr><td><a href='Obs-Corpus-C12.html'>Obs/Corpus/C12.lean</a></td><td class='num'>3000..3249</td><td class='num'>240</td><td class='num'>10</td></tr><tr><td><a href='Obs-Corpus-C13.html'>Obs/Corpus/C13.lean</a></td><td class='num'>3250..3499</td><td class='num'>250</td><td class='num'>0</td></tr><tr><td><a href='Obs-Corpus-C14.html'>Obs/Corpus/C14.lean</a></td><td class='num'>3500..3749</td><td class='num'>248</td><td class='num'>2</td></tr><tr><td><a href='Obs-Corpus-C15.html'>Obs/Corpus/C15.lean</a></td><td class='num'>3750..3999</td><td class='num'>250</td><td class='num'>0</td></tr><tr><td><a href='Obs-Corpus-C16.html'>Obs/Corpus/C16.lean</a></td><td class='num'>4000..4060</td><td class='num'>61</td><td class='num'>0</td></tr></table></details></div>
+
+<div class="card"><h2>一把「走不通」的钥匙（这一局没有哪关要用它，放在这里说明骨架会证东西）</h2>
+<p><code>Proof/CountKey.lean</code>：块和框不一样多 ⇒ <b>不经过 RESET</b> 赢不了。每步保持（走一步块数不变）、与赢矛盾（赢要求块和框一样多），
+挂上 <code>Proof/Reachable.lean</code> 的骨架（全文唯一一处归纳，不枚举）。三条防线：第 0 关的盘拿掉一个框 ⇒ <code>drop_unsolvable</code>；
+真盘走得通（<code>real_winnable</code>）、开局没有一上来就赢（<code>real_closed_at_start</code>）、真盘上钥匙的前提不满足（<code>real_not_key</code>）。</p></div>
+
+<div class="card"><h2>凭什么信上面这些</h2>
+<p class="note" style="margin-top:0">53 份 .lean（另有一份应当编不过的破坏测试），定理 67 条，公理表跟过 67 条、
+不在白名单（propext / Classical.choice / Quot.sound）里的 0 条；装置 <code>ledger/lean_check.py</code>：过。
+破坏测试 <code>Broken.lean</code>：退出码 1，红在第 [20] 行，标记在第 20 行。</p>
+<details><summary>逐份编译</summary><table><tr><th>文件</th><th>角色</th><th class="num">退出码</th><th class="num">定理</th><th class="num">秒</th></tr><tr><td><a href='Obj-Geometry-Cell.html'>Obj/Geometry/Cell.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Obj-Board-Slot.html'>Obj/Board/Slot.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Obj-Movable-Piece.html'>Obj/Movable/Piece.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Obj-Movable-Gate.html'>Obj/Movable/Gate.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Obj-World.html'>Obj/World.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Obj-Derive-Things.html'>Obj/Derive/Things.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Obj-Geometry-Delta.html'>Obj/Geometry/Delta.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Obj-Derive-Space.html'>Obj/Derive/Space.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Rule-Move-MoverSteps.html'>Rule/Move/MoverSteps.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Obj-Derive-Slide.html'>Obj/Derive/Slide.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Rule-Move-PushShoves.html'>Rule/Move/PushShoves.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Rule-Move-ClickSelects.html'>Rule/Move/ClickSelects.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Obj-Derive-Strike.html'>Obj/Derive/Strike.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Obj-Derive-GateClock.html'>Obj/Derive/GateClock.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Rule-World-GateStrikes.html'>Rule/World/GateStrikes.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Rule-World-GateTicks.html'>Rule/World/GateTicks.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Obj-Derive-Seated.html'>Obj/Derive/Seated.lean</a></td><td>对象</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Rule-Outcome-LevelSolved.html'>Rule/Outcome/LevelSolved.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Rule-Outcome-BarTicks.html'>Rule/Outcome/BarTicks.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.6</td></tr><tr><td><a href='Rule-Outcome-BarEmptyEnds.html'>Rule/Outcome/BarEmptyEnds.lean</a></td><td>规则</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Step.html'>Step.lean</a></td><td>装配</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Derived-BoardStatic.html'>Derived/BoardStatic.lean</a></td><td>推论</td><td class='num'>0</td><td class='num'>1</td><td class='num'>0.7</td></tr><tr><td><a href='Derived-GateKeepsHeading.html'>Derived/GateKeepsHeading.lean</a></td><td>推论</td><td class='num'>0</td><td class='num'>1</td><td class='num'>0.7</td></tr><tr><td><a href='Obs-Check.html'>Obs/Check.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.8</td></tr><tr><td><a href='Obs-Replay.html'>Obs/Replay.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>0</td><td class='num'>12.2</td></tr><tr><td><a href='Obs-Agree.html'>Obs/Agree.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0.7</td></tr><tr><td><a href='Obs-Corpus-C00.html'>Obs/Corpus/C00.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>8.4</td></tr><tr><td><a href='Obs-Corpus-C01.html'>Obs/Corpus/C01.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>8.6</td></tr><tr><td><a href='Obs-Corpus-C02.html'>Obs/Corpus/C02.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.4</td></tr><tr><td><a href='Obs-Corpus-C03.html'>Obs/Corpus/C03.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>10.4</td></tr><tr><td><a href='Obs-Corpus-C04.html'>Obs/Corpus/C04.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>10.3</td></tr><tr><td><a href='Obs-Corpus-C05.html'>Obs/Corpus/C05.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>8.6</td></tr><tr><td><a href='Obs-Corpus-C06.html'>Obs/Corpus/C06.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.7</td></tr><tr><td><a href='Obs-Corpus-C07.html'>Obs/Corpus/C07.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.9</td></tr><tr><td><a href='Obs-Corpus-C08.html'>Obs/Corpus/C08.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.9</td></tr><tr><td><a href='Obs-Corpus-C09.html'>Obs/Corpus/C09.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.5</td></tr><tr><td><a href='Obs-Corpus-C10.html'>Obs/Corpus/C10.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.4</td></tr><tr><td><a href='Obs-Corpus-C11.html'>Obs/Corpus/C11.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>8.7</td></tr><tr><td><a href='Obs-Corpus-C12.html'>Obs/Corpus/C12.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>9.3</td></tr><tr><td><a href='Obs-Corpus-C13.html'>Obs/Corpus/C13.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>10.8</td></tr><tr><td><a href='Obs-Corpus-C14.html'>Obs/Corpus/C14.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>11.6</td></tr><tr><td><a href='Obs-Corpus-C15.html'>Obs/Corpus/C15.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>10.9</td></tr><tr><td><a href='Obs-Corpus-C16.html'>Obs/Corpus/C16.lean</a></td><td>观测</td><td class='num'>0</td><td class='num'>2</td><td class='num'>8.1</td></tr><tr><td><a href='Proof-Reachable.html'>Proof/Reachable.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>2</td><td class='num'>0.7</td></tr><tr><td><a href='Proof-Levels-L0.html'>Proof/Levels/L0.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>8.3</td></tr><tr><td><a href='Proof-CountKey.html'>Proof/CountKey.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>8</td><td class='num'>5.1</td></tr><tr><td><a href='Proof-Levels-L1.html'>Proof/Levels/L1.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>9.6</td></tr><tr><td><a href='Proof-Levels-L2.html'>Proof/Levels/L2.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>9.2</td></tr><tr><td><a href='Proof-Levels-L3.html'>Proof/Levels/L3.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>9.8</td></tr><tr><td><a href='Proof-Levels-L4.html'>Proof/Levels/L4.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>9.0</td></tr><tr><td><a href='Proof-Levels-L5.html'>Proof/Levels/L5.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>9.9</td></tr><tr><td><a href='Proof-Levels-L6.html'>Proof/Levels/L6.lean</a></td><td>证明</td><td class='num'>0</td><td class='num'>3</td><td class='num'>12.7</td></tr><tr><td><a href='Broken.html'>Broken.lean</a></td><td>破坏测试</td><td class='num'>1</td><td class='num'>0</td><td class='num'></td></tr></table></details></div>
+
+</div>
+<script>
+// **只画、不算。** 每一格、每一个数都是 web/export.py 在 Python 那边算好导出来的：
+// 这一份只把导出的格集合画成方块、把导出的判决串画成小标签、把 Lean 源码上色。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破了。
+
+const D = window.DATA || {};
+const $ = (id) => document.getElementById(id);
+const S = 11;                       // 一格画几个像素：尺寸，渲染方面的东西
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 一张盘：盘面（墙 / 带 / 框）+ 这一帧的块和门带 + 导出侧给的「变了的格」。
+function drawFrame(board, fr, chg, title) {
+  const all = [];
+  board.walls.forEach((c) => all.push(c));
+  const r0 = Math.min(...all.map((c) => c[0])), c0 = Math.min(...all.map((c) => c[1]));
+  const r1 = Math.max(...all.map((c) => c[0])), c1 = Math.max(...all.map((c) => c[1]));
+  const W = (c1 - c0 + 1) * S, H = (r1 - r0 + 1) * S;
+  const box = (c, fill, extra) =>
+    `<rect x="${(c[1] - c0) * S}" y="${(c[0] - r0) * S}" width="${S}" height="${S}" fill="${fill}" ${extra || ""}/>`;
+  let g = `<rect width="${W}" height="${H}" fill="var(--floor)"/>`;
+  board.walls.forEach((c) => { g += box(c, "var(--wall)"); });
+  board.bands.forEach((c) => { g += box(c, "var(--band)"); });
+  board.slots.forEach((sl) => sl.forEach((c) => {
+    g += box(c, "none", 'stroke="var(--slot)" stroke-width="1.5" stroke-dasharray="3 2"');
+  }));
+  fr.gates.forEach((gt) => gt.cells.forEach((c) => {
+    g += box(c, "var(--gate)", 'stroke="#000" stroke-width=".5"');
+  }));
+  fr.gates.forEach((gt) => {
+    const c = gt.cells[0];
+    g += `<text x="${(c[1] - c0) * S + 2}" y="${(c[0] - r0) * S + 9}" font-size="8" fill="var(--gate-on)">${gt.count}</text>`;
+  });
+  fr.pieces.forEach((p) => {
+    const fill = !p.shelled ? "var(--bare)" : p.sel ? "var(--piece-sel)" : p.retired ? "var(--piece-ret)" : "var(--piece)";
+    p.cells.forEach((c) => { g += box(c, fill, 'stroke="#000" stroke-width=".6"'); });
+  });
+  (chg || []).forEach((c) => { g += box(c, "none", 'stroke="var(--chg)" stroke-width="1.6"'); });
+  const bar = `预算条 ${fr.bar} / 64`;
+  return `<figure class="board"><figcaption>${esc(title || "")}　<span class="mono">${bar}</span></figcaption>` +
+    `<svg class="grid" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg></figure>`;
+}
+
+function rowByNumber(n) { return D.rows.find((r) => r.row === n); }
+function legend() {
+  return '<div class="legend">' +
+    '<span><i style="background:var(--wall)"></i>墙</span>' +
+    '<span><i style="background:var(--band)"></i>带</span>' +
+    '<span><i style="border:1.5px dashed var(--slot)"></i>框的内部</span>' +
+    '<span><i style="background:var(--piece-sel)"></i>被操纵的块</span>' +
+    '<span><i style="background:var(--piece)"></i>没被选过的块</span>' +
+    '<span><i style="background:var(--piece-ret)"></i>被点走过的块</span>' +
+    '<span><i style="background:var(--bare)"></i>裸十字</span>' +
+    '<span><i style="background:var(--gate)"></i>门带（数字=数到几）</span>' +
+    '<span><i style="border:1.6px solid var(--chg)"></i>这一步变了的格（导出侧算的）</span></div>';
+}
+
+// ---------------------------------------------------------------- 首页
+function initHome() {
+  document.querySelectorAll("[data-pick]").forEach((el) => {
+    const n = D.picks[el.dataset.pick];
+    const r = rowByNumber(n);
+    if (!r) { el.innerHTML = '<span class="bad">导出侧没挑出这一帧</span>'; return; }
+    const b = D.boards[String(r.lv)];
+    el.innerHTML = drawFrame(b, D.frames[r.p], null, `row ${r.row} 之前（第 ${r.lv} 关）`) +
+      (r.tag === "levelup" ? "" : drawFrame(b, D.frames[r.n], r.chg, `按 ${r.act} 之后`));
+  });
+  const lg = $("legend");
+  if (lg) lg.innerHTML = legend();
+}
+
+// ---------------------------------------------------------------- 回放
+function initReplay() {
+  const segSel = $("seg"), slider = $("slider");
+  let rows = [];
+  function show() {
+    const r = rows[+slider.value];
+    if (!r) return;
+    const b = D.boards[String(r.lv)] || D.boards["0"];
+    const nb = D.boards[String(r.lvn)] || b;
+    $("label").textContent = `row ${r.row}（段内第 ${+slider.value + 1} / ${rows.length}）· 第 ${r.lv} 关 · 动作 ${r.act} · 标记 ${r.tag}`;
+    $("frames").innerHTML = drawFrame(b, D.frames[r.p], null, "这一步之前") +
+      drawFrame(r.tag === "ok" || r.tag === "over" ? b : nb, D.frames[r.n], r.chg,
+        r.tag === "levelup" ? "之后（已经是下一关的盘）" : r.tag === "reset" ? "之后（RESET：模型不描述）" : "这一步之后");
+    let v = "";
+    D.rule_order.forEach((nm, i) => {
+      const k = r.v[i];
+      v += `<span><span class="chip ${k}">${k === "T" ? "对" : k === "F" ? "错" : "不管"}</span> ` +
+        `<a href="rules/${nm}.html">${nm}</a></span>`;
+    });
+    $("verdicts").innerHTML = v;
+  }
+  function load() {
+    const s = +segSel.value;
+    rows = D.rows.filter((r) => r.seg === s);
+    slider.max = rows.length - 1;
+    slider.value = 0;
+    show();
+  }
+  segSel.onchange = load;
+  slider.oninput = show;
+  $("prev").onclick = () => { slider.value = Math.max(0, +slider.value - 1); show(); };
+  $("next").onclick = () => { slider.value = Math.min(rows.length - 1, +slider.value + 1); show(); };
+  $("legend").innerHTML = legend();
+  load();
+}
+
+// ---------------------------------------------------------------- Lean 源码上色（只认注释、字符串和几十个词）
+const KEY = ("theorem|def|abbrev|structure|inductive|namespace|end|import|deriving|" +
+  "by|fun|match|with|let|have|show|if|then|else|where|open").split("|");
+const TAC = ("simp|decide|rfl|exact|intro|cases|obtain|refine|induction|split|rw|unfold|absurd|calc").split("|");
+function paint(src) {
+  let h = esc(src);
+  h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+  const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+  const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+  return h
+    .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+    .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+    .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+    .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("pre.lean").forEach((el) => { el.innerHTML = paint(el.textContent); });
+  if (document.body.dataset.page === "home") initHome();
+  if (document.body.dataset.page === "replay") initReplay();
+});
+
+</script>
+</body>
+</html>

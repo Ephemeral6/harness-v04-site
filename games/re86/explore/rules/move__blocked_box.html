@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · move/blocked_box</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · move/blocked_box</h1><div class="sub">rule/move/blocked_box.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>读数</h2><table>
+<tr><th>开口（行 / 去重）</th><td>153 / 105</td></tr>
+<tr><th>判对</th><td>75 / 63</td></tr><tr><th>判错</th><td>0 / 0</td></tr>
+<tr><th>读不出</th><td>78 / 42</td></tr><tr><th>沉默</th><td>2000</td></tr>
+<tr><th>打红它的突变体</th><td>M03_trade_far_side、M04_no_room_gate</td></tr>
+<tr><th>独家拒掉的造错转移（装置）</th><td>2</td></tr></table>
+<details><summary>沉默 / 读不出的理由</summary><table><tr><td class='num'>1829</td><td>N: 没撞上挡块 → move/translate</td></tr><tr><td class='num'>97</td><td>N: 不是推（ACTION1–4）</td></tr><tr><td class='num'>73</td><td>U: 读不出：光标被盖住，选中的是哪件看不见</td></tr><tr><td class='num'>40</td><td>N: 不是 box → move/blocked_cross</td></tr><tr><td class='num'>34</td><td>N: 换关 / 终局那一步 → goal/level_up</td></tr><tr><td class='num'>5</td><td>U: 读不出：有一边读不到底，换完是多大算不出来</td></tr></table></details>
+<details><summary>判错的那几条</summary><ul><li>无</li></ul></details></div>
+<div class="card"><h2>它说什么</h2><p>box 撞挡块时：迎面边不动、背面边推进 3、垂直方向长 3（加在让新中心离旧中心最近的那一头）；换完短边 &lt; 4 则整件不动。</p><pre>空心矩形被推而撞上挡块：**换形状，周长不变**——迎面那条边不动，背面那条边推进 3，
+垂直方向的边长补 3，补在哪一头由「新包围盒中心离旧中心最近」定；
+换完之后短边不足 4 就**整件不动**。</pre>
+<p class="note">论域：不是推 / 换关 → 同 move/translate；没撞上 → move/translate；不是 box → move/blocked_cross</p></div>
+<div class="card"><h2>它明确不主张什么</h2><ul><li>门槛 4 的位置：语料里「换不动」只有 1 次（换完短边 = 1），分界落在 1 与 4 之间哪里分不出来</li><li>两头一样近时加在哪一头：语料里没撞上这种平局</li><li>颜色（归 move/recolor）</li></ul></div>
+<div class="card"><h2>改版史</h2><ul><li>v1 接手册子 blocked_rect_trades + rect_trade_needs_room：两条的论域完全相同（box 撞挡块），只是结论分成了「换得动」「换不动」两支——同一条规则被拆成了两条，合并</li><li>v1 探针上先写成「补的 3 格在 0..3 格的挪法里挑中心最近的」，那一批 68 条换形状全错；实测补的 3 格永远整块加在一头，改成二选一之后同一批全对（runs/_wb-re86/probe_model.py）</li></ul>
+<p class="note">接手起点册子的：blocked_rect_trades、rect_trade_needs_room</p></div>
+<div class="card"><h2>它的 Lean</h2><p><b>定义</b>：Rule/Move/BlockedBox.lean 里的 <code>blockedBox</code></p><pre>/-
+# Rule/Move/BlockedBox —— 空心矩形撞挡块：换形状，周长不变（对应 `rule/move/blocked_box.py`）
+
+迎面那条边不动、背面那条边推进 3，垂直方向长 3——**整块加在一头**，
+加在让新包围盒中心离旧中心最近的那一头（一样近取下 / 右那一头）；换完短边 &lt; 4 就整件不动。
+-/
+
+import Obj.World
+import Rule.Move.Translate
+
+namespace Game
+
+def blockedBox (p : Piece) (a : Act) : Piece :=
+  let dr := a.delta.1
+  let dc := a.delta.2
+  let h := p.bottom - p.top + 1
+  let w := p.right - p.left + 1
+  if dc ≠ 0 then
+    let l2 := if dc &gt; 0 then p.left + 3 else p.left
+    let r2 := if dc &gt; 0 then p.right else p.right - 3
+    let d1 := iabs ((p.top + (p.bottom + 3) + 1) / 2 - p.cr)
+    let d2 := iabs (((p.top - 3) + p.bottom + 1) / 2 - p.cr)
+    let t2 := if d2 &lt; d1 then p.top - 3 else p.top
+    let b2 := if d2 &lt; d1 then p.bottom else p.bottom + 3
+    if min (h + 3) (w - 3) &lt; 4 then p
+    else { p with top := t2, left := l2, bottom := b2, right := r2,
+                  hr := (t2 + b2 + 1) / 2, hc := (l2 + r2 + 1) / 2 }
+  else
+    let t2 := if dr &gt; 0 then p.top + 3 else p.top
+    let b2 := if dr &gt; 0 then p.bottom else p.bottom - 3
+    let d1 := iabs ((p.left + (p.right + 3) + 1) / 2 - p.cc)
+    let d2 := iabs (((p.left - 3) + p.right + 1) / 2 - p.cc)
+    let l2 := if d2 &lt; d1 then p.left - 3 else p.left
+    let r2 := if d2 &lt; d1 then p.right else p.right + 3
+    if min (h - 3) (w + 3) &lt; 4 then p
+    else { p with top := t2, left := l2, bottom := b2, right := r2,
+                  hr := (t2 + b2 + 1) / 2, hc := (l2 + r2 + 1) / 2 }
+
+end Game
+</pre></div>
+</div></body></html>

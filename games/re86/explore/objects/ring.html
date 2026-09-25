@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象 · ring</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>对象 · ring</h1><div class="sub">objects/board/ring.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>为什么删不掉它</h2><pre>Ring —— 环（objects/board/ring.py）
+
+1. 记什么：环心位置 + 归属色（被盖住时 None）。
+2. 谁读：goal/level_up（环心位置；归属色走 ctx 整关口径）、board/static。
+3. 抹成常量：判决变 2 处（消融抽样 320 条里过关的步很少）。
+4. 分离表分不开：一关之内环不变，能单独变它的一对世界只能跨关。与消融 / 点名不一致的原因就是这一句。
+
+拿掉它分不开的一对：每一关过关那一步的前一帧（还有环心没被同色盖住）与它推一步之后——没有环，
+「盖住了没有」无从说起，goal/level_up 两个方向都说不出话（这一对是推理，分离表给不出，因为关内恒定）。M08（过关不看颜色）打红 goal/level_up 4 条。
+</pre></div><div class="card"><h2>它是什么</h2><pre>`Ring` —— 一个 3×3 的环：色 4 的框，中心那一格画着它的**归属色**。
+
+    center   环心（行, 列）
+    owner    归属色；环心被某件东西盖住时**读不出来**，记 None
+
+## 为什么 owner 可以是 None
+
+环心被盖住之后，那一格显示的是盖它的那件东西的颜色；同色盖住和错色盖住，
+环框八格与邻域逐格相同（册子 `no_visible_satisfaction_mark`）。
+**帧上没有这一位**，所以这里不编：读不出就 None。模型那一侧的环带着归属色一路走
+（环不动，归属色开局读一次就定了），判据只在读得出的那几帧上比。
+
+## 为什么删不掉它
+
+过关判据只看它：**每个环心都被一件同色的东西盖住**才过关（规则 `goal/all_rings_matched`）。
+抹掉它，「盖住了三个环中的两个」和「盖住了全部」分不开。</pre><p class="note">源码：objects/board/ring.py</p></div><div class="card"><h2>它的 Lean（身份：定义）</h2><p class="note">Obj/Board/Ring.lean</p><pre>/-
+# Obj/Board/Ring —— 环（对应 `objects/board/ring.py`）
+
+环心 + 归属色。**模型里的归属色是确定的**：环不动、归属色不变，开局读一次就定了
+（取这一关里第一次读得出的那一帧——口径写在 `Obs/Replay.lean` 文件头）。
+-/
+
+namespace Game
+
+structure Ring where
+  r     : Int
+  c     : Int
+  owner : Nat
+  deriving DecidableEq, Repr
+
+end Game
+</pre></div>
+</div></body></html>

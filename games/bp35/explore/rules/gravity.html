@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gravity · bp35</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     这一局：墙、液体、槽里的块、三种一次性的门（壳 / 开关 / 泡沫）、尖刺、十字、玩家。 */
+  --wall: #3a3f4b;   --liquid: #1f4f6e;  --block: #2f7fd8;
+  --shell: #8a5cc7;  --switch: #d0703a;  --foam: #d9dde6;
+  --spike: #6b2233;  --spike-tip: #e5544b;
+  --goal: #ffd84d;   --player: #7ee08a;  --nose: #2d6b36;
+  --hot: #ff4fd8;    --unknown: #1d212a;
+  --link: #7ab8ff;   --fg: #e8eaf0;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>gravity</h1>
+  <div class="sub">规则</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../share.html">怎么给别人看</a>
+  </nav>
+</header>
+
+<div class="cols">
+  <div class="card"><h2>读数</h2><div id="nums"></div></div>
+  <div class="card"><h2 id="title"></h2><p id="claim" style="font-size:15px"></p></div>
+  <div class="card"><h2>论域：什么时候它不管、那些归谁</h2><p id="scope"></p></div>
+  <div class="card"><h2>它明确不主张什么</h2><div id="notclaimed"></div></div>
+  <div class="card"><h2>改版史</h2><div id="history"></div></div>
+  <div class="card"><h2>它的 Lean</h2><div id="lean"></div></div>
+  <div class="card"><h2>见证（转移编号）</h2><div id="evidence"></div></div>
+</div>
+</div>
+<script>window.PAGE = {"kind": "rule", "name": "gravity", "up": "../"};</script>
+<script>window.DATA={"game":"bp35","run":"bp35-0920-0507","seal":"bp35-20260920","shape":{"ncol":11,"nrow":11,"depth_min":27,"depth_max":45},"corpus":{"run":"bp35-0920-0507","seal":"bp35-20260920","rows":374,"uniq_tid":374,"segments":[{"guid":"10ba54c8-b765-4e17-8be4-7a11afd23368","seq_from":1,"seq_to":374,"rows":374,"max_level":9,"certified":true}],"level_actions":[32,43,34,25,30,41,45,51,73],"scorecard_level_actions":[32,43,34,25,30,41,45,51,73],"level_actions_match":true,"levels":9,"score":100.0,"actions":{"ACTION3":89,"ACTION4":104,"ACTION7":8,"ACTION6":173}},"frames":{"frames":748,"a":0,"b":0,"b_list":[],"proposed":[{"criterion":"state=WIN 那一步的下一帧（终局画面）不是局面","hits":1,"readable_anyway":1,"verdict":"被语料证伪：它读得成一张盘（格、玩家、计步条都对得上画法）"}]},"nomans":0,"handoff_bad":0,"reverse":{"ablation":{"cells":{"changed":636,"errors":0},"facing":{"changed":90,"errors":0},"hud":{"changed":367,"errors":0}},"ablation_rows":494,"mutants_code":[{"name":"canary","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/计数/hud_tick.py","what":"计步条每步 +2：每一步都该红","red":true,"dE":{"hud_tick":366},"dERR":{}},{"name":"sideways_never_moves","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":353,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/一步怎么走/sideways.py","what":"左右走永远原地：列那一半该红","red":true,"dE":{"drift":41,"sideways":185},"dERR":{}},{"name":"sideways_always_right","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/一步怎么走/sideways.py","what":"按左也朝右：朝向那一半该红","red":true,"dE":{"sideways":86},"dERR":{}},{"name":"drift_never_drifts","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/一步怎么走/drift.py","what":"漂永远停在原地：drift 该红","red":true,"dE":{"drift":109},"dERR":{}},{"name":"gravity_never_flips","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":355,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/点击怎么回应/gravity.py","what":"点开关不翻重力：gravity 该红","red":true,"dE":{"drift":19,"goal_wins":2,"gravity":28},"dERR":{}},{"name":"opens_to_block","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":351,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/点击怎么回应/opens.py","what":"门点开变成块：opens 该红","red":true,"dE":{"drift":55,"opens":77},"dERR":{}},{"name":"slot_toggle_noop","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":349,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/点击怎么回应/slot_toggle.py","what":"槽点了不变：slot_toggle 该红","red":true,"dE":{"drift":5,"slot_toggle":33},"dERR":{}},{"name":"foam_never_spreads","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":338,"undo_pops":8,"foam_spreads":34,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/点击怎么回应/foam_spreads.py","what":"泡沫不长：foam_spreads 或 board_persists 该红","red":true,"dE":{"drift":31,"board_persists":64},"dERR":{}},{"name":"foam_spreads_too_far","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/点击怎么回应/foam_spreads.py","what":"泡沫多长一格（隔一格的右边也长）：只有 foam_spreads 看得见（那一格在「被点改过」的名单里，board_persists 不比它）","red":true,"dE":{"foam_spreads":38},"dERR":{}},{"name":"slot_not_passable","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":351,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"derive/board.py","what":"空槽进不去：走进空槽 / 漂过空槽的那几步该红","red":true,"dE":{"drift":14,"sideways":14},"dERR":{}},{"name":"goal_never_wins","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/什么算赢/goal_wins.py","what":"漂进十字不算赢：竖着过关的那几关该红","red":true,"dE":{"goal_wins":2},"dERR":{}},{"name":"undo_depth_one","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/撤销/undo_pops.py","what":"撤销不弹栈（册子当年的「深度 1」读法）：连撤三次那几步该红","red":true,"dE":{"undo_pops":3},"dERR":{}},{"name":"blocked_inverted","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"rule/什么算赢/blocked_no_switch.py","what":"推论反着说：它开口的每一步都该红","red":true,"dE":{"blocked_no_switch":8},"dERR":{}},{"name":"hud_no_second_lap","patched":true,"loaded_patched":true,"scope":{"drift":350,"sideways":357,"board_persists":350,"blocked_no_switch":8,"goal_wins":348,"undo_pops":8,"foam_spreads":64,"gravity":357,"opens":77,"slot_toggle":33,"hud_tick":374},"unread":0,"file":"objects/parse.py","what":"计步条不认第二圈：最后一关走满一圈之后该红","red":true,"dE":{"hud_tick":1},"dERR":{}}]},"reverse_data":{"total":120,"rejected":120,"by_parse":27,"by_rule":{"drift":9,"sideways":64,"board_persists":1,"blocked_no_switch":0,"goal_wins":1,"undo_pops":0,"foam_spreads":12,"gravity":30,"opens":15,"slot_toggle":4,"hud_tick":92},"unique":{"drift":0,"sideways":0,"board_persists":0,"blocked_no_switch":0,"goal_wins":1,"undo_pops":0,"foam_spreads":0,"gravity":0,"opens":0,"slot_toggle":0,"hud_tick":4},"kinds":{"改了会变的格":27,"换了个前提":24,"什么都没发生":25,"回到了别处":26,"结果张冠李戴":18},"clock_repaired":{"total":120,"rejected":116,"by_parse":27,"by_rule":{"drift":9,"sideways":64,"board_persists":1,"blocked_no_switch":0,"goal_wins":1,"undo_pops":0,"foam_spreads":12,"gravity":30,"opens":15,"slot_toggle":4,"hud_tick":0},"unique":{"drift":0,"sideways":38,"board_persists":0,"blocked_no_switch":0,"goal_wins":1,"undo_pops":0,"foam_spreads":0,"gravity":5,"opens":1,"slot_toggle":3,"hud_tick":0},"rejected_tags":["04384d49c65486eb#63","0539de55b9181a5c#94","058fe5bcd1615068#68","060873a0307fb92b#72","060873a0307fb92b#84","061b811b703859d2#44","061b811b703859d2#75","0b8689f71a188c3e#115","0cc01c5065112e31#54","1010c08b65929580#71","126d98e8928fe4c7#39","147e87f5c9c47b9e#113","184a5af987d389e5#111","184a5af987d389e5#28","19b917845fbebb76#117","1b7d75ea8ff4be8c#19","1be188f9cc2441fb#10","1e0a41201542d8c8#62","2106b1a74ced03c6#56","218a1fd429f5bada#27","25a34d37c1b23100#104","25ccb7b5b34cf072#50","298296e03cdc94e7#30","2fae21ab4035fe1c#32","36c885d09cc44a04#16","36c885d09cc44a04#74","398b1a9cb4b7c2d8#105","3a2518d77da25d96#116","3d9924e7dabb1e2d#43","3dbaf7ae7bdf058b#25","3f46f88eef85f90a#3","40252077fcba44e1#65","40b368bc14e95ee5#57","42cb6a0271d68295#42","45a83189bceb7800#20","47e7e5d586d5dcb8#70","4a002da7369a2bd6#103","4e2d9e08ecb8d95b#34","4fb374e7da4a7704#45","5031fe5bed90c520#29","513d71089d445bc1#52","5144388ab6a400ea#13","519ba6e34345090b#109","59420160849093f3#83","5ad9793b86c67e85#1","5bcfac2f9c68c957#0","5c518dedbf11558a#38","5e4516dd8f898c8b#46","635c620dec30fb6e#88","635c620dec30fb6e#93","6697e4e8e1872571#9","686814a726088e3b#107","69eb7653037d6abd#7","6e7e1e6267b7d9f6#4","71502359a9377797#51","738c948dfaab4983#90","760d72b50ee80dcb#33","7854487276a40d07#89","7e56a9275a77000c#86","7e77da0eb31f3b61#91","7f03ec040b17318e#12","7ffde2d130a49da3#96","892c03eeb2d072e2#64","8af9ce1d75f70eb2#110","91718a61efa96b50#18","91e85a7a8b8b1439#6","9665f56d4ea1b016#112","99c95a02aff2af98#53","99f1a92caaddcb78#73","a1ec277f462ed714#17","a3fb87bc98c418c1#22","a4c77c0b0b7109b6#85","a4cc967215cf962c#78","a5f15034b7719174#102","a5f15034b7719174#92","a85e7a33434101a6#2","ad6f7ad8b6c277fe#41","b18c3d7383832116#8","b1c60938dc22995f#79","b4225553f737e66e#60","b4225553f737e66e#67","bcd97308c346eb1c#61","c3053e0770961adc#108","c58445d4240151f0#77","c8ee95235c3e7a98#23","c90c078439422c33#55","cb92a8f7f5098d40#101","cb92a8f7f5098d40#11","cbb6661eb05c2f64#119","cd49a59cf2eb55ec#37","cd49a59cf2eb55ec#81","cf410be1681d8b7a#99","d08dc1811c797bca#26","d08dc1811c797bca#95","d0d665bba84ef2f2#24","d5d9ee5558b1aad3#76","d5d9ee5558b1aad3#87","d71c373e3c77ef2b#31","d9ad37efd37fdcf0#100","dc8005c5e6d27009#118","dcd755c986e43274#59","dcff2c75fb377b36#114","ddac4643741f2184#35","ddcc7c3e6adc4a28#69","e024cc5a6d97cf70#58","e197d9b41b005677#48","e1a3cff8fdf40dca#21","e3edc6c5ed320d92#82","e62daebf95f02f08#36","e8ad3cfc8aa26dc5#98","e9fb8e2b25847dca#15","e9fb8e2b25847dca#40","f295fbff611939e4#47","f68606d765b3e97d#106","fc38fb3782e18dbf#66","fd187a5797b43838#5"],"unrejected":["04384d49c65486eb#14:结果张冠李戴·计步条修回","5b4e2320a5782a10#49:换了个前提·计步条修回","d513c124dcd4add8#80:结果张冠李戴·计步条修回","ad6f7ad8b6c277fe#97:换了个前提·计步条修回"]}},"picks":{"start":1,"rise":88,"switch":123,"foam":252,"slot":77,"win":32},"gaps":["撤销不进模型：它是 traceEnd 里一条明写的假设（弹栈），语料上每次撤销都给了它被驳倒的机会，没红不构成证明","每关那一层的地图是整关取并集的：模型证的是「模型 + 这张地图 ⇒ 逐帧对上」，不是从开局一帧推出整关","模型里没有步数预算：「走得通」是不管预算的走得通（语料里从没走满过一关的预算）"],"legend":{"#":"WALL",".":"LIQUID","m":"SLOT","B":"BLOCK","T":"SHELL","8":"SWITCH","F":"FOAM","v":"SPIKE_DN","^":"SPIKE_UP","G":"GOAL","@":"HIDDEN"},"rules":[{"name":"gravity","group":"点击怎么回应","claim":"点中开关（SWITCH），被液体带的方向翻过来（上浮 ⇄ 下沉）；别的动作——左右走、点别的、点缝——一概不翻。","scope_note":"撤销 → undo_pops；过关那一步 → goal_wins。其余每一步都管。","not_claimed":["不说翻完之后玩家漂到哪（drift）"],"note":["v1：click_switch 的「翻重力」一半（册子 a6_block8_flips_pull）+ gravity_keeps（左右走不翻）+ click_inert 的「重力不翻」一半。","v2（卡 05 重排）：三条各说「这一步翻不翻」的一种情形，合成一条等价：翻 ⇔ 点中开关。合并之前「点中开关以外的点击翻不翻」由 click_inert 管、「左右走翻不翻」由 gravity_keeps 管，而「点中会回应的非开关格（SHELL / SLOT / BLOCK / FOAM）翻不翻」**谁也没管**——那是 v1 的无人区。"],"from_book":["a6_block8_flips_pull","phase_tracks_pull"],"evidence":["ca4b1d40b7384f96","77e8952c79bd4a0f","6c2874a8285dd12c"],"scope":357,"C":357,"E":0,"N":17,"U":0,"ERR":0,"na":{"过关那一步（下一帧已是下一关的盘） → goal_wins":9,"撤销那一步 → undo_pops":8},"group_doc":"**这一组管：点一格之后，那一格（和它旁边）变成什么；重力翻不翻。**\n\n点击不挪玩家（横着那一半归 `一步怎么走/`）；点完之后玩家怎么漂也归那一组。","identity":"定义","identity_rest":"Rule/Click/Gravity.lean      gravAfter","lean":{"file":"Rule/Click/Gravity.lean","src":"/-\n# Rule/Click/Gravity —— 规则 `gravity`（对应 `rule/点击怎么回应/gravity.py`）\n\n**重力只被开关翻：点中开关，上浮 ⇄ 下沉；别的动作一概不翻。**\n-/\n\nimport Obj.Board.Tile\nimport Obj.Player.Gravity\n\nnamespace Game\n\n/-- **规则 gravity**：点中的那一格是 `t` 时，重力变成什么。 -/\ndef gravAfter (g : Grav) (t : Tile) : Grav :=\n  if t = .switch then g.flip else g\n\nend Game\n"}}]};</script>
+<script>
+// **画世界的那一份**：只有尺寸与配色。拿到的是导出好的窗口（11 行字符串，一格一个字），
+// 一格画一个方块。这里**不认识**任何规则：哪一格变了、玩家朝哪边，都是导出侧给好的。
+(function () {
+  const S = 22;                       // 一格画多大（像素）
+  const FILL = {
+    "#": "var(--wall)", ".": "var(--liquid)", "m": "var(--liquid)", "B": "var(--block)",
+    "T": "var(--shell)", "8": "var(--switch)", "F": "var(--foam)", "v": "var(--spike)",
+    "^": "var(--spike)", "G": "var(--liquid)", "@": "var(--liquid)",
+  };
+  const NAME = {
+    "#": "墙", ".": "液体", "m": "空槽", "B": "块（槽里）", "T": "壳（点开变液体）",
+    "8": "开关（点开变液体 + 翻重力）", "F": "泡沫（点开变液体 + 四邻长泡沫）",
+    "v": "尖刺（朝下）", "^": "尖刺（朝上）", "G": "十字（目标）", "@": "玩家",
+  };
+
+  function cell(ch, x, y, facing, hot) {
+    let s = `<rect x="${x}" y="${y}" width="${S - 2}" height="${S - 2}" rx="3" fill="${FILL[ch] || "var(--unknown)"}"/>`;
+    const cx = x + (S - 2) / 2, cy = y + (S - 2) / 2;
+    if (ch === "m") {
+      s += `<path d="M${cx - 5} ${cy - 5}L${cx + 5} ${cy + 5}M${cx + 5} ${cy - 5}L${cx - 5} ${cy + 5}" stroke="var(--block)" stroke-width="2"/>`;
+    } else if (ch === "G") {
+      s += `<path d="M${cx} ${cy - 7}V${cy + 7}M${cx - 7} ${cy}H${cx + 7}" stroke="var(--goal)" stroke-width="4"/>`;
+    } else if (ch === "v") {
+      s += `<path d="M${x + 3} ${y + 3}H${x + S - 5}L${cx} ${y + S - 4}Z" fill="var(--spike-tip)"/>`;
+    } else if (ch === "^") {
+      s += `<path d="M${x + 3} ${y + S - 5}H${x + S - 5}L${cx} ${y + 2}Z" fill="var(--spike-tip)"/>`;
+    } else if (ch === "@") {
+      s += `<circle cx="${cx}" cy="${cy}" r="6.5" fill="var(--player)"/>`;
+      const nx = facing === "L" ? cx - 7 : cx + 7;
+      s += `<circle cx="${nx}" cy="${cy}" r="2.6" fill="var(--nose)"/>`;
+    }
+    if (hot) s += `<rect x="${x - 1}" y="${y - 1}" width="${S}" height="${S}" rx="4" fill="none" stroke="var(--hot)" stroke-width="2"/>`;
+    return s;
+  }
+
+  // lines: 11 个字符串；facing: "L"/"R"；hot: [[i,j],...]（导出侧算好的「这一步变了的格」）
+  function board(lines, facing, hot, caption) {
+    const hs = new Set((hot || []).map((p) => p[0] * 100 + p[1]));
+    let s = `<svg class="grid" width="${lines[0].length * S + 2}" height="${lines.length * S + 2}">`;
+    lines.forEach((r, i) => [...r].forEach((ch, j) => { s += cell(ch, 1 + j * S, 1 + i * S, facing, hs.has(i * 100 + j)); }));
+    s += "</svg>";
+    return `<figure class="board">${caption ? `<figcaption>${caption}</figcaption>` : ""}${s}</figure>`;
+  }
+
+  function legend() {
+    return '<div class="legend">' + Object.keys(NAME).map((k) =>
+      `<span>${board([k], "R", [], "").replace('<figure class="board">', "").replace("</figure>", "")} ${NAME[k]}</span>`).join("") + "</div>";
+  }
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  // 极简 markdown：段落、**粗**、`码`、以「- 」开头的列表、缩进的块。**只是排版**。
+  function mdBlock(text) {
+    const out = [];
+    for (const para of String(text || "").split(/\n\s*\n/)) {
+      const lines = para.split("\n");
+      if (lines.every((l) => /^\s*[-·*]\s/.test(l) || !l.trim())) {
+        out.push("<ul class=\"tight\">" + lines.filter((l) => l.trim()).map((l) => `<li>${inline(l.replace(/^\s*[-·*]\s/, ""))}</li>`).join("") + "</ul>");
+      } else if (lines.every((l) => /^\s{4}/.test(l) || !l.trim())) {
+        out.push(`<pre class="fixed">${esc(para)}</pre>`);
+      } else {
+        out.push(`<p>${lines.map(inline).join("<br>")}</p>`);
+      }
+    }
+    return out.join("\n");
+  }
+  function inline(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+
+  window.Render = { board, legend, mdBlock, esc, NAME };
+})();
+
+</script>
+<script>
+// **形式化那一层的页面。** 形状照模板（ledger/templates/web/lean.js）：按角色分组的下拉、
+// 拆页的段横条、公理表大纲、源码上色。这里**没有一行世界逻辑**：每个数都来自 lean2/verify.py
+// 落盘的 readings.json，经 web/export.py 原样导出。
+(function () {
+  const D = window.DATA, R = window.Render, P = window.PAGE || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = R.esc;
+
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using|open|set_option").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+    "rintro|induction|split|rw|apply|unfold|absurd|first|next|subst|revert|rename_i").split("|");
+
+  // 上色。**这是渲染**：不理解一个字，只认注释、字符串和几十个词。哨兵写成 \uXXXX 转义（见模板说明）。
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/&quot;[^\n]*?&quot;|"[^"\n]*"/g, (m) => `\u0003${m}\u0004`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+  window.paintLean = paint;
+
+  // 公理表干不干净。**空的不算干净，算「没人核过」。**
+  function axChip(a) {
+    if (a === null || a === undefined) return '<span class="chip NA">没打公理表</span>';
+    const clean = a.split(", ").every((x) => !x || ["propext", "Classical.choice", "Quot.sound"].includes(x));
+    return `<span class="chip ${clean ? "TRUE" : "FALSE"}">${esc(a || "（无公理）")}</span>`;
+  }
+
+  function outlineHTML(items) {
+    return items.map((it) => it.kind === "section" ? `<h3 class="lsec">${esc(it.name)}</h3>` :
+      `<div class="litem${it.kind === "theorem" ? " thm" : ""}"><div class="lhead"><span class="lkind">${it.kind}</span>` +
+      `<span class="mono lname">${esc(it.name)}</span>${it.kind === "theorem" ? axChip(it.axioms) : ""}</div>` +
+      (it.doc ? `<div class="ldoc">${R.mdBlock(it.doc)}</div>` : "") + "</div>").join("\n");
+  }
+
+  const NAV_GROUPS = [["对象", ["对象"]], ["规则", ["规则"]], ["推论", ["推论"]],
+                      ["要证的东西", ["要证的东西"]], ["判据与语料 / 装配", ["判据与语料", "装配"]]];
+  function flat(name) { return name.replace(".lean", "").replace(/\//g, "-"); }
+  function navHTML(name) {
+    const files = D.lean.files, used = new Set();
+    let opts = "";
+    const add = (label, xs) => {
+      opts += `<optgroup label="${label}">` + xs.map((x) => {
+        used.add(x.name);
+        return `<option value="${flat(x.name)}.html"${x.name === name ? " selected" : ""}>${esc(x.name)} —— ${esc(x.title)}</option>`;
+      }).join("") + "</optgroup>";
+    };
+    for (const [g, roles] of NAV_GROUPS) {
+      const xs = files.filter((x) => roles.includes(x.label));
+      if (xs.length) add(g, xs);
+    }
+    const rest = files.filter((x) => !used.has(x.name));
+    if (rest.length) add(`没归类（${rest.length} 份）`, rest);     // 漏了的不许悄悄不见
+    return `<label class="picker"><span>这 ${files.length} 份 Lean</span>` +
+      `<select onchange="if(this.value)location.href=this.value">${opts}</select></label>　<a href="index.html">回形式化首页</a>`;
+  }
+  function partsBar(f, here) {
+    if (!f.parts || !f.parts.length) return "";
+    const items = f.parts.map((p) => p.key === here ? `<span style="color:var(--dim)">${p.title}</span>` :
+      `<a href="${flat(f.name)}-${p.key}.html">${p.title}</a>`);
+    const whole = here === null ? '<span style="color:var(--dim)">整份</span>' : `<a href="${flat(f.name)}.html">整份</a>`;
+    return `<div class="partsbar">${whole}${items.map((x) => "　" + x).join("")}</div>`;
+  }
+
+  function initIndex() {
+    const L = D.lean;
+    $("levels").innerHTML = "<tr><th>关</th><th>结论</th><th class=\"num\">逐帧核过的步数</th><th class=\"num\">其中撤销</th>" +
+      "<th class=\"num\">见证路线</th><th class=\"num\">真人用掉</th><th>第一处分家</th><th>定理</th></tr>" +
+      L.levels.map((l) => `<tr><td><a href="Proof-Levels-L${l.lv}.html">第 ${l.lv} 关</a></td>` +
+        `<td class="${l.verdict === "走得通" ? "ok" : "bad"}">${esc(l.verdict)}</td><td class="num">${l.checked}</td>` +
+        `<td class="num">${l.undo}</td><td class="num">${l.route}</td><td class="num">${l.real}</td>` +
+        `<td>${esc(l.firstSplit)}</td><td class="why">${l.theorems.map(esc).join(" ")}</td></tr>`).join("");
+    $("identity").innerHTML = "<tr><th>规则</th><th>身份</th><th>在哪 / 为什么</th></tr>" +
+      Object.entries(L.identity).map(([n, v]) => `<tr><td><a href="../rules/${n}.html">${esc(n)}</a></td><td>${esc(v.kind)}</td>` +
+        `<td class="why">${esc(v.rest)}${v.kind === "不进模型" ? `（论域 ${v.scope} 条，被驳倒 ${v.refuted} 次）` : ""}</td></tr>`).join("");
+    $("idcount").textContent = Object.entries(L.identity_count).map(([k, v]) => `${k} ${v}`).join(" · ");
+    $("corpus").innerHTML =
+      `逐条（每一步都从看到的那一帧重新起算）：${L.corpus.total} 条里 对上 <b>${L.corpus.true}</b>、被驳倒 <b>${L.corpus.false}</b>、` +
+      `模型说不出话 <b>${L.corpus.na}</b>。Lean 与 Python 两份判决逐条对账：${L.reconcile.lean} 条里对不上 <b>${L.reconcile.mismatch}</b> 条。`;
+    $("trust").innerHTML =
+      `${L.files.length} 份 Lean（含一份应当编不过的），定理 <b>${L.theorems.total}</b> 条，` +
+      `跟过 <code>#print axioms</code> 的 <b>${L.theorems.axioms_printed}</b> 条，可信基脏的 <b>${Object.keys(L.theorems.dirty).length}</b> 条。` +
+      ` 破坏测试：退出码 ${L.broken.rc}，红在第 ${L.broken.error_lines.join("、")} 行（标记在第 ${L.broken.mark_line} 行）。` +
+      ` 工具链：${esc(L.toolchain.exe)}（活性探针 ${L.toolchain.seconds} 秒）。`;
+    $("files").innerHTML = "<tr><th>文件</th><th>角色</th><th>是什么</th><th class=\"num\">编译</th></tr>" +
+      L.files.map((f) => `<tr><td><a href="${flat(f.name)}.html">${esc(f.name)}</a>${partsBar(f, "none")}</td><td>${esc(f.label)}</td>` +
+        `<td class="why">${esc(f.title)}</td><td class="num">rc ${f.compile.rc} · ${f.compile.seconds}s</td></tr>`).join("");
+    $("gaps").innerHTML = D.gaps.map((g) => `<li>${esc(g)}</li>`).join("");
+  }
+
+  function initFile() {
+    const f = D.lean.files.find((x) => x.name === P.name);
+    $("title").textContent = f.name;
+    $("nav").innerHTML = navHTML(f.name) + partsBar(f, null);
+    $("head").innerHTML = R.mdBlock(f.head);
+    $("outline").innerHTML = outlineHTML(f.outline);
+    $("src").innerHTML = paint(f.src);
+  }
+
+  function initPart() {
+    const f = D.lean.files.find((x) => x.name === P.name);
+    const i = f.parts.findIndex((p) => p.key === P.part);
+    const a = f.parts[i].at, b = i + 1 < f.parts.length ? f.parts[i + 1].at : f.src.length;
+    const seg = f.src.slice(a, b);
+    const lv = D.lean.levels.find((l) => "L" + l.lv === P.part);
+    $("title").textContent = `${f.name} · ${f.parts[i].title}`;
+    $("nav").innerHTML = navHTML(f.name) + partsBar(f, P.part);
+    $("head").innerHTML = lv ? `<p>结论：<b class="${lv.verdict === "走得通" ? "ok" : "bad"}">${esc(lv.verdict)}</b>。` +
+      `逐帧核过 <b>${lv.checked}</b> 步（其中撤销 ${lv.undo} 步，按「撤销 = 弹栈」这条明写的假设核），最后一步过关；` +
+      `见证路线 ${lv.route} 步（真人这一关用掉 ${lv.real} 步）。第一处分家：${esc(lv.firstSplit)}。</p>` : "";
+    const names = new Set((seg.match(/theorem\s+\S+/g) || []).map((x) => x.split(/\s+/)[1]));
+    $("outline").innerHTML = outlineHTML(f.outline.filter((it) => names.has(it.name)));
+    $("src").innerHTML = paint(seg);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (P.kind === "lean-part") initPart();
+    else if (P.kind === "lean-file") initFile();
+    else if (P.kind === "lean-index") initIndex();
+  });
+})();
+
+</script>
+<script>
+// 页面：**只摆不算**。每一个数都来自 data/site.js（web/export.py 导出的那一份）。
+(function () {
+  const D = window.DATA, R = window.Render, P = window.PAGE || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = R.esc;
+  const chip = (v) => {
+    const k = !v ? "NA" : v.startsWith("NA") ? "NA" : v;
+    return `<span class="chip ${k}">${esc(k)}</span>`;
+  };
+  const up = P.up || "";
+
+  function stepBy(seq) { return D.steps.find((s) => s.seq === seq); }  function pair(s, withCap) {
+    if (!s) return "";
+    const a = R.board(D.boards[s.pb], s.pf, [], withCap ? `seq ${s.seq} 之前（第 ${s.lv} 关）` : "");
+    const b = R.board(D.boards[s.nb], s.nf, s.changed, withCap ? `${esc(s.act)} 之后` + (s.won ? "（下一关的开局）" : "") : "");
+    return a + b;
+  }
+
+  // ---------------------------------------------------------------- 首页
+  function home() {
+    for (const [k, id] of [["start", "figStart"], ["rise", "figRise"], ["switch", "figSwitch"],
+                           ["foam", "figFoam"], ["slot", "figSlot"], ["win", "figWin"]]) {
+      const el = $(id);
+      if (el) el.innerHTML = D.picks[k] ? pair(stepBy(D.picks[k]), true) : '<p class="note">语料里没有这样的一步。</p>';
+    }
+    const c = D.corpus;
+    $("nums").innerHTML =
+      `真人把这一局打了 <b>${c.rows}</b> 步、<b>${c.levels}</b> 关（成绩单 ${c.score} 分）；逐关步数 ${c.level_actions.join(" / ")}。` +
+      ` 规则在这 ${c.rows} 条转移上判错 <b>${D.rules.reduce((a, r) => a + r.E, 0)}</b> 条、一条规则都不开口的 <b>${D.nomans}</b> 条；` +
+      ` 形式化 ${D.lean.files.length} 份 Lean、${D.lean.theorems.total} 条定理，公理表覆盖 ${D.lean.theorems.axioms_printed}，` +
+      ` ${D.lean.levels.length} 关里 <b>${D.lean.levels.filter((l) => l.verdict === "走得通").length}</b> 关证出「走得通」。`;
+    $("ncol").textContent = D.shape.ncol;
+    $("depth").textContent = `${D.shape.depth_min}~${D.shape.depth_max}`;
+    $("nrow").textContent = D.shape.nrow;
+    $("legend").innerHTML = R.legend();
+    $("gaps").innerHTML = D.gaps.map((g) => `<li>${esc(g)}</li>`).join("");
+  }
+
+  // ---------------------------------------------------------------- 回放
+  function replay() {
+    const sl = $("slider");
+    sl.max = D.steps.length - 1;
+    const names = D.rules.map((r) => r.name);
+    function show(i) {
+      const s = D.steps[i];
+      $("label").textContent = `seq ${s.seq} / ${D.steps.length}　第 ${s.lv} 关　${s.act}（${s.raw}）　计步条 ${s.ph} → ${s.nh}` + (s.won ? "　过关" : "");
+      $("boards").innerHTML = pair(s, true);
+      $("verdicts").innerHTML = "<tr><th>规则</th><th>判决</th><th>不管的理由</th></tr>" + names.map((n) => {
+        const v = s.v[n] || "";
+        return `<tr><td><a href="rules/${n}.html">${n}</a></td><td>${chip(v)}</td><td class="why">${v.startsWith("NA:") ? esc(v.slice(3)) : ""}</td></tr>`;
+      }).join("");
+    }
+    sl.oninput = () => show(+sl.value);
+    $("prev").onclick = () => { sl.value = Math.max(0, +sl.value - 1); show(+sl.value); };
+    $("next").onclick = () => { sl.value = Math.min(D.steps.length - 1, +sl.value + 1); show(+sl.value); };
+    const q = +(location.hash || "").replace("#", "");
+    sl.value = q ? D.steps.findIndex((s) => s.seq === q) : 0;
+    show(+sl.value);
+    $("legend").innerHTML = R.legend();
+  }
+
+  // ---------------------------------------------------------------- 分组（读目录：组的说明来自各子文件夹的 __init__.py）
+  function grouped(items, row) {
+    const groups = [];
+    for (const x of items) {
+      let g = groups.find((y) => y.name === x.group);
+      if (!g) groups.push(g = { name: x.group, doc: x.group_doc, xs: [] });
+      g.xs.push(x);
+    }
+    return groups.map((g) =>
+      `<div class="grouphead">${esc(g.name || "（根上）")}</div>` +
+      `<p class="note" style="margin:0 0 10px">${esc((g.doc || "还没归类——这一组的 __init__.py 没写说明").split("\n")[0])}</p>` +
+      g.xs.map(row).join("")).join("");
+  }
+
+  function objects() {
+    $("list").innerHTML = grouped(D.objects, (o) =>
+      `<a class="row" href="${o.name}.html"><span class="nm">${esc(o.file)}</span>` +
+      `<span class="cl">${esc((o.doc.split("\n")[0] || ""))}</span><span></span></a>`);
+  }
+
+  function object() {
+    const o = D.objects.find((x) => x.name === P.name);
+    $("title").textContent = `${o.file}`;
+    $("doc").innerHTML = R.mdBlock(o.doc);
+    $("why").innerHTML = o.why ? `<pre class="doc small">${esc(o.why)}</pre>` : '<p class="note">这一样没有单独的一份「为什么删不掉」。</p>';
+    $("lean").innerHTML = o.lean ? `<p class="note">${esc(o.lean.file)}（身份：定义）</p><pre class="lean">${window.paintLean(o.lean.src)}</pre>` :
+      '<p class="note">它没有 Lean 那一份（唯一碰像素的地方只在 Python 里）。</p>';
+  }
+
+  function rules() {
+    $("list").innerHTML = grouped(D.rules, (r) =>
+      `<a class="row" href="${r.name}.html"><span class="nm">${esc(r.name)}</span>` +
+      `<span class="cl">${esc(r.claim)}</span>` +
+      `<span class="why">开口 ${r.scope}　对 ${r.C}　错 <b>${r.E}</b>　不管 ${r.N}　·　${esc(r.identity)}</span></a>`);
+  }
+
+  function rule() {
+    const r = D.rules.find((x) => x.name === P.name);
+    $("title").textContent = r.name;
+    $("claim").textContent = r.claim;
+    $("nums").innerHTML =
+      `<table><tr><th class="num">开口 |scope|</th><th class="num">判对 C</th><th class="num">判错 E</th><th class="num">不管 N</th><th class="num">读不成 U</th></tr>` +
+      `<tr><td class="num">${r.scope}</td><td class="num">${r.C}</td><td class="num ${r.E ? "bad" : "ok"}">${r.E}</td><td class="num">${r.N}</td><td class="num">${r.U}</td></tr></table>` +
+      `<p class="note">在这 ${D.corpus.rows} 条转移上（去重 ${D.corpus.uniq_tid} 条）。不管的那 ${r.N} 条，按理由分：</p>` +
+      "<table>" + Object.entries(r.na).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v}</td></tr>`).join("") + "</table>";
+    $("scope").textContent = r.scope_note;
+    $("notclaimed").innerHTML = r.not_claimed.length ? "<ul class=\"tight\">" + r.not_claimed.map((x) => `<li>${esc(x)}</li>`).join("") + "</ul>" : '<p class="note">（没写）</p>';
+    $("history").innerHTML = "<ul class=\"tight\">" + r.note.map((x) => `<li>${esc(x)}</li>`).join("") + "</ul>" +
+      (r.from_book.length ? `<p class="note">起点册子里的出处：${r.from_book.map(esc).join("、")}</p>` : "");
+    $("lean").innerHTML = `<p class="note">身份：<b>${esc(r.identity)}</b>　${esc(r.identity_rest)}</p>` +
+      (r.lean ? `<pre class="lean">${window.paintLean(r.lean.src)}</pre>` : "");
+    $("evidence").innerHTML = r.evidence.length ? r.evidence.map((t) => `<code>${esc(t)}</code>`).join("　") : '<span class="note">（没列）</span>';
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    ({ home, replay, objects, object, rules, rule }[P.kind] || (() => {}))();
+  });
+})();
+
+</script>
+</body>
+</html>

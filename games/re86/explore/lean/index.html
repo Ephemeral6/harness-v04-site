@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>这一局 · 形式化</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>这一局 · 形式化</h1><div class="sub">结论在前；读数全部来自 lean2/readings.json。</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>每一关一条结论</h2>
+<table><tr><th>关</th><th>结论</th><th class="num">逐帧核过的步数</th><th>文件</th></tr><tr><td>第 0 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>19</td><td><a href='Proof-Levels-L0.html'>Proof/Levels/L0.lean</a></td></tr><tr><td>第 1 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>35</td><td><a href='Proof-Levels-L1.html'>Proof/Levels/L1.lean</a></td></tr><tr><td>第 2 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>46</td><td><a href='Proof-Levels-L2.html'>Proof/Levels/L2.lean</a></td></tr><tr><td>第 3 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>43</td><td><a href='Proof-Levels-L3.html'>Proof/Levels/L3.lean</a></td></tr><tr><td>第 4 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>64</td><td><a href='Proof-Levels-L4.html'>Proof/Levels/L4.lean</a></td></tr><tr><td>第 5 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>45</td><td><a href='Proof-Levels-L5.html'>Proof/Levels/L5.lean</a></td></tr><tr><td>第 6 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>102</td><td><a href='Proof-Levels-L6.html'>Proof/Levels/L6.lean</a></td></tr><tr><td>第 7 关</td><td><span class='chip TRUE'>走得通</span></td><td class='num'>185</td><td><a href='Proof-Levels-L7.html'>Proof/Levels/L7.lean</a></td></tr></table>
+<p class="note">每关两条定理：<code>_trace</code>（模型只拿开局那一帧，后面全是自己算的，每一帧都和观测对上）与
+<code>_winnable</code>（真人那条路再加过关那一脚）。另有 <code>_acts_len</code> 里的「不是因为一开局就赢了」。</p></div>
+<div class="card"><h2>逐条那一层（每一步从观测那一帧重新起算）</h2>
+<p>用例 303 条：对上 303、证伪 0、说不出话 0；
+和 Python 规则层逐条对账：一条一条相同（定理 reconcile）。</p>
+<p class="note">只有前一帧读全了（每一边都读到底、光标看得见）的那几步才造用例；其余几步只在每关那一层里被核。</p></div>
+<div class="card"><h2>每条规则的身份</h2><table><tr><th>规则</th><th>身份</th><th>名字 / 理由</th><th>论域</th></tr><tr><td><a href='../rules/board__layers.html'>board/layers</a></td><td>推论</td><td>layers_kept</td><td></td></tr><tr><td><a href='../rules/board__static.html'>board/static</a></td><td>不进模型</td><td>表示不出来：Board 不是 World 的字段，step 返回值里没有它——「走一步版面不变」在模型里说都说不出来</td><td>2115 / 驳倒 0</td></tr><tr><td><a href='../rules/goal__level_up.html'>goal/level_up</a></td><td>定义</td><td>isGoal</td><td></td></tr><tr><td><a href='../rules/hud__tick.html'>hud/tick</a></td><td>不进模型</td><td>HUD 不在 World 里：涨在哪一步要本关步数与本关预算，两样都不在帧上</td><td>2147 / 驳倒 0</td></tr><tr><td><a href='../rules/move__blocked_box.html'>move/blocked_box</a></td><td>定义</td><td>blockedBox</td><td></td></tr><tr><td><a href='../rules/move__blocked_cross.html'>move/blocked_cross</a></td><td>定义</td><td>blockedCross</td><td></td></tr><tr><td><a href='../rules/move__others_stay.html'>move/others_stay</a></td><td>推论</td><td>others_stay</td><td></td></tr><tr><td><a href='../rules/move__recolor.html'>move/recolor</a></td><td>定义</td><td>recolor</td><td></td></tr><tr><td><a href='../rules/move__translate.html'>move/translate</a></td><td>定义</td><td>translate</td><td></td></tr><tr><td><a href='../rules/notmodel__budget_curve.html'>notmodel/budget_curve</a></td><td>不进模型</td><td>要本关步数 n 与拟合出来的每关预算 B，帧上都没有</td><td>2115 / 驳倒 0</td></tr><tr><td><a href='../rules/notmodel__reset_restarts.html'>notmodel/reset_restarts</a></td><td>不进模型</td><td>「开局长什么样」是历史不是状态；被认证的那一段关内 0 次 RESET</td><td>4 / 驳倒 0</td></tr><tr><td><a href='../rules/switch__cycle.html'>switch/cycle</a></td><td>定义</td><td>cycle</td><td></td></tr></table></div>
+<div class="card"><h2>凭什么信上面这些</h2>
+<p>定理 42 条，<code>#print axioms</code> 覆盖 42，不干净 0（只许 propext / Classical.choice / Quot.sound）。</p>
+<p>破坏测试 <a href="Broken.html">Broken.lean</a>：退出码 1，报错行 [17]，标记行 17——只在标记那一行红。</p>
+<details><summary>逐个文件</summary><table><tr><th>文件</th><th>组</th><th>编译</th><th class="num">定理</th></tr><tr><td><a href='Obj-Piece-Piece.html'>Obj/Piece/Piece.lean</a></td><td>对象</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Obj-Board-Ring.html'>Obj/Board/Ring.lean</a></td><td>对象</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Obj-Board-Swatch.html'>Obj/Board/Swatch.lean</a></td><td>对象</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Obj-World.html'>Obj/World.lean</a></td><td>对象</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Rule-Move-Translate.html'>Rule/Move/Translate.lean</a></td><td>规则</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Rule-Move-BlockedCross.html'>Rule/Move/BlockedCross.lean</a></td><td>规则</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Rule-Move-BlockedBox.html'>Rule/Move/BlockedBox.lean</a></td><td>规则</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Rule-Move-Recolor.html'>Rule/Move/Recolor.lean</a></td><td>规则</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Rule-Switch-Cycle.html'>Rule/Switch/Cycle.lean</a></td><td>规则</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Rule-Goal-LevelUp.html'>Rule/Goal/LevelUp.lean</a></td><td>规则</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Step.html'>Step.lean</a></td><td>装配</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Derived-Slots.html'>Derived/Slots.lean</a></td><td>推论</td><td>编过</td><td class='num'>3</td></tr><tr><td><a href='Obs-Check.html'>Obs/Check.lean</a></td><td>观测</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Obs-Replay.html'>Obs/Replay.lean</a></td><td>观测</td><td>编过</td><td class='num'>0</td></tr><tr><td><a href='Obs-Corpus.html'>Obs/Corpus.lean</a></td><td>观测</td><td>编过</td><td class='num'>5</td></tr><tr><td><a href='Proof-Reachable.html'>Proof/Reachable.lean</a></td><td>证明</td><td>编过</td><td class='num'>2</td></tr><tr><td><a href='Proof-Levels-L0.html'>Proof/Levels/L0.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L1.html'>Proof/Levels/L1.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L2.html'>Proof/Levels/L2.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L3.html'>Proof/Levels/L3.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L4.html'>Proof/Levels/L4.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L5.html'>Proof/Levels/L5.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L6.html'>Proof/Levels/L6.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr><tr><td><a href='Proof-Levels-L7.html'>Proof/Levels/L7.lean</a></td><td>证明</td><td>编过</td><td class='num'>4</td></tr></table></details></div>
+</div></body></html>

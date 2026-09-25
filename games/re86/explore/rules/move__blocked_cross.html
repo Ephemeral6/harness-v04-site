@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · move/blocked_cross</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · move/blocked_cross</h1><div class="sub">rule/move/blocked_cross.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>读数</h2><table>
+<tr><th>开口（行 / 去重）</th><td>113 / 62</td></tr>
+<tr><th>判对</th><td>40 / 22</td></tr><tr><th>判错</th><td>0 / 0</td></tr>
+<tr><th>读不出</th><td>73 / 40</td></tr><tr><th>沉默</th><td>2040</td></tr>
+<tr><th>打红它的突变体</th><td>M00_seed、M02_bar_ignores_block、M12_all_known、M17_hollow_blind</td></tr>
+<tr><th>独家拒掉的造错转移（装置）</th><td>1</td></tr></table>
+<details><summary>沉默 / 读不出的理由</summary><table><tr><td class='num'>1829</td><td>N: 没撞上挡块 → move/translate</td></tr><tr><td class='num'>97</td><td>N: 不是推（ACTION1–4）</td></tr><tr><td class='num'>80</td><td>N: 不是 cross 族 → move/blocked_box</td></tr><tr><td class='num'>73</td><td>U: 读不出：光标被盖住，选中的是哪件看不见</td></tr><tr><td class='num'>34</td><td>N: 换关 / 终局那一步 → goal/level_up</td></tr></table></details>
+<details><summary>判错的那几条</summary><ul><li>无</li></ul></details></div>
+<div class="card"><h2>它说什么</h2><p>十字撞挡块时两条杠各自判：会压到挡块的那条不动，另一条平移 3；两条都会压到就整件不动。</p><pre>十字（横杠 + 竖杠）被推而撞上挡块：**两条杠各走各的**——
+平移后会压到挡块的那条原地不动，另一条照常平移 3 格；交点永远是「横杠的行 × 竖杠的列」。</pre>
+<p class="note">论域：不是推 / 换关 → 同 move/translate；没撞上 → move/translate；不是 cross 族 → move/blocked_box（box）或不主张（ex / diamond）</p></div>
+<div class="card"><h2>它明确不主张什么</h2><ul><li>两条杠都会压到挡块的情形语料里 0 次；「整件不动」是从单杠那一支推出去的，没被检验过</li><li>平移后交点落到某条杠外面（两条杠不再相交）语料里 0 次，不主张</li><li>颜色（归 move/recolor）</li></ul></div>
+<div class="card"><h2>改版史</h2><ul><li>v1 接手册子 blocked_deforms：它的 v3 曾把「竖杠不动」读成「包围盒不动」，病根是那 7 次撞击里被挡的恰好全是竖杠；这一版按杠判，两种杠都有见证</li></ul>
+<p class="note">接手起点册子的：blocked_deforms</p></div>
+<div class="card"><h2>它的 Lean</h2><p><b>定义</b>：Rule/Move/BlockedCross.lean 里的 <code>blockedCross</code></p><pre>/-
+# Rule/Move/BlockedCross —— 十字撞挡块：两条杠各走各的（对应 `rule/move/blocked_cross.py`）
+
+会压到挡块的那条杠原地不动，另一条平移 3；交点 = 横杠的行 × 竖杠的列。
+没有横杠（竖线）或没有竖杠（横线）时，交点只跟着那一条走。
+-/
+
+import Obj.World
+import Rule.Move.Translate
+
+namespace Game
+
+def blockedCross (b : Board) (p : Piece) (a : Act) : Piece :=
+  let dr := a.delta.1
+  let dc := a.delta.2
+  let hasH := decide (p.left &lt; p.right)
+  let hasV := decide (p.top &lt; p.bottom)
+  let hb := hasH &amp;&amp; b.blockers.any (fun rc =&gt;
+    rc.1 - dr == p.hr &amp;&amp; decide (p.left ≤ rc.2 - dc) &amp;&amp; decide (rc.2 - dc ≤ p.right))
+  let vb := hasV &amp;&amp; b.blockers.any (fun rc =&gt;
+    rc.2 - dc == p.hc &amp;&amp; decide (p.top ≤ rc.1 - dr) &amp;&amp; decide (rc.1 - dr ≤ p.bottom))
+  let rh := if hasH then (if hb then p.hr else p.hr + dr) else (if vb then p.hr else p.hr + dr)
+  let l  := if hasH then (if hb then p.left else p.left + dc) else (if vb then p.hc else p.hc + dc)
+  let rr := if hasH then (if hb then p.right else p.right + dc) else (if vb then p.hc else p.hc + dc)
+  let cv := if hasV then (if vb then p.hc else p.hc + dc) else (if hb then p.hc else p.hc + dc)
+  let t  := if hasV then (if vb then p.top else p.top + dr) else (if hb then p.hr else p.hr + dr)
+  let bt := if hasV then (if vb then p.bottom else p.bottom + dr) else (if hb then p.hr else p.hr + dr)
+  { p with top := min t rh, left := min l cv, bottom := max bt rh, right := max rr cv,
+           hr := rh, hc := cv }
+
+end Game
+</pre></div>
+</div></body></html>

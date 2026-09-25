@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象 · parse</title>
+<style>
+/* 只有尺寸与配色。形状从 ledger/templates/web/style.css 起手，世界的配色那一块按本局改。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .6px; }
+.gaps { border-color: var(--warn); }
+.gaps h2 { color: var(--warn); }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { color: var(--dim); font-size: 12px; max-width: 300px; margin-top: 6px; }
+canvas.frame { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; min-width: 44px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.U { background: #222732; color: var(--faint); }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 14px; }
+.note { color: var(--dim); font-size: 13px; }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.row .t { font-weight: 600; }
+pre.src { background: #0e1015; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+          overflow-x: auto; font-size: 12px; line-height: 1.45; white-space: pre; }
+pre.txt { white-space: pre-wrap; font-size: 12.5px; }
+details > summary { cursor: pointer; color: var(--dim); }
+.controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; font-size: 13px; }
+input[type=range] { flex: 1; min-width: 200px; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>对象 · parse</h1>
+  <div class="sub">objects/parse.py</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card "><h2>它的位置</h2><p class='note'>全局唯一碰像素的地方：帧 → World。读不成就抛 ParseError，归类由读数那一层按 meta 做。</p></div><div class="card "><h2>它是什么</h2><pre class='txt'>帧 → 世界。**全局唯一碰像素的地方。**
+
+上面每一层只认 `World` 的字段，读不到帧。色号、像素坐标、4×4 这些数只在这一份里出现。
+
+## 怎么认（按结构，不按行号列号）
+
+两种版式（第 0 关一种，第 1 关起另一种）用**同一套读法**：
+
+  盘      四周一圈色 0 的边框、框内一个色 0 都没有、边长是 4 的倍数的那块矩形
+  面板    盘的边框正下方、同样左右两列是色 0 的那一段；里面单独一行的是横条、
+          连着三行的是竖杆，横竖交替成组
+  大圆    面板下方的色 9 实心块（实心：像素数过包围盒一半；框的色 9 边是空心的）
+  底栏    面板下方上下两条边都在的 9×9 空心框（边框色 9 = 选中 / 色 2 = 没选中）
+
+## 良构检查 = 同一个量的两种读法必须对得上（对不上就抛，不返回半个世界）
+
+  顶栏    「色 9 有几格」与「色 9 是不是一段前缀」
+  盘      每一格要么是底色、要么全是墙色、要么是花格纹、要么是记号纹（插槽的像素先抠掉）；
+          件压着的格，缺口露出来的必须是那一格的底色
+  件/插槽 色 11/15 的连通块里恰好一块是件（缺一口的方块、对齐格子），恰好一块是插槽
+          （包围盒减自己 = 一块缺一口的方块、对齐格子）；多出来的块一律读不成
+  面板    每个件的 3 个像素同色、且是亮/暗之一；面板里除了件之外全是色 0
+
+读不成就抛 `ParseError`。**这里只管抛，不管归类**：「这一帧本来就不是局面」还是
+「是局面而我读不出」由拿得到 meta 的那一层分（见 `run_rules.py`）。</pre></div><div class="card "><h2>它的 Lean（身份：定义）</h2><p class='note'>无（parse 是像素那一层，Lean 那边由 Obs/Replay.lean 接住观测）</p></div><div class="card "><h2>源码</h2><details><summary>objects/parse.py</summary><pre class='src'>&quot;&quot;&quot;帧 → 世界。**全局唯一碰像素的地方。**
+
+上面每一层只认 `World` 的字段，读不到帧。色号、像素坐标、4×4 这些数只在这一份里出现。
+
+## 怎么认（按结构，不按行号列号）
+
+两种版式（第 0 关一种，第 1 关起另一种）用**同一套读法**：
+
+  盘      四周一圈色 0 的边框、框内一个色 0 都没有、边长是 4 的倍数的那块矩形
+  面板    盘的边框正下方、同样左右两列是色 0 的那一段；里面单独一行的是横条、
+          连着三行的是竖杆，横竖交替成组
+  大圆    面板下方的色 9 实心块（实心：像素数过包围盒一半；框的色 9 边是空心的）
+  底栏    面板下方上下两条边都在的 9×9 空心框（边框色 9 = 选中 / 色 2 = 没选中）
+
+## 良构检查 = 同一个量的两种读法必须对得上（对不上就抛，不返回半个世界）
+
+  顶栏    「色 9 有几格」与「色 9 是不是一段前缀」
+  盘      每一格要么是底色、要么全是墙色、要么是花格纹、要么是记号纹（插槽的像素先抠掉）；
+          件压着的格，缺口露出来的必须是那一格的底色
+  件/插槽 色 11/15 的连通块里恰好一块是件（缺一口的方块、对齐格子），恰好一块是插槽
+          （包围盒减自己 = 一块缺一口的方块、对齐格子）；多出来的块一律读不成
+  面板    每个件的 3 个像素同色、且是亮/暗之一；面板里除了件之外全是色 0
+
+读不成就抛 `ParseError`。**这里只管抛，不管归类**：「这一帧本来就不是局面」还是
+「是局面而我读不出」由拿得到 meta 的那一层分（见 `run_rules.py`）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import hashlib
+
+from .board.board import Board
+from .board.pads import Pads
+from .frame.layout import Layout
+from .frame.world import World
+from .gauge.counter import WIDTH, Counter
+from .geometry.cell import Cell
+from .geometry.form import Form
+from .panel.panel import Panel
+from .panel.toolbox import Toolbox
+from .screen.controls import Controls
+from .screen.scenery import Scenery
+
+CELL = 4                                    # 一格的像素边长
+BORDER = 0                                  # 盘与面板的底色 / 边框
+FULL, SPENT = 9, 3                          # 顶栏：还在 / 花掉
+COUNTER_ROW = 1
+ON, OFF = 1, 5                              # 面板件：亮 / 暗
+PIECE = 11                                  # 件的颜色
+SOCKET_COLORS = (11, 15)                    # 插槽的颜色（换关会换）
+WALL = 6
+MARK, MARK_TEXTURE = 14, (12, 13, 14)
+BG_EVEN, BG_ODD = 5, 4                      # 盘的底色：(格行+格列) 偶数 / 奇数
+DISC = 9
+BOX_BORDERS = (9, 2)
+BOX = 9                                     # 底栏框的边长
+ICON_COLORS = (11, 15)
+NOP_ICON = 15                               # 「无操作」那个图标的颜色
+
+# 图标 → 指令。居中的图标按像素数认；偏离框心的按偏离方向认。**这是一张学来的表**。
+CENTERED_ICON = {1: &quot;SHRINK&quot;, 25: &quot;GROW&quot;, 13: &quot;ROT&quot;}
+
+
+class ParseError(Exception):
+    &quot;&quot;&quot;这一帧读不成一个世界。**这是一条可判错的话**，不是一次异常处理。
+
+    归类（「不是局面」/「是局面但读不出」）不在这里做：从帧上分不开的事别逼 parse 填。
+    &quot;&quot;&quot;
+
+
+def bg(i: int, j: int) -&gt; int:
+    return BG_EVEN if (i + j) % 2 == 0 else BG_ODD
+
+
+# ---------------------------------------------------------------- 顶栏
+
+def _counter(g) -&gt; Counter:
+    row = [g[COUNTER_ROW][c] for c in range(1, 1 + WIDTH)]
+    if any(v not in (FULL, SPENT) for v in row):
+        raise ParseError(&quot;顶栏里出现了既不是「还在」也不是「花掉」的颜色&quot;)
+    n = row.count(FULL)
+    if row != [FULL] * n + [SPENT] * (WIDTH - n):
+        raise ParseError(&quot;顶栏不是「还在」前缀 + 「花掉」后缀：两种读法对不上&quot;)
+    return Counter(n)
+
+
+# ---------------------------------------------------------------- 盘的边框
+
+def _board_ring(g):
+    &quot;&quot;&quot;(上, 下, 左, 右)：盘外那一圈色 0 边框的四条线（闭区间）。恰好一块，否则抛。&quot;&quot;&quot;
+    H, W = len(g), len(g[0])
+    found = []
+    for t in range(H):
+        c = 0
+        while c &lt; W:
+            if g[t][c] != BORDER:
+                c += 1
+                continue
+            c2 = c
+            while c2 + 1 &lt; W and g[t][c2 + 1] == BORDER:
+                c2 += 1
+            if c2 - c &gt;= 2 * CELL + 1:
+                b = next((r for r in range(t + 2, H)
+                          if all(g[r][x] == BORDER for x in range(c, c2 + 1))), None)
+                if b is not None and all(g[r][c] == BORDER and g[r][c2] == BORDER
+                                         for r in range(t, b + 1)):
+                    h, w = b - t - 1, c2 - c - 1
+                    clean = all(g[r][x] != BORDER for r in range(t + 1, b) for x in range(c + 1, c2))
+                    if clean and h % CELL == 0 and w % CELL == 0 and h &gt; 0 and w &gt; 0:
+                        found.append((t, b, c, c2))
+            c = c2 + 1
+    if len(found) != 1:
+        raise ParseError(f&quot;认出 {len(found)} 块「色 0 框、框内无色 0、边长 4 的倍数」的盘（应为 1）&quot;)
+    return found[0]
+
+
+# ---------------------------------------------------------------- 盘内
+
+def _blobs(pix: set) -&gt; list[set]:
+    out, todo = [], set(pix)
+    while todo:
+        seed = min(todo)
+        comp, stack = set(), [seed]
+        while stack:
+            p = stack.pop()
+            if p in comp or p not in todo:
+                continue
+            comp.add(p)
+            r, c = p
+            stack += [(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)]
+        todo -= comp
+        out.append(comp)
+    return out
+
+
+def _notch_cut(s: int) -&gt; dict:
+    return {
+        &quot;N&quot;: {(r, c) for r in range(0, s) for c in range(s, 3 * s)},
+        &quot;S&quot;: {(r, c) for r in range(3 * s, 4 * s) for c in range(s, 3 * s)},
+        &quot;W&quot;: {(r, c) for r in range(s, 3 * s) for c in range(0, s)},
+        &quot;E&quot;: {(r, c) for r in range(s, 3 * s) for c in range(3 * s, 4 * s)},
+    }
+
+
+def _form_of(px: set, top: int, left: int) -&gt; Form | None:
+    &quot;&quot;&quot;一团像素是不是「缺一口的方块、对齐格子」：是就返回它的 Form，不是返回 None。&quot;&quot;&quot;
+    if not px:
+        return None
+    rs = [r for r, _ in px]
+    cs = [c for _, c in px]
+    r0, c0, h, w = min(rs), min(cs), max(rs) - min(rs) + 1, max(cs) - min(cs) + 1
+    if h != w or h % CELL:
+        return None
+    s = h // CELL
+    missing = {(r, c) for r in range(h) for c in range(w)} - {(r - r0, c - c0) for r, c in px}
+    notch = next((d for d, cut in _notch_cut(s).items() if missing == cut), None)
+    if notch is None or (r0 - top) % CELL or (c0 - left) % CELL:
+        return None
+    return Form(Cell((r0 - top) // CELL, (c0 - left) // CELL), s, notch)
+
+
+def _board(g, t, b, l, r):
+    top, left = t + 1, l + 1
+    nr, nc = (b - t - 1) // CELL, (r - l - 1) // CELL
+
+    def px(i, j):
+        return [(top + CELL * i + dr, left + CELL * j + dc) for dr in range(CELL) for dc in range(CELL)]
+
+    # 花格：一格 16 个像素恰好是「色 11 与底色交错、左上角是色 11」
+    pads = set()
+    for i in range(nr):
+        for j in range(nc):
+            if all(g[y][x] == (PIECE if ((y - top) + (x - left)) % 2 == 0 else bg(i, j))
+                   for y, x in px(i, j)):
+                pads.add(Cell(i, j))
+    pad_px = {p for c in pads for p in px(c.row, c.col)}
+
+    blobs = []
+    for color in SOCKET_COLORS:
+        pix = {(y, x) for y in range(top, b) for x in range(left, r)
+               if g[y][x] == color and (y, x) not in pad_px}
+        blobs += [(color, bl) for bl in _blobs(pix)]
+    piece = [(bl, f) for color, bl in blobs if color == PIECE
+             for f in [_form_of(bl, top, left)] if f is not None]
+    if len(piece) != 1:
+        raise ParseError(f&quot;盘上认出 {len(piece)} 块件（应为 1）&quot;)
+    piece_px, piece_form = piece[0]
+    rest = [bl for _, bl in blobs if bl is not piece_px]
+    sockets = []
+    for bl in rest:
+        rs = [y for y, _ in bl]
+        cs = [x for _, x in bl]
+        box = {(y, x) for y in range(min(rs), max(rs) + 1) for x in range(min(cs), max(cs) + 1)}
+        f = _form_of(box - bl, top, left)
+        if f is not None:
+            sockets.append((bl, f))
+    if len(sockets) != 1:
+        raise ParseError(f&quot;盘上认出 {len(sockets)} 个插槽（应为 1）&quot;)
+    sock_px, sock_form = sockets[0]
+    extra = [bl for bl in rest if bl is not sock_px]
+    if extra:
+        raise ParseError(f&quot;盘上多出 {len(extra)} 块读不出的色 11/15&quot;)
+
+    covered = piece_form.footprint()
+    walls, marks = set(), set()
+    for i in range(nr):
+        for j in range(nc):
+            c = Cell(i, j)
+            if c in pads:
+                continue
+            if c in covered:
+                continue
+            vals = [g[y][x] for y, x in px(i, j) if (y, x) not in sock_px]
+            if all(v == bg(i, j) for v in vals):
+                continue
+            if vals and all(v == WALL for v in vals):
+                walls.add(c)
+            elif MARK in vals and all(v in MARK_TEXTURE or v == bg(i, j) for v in vals):
+                marks.add(c)
+            else:
+                raise ParseError(f&quot;格 ({i},{j}) 既不是底色、墙、花格、记号，也不在件底下&quot;)
+    # 件压着的那几格：缺口露出来的必须是那一格的底色（两种读法：件的形 与 缺口处的底色）
+    for y in range(top + CELL * piece_form.cell.row,
+                   top + CELL * (piece_form.cell.row + piece_form.scale)):
+        for x in range(left + CELL * piece_form.cell.col,
+                       left + CELL * (piece_form.cell.col + piece_form.scale)):
+            if (y, x) in piece_px:
+                continue
+            i, j = (y - top) // CELL, (x - left) // CELL
+            if g[y][x] != bg(i, j):
+                raise ParseError(&quot;件的缺口处露出来的不是底色&quot;)
+    board = Board(nr, nc, frozenset(walls), frozenset(marks), sock_form)
+    return board, piece_form, Pads(frozenset(pads))
+
+
+# ---------------------------------------------------------------- 面板
+
+def _runs(seq):
+    out = []
+    for v in seq:
+        if out and v == out[-1][-1] + 1:
+            out[-1].append(v)
+        else:
+            out.append([v])
+    return out
+
+
+def _panel(g, b, l, r):
+    &quot;&quot;&quot;面板：盘的边框下方、左右两列仍是色 0 的那一段。返回 (Panel, 件的像素, 命中盒, 面板末行)。&quot;&quot;&quot;
+    rows = []
+    y = b + 1
+    while y &lt; len(g) and g[y][l] == BORDER and g[y][r] == BORDER:
+        rows.append(y)
+        y += 1
+    if not rows:
+        raise ParseError(&quot;盘的下方没有面板&quot;)
+    end = rows[-1]
+    lit = [y for y in rows if any(g[y][x] in (ON, OFF) for x in range(l + 1, r))]
+    runs = _runs(lit)
+    if not runs or len(runs) % 2 or any(len(runs[2 * i]) != 1 or len(runs[2 * i + 1]) != 3
+                                        for i in range(len(runs) // 2)):
+        raise ParseError(&quot;面板的行不是「一行横条 + 三行竖杆」交替成组&quot;)
+    bars = [runs[2 * i][0] for i in range(len(runs) // 2)]
+    stems = [tuple(runs[2 * i + 1]) for i in range(len(runs) // 2)]
+    cols = [x for x in range(l + 1, r) if g[stems[0][0]][x] in (ON, OFF)]
+    if not cols:
+        raise ParseError(&quot;面板读不出槽&quot;)
+    dark, pix, hits = set(), set(), []
+    for gi in range(len(bars)):
+        for k, c in enumerate(cols):
+            for kind, cells in ((&quot;bar&quot;, [(bars[gi], c + d) for d in (-1, 0, 1)]),
+                                (&quot;stem&quot;, [(y2, c) for y2 in stems[gi]])):
+                vals = {g[y2][x2] for y2, x2 in cells}
+                if len(vals) != 1 or not vals &lt;= {ON, OFF}:
+                    raise ParseError(f&quot;面板件 {kind}{gi}{k} 的 3 个像素不同色或不是亮/暗&quot;)
+                if vals == {OFF}:
+                    dark.add((kind, gi, k))
+                pix |= set(cells)
+            hits.append((bars[gi] - 1, bars[gi] + 1, c - 2, c + 2, (&quot;bar&quot;, gi, k)))
+            hits.append((stems[gi][0], stems[gi][-1], c - 2, c + 2, (&quot;stem&quot;, gi, k)))
+    for y2 in rows:
+        for x2 in range(l + 1, r):
+            if (y2, x2) not in pix and g[y2][x2] != BORDER:
+                raise ParseError(&quot;面板里除了件还有别的东西&quot;)
+    return Panel(len(bars), len(cols), frozenset(dark)), pix, hits, end
+
+
+# ---------------------------------------------------------------- 大圆与底栏
+
+def _disc(g, end):
+    pix = {(y, x) for y in range(end + 1, len(g)) for x in range(len(g[0])) if g[y][x] == DISC}
+    cands = []
+    for bl in _blobs(pix):
+        rs = [y for y, _ in bl]
+        cs = [x for _, x in bl]
+        area = (max(rs) - min(rs) + 1) * (max(cs) - min(cs) + 1)
+        if len(bl) * 2 &gt; area and area &gt;= 25:
+            cands.append((min(rs), max(rs), min(cs), max(cs)))
+    if len(cands) != 1:
+        raise ParseError(f&quot;面板下方认出 {len(cands)} 个实心大圆（应为 1）&quot;)
+    return cands[0]
+
+
+def _toolbox(g, end) -&gt; Toolbox:
+    H, W = len(g), len(g[0])
+
+    def runs9(y):
+        out, x = [], 0
+        while x &lt; W:
+            v = g[y][x]
+            if v in BOX_BORDERS:
+                x2 = x
+                while x2 + 1 &lt; W and g[y][x2 + 1] == v:
+                    x2 += 1
+                if x2 - x + 1 == BOX:
+                    out.append((x, v))
+                x = x2 + 1
+            else:
+                x += 1
+        return out
+
+    boxes = []
+    for y in range(end + 1, H - BOX + 1):
+        for x, v in runs9(y):
+            if (x, v) in runs9(y + BOX - 1) and all(g[yy][x] == v and g[yy][x + BOX - 1] == v
+                                                    for yy in range(y, y + BOX)):
+                boxes.append((y, x))
+    if not boxes:
+        return Toolbox(None)
+    ops = []
+    for y, x in sorted(boxes, key=lambda p: p[1]):
+        icon = [(yy, xx, g[yy][xx]) for yy in range(y + 1, y + BOX - 1)
+                for xx in range(x + 1, x + BOX - 1) if g[yy][xx] in ICON_COLORS]
+        if not icon:
+            raise ParseError(&quot;底栏有一个框里没有图标&quot;)
+        cy, cx = y + BOX // 2, x + BOX // 2
+        dy = sum(p[0] for p in icon) / len(icon) - cy
+        dx = sum(p[1] for p in icon) / len(icon) - cx
+        if max(abs(dy), abs(dx)) &gt;= 1:
+            ops.append((&quot;N&quot; if dy &lt; 0 else &quot;S&quot;) if abs(dy) &gt; abs(dx) else (&quot;W&quot; if dx &lt; 0 else &quot;E&quot;))
+        elif all(p[2] == NOP_ICON for p in icon):
+            ops.append(&quot;NOP&quot;)
+        elif len(icon) in CENTERED_ICON:
+            ops.append(CENTERED_ICON[len(icon)])
+        else:
+            raise ParseError(f&quot;底栏有一个居中的图标认不出（{len(icon)} 个像素）&quot;)
+    return Toolbox(tuple(ops))
+
+
+# ---------------------------------------------------------------- 总装
+
+def parse(frame) -&gt; World:
+    &quot;&quot;&quot;一帧像素 → 一个 World。读不出来抛 `ParseError`。&quot;&quot;&quot;
+    g = frame
+    if not g or len(g) &lt; 8 or any(len(row) != len(g[0]) for row in g):
+        raise ParseError(&quot;不是一张矩形帧&quot;)
+    counter = _counter(g)
+    t, b, l, r = _board_ring(g)
+    board, piece, pads = _board(g, t, b, l, r)
+    panel, panel_px, hits, end = _panel(g, b, l, r)
+    d = _disc(g, end)
+    hits.append((d[0], d[1], d[2], d[3], (&quot;disc&quot;,)))
+    toolbox = _toolbox(g, end)
+    h = hashlib.sha1()
+    for y, row in enumerate(g):
+        if y == COUNTER_ROW:
+            continue
+        for x, v in enumerate(row):
+            if t &lt; y &lt; b and l &lt; x &lt; r:
+                continue
+            if (y, x) in panel_px:
+                continue
+            h.update(bytes((y, x, v)))
+    layout = Layout(board=board, toolbox=toolbox, controls=Controls(tuple(hits)),
+                    scenery=Scenery(h.hexdigest()[:12]))
+    return World(counter=counter, panel=panel, piece=piece, pads=pads, layout=layout)
+</pre></details></div>
+</div>
+<script>window.PAGE = {};</script>
+<script>
+// 只画、只翻页。**这里没有一行世界逻辑**：每一帧的像素、哪几格变了、每条规则判了什么、
+// 世界字段读出来是多少——全是 web/export.py 在 Python 那边算好的，这一份只摆出来。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+// ARC-AGI-3 的 16 色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出，
+// pages.py 放进要画帧的那几页的 PAGE.palette（下标 = 色号）。这里不抄。
+const PALETTE = (window.PAGE && window.PAGE.palette) || [];
+const PX = 4;
+
+function paintFrame(cv, hex, marks) {
+  cv.width = 64 * PX; cv.height = 64 * PX;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 4096; i++) {
+    g.fillStyle = PALETTE[parseInt(hex[i], 16)];
+    g.fillRect((i % 64) * PX, Math.floor(i / 64) * PX, PX, PX);
+  }
+  if (marks) {
+    g.strokeStyle = "#ff2d55"; g.lineWidth = 1;
+    for (const rc of marks) g.strokeRect(rc[1] * PX + .5, rc[0] * PX + .5, PX - 1, PX - 1);
+  }
+}
+
+function paintAll() {
+  const P = window.PAGE || {};
+  document.querySelectorAll("canvas[data-frame]").forEach((cv) => {
+    const id = cv.getAttribute("data-frame");
+    const mk = cv.getAttribute("data-marks");
+    paintFrame(cv, P.frames[id], mk ? P.marks[mk] : null);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function replayInit() {
+  const P = window.PAGE;
+  if (!P || !P.rows) return;
+  const box = document.getElementById("replay");
+  const slider = document.getElementById("pos");
+  const label = document.getElementById("where");
+  slider.max = P.rows.length - 1;
+  function show(i) {
+    const s = P.rows[i];
+    slider.value = i;
+    label.textContent = `第 ${i + 1} / ${P.rows.length} 行 · seq ${s.seq} · 段 ${s.seg} · 第 ${s.lvl} 关（本关第 ${s.k} 下）`;
+    paintFrame(document.getElementById("cvA"), P.frames[s.prev], null);
+    paintFrame(document.getElementById("cvB"), P.frames[s.next], s.changed);
+    const chips = Object.entries(s.verdicts).map(([n, v]) =>
+      `<tr><td>${esc(n)}</td><td><span class="chip ${v}">${v}</span></td></tr>`).join("");
+    const wv = (w) => w ? `顶栏 ${w.counter}；件 ${esc(w.piece)}；面板程序 ${esc(w.program)}；看得见的花格 ${esc(w.pads)}` : "（读不成世界：终局画面）";
+    document.getElementById("info").innerHTML =
+      `<dl class="kv"><dt>动作</dt><dd class="mono">${esc(s.action)}（${esc(s.kind)}${s.result ? "，交卷结果 " + esc(s.result) : ""}）</dd>` +
+      `<dt>上游</dt><dd>第 ${s.lvl} 关 → 第 ${s.lvl_next} 关，${esc(s.state)}</dd>` +
+      `<dt>变了几格</dt><dd>${s.n_changed}（右图红框，导出侧比好的）</dd>` +
+      `<dt>前一帧</dt><dd>${wv(s.w)}</dd><dt>后一帧</dt><dd>${wv(s.nw)}</dd>` +
+      `<dt>标记</dt><dd>${esc(s.mark)}</dd></dl>` +
+      `<table style="margin-top:10px"><tr><th>规则</th><th>判决</th></tr>${chips}</table>`;
+  }
+  slider.addEventListener("input", () => show(+slider.value));
+  document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+  document.getElementById("nextBtn").onclick = () => show(Math.min(P.rows.length - 1, +slider.value + 1));
+  const jump = document.getElementById("jump");
+  if (jump) jump.onchange = () => show(+jump.value);
+  show(0);
+  box.style.display = "block";
+}
+
+function navSelect() {
+  document.querySelectorAll("select[data-nav]").forEach((s) => {
+    s.onchange = () => { if (s.value) window.location.href = s.value; };
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => { paintAll(); replayInit(); navSelect(); });
+
+</script>
+</body>
+</html>

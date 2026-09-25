@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · piece_follows_program</title>
+<style>
+/* 只有尺寸与配色。形状从 ledger/templates/web/style.css 起手，世界的配色那一块按本局改。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .6px; }
+.gaps { border-color: var(--warn); }
+.gaps h2 { color: var(--warn); }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { color: var(--dim); font-size: 12px; max-width: 300px; margin-top: 6px; }
+canvas.frame { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; min-width: 44px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.U { background: #222732; color: var(--faint); }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 14px; }
+.note { color: var(--dim); font-size: 13px; }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.row .t { font-weight: 600; }
+pre.src { background: #0e1015; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+          overflow-x: auto; font-size: 12px; line-height: 1.45; white-space: pre; }
+pre.txt { white-space: pre-wrap; font-size: 12.5px; }
+details > summary { cursor: pointer; color: var(--dim); }
+.controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; font-size: 13px; }
+input[type=range] { flex: 1; min-width: 200px; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>规则 · piece_follows_program</h1>
+  <div class="sub">一步怎么走</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card "><h2>读数（在最前）</h2><table><tr><th></th><th class='num'>|scope|</th><th class='num'>闭嘴 N</th>
+<th class='num'>判对 C</th><th class='num'>判错 E</th><th class='num'>读不成 U</th></tr>
+<tr><td>按行（292）</td><td class='num'>277</td><td class='num'>15</td><td class='num'>277</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>去重后（249）</td><td class='num'>237</td><td class='num'>12</td><td class='num'>237</td><td class='num'>0</td><td class='num'>0</td></tr></table>
+<p class='note'>闭嘴的理由：</p><ul><li>14 次 · NA：这一步换了关 → 什么算赢/fit_clears_level</li><li>1 次 · NA：不是点击 → RESET 归 说了但不进模型/reset_restarts</li></ul>
+<details><summary>变异测试（装置 criteria_run 的读数 + 我补的话）</summary><pre class='txt'># ===== 装置读数（每次结算重写，别手改这一段）=====
+规则 `piece_follows_program`　变异测试读数（120 个变异，册子共拒掉 116 个）
+
+拒掉 56 个变异，其中 **1 个是独家**。
+
+**盲区**：「独家拒绝 0」不等于「被证明冗余」，只等于「在这一批变异上没说出别人没说的话」。变异是造出来的，不是穷举的。
+# ===== 以上由装置写；下面是你的 =====
+
+
+
+留。装置这一批变异里独家只有 1 个，因为装置的变异多半同时动了面板或顶栏。它说的别人没说的话是「件往哪走」：
+反向测试 M04 / M05 / M06（记号盘连四不作废、少于三种不作废、终点不必是花格）都**只有它**红
+（seq 115 / 254、274 / 38、74…）。
+</pre></details></div><div class="card "><h2>它说什么</h2><p>同一关之内的每一下点击：点中大圆而算出来不填满空腔时，面板读成程序（derive/program）、件逐条走、做不了的那一条跳过（derive/walk）；终点盖住的格全是看得见的花格 → 件挪过去，否则整道作废、件一格不挪。没点中大圆 → 件与看得见的花格都不动。</p><p class='note'>关内每一下点击：点中大圆而不过关 → 件照程序走到花格上，或整道作废一格不挪；没点中大圆 → 件与花格一格不动。</p></div><div class="card "><h2>论域：什么时候它不管、交给谁</h2><p>只管关内的点击。点中大圆且算出来填满空腔（过关）→ `什么算赢/fit_clears_level`；RESET → `说了但不进模型/reset_restarts`；面板归 `一步怎么走/panel_follows_clicks`，顶栏归 `世界怎么回应/counter_pays`，版面归 `世界怎么回应/layout_stays`。</p></div><div class="card "><h2>它明确不主张什么</h2><p>不主张件离开的那一格露出什么：件压着的格帧上读不出是不是花格，只核「露出来的要么是底色、要么是一格花格」。不主张放大/缩小/旋转做不了时的对照（语料里没有一道这样的程序撞墙而不因别的理由作废）。不主张记号盘上「连四 + 少于三种」这一读法比另两种读法对——三种在本批语料上判决相同，分辨实验在 analysis/gaps.txt G9。</p></div><div class="card "><h2>改版史</h2><ol><li>v1（submit_runs_program）：由起点册子 disc_runs_program（v14）、offpad_end_voids（v4）、allblank_voids_program（v3）、piece_footprint_blocks（v3）、four_in_a_row_voids、few_ops_and_dwell_voids、blank_slot_is_nop 七条合成——那七条是「交卷」被论域切成七片、每片各说一半。同时换掉三处读法：（一）缩放/旋转程序也按「做不了就跳过」（本批唯一一道撞墙的缩放程序 seq 38 在两种读法下都作废，取更少的一种）；（二）「整列全暗」照常执行还是让整道作废，改由底栏读：底栏给了「无操作」那个框就照常（第 4 关），没给就作废（seq 140/161）；（三）记号盘改成「光带那一行只许停一格」+「记号格挡路」，替掉册子的「连四作废 + 码少于三种且久留」。</li><li>v2（改名 piece_follows_program）：与面板那条同一次改，按对象管——件在每一下关内点击上怎么变都归这一条，没点中大圆就是「不动」。v1 只管交卷那一下，点面板时件与花格没人管。v1 源码在 analysis/history/rule_v1/。</li><li>v3：记号盘的读法从「记号挡路 + 光带那一行只许停一格」换成「连四作废 + 用到的指令少于三种作废」（derive/outcome.py）。本批语料上两种都 14/14（alt_readings.py）；换的理由：后者条件更少，且前者对「件在 (6,2) 交六个北」给出过关，而起点册子记着另一次跑里一道连六的程序在这块盘上作废——那条核不了，只用来在分不开的读法之间挑。</li></ol><p class='note'>见证（本批语料的 seq）：seq:38、seq:74、seq:77、seq:140、seq:230、seq:254、seq:264、seq:274、seq:278</p></div><div class="card "><h2>它的 Lean（身份：定义（Rule/ 下的一个 def））</h2><p class='note'>Lean：<a href='../lean/f-Rule-Move-PieceFollowsProgram.html'>Rule/Move/PieceFollowsProgram.lean</a>（规则，21 行）</p><details><summary>源码</summary><pre class='src'>/-
+# piece_follows_program —— 对应 `rule/一步怎么走/piece_follows_program.py`
+
+-- IDENTITY: definition
+
+**定义**：点中大圆 → 件照程序走（`outcome` 给出 `move` 时挪过去，否则一格不挪）；没点中大圆 → 件不动。
+过关那一下（`outcome = win`）不在这里：那是 `Rule/Win/FitClearsLevel.lean` 的 `isGoal`，由 `step` 分发。
+-/
+import Obj.Compose.Outcome
+
+namespace Game
+
+def pieceAfter (L : Layout) (w : World) : Option Target → Form
+  | some .disc =&gt;
+      match outcome L w with
+      | .move f =&gt; f
+      | _       =&gt; w.piece
+  | _ =&gt; w.piece
+
+end Game
+</pre></details></div><div class="card "><h2>源码</h2><details><summary>一步怎么走/piece_follows_program.py</summary><pre class='src'>&quot;&quot;&quot;关内每一下点击：点中大圆而不过关 → 件照程序走到花格上，或整道作废一格不挪；没点中大圆 → 件与花格一格不动。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.click import target, xy
+from derive.outcome import outcome
+
+from .._common import level_changed
+
+CLAIM = (&quot;同一关之内的每一下点击：点中大圆而算出来不填满空腔时，面板读成程序（derive/program）、件逐条走、&quot;
+         &quot;做不了的那一条跳过（derive/walk）；终点盖住的格全是看得见的花格 → 件挪过去，否则整道作废、件一格不挪。&quot;
+         &quot;没点中大圆 → 件与看得见的花格都不动。&quot;)
+
+SCOPE_NOTE = (&quot;只管关内的点击。点中大圆且算出来填满空腔（过关）→ `什么算赢/fit_clears_level`；&quot;
+              &quot;RESET → `说了但不进模型/reset_restarts`；面板归 `一步怎么走/panel_follows_clicks`，&quot;
+              &quot;顶栏归 `世界怎么回应/counter_pays`，版面归 `世界怎么回应/layout_stays`。&quot;)
+
+NOT_CLAIMED = (&quot;不主张件离开的那一格露出什么：件压着的格帧上读不出是不是花格，只核「露出来的要么是底色、要么是一格花格」。&quot;
+               &quot;不主张放大/缩小/旋转做不了时的对照（语料里没有一道这样的程序撞墙而不因别的理由作废）。&quot;
+               &quot;不主张记号盘上「连四 + 少于三种」这一读法比另两种读法对——三种在本批语料上判决相同，&quot;
+               &quot;分辨实验在 analysis/gaps.txt G9。&quot;)
+
+HISTORY = [
+    &quot;v1（submit_runs_program）：由起点册子 disc_runs_program（v14）、offpad_end_voids（v4）、&quot;
+    &quot;allblank_voids_program（v3）、piece_footprint_blocks（v3）、four_in_a_row_voids、few_ops_and_dwell_voids、&quot;
+    &quot;blank_slot_is_nop 七条合成——那七条是「交卷」被论域切成七片、每片各说一半。同时换掉三处读法：&quot;
+    &quot;（一）缩放/旋转程序也按「做不了就跳过」（本批唯一一道撞墙的缩放程序 seq 38 在两种读法下都作废，取更少的一种）；&quot;
+    &quot;（二）「整列全暗」照常执行还是让整道作废，改由底栏读：底栏给了「无操作」那个框就照常（第 4 关），没给就作废（seq 140/161）；&quot;
+    &quot;（三）记号盘改成「光带那一行只许停一格」+「记号格挡路」，替掉册子的「连四作废 + 码少于三种且久留」。&quot;,
+    &quot;v2（改名 piece_follows_program）：与面板那条同一次改，按对象管——件在每一下关内点击上怎么变都归这一条，&quot;
+    &quot;没点中大圆就是「不动」。v1 只管交卷那一下，点面板时件与花格没人管。v1 源码在 analysis/history/rule_v1/。&quot;,
+    &quot;v3：记号盘的读法从「记号挡路 + 光带那一行只许停一格」换成「连四作废 + 用到的指令少于三种作废」&quot;
+    &quot;（derive/outcome.py）。本批语料上两种都 14/14（alt_readings.py）；换的理由：后者条件更少，&quot;
+    &quot;且前者对「件在 (6,2) 交六个北」给出过关，而起点册子记着另一次跑里一道连六的程序在这块盘上作废&quot;
+    &quot;——那条核不了，只用来在分不开的读法之间挑。&quot;,
+]
+
+EVIDENCE = [&quot;seq:38&quot;, &quot;seq:74&quot;, &quot;seq:77&quot;, &quot;seq:140&quot;, &quot;seq:230&quot;, &quot;seq:254&quot;, &quot;seq:264&quot;, &quot;seq:274&quot;, &quot;seq:278&quot;]
+
+
+def scope_(w, action, nw, ctx):
+    if xy(action) is None:
+        return &quot;不是点击 → RESET 归 说了但不进模型/reset_restarts&quot;
+    if level_changed(ctx):
+        return &quot;这一步换了关 → 什么算赢/fit_clears_level&quot;
+    if target(w, action) == (&quot;disc&quot;,) and outcome(w)[0] == &quot;win&quot;:
+        return &quot;算出来填满空腔（过关）→ 什么算赢/fit_clears_level&quot;
+    return None
+
+
+def assert_(w, action, nw, ctx):
+    if target(w, action) != (&quot;disc&quot;,):
+        return nw.piece == w.piece and nw.pads == w.pads
+    kind, got = outcome(w)
+    if kind == &quot;void&quot;:
+        return nw.piece == w.piece and nw.pads == w.pads
+    if nw.piece != got:
+        return False
+    must = w.pads.cells - got.footprint()
+    may = must | w.piece.footprint()
+    return must &lt;= nw.pads.cells &lt;= may
+</pre></details></div>
+</div>
+<script>window.PAGE = {};</script>
+<script>
+// 只画、只翻页。**这里没有一行世界逻辑**：每一帧的像素、哪几格变了、每条规则判了什么、
+// 世界字段读出来是多少——全是 web/export.py 在 Python 那边算好的，这一份只摆出来。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+// ARC-AGI-3 的 16 色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出，
+// pages.py 放进要画帧的那几页的 PAGE.palette（下标 = 色号）。这里不抄。
+const PALETTE = (window.PAGE && window.PAGE.palette) || [];
+const PX = 4;
+
+function paintFrame(cv, hex, marks) {
+  cv.width = 64 * PX; cv.height = 64 * PX;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 4096; i++) {
+    g.fillStyle = PALETTE[parseInt(hex[i], 16)];
+    g.fillRect((i % 64) * PX, Math.floor(i / 64) * PX, PX, PX);
+  }
+  if (marks) {
+    g.strokeStyle = "#ff2d55"; g.lineWidth = 1;
+    for (const rc of marks) g.strokeRect(rc[1] * PX + .5, rc[0] * PX + .5, PX - 1, PX - 1);
+  }
+}
+
+function paintAll() {
+  const P = window.PAGE || {};
+  document.querySelectorAll("canvas[data-frame]").forEach((cv) => {
+    const id = cv.getAttribute("data-frame");
+    const mk = cv.getAttribute("data-marks");
+    paintFrame(cv, P.frames[id], mk ? P.marks[mk] : null);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function replayInit() {
+  const P = window.PAGE;
+  if (!P || !P.rows) return;
+  const box = document.getElementById("replay");
+  const slider = document.getElementById("pos");
+  const label = document.getElementById("where");
+  slider.max = P.rows.length - 1;
+  function show(i) {
+    const s = P.rows[i];
+    slider.value = i;
+    label.textContent = `第 ${i + 1} / ${P.rows.length} 行 · seq ${s.seq} · 段 ${s.seg} · 第 ${s.lvl} 关（本关第 ${s.k} 下）`;
+    paintFrame(document.getElementById("cvA"), P.frames[s.prev], null);
+    paintFrame(document.getElementById("cvB"), P.frames[s.next], s.changed);
+    const chips = Object.entries(s.verdicts).map(([n, v]) =>
+      `<tr><td>${esc(n)}</td><td><span class="chip ${v}">${v}</span></td></tr>`).join("");
+    const wv = (w) => w ? `顶栏 ${w.counter}；件 ${esc(w.piece)}；面板程序 ${esc(w.program)}；看得见的花格 ${esc(w.pads)}` : "（读不成世界：终局画面）";
+    document.getElementById("info").innerHTML =
+      `<dl class="kv"><dt>动作</dt><dd class="mono">${esc(s.action)}（${esc(s.kind)}${s.result ? "，交卷结果 " + esc(s.result) : ""}）</dd>` +
+      `<dt>上游</dt><dd>第 ${s.lvl} 关 → 第 ${s.lvl_next} 关，${esc(s.state)}</dd>` +
+      `<dt>变了几格</dt><dd>${s.n_changed}（右图红框，导出侧比好的）</dd>` +
+      `<dt>前一帧</dt><dd>${wv(s.w)}</dd><dt>后一帧</dt><dd>${wv(s.nw)}</dd>` +
+      `<dt>标记</dt><dd>${esc(s.mark)}</dd></dl>` +
+      `<table style="margin-top:10px"><tr><th>规则</th><th>判决</th></tr>${chips}</table>`;
+  }
+  slider.addEventListener("input", () => show(+slider.value));
+  document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+  document.getElementById("nextBtn").onclick = () => show(Math.min(P.rows.length - 1, +slider.value + 1));
+  const jump = document.getElementById("jump");
+  if (jump) jump.onchange = () => show(+jump.value);
+  show(0);
+  box.style.display = "block";
+}
+
+function navSelect() {
+  document.querySelectorAll("select[data-nav]").forEach((s) => {
+    s.onchange = () => { if (s.value) window.location.href = s.value; };
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => { paintAll(); replayInit(); navSelect(); });
+
+</script>
+</body>
+</html>

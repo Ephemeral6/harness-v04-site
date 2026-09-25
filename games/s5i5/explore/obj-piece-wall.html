@@ -1,0 +1,49 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · piece/wall</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>piece/wall</h1><pre>`Wall` —— 推得动的墙：一块**长方形**、一边恰好 3 格厚的死物（不是任何面板管的颜色）。
+
+**人话**：它自己不会动；贴在某根正在动的条的自由端外面时，跟着那一端走同一个位移
+（伸时被顶、缩时被拖）。
+
+为什么是「长方形」而不是「同色连通块」：两面同色墙贴到一起时连通块合成一块，
+而世界只搬其中一面（册子里撤过两条按连通块写的概念）。所以对象是**刚体长方形**，
+解析时把同色格子拆成最少几块 3 格厚的长方形；拆法不唯一的帧打上 `World.unsure`。
+
+推不动的那一色（色 15）不在这里，它在 `World.fixed`（盘面，一关之内一格不变）。</pre>
+<details><summary>源码</summary><pre>&quot;&quot;&quot;`Wall` —— 推得动的墙：一块**长方形**、一边恰好 3 格厚的死物（不是任何面板管的颜色）。
+
+**人话**：它自己不会动；贴在某根正在动的条的自由端外面时，跟着那一端走同一个位移
+（伸时被顶、缩时被拖）。
+
+为什么是「长方形」而不是「同色连通块」：两面同色墙贴到一起时连通块合成一块，
+而世界只搬其中一面（册子里撤过两条按连通块写的概念）。所以对象是**刚体长方形**，
+解析时把同色格子拆成最少几块 3 格厚的长方形；拆法不唯一的帧打上 `World.unsure`。
+
+推不动的那一色（色 15）不在这里，它在 `World.fixed`（盘面，一关之内一格不变）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Wall:
+    color: int
+    r0: int
+    c0: int
+    r1: int
+    c1: int
+</pre></details></div></main></body></html>

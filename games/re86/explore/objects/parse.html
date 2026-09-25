@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象 · parse</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>对象 · parse</h1><div class="sub">objects/parse.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>为什么删不掉它</h2><pre>parse —— 全局唯一碰像素的地方（objects/parse.py）
+
+读不成世界：1416 帧里 (a) 不是局面 0 / (b) 是局面却读不出 0。
+提出过又被证伪的 (a) 判据：「state=WIN 那一步的下一帧是终局画面，不是局面」——那 2 帧全读得成世界，画的是真盘。
+
+良构检查（同一个量的两种读法对不上就抛）：HUD 一段 15 接一段 1；色 0 至多一格；光标看得见时至少一件东西的
+包围盒中心落得上；每一格「只能是东西」的颜色都被解释掉；每一格色 4 都在某个环的框上；两件东西不互相压着。
+M13（hub 读反）让 211 帧读不成世界——良构检查是活的。
+</pre></div><div class="card"><h2>它是什么</h2><pre>帧 → 世界。**全局唯一碰像素的地方。**
+
+上面每一层只认 `World` 的字段，读不到帧。
+
+## 画法（读法要对着它写）
+
+    底色 5；第 63 行整行是 HUD（色 15 = 没花，色 1 = 花掉，从右往左涨）
+    挡块   色 1 的格子（地形）
+    色块   色 2 方框 + 里面一块纯色（外沿边长 5 或 6，可以被盘边裁掉一截）
+    环     3×3 色 4 框 + 环心一格画归属色
+    东西   四个几何族（cross / box / ex / diamond），一件一个颜色；**画在环与色块之上**
+    光标   全图至多一个色 0 的格子，画在被选中那件东西的包围盒中心，贴着那件东西那一层
+
+## 读法的一条总原则：**别的东西的颜色 = 可能的遮挡**
+
+图层次序帧上读不全（见 `world.py`），所以不问谁压谁：一件颜色为 c 的东西，
+它的一格如果显示的是**另一件东西的颜色**或光标色，就当它「可能被盖着」。
+这样读会读宽，不会读窄——读宽的代价是某条臂的尽头读不到底，那一边记成 `known=False`，
+判据在那一边闭嘴；读窄的代价是凭空断一条臂，那是一个假的反例。
+
+## 良构检查（同一个量的两种读法必须对得上，对不上就抛）
+
+* HUD 那一行必须是「一段 15 接一段 1」；
+* 色 0 至多一格；
+* 光标看得见时，**恰好一件东西的包围盒中心**落在它上面；
+* 每一格「只能是东西」的颜色，都必须被某件读出来的东西解释掉（残料 = 0）。</pre><p class="note">源码：objects/parse.py</p></div>
+</div></body></html>

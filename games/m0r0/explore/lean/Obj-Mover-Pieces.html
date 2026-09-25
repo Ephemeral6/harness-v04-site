@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obj/Mover/Pieces.lean · m0r0</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。
+
+   配色两套：`:root` 是暗色（默认），亮色那一套在文件末尾——跟系统走，
+   或者 `<html data-theme="light|dark">` 钉死。**下面用到的每个 `var(--x)` 都必须在 `:root` 里有定义**
+   （自检核这一条：没定义的变量不报错，只是那一处的颜色悄悄掉成继承值）。 */
+:root {
+  color-scheme: dark;
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --fg: #e8eaf0;  --link: #7ab8ff;
+  --btn: #232834;  --btn-hover: #2c3340;  --accent: #59b0ff;  --chip-na: #222732;
+  --hl: #ffd88a;  --code: #9ecbff;  --doc-small: #b9c2d4;
+  --pre-bg: #15181f;  --pre-ink: #cfd6e6;  --lean-bg: #0f1218;
+  --hero-top: #1c2330;  --hero-line: #313a4a;
+  --thm-line: #3b5a7a;  --hover-line: #3c4658;  --sel-hover: #4a5265;  --sep: #3a4152;
+  --syn-c: #5f6b80;  --syn-s: #b5cea8;  --syn-k: #c08cdc;  --syn-t: #6fb3c8;  --syn-p: #d79a5b;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     本局：地面、墙、危险格、两块、记号（常态 / 被选中）、开关与门（按这一关的色名排第几取色，只许判相等）。 */
+  --floor: #262b36;  --floor-line: #313846;
+  --hazard: #6b2233; --hazard-2: #8d2c42;
+  --wall: #0b0d12;
+  --unknown: #1d212a;
+  --piece: #59b0ff;  --piece-dim: #3a6c9e;
+  --marker: #c9a227; --marker-on: #ffd84d;
+  /* 开关 / 门的颜色（色号）不在这里配：由 web/export.py 从官方色表写进 TRACE.palette，site.js 读它。 */
+  --changed: #ffd84d;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: var(--btn); color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: var(--btn-hover); }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: var(--accent); }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: var(--chip-na); color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: var(--hl); font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: var(--hover-line); text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--link); }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: var(--hl); font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: var(--pre-bg);
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: var(--pre-ink); }
+#doc code, .note code, td code { background: transparent; color: var(--code);
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, var(--hero-top), var(--panel));
+        border: 1px solid var(--hero-line); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: var(--hl); }
+.hero .plain code { color: var(--code); }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: var(--doc-small);
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: var(--hl); font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: var(--thm-line); }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: var(--code); }
+.litem.thm .lname { color: var(--link); }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: var(--code); }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: var(--lean-bg); border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: var(--pre-ink); }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: var(--syn-c); }        /* 注释 */
+pre.lean i.s { color: var(--syn-s); }        /* 字符串 */
+pre.lean i.k { color: var(--syn-k); }        /* 关键字 */
+pre.lean i.t { color: var(--syn-t); }        /* 策略 */
+pre.lean i.p { color: var(--syn-p); }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: var(--hl); }
+.scene-words code { color: var(--code); }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: var(--sep); margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: var(--sel-hover) }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* ── 亮色一套 ─────────────────────────────────────────────────────────────
+   跟系统走（没钉 data-theme 时），或 `data-theme="light"` 钉死。两处值必须一样。
+   本局专属那一块（世界的配色）不在这里重定义：盘面在两套底色上都照原色画。 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f6f7f9;  --panel: #ffffff;  --line: #d9dde5;
+    --ink: #1b1f27;  --dim: #5a6275;  --faint: #8b93a7;
+    --fg: #1b1f27;  --link: #0b62c4;
+    --btn: #eef0f4;  --btn-hover: #e2e6ec;  --accent: #1a73e8;  --chip-na: #eceef2;
+    --hl: #9a5b00;  --code: #0b5cad;  --doc-small: #3a4252;
+    --pre-bg: #f1f3f6;  --pre-ink: #1f2430;  --lean-bg: #f7f8fa;
+    --hero-top: #eef3fa;  --hero-line: #cfd8e6;
+    --thm-line: #8fb0d6;  --hover-line: #a9b4c6;  --sel-hover: #9aa4b5;  --sep: #b4bccb;
+    --syn-c: #6a737d;  --syn-s: #22863a;  --syn-k: #8f3fb8;  --syn-t: #1b7c93;  --syn-p: #b35900;
+    --ok: #2e8b57;  --bad: #c62828;  --na: #b0b6c3;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f7f9;  --panel: #ffffff;  --line: #d9dde5;
+  --ink: #1b1f27;  --dim: #5a6275;  --faint: #8b93a7;
+  --fg: #1b1f27;  --link: #0b62c4;
+  --btn: #eef0f4;  --btn-hover: #e2e6ec;  --accent: #1a73e8;  --chip-na: #eceef2;
+  --hl: #9a5b00;  --code: #0b5cad;  --doc-small: #3a4252;
+  --pre-bg: #f1f3f6;  --pre-ink: #1f2430;  --lean-bg: #f7f8fa;
+  --hero-top: #eef3fa;  --hero-line: #cfd8e6;
+  --thm-line: #8fb0d6;  --hover-line: #a9b4c6;  --sel-hover: #9aa4b5;  --sep: #b4bccb;
+  --syn-c: #6a737d;  --syn-s: #22863a;  --syn-k: #8f3fb8;  --syn-t: #1b7c93;  --syn-p: #b35900;
+  --ok: #2e8b57;  --bad: #c62828;  --na: #b0b6c3;
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Obj/Mover/Pieces.lean</h1>
+  <div class="sub">形式化</div>
+  <nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../share.html">怎么给别人看</a></nav>
+</header>
+<div class="card"><div id="nav"></div></div>
+<div class="card"><h2>Pieces —— 两块</h2><p class="note" style="margin-top:0">角色：对象 · 对应 Python objects/mover/pieces.py · 定理 0 · 定义 1</p></div>
+<div class="card"><h2>大纲（每条定理后面是它的公理表）</h2><div id="outline"></div></div>
+<div class="card"><h2>源码</h2><pre class="lean" id="src"></pre></div>
+</div>
+<script>window.UP = "../";window.LEAN_NAME = "Obj/Mover/Pieces.lean";</script>
+<script>
+window.DATA={"claim":{"seal":"m0r0-20260910","run_id":"m0r0-0910-1209","trajectory":"runs/m0r0-0910-1209/transitions.jsonl"},"corpus":{"rows":486,"distinct":470,"segments":[{"guid":"6703cfe5-7448-430a-b0f3-ca3e52958849","rows":270,"row_range":[0,269],"seq_range":[1,270],"max_level":6,"level_actions":[20,35,101,22,46,46],"certified":false,"scorecard_level_actions":null,"reconciled":false},{"guid":"2f9e9c31-288c-4190-a931-3703c1e6d8fb","rows":216,"row_range":[270,485],"seq_range":[271,486],"max_level":6,"level_actions":[15,23,77,15,40,45],"certified":true,"scorecard_level_actions":[15,23,77,15,40,45],"reconciled":true}],"dup_step":[270],"tid_hash":true,"evidence":[{"concept":"action5_noop","evidence":2,"found":2,"missing":[],"segments":["6703cfe5"]},{"concept":"click_selects","evidence":5,"found":5,"missing":[],"segments":["6703cfe5"]},{"concept":"collide_wins","evidence":4,"found":4,"missing":[],"segments":["6703cfe5"]},{"concept":"dest_set","evidence":5,"found":5,"missing":[],"segments":["6703cfe5"]},{"concept":"dim_iff_highlight","evidence":4,"found":4,"missing":[],"segments":["6703cfe5"]},{"concept":"frozen_when_selected","evidence":1,"found":1,"missing":[],"segments":["6703cfe5"]},{"concept":"gate_closes_on_leave","evidence":2,"found":2,"missing":[],"segments":["6703cfe5"]},{"concept":"gate_stays_open","evidence":2,"found":2,"missing":[],"segments":["6703cfe5"]},{"concept":"hazard_resets","evidence":3,"found":3,"missing":[],"segments":["2f9e9c31","6703cfe5"]},{"concept":"hud_monotone","evidence":3,"found":3,"missing":[],"segments":["6703cfe5"]},{"concept":"identity_needs_one_move","evidence":8,"found":8,"missing":[],"segments":["2f9e9c31","6703cfe5"]},{"concept":"land_on_floor_only","evidence":5,"found":5,"missing":[],"segments":["6703cfe5"]},{"concept":"mirror_pair_persists","evidence":5,"found":5,"missing":[],"segments":["2f9e9c31","6703cfe5"]},{"concept":"move_delta","evidence":8,"found":8,"missing":[],"segments":["6703cfe5"]},{"concept":"move_iff_clear","evidence":10,"found":10,"missing":[],"segments":["6703cfe5"]},{"concept":"parity_flips_iff_blocked","evidence":4,"found":4,"missing":[],"segments":["6703cfe5"]},{"concept":"piece_survives_on_gate","evidence":2,"found":2,"missing":[],"segments":["6703cfe5"]},{"concept":"push_door","evidence":2,"found":2,"missing":[],"segments":["6703cfe5"]},{"concept":"switch_opens_gate","evidence":1,"found":1,"missing":[],"segments":["6703cfe5"]},{"concept":"terrain_static","evidence":6,"found":6,"missing":[],"segments":["6703cfe5"]},{"concept":"two_pieces_50","evidence":6,"found":6,"missing":[],"segments":["6703cfe5"]}]},"parse":{"a_not_a_position":{"终局画面（state=WIN 那一步的下一帧）":2,"终局画面（state_prev=WIN 那一步的上一帧）":1},"b_unreadable":{},"a_total":3,"b_total":0},"marks":{"不在成绩单认证的那一段（只进规则读数，不当每关定理的见证）":270,"换关那一步（下一帧是另一关的盘），只有管「过关」的规则接手":12,"prev 读不成（终局画面），规则层不接手":1,"RESET（整局重来）":1},"noman":0,"false_total":0,"rule_names":["click_selects","lit_arrows_push_marker","mirror_pair_persists","parity_flips_iff_blocked","pieces_move","wait_noop","band_clock","gate_follows_switch","collide_wins","hazard_resets","terrain_static"],"rules":[{"name":"click_selects","group":"一步怎么走","claim":"点中一个记号就选中它（原来选中的那个复原）；点在别处（地面、墙、块）就谁都不选中。除了「选中谁」和计数带，别的一格不动：两块、记号、门、开关、地形都不变。","not_claimed":"不断言计数带（归 band_clock）；点在格阵之外会怎样，语料里没有这种一步。","doc":"点一下：点中记号就选中它，点在别处就谁都不选中；除此之外什么都不动。","history":["卡 04 v1：起点册子 click_selects v3 在对象上重写（选中谁、两块与记号不动）。","卡 05 v2：「别的不动」从两块与记号推广到除 lit、band 以外的全部字段——拒绝集只会变大。"],"evidence":["f88e3eb7a2f063c4","ff7dc84818c86e8d","809d96697e11b714","1cacd527a7c0f6c4"],"scope":60,"N":423,"C":60,"E":0,"U":3,"N_reasons":{"不是点击":423},"dC":60,"dE":0,"identity":"def","lean":"Rule/Move/ClickSelects.lean","rej":13,"uniq":2,"red_by":[{"mutant":"点记号不选中","n":33,"why":"点中记号也什么都不选"}],"notes":"独家 2 个；源码突变体「点记号不选中」只让它红（33）。它是唯一管点击的规则，60 步点击全在它的论域里。","evidence_steps":[64,65,66,67]},{"name":"lit_arrows_push_marker","group":"一步怎么走","claim":"选中了一个记号时按方向键：两块一格不动；那个记号照位移（不是镜像位移）挪一格——落点进得去、且没有块站着才挪，否则原地；挪完仍是选中态，别的记号不动。","not_claimed":"不断言计数带；记号能不能被推进开关格 / 危险格，语料里没有这种一步（见 record.txt「语料说不了的」）。","doc":"选中了一个记号时，方向键推的是那个记号，不是两块。\n\n起点册子里这是两条：frozen_when_selected（两块不动）和 push_door（记号怎么挪）。\n**论域完全相同**（方向键、恰有一个记号被选中、不换关），只是结论说了两样——\n卡 05 的判法：那是同一条规则被拆成了两条，合。合完的主张是两句的合取，拒绝集包含两条的并。","history":["卡 04 v1：frozen_when_selected v1、push_door v1 各自在对象上重写，读数都是判错 0、论域都是 92 步。","卡 05 v2：两条合一（同论域、同条件，结论分两半）。"],"evidence":["47639cc0772cd063","19c8b95e5cc76810"],"scope":92,"N":391,"C":92,"E":0,"U":3,"N_reasons":{"没有记号被选中（归 pieces_move）":317,"不是方向键":64,"换关":10},"dC":87,"dE":0,"identity":"def","lean":"Rule/Move/LitArrowsPushMarker.lean","rej":19,"uniq":2,"red_by":[{"mutant":"seed_上下对调","n":27,"why":"**种下的必红突变体**：ACTION1 的位移从上改成下。它不红，说明红的是这套机制。"},{"mutant":"推记号照镜像","n":38,"why":"选中的记号照镜像位移挪"}],"notes":"独家 2 个；源码突变体「推记号照镜像」只让它红（38）。卡 05 由 frozen_when_selected + push_door 合成\n（同论域、同条件、结论两半），v1 两条各自独家 0 / 3，合完 2——拒绝集整体没变小（117 → 118）。","evidence_steps":[69,70]},{"name":"mirror_pair_persists","group":"一步怎么走","claim":"通行图左右对称、两块互为镜像（同行、列和 = 列数 − 1）时，走一步之后两块仍互为镜像。","not_claimed":"不说镜像是怎么来的，也不说它非成立不可。","doc":"镜像保持：通行图左右对称、两块互为镜像时，走一步之后仍互为镜像。\n\n它不是一条独立的规则：两块一块照位移、一块照镜像位移走，而对称的通行图下两个意图落点互为镜像、\n挡不挡得住也互为镜像——所以它是 pieces_move 在对称盘上的**推论**。形式化那一侧它是\n`Derived/` 下的一条定理；这里照样在语料上判着，是为了让「推论」这句话在真实转移上也挨一次打。\n它的用处在第 5 关：对称盘上镜像不破就只能撞在中轴上，而中轴那一列是危险格与墙——\n所以那一关要先制造一次不对称（推开记号 / 按住开关）。","history":["起点册子 v1 漏了「通行图对称」这个前提，被四条不对称关的转移打脸；v2 补上。","卡 04 v1：在对象上重写 v2。卡 05 v2：主张不变，身份定为「推论」（形式化 Derived/）。"],"evidence":["899b597f70b0be88","d61db9a0ceea4321","3355b8a052a81ffe"],"scope":8,"N":475,"C":8,"E":0,"U":3,"N_reasons":{"两块此刻不是镜像":245,"选中态":92,"不是方向键":64,"通行图不对称":64,"换关":10},"dC":8,"dE":0,"identity":"derived","lean":"Derived/MirrorPairPersists.lean","rej":1,"uniq":0,"red_by":[{"mutant":"记号不挡路","n":2,"why":"记号格当地面"}],"notes":"**独家 0 正是它该有的读数**：它是 pieces_move 的推论（形式化那一侧 `Derived/MirrorPairPersists.lean`\n证出来了），它拒掉的 pieces_move 本来就拒。留在 Python 这一侧，是让「推论」这句话在真实转移上也挨一次打（论域 8 条，判错 0），\n以及给第 5 关的镜像钥匙（`Proof/MirrorKey.lean`）一个语料那一侧的对照。拒绝集判据说它是写法——对，它的身份就是推论。","evidence_steps":[17,186,223]},{"name":"parity_flips_iff_blocked","group":"一步怎么走","claim":"列方向的一步里，两块列差的奇偶翻转 ⇔ 恰有一块被挡（被挡块数为奇数）。","not_claimed":"不断言是哪一块被挡。","doc":"列差奇偶只有「恰有一块被挡」能翻。\n\n两块一块照 (dr, dc)、另一块照 (dr, −dc)：都走成或都被挡时列差变 0 或 ±2，奇偶不变；恰有一块被挡时变 ±1。\n所以它是 pieces_move 的**推论**（形式化那一侧是 `Derived/` 下的一条定理），不是独立的规则。\n留着在语料上判，是因为它说出了这一局的算术：撞到一格要列差为 0（偶数），\n一关的全部工作就是用墙（和门、记号）制造奇数次「恰有一块被挡」。","history":["起点册子 v1（起因：dest_set 的开口率随列差奇偶跳变）。","卡 04 v1：在对象上重写。卡 05 v2：主张不变，身份定为「推论」（形式化 Derived/）。"],"evidence":["14dbaaee74e9e2dd","9ad082100dcdffb2","aac863a41447fb39","a3fe86c271ddada8"],"scope":95,"N":388,"C":95,"E":0,"U":3,"N_reasons":{"不是列方向的方向键":290,"两种标法被挡块数奇偶不同":52,"选中态":38,"换关":8},"dC":92,"dE":0,"identity":"derived","lean":"Derived/ParityFlipsIffBlocked.lean","rej":8,"uniq":0,"red_by":[{"mutant":"镜像不取反","n":33,"why":"另一块也照位移走（不镜像）"},{"mutant":"记号不挡路","n":13,"why":"记号格当地面"}],"notes":"同 mirror_pair_persists：**独家 0 正是推论该有的读数**（`Derived/ParityFlipsIffBlocked.lean` 证出来了）。\n论域 95 条、判错 0。源码突变体「镜像不取反」让它判错 33、「记号不挡路」13——它读的正是被挡没被挡。","evidence_steps":[170,171,172,173]},{"name":"pieces_move","group":"一步怎么走","claim":"没选中记号时按方向键：一块照位移走、另一块照镜像位移走，意图落点进得去就进、否则原地不动（墙、记号、关着的门、格阵边界挡路；开关、地面、开着的门、另一块此刻站的格进得去）。","not_claimed":"不断言哪一块是 direct；不断言走空的格变成什么（块底下盖着什么帧上读不出来）；有标法往危险格迈步的那一步归 hazard_resets；换关那一步归 collide_wins。","doc":"两块怎么走：一块照位移、一块照镜像位移，各自进得去就进、否则原地不动。\n\n## 为什么是这一条而不是起点册子那六条\n\n起点册子里关于「两块怎么走」的话散在六条里：move_iff_clear（落点集合）、move_delta（位移多重集）、\ndest_set（两种标法一致的那部分）、identity_needs_one_move（恰有一种标法对得上）、\nland_on_floor_only（落点在上一帧是进得去的格）、piece_survives_on_gate（从门格上走开是普通一步）。\n它们的论域互相咬着，说的是**同一件事的不同投影**：落点集合相等，就推得出位移多重集、\n一致的那部分、落点进得去、从门格走开也照走；「恰有一种标法对得上」在两种标法落点不同时\n是集合相等的直接推论（两个不同的集合不可能都等于同一个）。所以合成这一条，说最强的那一句。\n合并之后拒绝集没有变小——读数见 analysis/record.txt 卡 05 那一段。\n\n## 纤维\n\n两块哪一块是 direct 帧上读不出来，所以这一条问的是：**两种标法里，有没有一种算出的落点就是下一帧**。","history":["卡 04 v1：起点册子六条（move_iff_clear v12 / move_delta v6 / dest_set v3 / identity_needs_one_move v2 / land_on_floor_only v2 / piece_survives_on_gate v3）各自在对象上重写，六条读数都是判错 0。","卡 05 v2：六条合成这一条。论域从 move_iff_clear 的「两种标法都迈危险格才闭嘴」收成「有一种迈危险格就闭嘴」，让出去的那几步归 hazard_resets 按纤维判（那一步真实的后果可能是重来，这一条说不出重来之后的样子）。"],"evidence":["6ff14786341388c8","de906fa51c958612","fd8457fb4e3950ca","d79f2f209a03887e","aec3abdcbf3f67e7","0eeea54055bfd39d","cc99099ef7ce6bd9"],"scope":315,"N":168,"C":315,"E":0,"U":3,"N_reasons":{"选中态（归 lit_arrows_push_marker）":92,"不是方向键":64,"换关（归 collide_wins）":10,"有标法往危险格迈步（归 hazard_resets）":2},"dC":304,"dE":0,"identity":"def","lean":"Rule/Move/PiecesMove.lean","rej":55,"uniq":7,"red_by":[{"mutant":"seed_上下对调","n":102,"why":"**种下的必红突变体**：ACTION1 的位移从上改成下。它不红，说明红的是这套机制。"},{"mutant":"镜像不取反","n":137,"why":"另一块也照位移走（不镜像）"},{"mutant":"记号不挡路","n":33,"why":"记号格当地面"},{"mutant":"危险格当地面","n":2,"why":"往危险格迈步当成平常一步"},{"mutant":"危险花纹不认","n":2,"why":"棋盘花纹读不出来，危险格落进墙"},{"mutant":"ACTION5当下键","n":3,"why":"ACTION5 读成往下走一格"}],"notes":"独家 7 个：它是唯一一条说「两块落在哪」的规则。源码突变体里 8 个让它红（上下对调 102、镜像不取反 137、\n记号不挡路 33、危险格当地面 2、危险花纹不认 2、ACTION5 当下键 3……），是全册最承重的一条。\n卡 05 由六条合成（v1 六条合计独家 0：它们互相咬，谁拒掉的别人也拒掉）——合并后拒绝集 117 → 118，没变小。","evidence_steps":[0,2,52,62,180,185,204]},{"name":"wait_noop","group":"一步怎么走","claim":"ACTION5 除了计数带什么都不动。","not_claimed":"不断言计数带（归 band_clock）。","doc":"ACTION5：花掉一步，什么也不动（计数带照样走）。","history":["起点册子 action5_noop v1「从不改变任何一格」被第 64 步打脸（计数带动了），v2 缩到网格之内。","卡 04 v1：在对象上重写为「除 band 以外每个字段不变」。卡 05 v2：改名 wait_noop，主张不变。"],"evidence":["167784775ae6ec05","594db52aa44db62a"],"scope":4,"N":479,"C":4,"E":0,"U":3,"N_reasons":{"不是 ACTION5":479},"dC":4,"dE":0,"identity":"def","lean":"Rule/Move/WaitNoop.lean","rej":1,"uniq":0,"red_by":[],"notes":"留着。它说的话别人没说：**ACTION5 这一步除了带长什么都不动**——别的规则对 ACTION5 只说「不换关」（collide_wins）\n和带长（band_clock）。独家 0 是因为语料里 ACTION5 只有 4 步，120 个随机变异里落在这 4 步上的那一个\n同时被 terrain_static / band_clock 拒掉了。能打到它的变异：把那 4 步里任一步的下一帧换成「两块挪了一格」\n（其余不动）——terrain_static 不管块、band_clock 不管块，只有它拒。源码侧「ACTION5 当下键」让它的论域 4 → 0、\npieces_move 判错 3：ACTION5 真的不是一个方向键。","evidence_steps":[4,63]},{"name":"band_clock","group":"世界怎么回应","claim":"这一关走了 m 步之后，计数带长 = (64·m + 75) div 150（= round(64·m/150)）。危险重来不归零，换关归零。","not_claimed":"不断言带子满了（m = 150 附近）之后会怎样——语料里一关最多走了 101 步，带长最多 43，带子从没满过；不断言这只钟是不是一份「预算」。","doc":"计数带是一只时钟：**这一关走了 m 步之后，带长 = round(64·m / 150)**（四舍五入，半格进位）。\n\n起点册子只说到「单调、每步至多 +1」，推进的时机当时没解出来（hud_step_timer「带长 = 步数 / 2」\n被 9 条连续转移打脸后撤册，hud_monotone 于是把「什么时候涨」留成空槽）。\n卡 05 这一轮把空槽填上了，来路写在明处：用语料里全部 6 关、两段各自的「本关已走步数 → 带长」\n逐步对（m = 0..100，没有一处自相矛盾），再在几类公式里穷举：`floor((a·m + b)/c)`（c < 60）一个都不合，\n`round(64·(m + 偏移)/B)`（B = 50..1999，三种取整）只有一个合上——B = 150、偏移 0、四舍五入。\n换成整数：带长 = (64·m + 75) div 150。\n\n它读 `ctx[\"m\"]`（这一段、这一关里这一步之前已经走了几步）。**m 是上游给的事实，不是帧上读得出的**：\n带长 3 对应 m = 6、7、8 三种。所以这一条比单看两帧强得多，代价是它读了一位历史——写在明处。\n\n两个实测细节，也是这一条的一部分：\n  · 往危险格迈步、这一关从头来过之后，**带子不归零**，接着走（语料里两次）；\n  · 换关之后带子归零（下一关的第 0 步）。","history":["起点册子 hud_monotone v2：单调、每步至多 +1、顶带 = 底带（hud_step_timer「步数 / 2」已撤册）。","卡 04 v1：顶带 = 底带搬进 parse（W4），其余在对象上重写，判错 0。","卡 05 v2：换成时钟公式——拒绝集只会变大（单调、每步至多 +1 是它的推论）。"],"evidence":["6ff14786341388c8","aac9b64b6347dbdf","594db52aa44db62a"],"scope":485,"N":0,"C":485,"E":0,"U":1,"N_reasons":{},"dC":469,"dE":0,"identity":"def","lean":"Rule/Response/BandClock.lean","rej":77,"uniq":4,"red_by":[{"mutant":"时钟慢半格","n":453,"why":"带长向下取整而不是四舍五入"}],"notes":"独家 4 个（v1 的 hud_monotone 独家 3 个、拒掉 61 个；换成时钟公式之后拒掉 77 个）。\n源码突变体「时钟慢半格」（四舍五入改成向下取整）让它判错 453——几乎每一步都红，公式的每一位都在承重。","evidence_steps":[0,6,63]},{"name":"gate_follows_switch","group":"世界怎么回应","claim":"某色的门开着，当且仅当有块站在同色的开关上。","not_claimed":"不断言不同色之间有没有牵连（语料里没见过）；不断言块能不能走进一格关着的门（那是 pieces_move 的事：关着的门挡路）；另一块停在看不见底下的格上时，走开那一句不说。","doc":"门跟着开关：**某色的门开着，当且仅当有块站在同色的开关上。**\n\n## 为什么是这一条而不是起点册子那三条\n\n起点册子里门的开合是三条：switch_opens_gate（踏上开关那一步门开）、\ngate_closes_on_leave（从开关上走开那一步门关）、gate_stays_open（没人踏上也没人走开时门不自己变）。\n三条各说「变化的那一瞬」或「中间那段」，合起来正好是一句**状态**的话——门的开合是开关上有没有块的函数。\n卡 05 的合并理由第二种：「几条各说变化的那一瞬，而中间一直保持谁也没说」——这里中间那段倒是有人说了，\n但三条是同一个等价的三个投影。合成一条，说那个等价。\n\n## 帧上看得见的只是它的影子\n\n开着的门和地面一样，块站着的那一格底下是什么也看不见。所以这一条只能在**看得见变化**的地方判，\n三种情形（逐个颜色看；「看得见的开关 / 门」取这一步前后两帧的并）：\n\n    踏上  有块这一步落到一个看得见的 k 色开关上      ⇒ 下一帧没有 k 色的关着的门\n    走开  有块这一步从一格上走开、那一格露出 k 色开关，\n          而另一块没有停在一格看不见底下的格上        ⇒ 下一帧 k 色的门全关着，而且上一帧它们是开的\n    其余  没人踏上、没人走开 k 色开关                 ⇒ k 色每一格门的开合不变（被块盖住的格不算）\n\n「另一块停在一格看不见底下的格上」时，走开那一句闭嘴：那一格可能也是 k 色开关（第 4 关同色开关有两个），\n门于是可能还开着——**说不准就不说**，这不是它错了。","history":["卡 04 v1：switch_opens_gate v1 / gate_closes_on_leave v2 / gate_stays_open v1 各自在对象上重写，判错都是 0。","卡 05 v2：三条合成一句状态的等价，三种可观测的影子各一支。"],"evidence":["aec3abdcbf3f67e7","bb6416a135313d67","0eeea54055bfd39d","3355b8a052a81ffe","6384d436abdb4b3f"],"scope":149,"N":334,"C":149,"E":0,"U":3,"N_reasons":{"本关没有看得见的开关与门":300,"这一步对每一种颜色都说不准":24,"换关":10},"dC":145,"dE":0,"identity":"def","lean":"Rule/Response/GateFollowsSwitch.lean","rej":31,"uniq":0,"red_by":[{"mutant":"开关不开门","n":12,"why":"踏上开关之后门照旧关着"}],"notes":"留着。它拒掉 31 个变异，每一个都同时被 pieces_move / terrain_static 拒了（随机改的格多半同时动了块或墙）。\n它说的话别人没说：**门什么时候开、什么时候关**。能打到它的变异（源码侧，已跑）：「开关不开门」只让它红（12，\n全部 12 次踏上 / 走开开关）。卡 05 由三条合成（v1 三条独家也都是 0），合完拒绝集没变小。","evidence_steps":[185,186,191,204,228]},{"name":"collide_wins","group":"什么算赢什么算砸","claim":"这一关换到下一关，当且仅当这一步两块落到了同一格；按纤维判：两种标法里有一种的预测（撞到一格 / 没撞到）和「换没换关」对得上就算对。不是方向键的一步（点击、ACTION5）一律不换关。","not_claimed":"不断言下一关长什么样（下一帧是另一张盘）；不断言撞在哪一格。","doc":"两块落到同一格 = 过关。这是**赢的定义**，不是一条要去证的事。","history":["起点册子 collide_wins v1 按「列小的那块是 direct」认身份，被第 55 步打脸；v2 改成两种标法一致时才开口。","卡 04 v1：在对象上重写 v2，结果 8 步过关的一步落进无人区——那 8 步两种标法一个说撞一个说没撞。","卡 05 v2：改按纤维判（有一种标法对得上就算对），论域扩到全部读得出的转移，无人区 8 → 0。非方向键的一步也归它：它们「不换关」这件事原来没有任何一条规则说过。"],"evidence":["0018d6fe5f1d1d0f","aac9b64b6347dbdf","d61db9a0ceea4321","e6be8c13eaa8de65"],"scope":485,"N":0,"C":485,"E":0,"U":1,"N_reasons":{},"dC":469,"dE":0,"identity":"def","lean":"Rule/Outcome/CollideWins.lean","rej":1,"uniq":0,"red_by":[{"mutant":"seed_上下对调","n":1,"why":"**种下的必红突变体**：ACTION1 的位移从上改成下。它不红，说明红的是这套机制。"},{"mutant":"镜像不取反","n":8,"why":"另一块也照位移走（不镜像）"},{"mutant":"记号不挡路","n":4,"why":"记号格当地面"},{"mutant":"另一块的格不让进","n":4,"why":"另一块此刻站的格当墙（实际上它走开的话这一格进得去）"},{"mutant":"撞到一格不算赢","n":12,"why":"两块落到同一格当成平常一步"}],"notes":"留着——它是「赢」的定义。独家 0 的原因：数据变异只改 next 帧 / 换 prev，**不改「换没换关」这一位**（那是 meta），\n而这一条读的正是那一位。能打到它的变异是源码侧的：「撞到一格不算赢」让它判错 12（全部 12 次过关），\n「另一块的格不让进」**只**让它红（4）——那 4 步是一块走进另一块此刻站的格而撞上，别的规则都看不见。","evidence_steps":[6,17,19,54]},{"name":"hazard_resets","group":"什么算赢什么算砸","claim":"没选中记号时按方向键、而有一种标法让某块往危险格迈步：按纤维判——要么那种标法是真的，这一关从头来过（不换关、两块都不在危险落点上、两块换了位置）；要么另一种标法是真的，它照平常一步 / 过关去对下一帧。","not_claimed":"**不断言开局在哪**：从头来过之后两块回到哪、记号复位到哪，是这一关的历史，一帧上读不出来。（语料里两次实测：第 1、3 关各一次，网格内逐像素等于该关开局那一帧，计数带接着走——这是读数，不是这条的主张。）","doc":"往危险格迈一步 = 这一关从头来过。","history":["起点册子 hazard_resets v3 前它长期 N=0：kind_of 在奇数边长的关上一格危险都认不出来。v4 让出选中态。","卡 04 v1：在对象上重写 v4（「有一种标法迈危险格」就开口、断言重来的形状）。","卡 05 v2：改按纤维判。v1 在「只有一种标法迈危险格、而另一种才是真的」时会冤判 FALSE；pieces_move 让出来的正是这一类步，这里接住。"],"evidence":["0697e3336bd6bffa","d3efe0230197451a"],"scope":2,"N":481,"C":2,"E":0,"U":3,"N_reasons":{"没有标法往危险格迈步":325,"选中态（方向键推记号，块不迈步）":92,"不是方向键":64},"dC":2,"dE":0,"identity":"def","lean":"Rule/Outcome/HazardResets.lean","rej":0,"uniq":0,"red_by":[{"mutant":"重来不换位置","n":2,"why":"往危险格迈步之后两块原地不动（而不是回到开局）"}],"notes":"留着。论域只有 2 步（行 31、164），120 个变异里没有一个落在这 2 步上——拒掉 0 个，独家当然 0。\n那是「没人做过那个动作」的变异版，不是它没说话：它是唯一说「往危险格迈一步会怎样」的规则。\n能打到它的变异（源码侧，已跑）：「重来不换位置」只让它红（2）。","evidence_steps":[31,164]},{"name":"terrain_static","group":"说了但不进模型","claim":"同一关内墙和危险格一格不变，记号个数不变。","not_claimed":"记号的位置、开关与门的开合不管（它们会变，归别的规则）。","doc":"同一关内地形是死的：墙和危险格一格不变，记号个数不变。\n\n## 为什么不进模型\n\n形式化那一侧把墙和危险格住进 `Board`，而 `Board` 不是状态的字段——`step` 连碰都碰不到它。\n于是「走一步地形不会变」在模型里**表示不出来**：不用证，也证不了，它没有一个能写下来的反面。\n所以它的身份是「不进模型」，理由是**表示不出来**，不是「没翻译」。\n\n它在 Python 这一侧照样每一步判着：模型的这个架构选择对不对，只有语料能驳——\n哪天有一步墙变了，这一条当场判 FALSE，而那时模型的 `Board` 就得拆。","history":["起点册子 terrain_static v1「整关地形恒定」被第 71 步（记号被推走）打脸，v2 让出记号；v3 被第 186 步（踏上开关、门变地面）打脸，再让出物件格。","卡 04 v1：在对象上重写（墙、危险格逐格相等，记号个数相等）。","卡 05 v2：主张不变，挪进「说了但不进模型」——模型那一侧它表示不出来。"],"evidence":["6ff14786341388c8","de906fa51c958612","19c8b95e5cc76810","aec3abdcbf3f67e7"],"scope":473,"N":10,"C":473,"E":0,"U":3,"N_reasons":{"换关":10},"dC":457,"dE":0,"identity":"unmodeled","lean":"Rule/Unmodeled/TerrainStatic.lean","rej":56,"uniq":9,"red_by":[],"notes":"独家 9 个——全册最多。它在形式化那一侧**不进模型**（Board 不是状态，「墙会变」表示不出来），\n所以 Python 这一侧是它唯一挨打的地方：模型的这个架构选择对不对，只有这一条的读数能驳。\n论域 473 条、被驳倒 0 次（卡 08「不进模型」那一组要的两个数）。","evidence_steps":[0,2,70,185]}],"rule_groups":[{"dir":"一步怎么走","title":"**这一组管：按一下之后，谁动、动到哪。**","why":"两块怎么走、选中之后方向键推什么、点一下选中什么、等一步动不动。\n不说「算不算赢 / 算不算砸」（隔壁 `什么算赢什么算砸/`），也不说门和计数带（`世界怎么回应/`）。"},{"dir":"世界怎么回应","title":"**这一组管：两块动了之后，世界自己起了什么变化。**","why":"门跟着开关上有没有块开合；计数带跟着步数长；地形不动。\n这些不是玩家直接搬的，是被别的事牵着变的。"},{"dir":"什么算赢什么算砸","title":"**这一组管：这一步之后这一关还在不在。**","why":"两块撞到一格 = 过关；往危险格迈步 = 这一关从头来过。\n两种后果的下一帧都不是「走到了某个状态」——一个是下一关，一个是这一关的开局。"},{"dir":"说了但不进模型","title":"**这一组：说了、在语料上判着，但明说不进模型。**","why":"每一条都要写理由，并且打两个数（卡 08）：论域条数（语料里多少条转移落在它管的范围里）、\n被驳倒几次。论域是 0 的话照样判红——一条谁也管不着的假设和一条从没被驳倒的假设，读数上必须分得开。"}],"objects":[{"name":"act","group":"action","doc":"一步的输入：方向键 / 点一下 / 等一步 / 整局重来。","docstring":"动作 —— 玩家这一步按了什么。**不是世界的字段**，是一步的输入。\n\n    Move(Delta)   方向键（ACTION1..4）：上 / 下 / 左 / 右 各一格\n    Click(Cell)   点一下（ACTION6:x,y）。点在格阵之外时 `cell` 为 None\n    Wait          ACTION5：花掉一步，什么也不动\n    Reset         RESET：整局从头来过\n\n点击的像素坐标折算成格点要用这一关的几何（格边长、原点），那是像素的事，\n所以折算在 `objects/parse.py` 的 `parse_action` 里做——全局唯一碰像素的地方。","field":null,"py":"objects/action/act.py","ablation":null,"why":"","abl_notes":"","lean":"Obj/Action/Act.lean"},{"name":"band","group":"clock","doc":"帧顶与帧底那条随步数变长的带子的长度（两处读法必须相等）。","docstring":"计数带 —— 帧顶那一行从右往左、帧底那一行从左往右长的那条带子。`World.band` 是它的长度（像素）。\n\n**同一个量有两处读法**（顶行、底行），两处必须相等——那是解析的良构检查。\n起点册子只断言到「单调、每步至多加一」，推进的时机当时没解出来。","field":"band","py":"objects/clock/band.py","ablation":513,"why":"对象 band（计数带长度）　—— 卡 02 首版；卡 06：欠账结清——它是时钟（band_clock），消融 61 → 513 处，判决：留（见 字段-band.txt）\n\n1. 它记的是什么：帧顶 / 帧底那条带子此刻多长（像素）。顶底两处读法相等是解析的良构检查 W4。\n2. 哪几条规则读它：起点册子只有 hud_monotone（单调、每步至多 +1）。别的规则都不读。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：分得开（表一见证 第 0 / 3 帧）。和 2 对得上：有见证、有一个读者。\n\n它是「一位玩法需要的信息」吗：起点册子没解出它什么时候涨。这一位现在只被一条弱规则读——\n留着，理由是分离表有见证、而且它是全语料里唯一一个和位置无关、每几步就变一次的量；\n它是不是一只时钟（只由本关已走步数决定），要等规则长出来才判得了（欠账，卡 06）。\n","abl_notes":"必要。读者：band_clock（带长 = (64·m + 75) div 150）；wait_noop / click_selects 明说把它让出去。\n卡 02 那时它只有一个弱读者（hud_monotone：单调、每步至多 +1），消融 61 处；卡 05 换成时钟公式之后 513 处——\n**同一位信息，读它的那句话变强了，消融读数跟着涨**。那一对世界：第 0 / 3 帧（只差带长）。\n它和 m（这一关走了几步）不是一回事：带长 3 对应 m = 6、7、8，m 帧上读不出来，进的是 ctx，不进世界。","lean":"Obj/Clock/Band.lean"},{"name":"gate","group":"device","doc":"连成条的物件格：关着时挡路；开着时和地面一样，帧上看不见。","docstring":"门 —— 连成条的物件格（四邻有同色物件格）。`World.gates` 是这一帧**看得见的、关着的**门格。\n\n关着的门挡路；门开着的时候那几格和地面一模一样，**帧上读不出「这里有扇门」**。\n所以这一帧的 `gates` 只是「此刻关着的那几格」，一扇开着的门在这一帧里不存在。\n要知道整关有哪些门，得把这一关的帧拼起来（形式化那一侧的「整关取并集」口径）。","field":"gates","py":"objects/device/gate.py","ablation":198,"why":"对象 gates（看得见的、关着的门格：格点 + 不透明的色名）　—— 卡 02 首版；卡 06：欠账结清——消融 198 处（全来自开合；「挡路」那一半没被检验），判决：留（见 字段-gates.txt）\n\n1. 它记的是什么：此刻关着的门格。开着的门和地面一样，帧上看不见，所以这一位只装「关着的」。\n2. 哪几条规则读它：switch_opens_gate / gate_closes_on_leave / gate_stays_open / piece_survives_on_gate；\n   移动规则（关着的门挡路）。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：两张表都分不开。门只在块踏上 / 走开开关时变，那一步 pieces 一定也变——同生共死于 pieces。\n\n处置：留着，进欠账（缺：消融）。它不能由 pieces 从**这一帧**算出来：要知道哪几格是门，得先知道\n整关的门在哪，而开着的门帧上读不出——这正是形式化那一侧要「整关取并集」的原因。\n","abl_notes":"必要。读者：gate_follows_switch（三支都读）、pieces_move（经 derive/passable：关着的门挡路）、\nclick_selects / wait_noop（除 lit、band 以外字段不变）。分离表两张都「分不开」——门只在块踏上 / 走开开关时变，\n那一步 pieces 一定也变（同生共死于 pieces）；但消融 198 处说明规则在用它，**不能合进 pieces**：\n门开不开是「块站在哪」加「整关的开关在哪」的函数，而整关的开关与门在单帧上看不全。\n**留了一个没被检验的读法**：「关着的门挡路」这一半，在真实走法下一次都没被撞过（两侧突变体都没红，见 reverse.json /\nlean2/readings.json）。消融这 198 处全来自门的**开合**，不来自挡路。","lean":"Obj/Device/Gate.lean"},{"name":"marker","group":"device","doc":"地面上画着小方块的格：挡路；被选中之后方向键推的是它。","docstring":"记号 —— 地面上画着一个小方块的格。`World.markers` 是这一帧全部记号所在的格点。\n\n花纹：整格只有正中央一小方块是非地面色，四周留一圈**一格宽**的地面色边框。\n中心边长取 `side - 2`，不取 `side // 2`（边长 5 的关上两者不一样，写错过一次）。\n\n它挡路（块撞上去原地不动），但它**不是地形**：被选中之后，方向键推的是它。","field":"markers","py":"objects/device/marker.py","ablation":190,"why":"对象 markers（全部记号所在的格点）　—— 卡 02 首版；卡 06：消融 190 处，判决：留（见 字段-markers.txt）\n\n1. 它记的是什么：地面上画着小方块的那几格在哪。它们挡路，被选中后能被推。\n2. 哪几条规则读它：push_door / click_selects（点中的是不是记号）/ terrain_static（记号个数不变）/\n   所有移动规则（记号挡路，由 kind_of 读进去）。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：表一分不开；**表二（扣掉 band）分得开**，见证 第 123 / 637 帧。\n   表一分不开的原因是计数带：推一次记号至少花一步，带子多半跟着变。扣掉 band 就有了见证。\n   这是「分不开」的第二种（和别的字段同生共死）里最常见的那一类：被一只时钟连带着变。\n\n为什么删不掉：那一对世界只差记号的位置，而记号挡路——同一个方向键，一边块撞上记号原地不动，\n另一边走得过去。\n","abl_notes":"必要。读者：lit_arrows_push_marker（推记号）、click_selects（点中的是不是记号）、pieces_move（记号挡路）、\nterrain_static（记号个数不变）。表二（扣掉 band）见证 第 123 / 637 帧。突变体「记号不挡路」红（判错 52）。\nlit ∈ markers 在 969 帧上反例 0（可推出性），但 lit 不能并进 markers：选中是另一位（「哪一个」），不是位置。","lean":"Obj/Device/Marker.lean"},{"name":"selection","group":"device","doc":"此刻被选中的那个记号（至多一个）；两块变色是同一位信息的第二个写法。","docstring":"选中 —— 此刻被选中的那个记号（`World.lit`），没有就是 `None`。\n\n**同一位信息在帧上有两处读法**：一处是那个记号的中心变了色，一处是两块整体变了色。\n两处必须对得上——这句话不是一条每帧要判的规则，是解析的**良构检查**\n（`objects/parse.py`）：对不上就这一帧读不成世界。起点册子里它曾是一条规则\n（`dim_iff_highlight`），搬进解析之后分母从「转移」变成了「帧」。\n\n至多一个记号被选中；两块的颜色于是不进世界，它就是这一位的第二个写法。","field":"lit","py":"objects/device/selection.py","ablation":307,"why":"对象 lit（被选中的记号，至多一个；没有就是 None）　—— 卡 02 首版；卡 06：消融 307 处，判决：留（见 字段-lit.txt）\n\n1. 它记的是什么：此刻哪一个记号被选中。帧上有两处读法（记号中心点亮色、两块整体换色），\n   两处对得上是解析的良构检查 W3——起点册子里的 dim_iff_highlight 就此从「规则」变成「良构检查」，\n   两块的颜色于是不再单独进世界（同一位信息的第二个写法，卡 03 意义上的「合」，在解析里就做掉了）。\n2. 哪几条规则读它：frozen_when_selected / push_door / click_selects / hazard_resets（选中态下不迈步）/\n   以及所有移动规则的论域（选中态下方向键不搬块）。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：分得开（表一见证 第 123 / 631 帧：只差选中与否）。和 2 对得上。\n\n为什么删不掉：那一对世界里按同一个方向键，一个搬块、一个推记号——玩法不同。\n","abl_notes":"必要。读者：lit_arrows_push_marker（论域与主张）、pieces_move / hazard_resets / derive/predict（选中态下方向键不搬块）、\nclick_selects（点完选中谁）。那一对世界：第 123 / 631 帧（只差选中与否）——同一个方向键，一边搬块、一边推记号。\n它是卡 03 那一刀「合」的产物：两块的选中色和记号的点亮色是同一位信息的两处读法，解析里核成这一位（良构检查 W3），\n两块的颜色不再单独进世界。卡 06 重量：W3 在 969 帧上 0 次抛出，突变体「选中色认错」让 612 帧读不成——两处读法确实绑在一起。","lean":"Obj/Device/Selection.lean"},{"name":"switch","group":"device","doc":"孤立的物件格：块站得上去；有块站着时同色的门开着。帧上只看得见没被块盖住的。","docstring":"开关 —— 一格孤立的物件格（四邻没有同色的物件格）。`World.switches` 是这一帧**看得见的**开关。\n\n物件格：整格一种纯色，那个色既不是地面色、也不是这一关左右两半的主色。\n孤立的那种是开关：块站得上去。站在上面的时候，同色的门开着。\n\n**色只当一个不透明的名字用**（`tint`）：只许判相等，不许比大小、不许当颜色解释。\n块站在开关上时整格是块色，**这一帧看不见它**——所以这里只装看得见的。","field":"switches","py":"objects/device/switch.py","ablation":30,"why":"对象 switches（看得见的开关：格点 + 不透明的色名）　—— 卡 02 首版；卡 06：欠账结清——消融 30 处，与 gates 不合，判决：留（见 字段-switches.txt）\n\n1. 它记的是什么：孤立的物件格，块站得上去；站着的时候同色的门开。块盖住时看不见。\n2. 哪几条规则读它：switch_opens_gate / gate_closes_on_leave / gate_stays_open；移动规则（开关格可以站）。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：两张表都分不开。原因：开关只在第 4、5 关有，而一关之内它只随「块盖没盖住它」变，\n   那一变总是和 pieces 一起变——同生共死于 pieces。\n\n处置：留着，进欠账（缺：谁读它、消融）。它不是 pieces 的写法：块站在哪里是一回事，\n那一格是不是开关是另一回事——「块站在一格上，同色门开不开」要靠它判。\n","abl_notes":"必要。读者：gate_follows_switch（踏上 / 走开的是不是开关、什么色）；click_selects / wait_noop（不变）。\n分离表分不开（它只随块盖没盖住它变，那一变总和 pieces 一起），消融 30 处——规则在用。\n和 gates 合不合（卡 06 判据三）：分离表说同生共死，但规则那一侧**不总是同时读**：pieces_move 只读 gates（挡路），\nswitches 对进不进得去没有话（开关格进得去，是默认）。两个信号只成立一个，不合。","lean":"Obj/Device/Switch.lean"},{"name":"cell","group":"geometry","doc":"一个格点（行、列），相对这一关的格阵；不带像素。","docstring":"`Cell` —— 一个格点的坐标（行、列），相对这一关的格阵。\n\n**世界层不许出现像素。** 一格占几个像素、格阵原点在哪，是 `parse` 的事；\n这一层只认「第几行第几列」。`Cell(0, 0)` 是这一关格阵的左上角，不是帧的左上角。","field":null,"py":"objects/geometry/cell.py","ablation":null,"why":"","abl_notes":"","lean":"Obj/Geometry/Cell.lean"},{"name":"delta","group":"geometry","doc":"一步的位移（行差、列差）；mirrored() 把列取反——这一局唯一的对称变换。","docstring":"`Delta` —— 一步的位移（行差、列差），以及它的**镜像**。\n\n这一局两块同时动：一块按位移走，另一块按**列取反**的位移走。\n「列取反」是这一局唯一的一个对称变换，所以它提成对象的一个方法，\n不让每条规则各自再写一遍 `(dr, -dc)`。它是对合：`d.mirrored().mirrored() == d`。","field":null,"py":"objects/geometry/delta.py","ablation":null,"why":"","abl_notes":"","lean":"Obj/Geometry/Delta.lean"},{"name":"pieces","group":"mover","doc":"两块所在的两个格点（无序）：哪一块照位移走、哪一块照镜像走，帧上读不出来。","docstring":"两块 —— 玩家唯一能直接搬动的东西。`World.pieces` 是它们所在的两个格点，**无序**。\n\n**为什么是无序的一对，不是（左块, 右块）**：两块同色同形，单帧上没有任何像素能区分它们。\n按一次方向键，一块照位移走（direct）、另一块照镜像位移走（mirror），\n但**哪一块是 direct，帧上读不出来**——册子里「列小的那块是 direct」在前四关成立了几十次，\n到第 4 关开局第一次列移动就翻了。所以这一位不进世界：规则要对两种标法都说得通。\n\n两块从不同格：落到同一格的那一步就换关了，下一帧已经是下一关。","field":"pieces","py":"objects/mover/pieces.py","ablation":540,"why":"对象 pieces（两块所在的两个格点，无序）　—— 卡 02 首版；卡 06：第 3 句「待跑」结清——消融 540 处，判决：留（见 字段-pieces.txt）\n\n1. 它记的是什么：两块此刻在哪两个格点。无序：哪一块是 direct 帧上读不出来，不进世界。\n2. 哪几条规则读它（按起点册子预计）：move_iff_clear / move_delta / dest_set / identity_needs_one_move /\n   parity_flips_iff_blocked / land_on_floor_only / mirror_pair_persists / collide_wins / hazard_resets /\n   frozen_when_selected / piece_survives_on_gate / switch_opens_gate / gate_closes_on_leave / gate_stays_open /\n   push_door（门的落点不能有块）/ click_selects（点击不动块）。几乎所有规则。\n3. 抹成常量哪几条判决会变：待跑（卡 06，规则长出来之后才有消融）。\n4. 分离表：分得开（表一见证 第 0 / 1 帧：第 1 步前后，只差两块的位置）。和 2 对得上。\n\n为什么删不掉：第 0 帧与第 1 帧（ACTION1 前后）除了两块的位置以外 8 个字段全相等；\n抹掉 pieces，这两帧就成了同一个世界，而下一步按 ACTION1 时一个能走、一个会被挡——玩法不同。\n","abl_notes":"必要。读者：pieces_move、lit_arrows_push_marker（记号推不进有块的格）、click_selects、wait_noop、\ncollide_wins、hazard_resets、gate_follows_switch（踏上 / 走开开关）、mirror_pair_persists、parity_flips_iff_blocked。\n那一对世界：语料第 0 / 1 帧（第 1 步 ACTION1 前后），除两块位置外 7 个字段全等；抹掉它，\n同一个方向键下一边能走、一边会被挡，玩法不同。三个读数（分离表有见证 / 消融 540 / 点名 9 条）对得上。","lean":"Obj/Mover/Pieces.lean"},{"name":"hazard","group":"terrain","doc":"棋盘花纹的格：往里迈一步，这一关就从头来过。","docstring":"危险格 —— 地面上覆了一层**棋盘花纹**的格。`World.hazards` 是这一帧读到的全部危险格。\n\n花纹的读法：格里非地面色的像素同属一种奇偶、而且占满那种奇偶的全部位置。\n**不按色号**：同一个色号在这一关是危险花纹，在那一关是半边墙色。\n\n块往危险格迈步：不是「进不去」，是**这一关从头来过**（两块回到开局，记号复位）。","field":"hazards","py":"objects/terrain/hazard.py","ablation":6,"why":"对象 hazards（危险格）　—— 卡 02 首版；卡 06：欠账结清——消融 6 处（只靠 2 次实测撑着），判决：留（见 字段-hazards.txt）\n\n1. 它记的是什么：棋盘花纹的格。块往里迈一步，这一关从头来过。\n2. 哪几条规则读它：hazard_resets；以及移动规则的论域（有块要迈进危险格时它们闭嘴）；terrain_static。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：两张表都分不开，原因同 walls（一关之内不变，语料里没有「只差一格危险」的两关）。\n\n处置：留着，进欠账（缺：消融读数）。和墙分开记的理由是后果不同——墙是「原地不动」，\n危险是「整关重来」；合成一类的话，危险那一支会被读成撞墙，而撞墙那条规则会在重来的那两步判 FALSE。\n这一句要等规则长出来才核得动（卡 06：规则是不是总同时读两者，还是各读一支）。\n","abl_notes":"必要，但只靠个位数撑着——写在明处：消融 6 处，来自语料里仅有的 2 次往危险格迈步（探索段第 1、3 关各一次）\n和几条变异。读者：hazard_resets、pieces_move 的论域（有标法迈危险格就让出去）、terrain_static。\n那一对世界要靠「同一张盘、只差一格是危险还是墙」才分得开——语料里没有（语料分不开），\n但规则那一侧的分叉是实在的：墙是原地不动，危险是整关重来（行 31、164）。\n突变体「危险格当地面」「危险花纹不认」都红了（pieces_move 判错 2），这一位不是摆设。","lean":"Obj/Terrain/Hazard.lean"},{"name":"wall","group":"terrain","doc":"进不去的格：块走过去就原地不动。","docstring":"墙 —— 进不去的格。`World.walls` 是这一帧读到的全部墙格（一组 `Cell`）。\n\n**按结构认，不按色号认**（同一个色号这一关是墙、那一关是危险花纹）：\n整格一种纯色、且那个色是这一关左右两半的**主色**之一；或者整格混着几种色\n（两半接缝处）。解析那一侧的读法写在 `objects/parse.py`。\n\n块走向墙：那一块原地不动（另一块照走）。","field":"walls","py":"objects/terrain/wall.py","ablation":464,"why":"对象 walls（墙格）　—— 卡 02 首版；卡 06：欠账结清——消融 464 处，与 hazards 不合（规则里两支），判决：留（见 字段-walls.txt）\n\n1. 它记的是什么：这一帧读到的全部墙格。一关之内不变。\n2. 哪几条规则读它：所有移动规则（撞墙原地不动）、push_door（记号推不进墙）、\n   mirror_pair_persists（通行图对称）、terrain_static（墙是死的）。\n3. 抹成常量：待跑（卡 06）。\n4. 分离表：两张表都分不开。原因明白：墙在一关之内不变，换关的时候**所有**字段一起变，\n   语料里找不到「只差墙」的一对世界。这是第三种「分不开」——**这批语料分不开它**：\n   要分开它得有一关只在一格墙上不同，语料里没有这种关。\n\n处置：留着，进欠账（缺：消融读数——抹掉它，撞墙那几十步的判决会不会翻）。\n它和 hazards、size 同生共死（都是「这是哪一关」的函数）；合不合要看规则是不是总同时读它们（卡 06）。\n","abl_notes":"必要。读者：pieces_move、lit_arrows_push_marker（经 derive/passable）、terrain_static、\nmirror_pair_persists（通行图对称）、derive/grid（格阵大小 = 墙的外接框，卡 03 删 size 之后它多担一件事）。\n分离表分不开是**语料分不开**（一关之内不变，换关时全体一起变）；消融 464 处把「没人用」排除了。\n和 hazards 合不合：规则读它们走两支（墙 → 原地不动；危险 → 整关重来），合了那一支就没了——不合。","lean":"Obj/Terrain/Wall.lean"},{"name":"world","group":"","doc":"这一帧读得到的全部状态。","docstring":"`World` —— 这一帧**读得到的**全部状态。字段就是这一局的对象。\n\n每个字段都要回答判据 2：去掉它，找不找得出一对世界，原来能区分、现在无论如何都区分不了？\n那一对写在 `analysis/<对象>.txt`；分离表（`ledger/field_split.py`）替它找见证。\n\n**帧上读不出来的不进来**，三样，写在明处：\n  · 哪一块是 direct（两块同色同形）；\n  · 块底下盖着什么（整格都是块色）；\n  · 开着的门在哪（开着的门和地面一模一样）。\n规则要对这三样的每一种可能都说得通；形式化那一侧把第二、三样从「整关拼起来的盘」里补回来，\n第一样当成一位要从纤维里挑的隐藏信息。","field":null,"py":"objects/world.py","ablation":null,"why":"","abl_notes":"","lean":"Obj/World.lean"},{"name":"parse","group":"","doc":"帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的字段，读不到帧。","docstring":"帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的字段，读不到帧。\n\n## 量什么、怎么量（逐帧量，不写死）\n\n  · **格边长与原点**：从两块量。块色的像素恰好拼成两个同边长、对齐的方块，\n    总数 = 2·边长²；原点相位 = 块像素最小行 / 最小列对边长取模。\n    （第 0 关边长 5、第 1 关边长 4——写死的话换关那一刻静默失效。）\n  · **地形色**：格阵内非地面、非块色的像素，左右两半各自最多的那一种。\n    每关一条接缝把盘分成两半，两半用不同的墙色；同一个色号这一关是墙、那一关是危险花纹，\n    所以只认「这一关两半的主色」，不认色号。\n  · **计数带**：帧的第一行与最后一行上非地面色的像素数。它可能**画在格阵最后一行上**\n    （边长 5 的关，格阵覆盖到帧的最后一行），所以读格子时这两行一律让出去，\n    不然带子每长一格，底行那几格就被读成「混色 → 墙」。\n\n## 每一格读成什么（按花纹，不按色号）\n\n    整格地面色                                  → 地面\n    整格块色                                    → 块（底下是什么读不出来）\n    地面色 + 另一色棋盘交错、占满一种奇偶        → 危险格\n    一圈一格宽的地面色边框 + 中心一小块纯色      → 记号（中心是点亮色 = 被选中）\n    整格一种纯色，色是这一关两半主色之一         → 墙\n    整格一种纯色，色不是地面 / 块 / 两半主色      → 物件格（四邻有同色 → 门，否则 → 开关）\n    其余（接缝处的混色）                         → 墙\n\n## 良构检查：同一个量的两种读法必须对得上，对不上就抛\n\n  W1  块色像素数 = 2·边长²，且恰好拼成两个对齐方块（两种读法：计数 / 找方块）\n  W2  两块同色\n  W3  「两块是选中色」⇔「恰好一个记号中心是点亮色」；点亮的记号至多一个\n  W4  顶行带长 = 底行带长\n\n这四条都是「同一位信息的两处读法」，**不是一次观察**：\n没有一条写成「这一局恰好几个记号 / 几扇门」那种话。\n\n## 读不出来要抛，别返回 None\n\n`ParseError` 只管抛，不管归类：「这一帧本来就不是局面（终局画面）」和\n「是局面但读不出来」从像素上分不开（没有块就量不出格阵），分得开的是 meta。\n归类在拿得到 meta 的那一层做（`run_rules.py`）。","field":null,"py":"objects/parse.py","ablation":null,"why":"","abl_notes":"","lean":null}],"object_groups":[{"dir":"action","title":"动作：一步的输入。**不是世界的状态**，所以不进 `World`，单独一组。","why":""},{"dir":"clock","title":"时钟：只随「这一关又过了一步」变的东西（计数带）。","why":"单独成组，因为它不和任何格点打交道：它不挡路、不被推、不被踩，\n只数步。"},{"dir":"device","title":"装置：**会被操作改变**、但不直接听方向键的那几样（记号、选中、开关、门）。","why":"分成一组的理由：它们都是别的事牵着变的——记号要先被点中才会被推，\n门跟着开关上有没有块开合。它们也是这一局「制造不对称」的全部材料。"},{"dir":"geometry","title":"几何：格点坐标与位移（格阵大小 `Size` 卡 03 删了：它恒等于墙的外接框）。**这一组里没有任何世界断言**——","why":"它们只说「第几行第几列」「挪了几格」，不说「那一格是墙」。\n分成一组的理由就是这一句：它们在任何一关都是同一个意思。"},{"dir":"mover","title":"会被方向键搬动的东西：两块。","why":"单独成组，因为它们是这一局里**唯一**直接听方向键的对象；\n别的会变的东西（记号、门、计数带）都是被别的事牵着变的。"},{"dir":"terrain","title":"地形：**一关之内不会变**的那几样（墙、危险格）。","why":"分成一组的理由：它们只由这一关是哪一关决定，任何一步都改不了它们。\n形式化那一侧因此把它们住进 `Board`，而 `Board` 不是状态的字段——\n「走一步地形不会变」在那边不用证，它表示不出来。"}],"mutants":[{"name":"seed_上下对调","file":"objects/parse.py","why":"**种下的必红突变体**：ACTION1 的位移从上改成下。它不红，说明红的是这套机制。","red":true,"red_rules":{"lit_arrows_push_marker":27,"pieces_move":102,"collide_wins":1},"note":"判错 0→130，(b) 0→0；论域变化 {'pieces_move': -2, 'hazard_resets': 2}","entry":null,"because":null},{"name":"镜像不取反","file":"objects/geometry/delta.py","why":"另一块也照位移走（不镜像）","red":true,"red_rules":{"parity_flips_iff_blocked":33,"pieces_move":137,"collide_wins":8},"note":"判错 0→178，(b) 0→0；论域变化 {'parity_flips_iff_blocked': 52}","entry":null,"because":null},{"name":"记号不挡路","file":"derive/passable.py","why":"记号格当地面","red":true,"red_rules":{"mirror_pair_persists":2,"parity_flips_iff_blocked":13,"pieces_move":33,"collide_wins":4},"note":"判错 0→52，(b) 0→0；论域变化 {'mirror_pair_persists': 2, 'parity_flips_iff_blocked': 12}","entry":null,"because":null},{"name":"关着的门不挡路","file":"derive/passable.py","why":"关着的门当地面","red":false,"red_rules":{},"note":"判错 0→0，(b) 0→0；论域变化 {'parity_flips_iff_blocked': -8}","entry":"一、扰动太温柔（这批语料分不开）","because":"语料里有块的意图落点是关着的门格的只有 8 步（第 4 关两段各 4 步：一块站在门格 (9,4) 上、按左右键时一种标法让它指向 (9,3)）。那 8 步里另一种标法照样解释得了下一帧。**Lean 侧同一个突变体（lean2/verify.py --mutants）也没红**——带着身份往下走，真实的那种标法在全部 12 段逐帧核对里一次都没有让块撞向关着的门。所以不是纤维吸收了它，是**这批语料里没人撞过关着的门**：「关着的门挡路」没有被检验过，写进缺口（readings / 页面最上面）。能分开的那一步实验：让一块朝一扇关着的门走一步。"},{"name":"危险格当地面","file":"derive/passable.py","why":"往危险格迈步当成平常一步","red":true,"red_rules":{"pieces_move":2},"note":"判错 0→2，(b) 0→0；论域变化 {'pieces_move': 2, 'hazard_resets': -2}","entry":null,"because":null},{"name":"另一块的格不让进","file":"derive/passable.py","why":"另一块此刻站的格当墙（实际上它走开的话这一格进得去）","red":true,"red_rules":{"collide_wins":4},"note":"判错 0→4，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"格阵没有边","file":"derive/grid.py","why":"走出格阵不挡","red":false,"red_rules":{},"note":"判错 0→0，(b) 0→0；论域变化 {'parity_flips_iff_blocked': -2}","entry":"一、扰动太温柔（这批语料分不开）","because":"意图落点出了格阵的只有 4 步（全在第 4 关：那一关左右两列有 21 格不是墙，别的关最外一圈全是墙），4 步都被另一种标法吸收；**Lean 侧同一个突变体也没红**——真实标法下没有一块朝格阵外迈过步。能分开的那一步实验：第 4 关让一块站在最左 / 最右一列再往外按一下。"},{"name":"推记号照镜像","file":"rule/一步怎么走/lit_arrows_push_marker.py","why":"选中的记号照镜像位移挪","red":true,"red_rules":{"lit_arrows_push_marker":38},"note":"判错 0→38，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"点记号不选中","file":"rule/一步怎么走/click_selects.py","why":"点中记号也什么都不选","red":true,"red_rules":{"click_selects":33},"note":"判错 0→33，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"时钟慢半格","file":"rule/世界怎么回应/band_clock.py","why":"带长向下取整而不是四舍五入","red":true,"red_rules":{"band_clock":453},"note":"判错 0→453，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"开关不开门","file":"rule/世界怎么回应/gate_follows_switch.py","why":"踏上开关之后门照旧关着","red":true,"red_rules":{"gate_follows_switch":12},"note":"判错 0→12，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"撞到一格不算赢","file":"derive/predict.py","why":"两块落到同一格当成平常一步","red":true,"red_rules":{"collide_wins":12},"note":"判错 0→12，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"选中色认错","file":"objects/parse.py","why":"把常态记号色当成选中色（解析那一侧）","red":true,"red_rules":{},"note":"判错 0→0，(b) 0→612；论域变化 {'click_selects': -60, 'lit_arrows_push_marker': -92, 'mirror_pair_persists': -8, 'parity_flips_iff_blocked': -37, 'pieces_move': -144, 'wait_noop': -3, 'band_clock': -306, 'gate_follows_switch': -65, 'collide_wins': -306, 'hazard_resets': -1, 'terrain_static': -300}","entry":null,"because":null},{"name":"危险花纹不认","file":"objects/parse.py","why":"棋盘花纹读不出来，危险格落进墙","red":true,"red_rules":{"pieces_move":2},"note":"判错 0→2，(b) 0→0；论域变化 {'pieces_move': 2, 'hazard_resets': -2}","entry":null,"because":null},{"name":"重来不换位置","file":"rule/什么算赢什么算砸/hazard_resets.py","why":"往危险格迈步之后两块原地不动（而不是回到开局）","red":true,"red_rules":{"hazard_resets":2},"note":"判错 0→2，(b) 0→0；论域变化 {}","entry":null,"because":null},{"name":"ACTION5当下键","file":"objects/parse.py","why":"ACTION5 读成往下走一格","red":true,"red_rules":{"pieces_move":3},"note":"判错 0→3，(b) 0→0；论域变化 {'lit_arrows_push_marker': 1, 'mirror_pair_persists': 1, 'pieces_move': 3, 'wait_noop': -4}","entry":null,"because":null}],"mechanism_ok":true,"data_mutants":{"mutants_total":120,"rejected":118,"by_parse":17},"ablation":{"walls":464,"hazards":6,"pieces":540,"markers":190,"lit":307,"switches":30,"gates":198,"band":513},"ablation_rows":605,"pixel_touches":0,"lean":{"files":[{"name":"Broken.lean","role":"破坏测试：应当编不过","group":null,"python":null,"title":"Broken.lean —— **这一份应当编不过**，而且只在标记那一行红","n_thm":1,"n_def":0,"outline":[{"kind":"theorem","name":"wrong_identity_still_traces","doc":"","axioms":null}],"parts":[]},{"name":"Derived/MirrorPairPersists.lean","role":"推论","group":null,"python":"rule/一步怎么走/mirror_pair_persists.py","title":"mirror_pair_persists —— **推论**：对称的通行图上，镜像走一步还是镜像","n_thm":9,"n_def":3,"outline":[{"kind":"def","name":"stop","doc":"一块往 `t` 走会停下来：挡路或危险（`land` 里那一句）。","axioms":null},{"kind":"def","name":"mirrorPair","doc":"两块互为镜像（相对一张 `W` 列宽的盘）。","axioms":null},{"kind":"def","name":"symmetric","doc":"通行图左右对称。","axioms":null},{"kind":"theorem","name":"land_eq","doc":"","axioms":"（无公理）"},{"kind":"theorem","name":"land_up","doc":"","axioms":"propext"},{"kind":"theorem","name":"land_down","doc":"","axioms":"（无公理）"},{"kind":"theorem","name":"land_left","doc":"","axioms":"propext"},{"kind":"theorem","name":"land_right","doc":"","axioms":"（无公理）"},{"kind":"theorem","name":"stop_out","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"pieceMove_mirror","doc":"核心：一步 `pieceMove` 保持镜像。","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"pushMarker_pcs","doc":"","axioms":"（无公理）"},{"kind":"theorem","name":"mirror_pair_persists","doc":"**镜像保持**：对称的通行图上，两块互为镜像时，按任何一个方向键之后（只要这一步是平常一步）仍互为镜像。","axioms":"propext, Quot.sound"}],"parts":[]},{"name":"Derived/ParityFlipsIffBlocked.lean","role":"推论","group":null,"python":"rule/一步怎么走/parity_flips_iff_blocked.py","title":"parity_flips_iff_blocked —— **推论**：列差的奇偶只有「恰有一块被挡」能翻","n_thm":2,"n_def":1,"outline":[{"kind":"def","name":"stays","doc":"这一块这一步原地没动。","axioms":null},{"kind":"theorem","name":"pieceMove_parity","doc":"","axioms":"propext, Classical.choice, Quot.sound"},{"kind":"theorem","name":"parity_flips_iff_blocked","doc":"**列差奇偶翻转 ⇔ 恰有一块被挡**（左右键、这一步是平常一步、没选中记号）。","axioms":"propext, Classical.choice, Quot.sound"}],"parts":[]},{"name":"Obj/Action/Act.lean","role":"对象","group":"Action","python":"objects/action/act.py","title":"Act —— 一步的输入","n_thm":0,"n_def":0,"outline":[{"kind":"inductive","name":"Act","doc":"","axioms":null}],"parts":[]},{"name":"Obj/Clock/Band.lean","role":"对象","group":"Clock","python":"objects/clock/band.py","title":"Band —— 计数带长度；Tick —— 这一关已经走了几步","n_thm":0,"n_def":0,"outline":[{"kind":"abbrev","name":"Band","doc":"","axioms":null},{"kind":"abbrev","name":"Tick","doc":"","axioms":null}],"parts":[]},{"name":"Obj/Device/Gate.lean","role":"对象","group":"Device","python":"objects/device/gate.py","title":"Gate —— 门格（连成条的物件格）","n_thm":0,"n_def":0,"outline":[{"kind":"structure","name":"Gate","doc":"","axioms":null}],"parts":[]},{"name":"Obj/Device/Marker.lean","role":"对象","group":"Device","python":"objects/device/marker.py","title":"Markers —— 记号","n_thm":0,"n_def":0,"outline":[{"kind":"abbrev","name":"Markers","doc":"此刻全部记号所在的格。","axioms":null}],"parts":[]},{"name":"Obj/Device/Selection.lean","role":"对象","group":"Device","python":"objects/device/selection.py","title":"Lit —— 此刻被选中的那个记号（至多一个）","n_thm":0,"n_def":0,"outline":[{"kind":"abbrev","name":"Lit","doc":"","axioms":null}],"parts":[]},{"name":"Obj/Device/Switch.lean","role":"对象","group":"Device","python":"objects/device/switch.py","title":"Switch —— 开关（孤立的物件格）","n_thm":0,"n_def":0,"outline":[{"kind":"structure","name":"Switch","doc":"","axioms":null}],"parts":[]},{"name":"Obj/Geometry/Cell.lean","role":"对象","group":"Geometry","python":"objects/geometry/cell.py","title":"Cell —— 一个格点（行、列），相对这一关的格阵","n_thm":0,"n_def":0,"outline":[{"kind":"structure","name":"Cell","doc":"格点坐标。行在前、列在后，从 0 数起。","axioms":null}],"parts":[]},{"name":"Obj/Geometry/Delta.lean","role":"对象","group":"Geometry","python":"objects/geometry/delta.py","title":"Dir —— 一步的位移，以及它的镜像","n_thm":0,"n_def":2,"outline":[{"kind":"inductive","name":"Dir","doc":"","axioms":null},{"kind":"def","name":"Dir.mirror","doc":"镜像：列取反。","axioms":null},{"kind":"def","name":"Cell.go","doc":"从一格朝一个方向走一格。走出格阵的上边 / 左边（行或列要变成负数）时没有这一格。","axioms":null}],"parts":[]},{"name":"Obj/Mover/Pieces.lean","role":"对象","group":"Mover","python":"objects/mover/pieces.py","title":"Pieces —— 两块","n_thm":0,"n_def":1,"outline":[{"kind":"structure","name":"Pieces","doc":"","axioms":null},{"kind":"def","name":"Pieces.covers","doc":"有没有一块站在这一格上。","axioms":null}],"parts":[]},{"name":"Obj/Terrain/Hazard.lean","role":"对象","group":"Terrain","python":"objects/terrain/hazard.py","title":"Hazards —— 危险格","n_thm":0,"n_def":0,"outline":[{"kind":"abbrev","name":"Hazards","doc":"这一关的危险格。","axioms":null}],"parts":[]},{"name":"Obj/Terrain/Wall.lean","role":"对象","group":"Terrain","python":"objects/terrain/wall.py","title":"Walls —— 墙格","n_thm":0,"n_def":0,"outline":[{"kind":"abbrev","name":"Walls","doc":"这一关的墙格。","axioms":null}],"parts":[]},{"name":"Obj/World.lean","role":"对象","group":null,"python":"objects/world.py","title":"World —— 版面 `Board` 与状态 `St`","n_thm":0,"n_def":0,"outline":[{"kind":"structure","name":"Board","doc":"","axioms":null},{"kind":"structure","name":"St","doc":"","axioms":null},{"kind":"inductive","name":"Res","doc":"","axioms":null}],"parts":[]},{"name":"Obs/Check.lean","role":"观测","group":null,"python":null,"title":"Check —— **判据层**：模型面对观测。这一份里**没有一条定理**，尺子不自证。","n_thm":0,"n_def":10,"outline":[{"kind":"structure","name":"Seen","doc":"帧上看得见的那一部分。","axioms":null},{"kind":"def","name":"setEq","doc":"","axioms":null},{"kind":"def","name":"Seen.agree","doc":"","axioms":null},{"kind":"def","name":"seenOf","doc":"模型的状态在帧上会长成什么样。","axioms":null},{"kind":"inductive","name":"Tri","doc":"","axioms":null},{"kind":"structure","name":"Case","doc":"语料里的一条转移。上一帧只装读得到的：两块（无序的 `a` `b`）、记号、选中、带长。","axioms":null},{"kind":"def","name":"ticksFor","doc":"带长 `b` 对应哪几种步数。","axioms":null},{"kind":"def","name":"fiber","doc":"这一帧对应的全部世界：两种标法 × 几种步数。","axioms":null},{"kind":"def","name":"judge","doc":"","axioms":null},{"kind":"def","name":"combine","doc":"","axioms":null},{"kind":"def","name":"agrees","doc":"**一条转移**对不对。","axioms":null},{"kind":"def","name":"traceOk","doc":"**一整段路**对不对：下一轮喂进去的是模型自己算出来的状态，不是观测到的那一帧。","axioms":null},{"kind":"def","name":"firstSplit","doc":"**只给读数用**：第一处分家在第几步（`none` = 一处都没分家）。它是读数不是定理。","axioms":null}],"parts":[]},{"name":"Obs/Corpus.lean","role":"观测","group":null,"python":null,"title":"Corpus —— 模型面对全部真实转移（`lean2/export_corpus.py` 生成，不要手改）","n_thm":3,"n_def":3,"outline":[{"kind":"def","name":"verdicts","doc":"","axioms":null},{"kind":"def","name":"countOf","doc":"","axioms":null},{"kind":"theorem","name":"corpus_cases_len","doc":"用例条数钉住：切歪了会得到空表，空表之下「判错 0」平凡为真。","axioms":"propext"},{"kind":"theorem","name":"corpus_no_false","doc":"**模型没被语料驳倒**：485 条真实转移里，判错的一条都没有。","axioms":"propext"},{"kind":"theorem","name":"corpus_tally","doc":"对上几条、闭嘴几条——**和 Python 规则层的预期逐个数对上**（预期：对上 483、闭嘴 2）。","axioms":"propext"},{"kind":"def","name":"code","doc":"","axioms":null}],"parts":[]},{"name":"Obs/Replay.lean","role":"观测","group":null,"python":null,"title":"Replay —— 整条轨迹，**只存这一份**（`lean2/export_replay.py` 生成，不要手改）","n_thm":0,"n_def":50,"outline":[{"kind":"structure","name":"Row","doc":"一行 = 一条真实转移。**只装看得见的东西**，外加现实那一侧两位事实（换没换关、属于哪一段）。","axioms":null},{"kind":"def","name":"emptyBoard","doc":"","axioms":null},{"kind":"def","name":"board0","doc":"","axioms":null},{"kind":"def","name":"board1","doc":"","axioms":null},{"kind":"def","name":"board2","doc":"","axioms":null},{"kind":"def","name":"board3","doc":"","axioms":null},{"kind":"def","name":"board4","doc":"","axioms":null},{"kind":"def","name":"board5","doc":"","axioms":null},{"kind":"def","name":"board6","doc":"","axioms":null},{"kind":"def","name":"board7","doc":"","axioms":null},{"kind":"def","name":"board8","doc":"","axioms":null},{"kind":"def","name":"board9","doc":"","axioms":null},{"kind":"def","name":"board10","doc":"","axioms":null},{"kind":"def","name":"board11","doc":"","axioms":null},{"kind":"def","name":"board12","doc":"","axioms":null},{"kind":"def","name":"board13","doc":"","axioms":null},{"kind":"def","name":"board14","doc":"","axioms":null},{"kind":"def","name":"boards","doc":"逐条判用的盘（前后两帧拼起来），去重之后 15 张。","axioms":null},{"kind":"def","name":"boardAt","doc":"","axioms":null},{"kind":"def","name":"lvBoard0_0","doc":"","axioms":null},{"kind":"def","name":"lvBoard0_1","doc":"","axioms":null},{"kind":"def","name":"lvBoard0_2","doc":"","axioms":null},{"kind":"def","name":"lvBoard0_3","doc":"","axioms":null},{"kind":"def","name":"lvBoard0_4","doc":"","axioms":null},{"kind":"def","name":"lvBoard0_5","doc":"","axioms":null},{"kind":"def","name":"lvBoard1_0","doc":"","axioms":null},{"kind":"def","name":"lvBoard1_1","doc":"","axioms":null},{"kind":"def","name":"lvBoard1_2","doc":"","axioms":null},{"kind":"def","name":"lvBoard1_3","doc":"","axioms":null},{"kind":"def","name":"lvBoard1_4","doc":"","axioms":null},{"kind":"def","name":"lvBoard1_5","doc":"","axioms":null},{"kind":"def","name":"levelBoard","doc":"每关判用的盘（这一关、这一段所有帧拼起来）。`seg` 是段号，`lv` 是关号。","axioms":null},{"kind":"def","name":"rows0","doc":"","axioms":null},{"kind":"def","name":"rows1","doc":"","axioms":null},{"kind":"def","name":"rows2","doc":"","axioms":null},{"kind":"def","name":"rows3","doc":"","axioms":null},{"kind":"def","name":"rows4","doc":"","axioms":null},{"kind":"def","name":"rows5","doc":"","axioms":null},{"kind":"def","name":"rows6","doc":"","axioms":null},{"kind":"def","name":"rows7","doc":"","axioms":null},{"kind":"def","name":"rows8","doc":"","axioms":null},{"kind":"def","name":"rows9","doc":"","axioms":null},{"kind":"def","name":"rows10","doc":"","axioms":null},{"kind":"def","name":"rows11","doc":"","axioms":null},{"kind":"def","name":"rows12","doc":"","axioms":null},{"kind":"def","name":"rows","doc":"整条轨迹，共 486 行。","axioms":null},{"kind":"def","name":"caseOf","doc":"逐条那一层的用例：上一帧读得成、动作模型描述得了的那些行。","axioms":null},{"kind":"def","name":"cases","doc":"","axioms":null},{"kind":"def","name":"playFrom","doc":"从 `seq = want` 那一行起连着取 `len` 行，每行留（动作, 下一帧看得见的）。\n    **取不到就少几条**——每一段都另配一条 `_len` 定理钉住它到底有几步。","axioms":null},{"kind":"def","name":"actAt","doc":"`seq = want` 那一行的动作。","axioms":null},{"kind":"def","name":"startOf","doc":"`seq = want` 那一行动作之前的世界，**这一关走了 `tk` 步**；`swap` 挑哪一块当 direct。","axioms":null}],"parts":[]},{"name":"Proof/Levels.lean","role":"证明","group":null,"python":null,"title":"Levels —— 每一关一条定理（`lean2/export_levels.py` 生成，**不要手改**）","n_thm":34,"n_def":64,"outline":[{"kind":"def","name":"L0_board","doc":"","axioms":null},{"kind":"def","name":"L0_swap","doc":"","axioms":null},{"kind":"def","name":"L0_startWith","doc":"第 0 关开局那一帧，挑哪一块当 direct 由 `swap` 定（`Broken.lean` 拿反过来的那一种当破坏测试）。","axioms":null},{"kind":"def","name":"L0_start","doc":"第 0 关的真实开局：成绩单认证那一段里这一关第一帧，**从语料读出来的**。","axioms":null},{"kind":"def","name":"L0_play","doc":"开局到过关前一步，14 步。过关那一脚不在这里：那一步的下一帧是另一关的盘。","axioms":null},{"kind":"def","name":"L0_acts","doc":"","axioms":null},{"kind":"theorem","name":"L0_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"L0_trace","doc":"**模型沿着真人的路一步不差。** 只有开局那一帧是观测给的。","axioms":"propext"},{"kind":"theorem","name":"L0_winnable","doc":"**第 0 关走得通。** 见证是那 14 步再加过关那一脚，内核从开局算到底。","axioms":"propext"},{"kind":"def","name":"L1_board","doc":"","axioms":null},{"kind":"def","name":"L1_swap","doc":"","axioms":null},{"kind":"def","name":"L1_startWith","doc":"第 1 关开局那一帧，挑哪一块当 direct 由 `swap` 定（`Broken.lean` 拿反过来的那一种当破坏测试）。","axioms":null},{"kind":"def","name":"L1_start","doc":"第 1 关的真实开局：成绩单认证那一段里这一关第一帧，**从语料读出来的**。","axioms":null},{"kind":"def","name":"L1_play","doc":"开局到过关前一步，22 步。过关那一脚不在这里：那一步的下一帧是另一关的盘。","axioms":null},{"kind":"def","name":"L1_acts","doc":"","axioms":null},{"kind":"theorem","name":"L1_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"L1_trace","doc":"**模型沿着真人的路一步不差。** 只有开局那一帧是观测给的。","axioms":"propext"},{"kind":"theorem","name":"L1_winnable","doc":"**第 1 关走得通。** 见证是那 22 步再加过关那一脚，内核从开局算到底。","axioms":"propext"},{"kind":"def","name":"L2_board","doc":"","axioms":null},{"kind":"def","name":"L2_swap","doc":"","axioms":null},{"kind":"def","name":"L2_startWith","doc":"第 2 关开局那一帧，挑哪一块当 direct 由 `swap` 定（`Broken.lean` 拿反过来的那一种当破坏测试）。","axioms":null},{"kind":"def","name":"L2_start","doc":"第 2 关的真实开局：成绩单认证那一段里这一关第一帧，**从语料读出来的**。","axioms":null},{"kind":"def","name":"L2_play","doc":"开局到过关前一步，76 步。过关那一脚不在这里：那一步的下一帧是另一关的盘。","axioms":null},{"kind":"def","name":"L2_acts","doc":"","axioms":null},{"kind":"theorem","name":"L2_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"L2_trace","doc":"**模型沿着真人的路一步不差。** 只有开局那一帧是观测给的。","axioms":"propext"},{"kind":"theorem","name":"L2_winnable","doc":"**第 2 关走得通。** 见证是那 76 步再加过关那一脚，内核从开局算到底。","axioms":"propext"},{"kind":"def","name":"L3_board","doc":"","axioms":null},{"kind":"def","name":"L3_swap","doc":"","axioms":null},{"kind":"def","name":"L3_startWith","doc":"第 3 关开局那一帧，挑哪一块当 direct 由 `swap` 定（`Broken.lean` 拿反过来的那一种当破坏测试）。","axioms":null},{"kind":"def","name":"L3_start","doc":"第 3 关的真实开局：成绩单认证那一段里这一关第一帧，**从语料读出来的**。","axioms":null},{"kind":"def","name":"L3_play","doc":"开局到过关前一步，14 步。过关那一脚不在这里：那一步的下一帧是另一关的盘。","axioms":null},{"kind":"def","name":"L3_acts","doc":"","axioms":null},{"kind":"theorem","name":"L3_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"L3_trace","doc":"**模型沿着真人的路一步不差。** 只有开局那一帧是观测给的。","axioms":"propext"},{"kind":"theorem","name":"L3_winnable","doc":"**第 3 关走得通。** 见证是那 14 步再加过关那一脚，内核从开局算到底。","axioms":"propext"},{"kind":"def","name":"L4_board","doc":"","axioms":null},{"kind":"def","name":"L4_swap","doc":"","axioms":null},{"kind":"def","name":"L4_startWith","doc":"第 4 关开局那一帧，挑哪一块当 direct 由 `swap` 定（`Broken.lean` 拿反过来的那一种当破坏测试）。","axioms":null},{"kind":"def","name":"L4_start","doc":"第 4 关的真实开局：成绩单认证那一段里这一关第一帧，**从语料读出来的**。","axioms":null},{"kind":"def","name":"L4_play","doc":"开局到过关前一步，39 步。过关那一脚不在这里：那一步的下一帧是另一关的盘。","axioms":null},{"kind":"def","name":"L4_acts","doc":"","axioms":null},{"kind":"theorem","name":"L4_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"L4_trace","doc":"**模型沿着真人的路一步不差。** 只有开局那一帧是观测给的。","axioms":"propext"},{"kind":"theorem","name":"L4_winnable","doc":"**第 4 关走得通。** 见证是那 39 步再加过关那一脚，内核从开局算到底。","axioms":"propext"},{"kind":"def","name":"L5_board","doc":"","axioms":null},{"kind":"def","name":"L5_swap","doc":"","axioms":null},{"kind":"def","name":"L5_startWith","doc":"第 5 关开局那一帧，挑哪一块当 direct 由 `swap` 定（`Broken.lean` 拿反过来的那一种当破坏测试）。","axioms":null},{"kind":"def","name":"L5_start","doc":"第 5 关的真实开局：成绩单认证那一段里这一关第一帧，**从语料读出来的**。","axioms":null},{"kind":"def","name":"L5_play","doc":"开局到过关前一步，44 步。过关那一脚不在这里：那一步的下一帧是另一关的盘。","axioms":null},{"kind":"def","name":"L5_acts","doc":"","axioms":null},{"kind":"theorem","name":"L5_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"L5_trace","doc":"**模型沿着真人的路一步不差。** 只有开局那一帧是观测给的。","axioms":"propext"},{"kind":"theorem","name":"L5_winnable","doc":"**第 5 关走得通。** 见证是那 44 步再加过关那一脚，内核从开局算到底。","axioms":"propext"},{"kind":"def","name":"A0_board","doc":"","axioms":null},{"kind":"def","name":"A0_swap","doc":"","axioms":null},{"kind":"def","name":"A0_start","doc":"","axioms":null},{"kind":"def","name":"A0_play","doc":"","axioms":null},{"kind":"theorem","name":"A0_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A0_trace","doc":"","axioms":"propext"},{"kind":"def","name":"A1_board","doc":"","axioms":null},{"kind":"def","name":"A1_swap","doc":"","axioms":null},{"kind":"def","name":"A1_start","doc":"","axioms":null},{"kind":"def","name":"A1_play","doc":"","axioms":null},{"kind":"theorem","name":"A1_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A1_trace","doc":"","axioms":"propext"},{"kind":"def","name":"A1_tail1_start","doc":"第 1 关探索段第 1 次往危险格迈步（行 31）之后的那一截，22 步。\n    **起点用了那条明写的假设**：两块、记号、选中回到开局，时钟接着走（已走 12 步）。","axioms":null},{"kind":"def","name":"A1_tail1","doc":"","axioms":null},{"kind":"theorem","name":"A1_tail1_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A1_tail1_trace","doc":"那条假设唯一一次有机会被驳倒的地方。**没红不构成证明。**","axioms":"propext"},{"kind":"def","name":"A2_board","doc":"","axioms":null},{"kind":"def","name":"A2_swap","doc":"","axioms":null},{"kind":"def","name":"A2_start","doc":"","axioms":null},{"kind":"def","name":"A2_play","doc":"","axioms":null},{"kind":"theorem","name":"A2_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A2_trace","doc":"","axioms":"propext"},{"kind":"def","name":"A3_board","doc":"","axioms":null},{"kind":"def","name":"A3_swap","doc":"","axioms":null},{"kind":"def","name":"A3_start","doc":"","axioms":null},{"kind":"def","name":"A3_play","doc":"","axioms":null},{"kind":"theorem","name":"A3_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A3_trace","doc":"","axioms":"propext"},{"kind":"def","name":"A3_tail1_start","doc":"第 3 关探索段第 1 次往危险格迈步（行 164）之后的那一截，12 步。\n    **起点用了那条明写的假设**：两块、记号、选中回到开局，时钟接着走（已走 9 步）。","axioms":null},{"kind":"def","name":"A3_tail1","doc":"","axioms":null},{"kind":"theorem","name":"A3_tail1_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A3_tail1_trace","doc":"那条假设唯一一次有机会被驳倒的地方。**没红不构成证明。**","axioms":"propext"},{"kind":"def","name":"A4_board","doc":"","axioms":null},{"kind":"def","name":"A4_swap","doc":"","axioms":null},{"kind":"def","name":"A4_start","doc":"","axioms":null},{"kind":"def","name":"A4_play","doc":"","axioms":null},{"kind":"theorem","name":"A4_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A4_trace","doc":"","axioms":"propext"},{"kind":"def","name":"A5_board","doc":"","axioms":null},{"kind":"def","name":"A5_swap","doc":"","axioms":null},{"kind":"def","name":"A5_start","doc":"","axioms":null},{"kind":"def","name":"A5_play","doc":"","axioms":null},{"kind":"theorem","name":"A5_play_len","doc":"","axioms":"propext"},{"kind":"theorem","name":"A5_trace","doc":"","axioms":"propext"}],"parts":[{"key":"p0","title":"第 0 关（认证段，行 271–285）"},{"key":"p1","title":"第 1 关（认证段，行 286–308）"},{"key":"p2","title":"第 2 关（认证段，行 309–385）"},{"key":"p3","title":"第 3 关（认证段，行 386–400）"},{"key":"p4","title":"第 4 关（认证段，行 401–440）"},{"key":"p5","title":"第 5 关（认证段，行 441–485）"},{"key":"p6","title":"第 0 关（探索段，行 0–19；**不当见证**）"},{"key":"p7","title":"第 1 关（探索段，行 20–54；**不当见证**）"},{"key":"p8","title":"第 2 关（探索段，行 55–155；**不当见证**）"},{"key":"p9","title":"第 3 关（探索段，行 156–177；**不当见证**）"},{"key":"p10","title":"第 4 关（探索段，行 178–223；**不当见证**）"},{"key":"p11","title":"第 5 关（探索段，行 224–269；**不当见证**）"}]},{"name":"Proof/MirrorKey.lean","role":"证明","group":null,"python":null,"title":"MirrorKey —— 一把「走不通」的钥匙：**对称盘上的镜像两块，中轴全堵就永远撞不上**","n_thm":6,"n_def":1,"outline":[{"kind":"structure","name":"KeyBoard","doc":"盘的前提。","axioms":null},{"kind":"def","name":"Key","doc":"不变量。","axioms":null},{"kind":"theorem","name":"cell_eq","doc":"","axioms":"propext"},{"kind":"theorem","name":"land_cases","doc":"一块落在 `X` 上：要么原地，要么这一步走进了一格不会让它停下来的 `X`。","axioms":"propext"},{"kind":"theorem","name":"key_no_collide","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"key_keep","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"key_no_win","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"unsolvable_by_mirror_key","doc":"**钥匙**：满足前提的盘上，从满足 Φ 的局面出发，**不经过重置**就赢不了。挂在骨架上，没有证明体。","axioms":"propext, Quot.sound"}],"parts":[]},{"name":"Proof/Reachable.lean","role":"证明","group":null,"python":null,"title":"Reachable —— 这个**局面**做不做得了","n_thm":2,"n_def":3,"outline":[{"kind":"def","name":"everWon","doc":"从 `s` 出发照着 `as` 走，中途赢过没有。重来那一支返回 `false`（见文件头）。","axioms":null},{"kind":"def","name":"Winnable","doc":"","axioms":null},{"kind":"def","name":"Unsolvable","doc":"","axioms":null},{"kind":"theorem","name":"not_both","doc":"两句话不能同时成立。","axioms":"propext"},{"kind":"theorem","name":"unsolvable_of_invariant","doc":"**骨架**：不变量 ⇒ 不经过重置就赢不了。全文唯一做归纳的地方，与盘面大小、动作串长短都无关。","axioms":"propext"}],"parts":[]},{"name":"Proof/Scenes.lean","role":"证明","group":null,"python":null,"title":"Scenes —— 一张教学盘讲清镜像钥匙，外加**三条防线**","n_thm":11,"n_def":5,"outline":[{"kind":"def","name":"ring","doc":"","axioms":null},{"kind":"def","name":"stuck","doc":"中轴那一格是墙。","axioms":null},{"kind":"def","name":"opened","doc":"只差一格：中轴那一格是地面。","axioms":null},{"kind":"def","name":"start","doc":"","axioms":null},{"kind":"def","name":"canon","doc":"一个固定的状态：没有门、没有记号的盘上，「会不会停」和状态无关，拿它当代表。","axioms":null},{"kind":"theorem","name":"stop_canon","doc":"","axioms":"（无公理）"},{"kind":"theorem","name":"stop_out_row","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"stuck_symm","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"stuck_axis","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"stuck_keyboard","doc":"","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"start_key","doc":"","axioms":"（无公理）"},{"kind":"theorem","name":"scene_stuck_unsolvable","doc":"**这张盘走不通**（不经过重置）。挂钥匙，没有一处枚举。","axioms":"propext, Quot.sound"},{"kind":"theorem","name":"scene_open_winnable","doc":"防线一：只差一格的盘，**一步就撞上**（内核算）。","axioms":"propext"},{"kind":"theorem","name":"scene_closed_at_start","doc":"防线二：不是因为它一开始就撞在一起。","axioms":"（无公理）"},{"kind":"theorem","name":"scene_open_not_key","doc":"防线三：对照盘上钥匙的前提**真的不满足**——中轴那一格不会让块停下。","axioms":"（无公理）"},{"kind":"theorem","name":"scene_open_not_unsolvable","doc":"两句话不能同时成立（对照盘上）：顺手核一遍 `not_both` 用得上。","axioms":"propext"}],"parts":[]},{"name":"Rule/Move/ClickSelects.lean","role":"规则","group":"Move","python":"rule/一步怎么走/click_selects.py","title":"click_selects —— 点中记号就选中它，点在别处就谁都不选中","n_thm":0,"n_def":1,"outline":[{"kind":"def","name":"click","doc":"","axioms":null}],"parts":[]},{"name":"Rule/Move/LitArrowsPushMarker.lean","role":"规则","group":"Move","python":"rule/一步怎么走/lit_arrows_push_marker.py","title":"lit_arrows_push_marker —— 选中了记号时，方向键推的是记号","n_thm":0,"n_def":3,"outline":[{"kind":"def","name":"markerDest","doc":"被选中的记号从 `x` 朝 `d` 推一步落在哪。","axioms":null},{"kind":"def","name":"moveLit","doc":"把选中的那个记号从 `x` 挪到 `y`，选中跟着它走。","axioms":null},{"kind":"def","name":"pushMarker","doc":"","axioms":null}],"parts":[]},{"name":"Rule/Move/PiecesMove.lean","role":"规则","group":"Move","python":"rule/一步怎么走/pieces_move.py","title":"pieces_move —— 两块怎么走","n_thm":0,"n_def":4,"outline":[{"kind":"def","name":"inGrid","doc":"","axioms":null},{"kind":"def","name":"blocked","doc":"这一格此刻挡路。","axioms":null},{"kind":"def","name":"land","doc":"一块从 `x` 朝 `d` 走一步落在哪。","axioms":null},{"kind":"def","name":"pieceMove","doc":"两块各落在哪：`d` 那一块照位移，`m` 那一块照镜像位移。","axioms":null}],"parts":[]},{"name":"Rule/Move/WaitNoop.lean","role":"规则","group":"Move","python":"rule/一步怎么走/wait_noop.py","title":"wait_noop —— ACTION5 什么都不动","n_thm":0,"n_def":1,"outline":[{"kind":"def","name":"wait","doc":"","axioms":null}],"parts":[]},{"name":"Rule/Outcome/CollideWins.lean","role":"规则","group":"Outcome","python":"rule/什么算赢什么算砸/collide_wins.py","title":"collide_wins —— 两块落到同一格 = 过关","n_thm":0,"n_def":1,"outline":[{"kind":"def","name":"collides","doc":"","axioms":null}],"parts":[]},{"name":"Rule/Outcome/HazardResets.lean","role":"规则","group":"Outcome","python":"rule/什么算赢什么算砸/hazard_resets.py","title":"hazard_resets —— 往危险格迈一步 = 这一关从头来过","n_thm":0,"n_def":2,"outline":[{"kind":"def","name":"hazardAt","doc":"","axioms":null},{"kind":"def","name":"stepsOnHazard","doc":"两块里有一块的意图落点是危险格。","axioms":null}],"parts":[]},{"name":"Rule/Response/BandClock.lean","role":"规则","group":"Response","python":"rule/世界怎么回应/band_clock.py","title":"band_clock —— 计数带是一只时钟","n_thm":0,"n_def":2,"outline":[{"kind":"def","name":"band","doc":"","axioms":null},{"kind":"def","name":"tick","doc":"又过了一步。","axioms":null}],"parts":[]},{"name":"Rule/Response/GateFollowsSwitch.lean","role":"规则","group":"Response","python":"rule/世界怎么回应/gate_follows_switch.py","title":"gate_follows_switch —— **某色的门开着，当且仅当有块站在同色的开关上**","n_thm":0,"n_def":2,"outline":[{"kind":"def","name":"gateOpen","doc":"色 `k` 的门此刻开着：有块站在一个 `k` 色开关上。","axioms":null},{"kind":"def","name":"closedGate","doc":"这一格是一格此刻关着的门。","axioms":null}],"parts":[]},{"name":"Rule/Unmodeled/TerrainStatic.lean","role":"规则","group":"Unmodeled","python":"rule/说了但不进模型/terrain_static.py","title":"terrain_static —— 同一关内地形是死的","n_thm":0,"n_def":0,"outline":[],"parts":[]},{"name":"Step.lean","role":"装配：只做分发","group":null,"python":null,"title":"Step —— 一步怎么走：**只做分发，0 条定理**","n_thm":0,"n_def":2,"outline":[{"kind":"def","name":"moveStep","doc":"","axioms":null},{"kind":"def","name":"step","doc":"","axioms":null}],"parts":[]}],"levels":[{"level":0,"trace":true,"winnable":true,"unsolvable":false,"steps_checked":14,"conclusion":"走得通"},{"level":1,"trace":true,"winnable":true,"unsolvable":false,"steps_checked":22,"conclusion":"走得通"},{"level":2,"trace":true,"winnable":true,"unsolvable":false,"steps_checked":76,"conclusion":"走得通"},{"level":3,"trace":true,"winnable":true,"unsolvable":false,"steps_checked":14,"conclusion":"走得通"},{"level":4,"trace":true,"winnable":true,"unsolvable":false,"steps_checked":39,"conclusion":"走得通"},{"level":5,"trace":true,"winnable":true,"unsolvable":false,"steps_checked":44,"conclusion":"走得通"}],"levels_extra":[{"name":"A0","steps_checked":19},{"name":"A1","steps_checked":11},{"name":"A1_tail1","steps_checked":22},{"name":"A2","steps_checked":100},{"name":"A3","steps_checked":8},{"name":"A3_tail1","steps_checked":12},{"name":"A4","steps_checked":45},{"name":"A5","steps_checked":45}],"identity":[{"rule":"click_selects","py_group":"一步怎么走","lean_group":"Move","identity":"def","lean":"Rule/Move/ClickSelects.lean","defs":["click"],"theorems":[]},{"rule":"lit_arrows_push_marker","py_group":"一步怎么走","lean_group":"Move","identity":"def","lean":"Rule/Move/LitArrowsPushMarker.lean","defs":["markerDest","moveLit","pushMarker"],"theorems":[]},{"rule":"mirror_pair_persists","py_group":"一步怎么走","lean_group":"Move","identity":"derived","lean":"Derived/MirrorPairPersists.lean","defs":["stop","mirrorPair","symmetric"],"theorems":["land_eq","land_up","land_down","land_left","land_right","stop_out","pieceMove_mirror","pushMarker_pcs","mirror_pair_persists"],"scope":8,"refuted":0},{"rule":"parity_flips_iff_blocked","py_group":"一步怎么走","lean_group":"Move","identity":"derived","lean":"Derived/ParityFlipsIffBlocked.lean","defs":["stays"],"theorems":["pieceMove_parity","parity_flips_iff_blocked"],"scope":95,"refuted":0},{"rule":"pieces_move","py_group":"一步怎么走","lean_group":"Move","identity":"def","lean":"Rule/Move/PiecesMove.lean","defs":["inGrid","blocked","land","pieceMove"],"theorems":[]},{"rule":"wait_noop","py_group":"一步怎么走","lean_group":"Move","identity":"def","lean":"Rule/Move/WaitNoop.lean","defs":["wait"],"theorems":[]},{"rule":"band_clock","py_group":"世界怎么回应","lean_group":"Response","identity":"def","lean":"Rule/Response/BandClock.lean","defs":["band","tick"],"theorems":[]},{"rule":"gate_follows_switch","py_group":"世界怎么回应","lean_group":"Response","identity":"def","lean":"Rule/Response/GateFollowsSwitch.lean","defs":["gateOpen","closedGate"],"theorems":[]},{"rule":"collide_wins","py_group":"什么算赢什么算砸","lean_group":"Outcome","identity":"def","lean":"Rule/Outcome/CollideWins.lean","defs":["collides"],"theorems":[]},{"rule":"hazard_resets","py_group":"什么算赢什么算砸","lean_group":"Outcome","identity":"def","lean":"Rule/Outcome/HazardResets.lean","defs":["hazardAt","stepsOnHazard"],"theorems":[]},{"rule":"terrain_static","py_group":"说了但不进模型","lean_group":"Unmodeled","identity":"unmodeled","lean":"Rule/Unmodeled/TerrainStatic.lean","defs":[],"theorems":[],"scope":473,"refuted":0}],"identity_tally":{"def":8,"derived":2,"unmodeled":1},"corpus":{"python":485,"lean":485,"mismatch":0,"lean_tally":{"yes":483,"no":0,"na":2}},"broken":{"rc":1,"error_lines":[22],"marked_line":22,"ok":true,"message":"Broken.lean:22:96: error: Tactic `decide` proved that the proposition traceOk Levels.L3_board (Levels.L3_startWith !Levels.L3_swap) Levels.L3_play = true is false"},"n_theorems":67,"axioms_dirty":0,"axioms_missing":0,"axioms_checked":67,"lean_mutants":[{"name":"关着的门不挡路","file":"Rule/Move/PiecesMove.lean","why":"关着的门当地面（Python 侧同名突变体没红；这里问：带着身份往下走逮不逮得住）","red":false,"failed":{},"skipped_downstream":[]},{"name":"格阵没有边","file":"Rule/Move/PiecesMove.lean","why":"走出格阵不挡（Python 侧同名突变体没红；第 4 关左右两列是开着的）","red":false,"failed":{},"skipped_downstream":[]},{"name":"推记号照镜像","file":"Rule/Move/LitArrowsPushMarker.lean","why":"Python 侧红了；Lean 两层都该红","red":true,"failed":{"Obs/Corpus.lean":{"error_lines":[25,28],"theorems":["corpus_no_false","corpus_tally"]},"Proof/Levels.lean":{"error_lines":[111,114,139,142,195,198,250,263,275,301],"theorems":["A2_trace","A3_tail1_trace","A3_trace","A5_trace","L2_trace","L2_winnable","L3_trace","L3_winnable","L5_trace","L5_winnable"]}},"skipped_downstream":[]}],"lean_check_notes":["扫目录：31 份 .lean","分层（按目录认）：对象 12、推论 2、没归类 1、观测 3、规则 9、证明 4","没归类 Step.lean —— 它们不在任何一层里，下面几条分层检查对它们不起作用","跑成的分层检查：import 方向、长在世界上","lean：工具链 leanprover--lean4---v4.34.0（绕开 elan shim）","可信基：67/67 条定理跑过 `#print axioms`，干净（只有 propext / Classical.choice / Quot.sound）"]},"gaps":["探索段（不在成绩单认证的那一段）只核逐帧对上，不当任何一关「走得通」的见证。","「往危险格迈步之后回到开局、时钟接着走」是明写的假设，不进模型；探索段两关的后半截从它起算而没有红——那是它唯一一次有机会被驳倒，**不构成证明**。","哪一块是 direct、这一关走了几步：两位帧上读不出来的信息。逐条那一层按纤维判（两种标法 × 几种步数），每关那一层由导出器挑开局的那一种、内核核（挑错了编不过——破坏测试就是这一条）。","模型比规则多说的一支：点在格阵之外按「点在别处」算——语料里 0 次，没被检验过。","RESET（整局重来）不进模型：语料里只在整局打完之后出现一次，那一步的上一帧是终局画面。","计数带满了（一关 150 步）之后会怎样，语料说不了：一关最多走了 101 步。","Lean 突变体「关着的门不挡路」没红：关着的门当地面（Python 侧同名突变体没红；这里问：带着身份往下走逮不逮得住）——这批语料里真实走法一次都没碰到这一处，它说的那件事**没被检验过**（Python 侧同名突变体的归因见 analysis/reverse.json）。","Lean 突变体「格阵没有边」没红：走出格阵不挡（Python 侧同名突变体没红；第 4 关左右两列是开着的）——这批语料里真实走法一次都没碰到这一处，它说的那件事**没被检验过**（Python 侧同名突变体的归因见 analysis/reverse.json）。"],"picks":{"start":271,"mirror":271,"push":317,"gate":402,"hazard":31,"win":285},"per_level":{"0":[271,272,273,274,275,276,277,278,279,280,281,282,283,284,285],"1":[286,287,288,289,290,291,292,293,294,295,296,297,298,299,300,301,302,303,304,305,306,307,308],"2":[309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,362,363,364,365,366,367,368,369,370,371,372,373,374,375,376,377,378,379,380,381,382,383,384,385],"3":[386,387,388,389,390,391,392,393,394,395,396,397,398,399,400],"4":[401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417,418,419,420,421,422,423,424,425,426,427,428,429,430,431,432,433,434,435,436,437,438,439,440],"5":[441,442,443,444,445,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,461,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485]},"n_levels":6,"legend_tint":"#FF851B"};
+</script>
+<script>
+// **只画，不算。** 每一格是什么、这一步哪些格变了、每条规则说了什么——全是 `web/export.py` 算好导出来的。
+// 这一份新增的只有两样：尺寸和配色。`check_no_logic.py` 会来这里搜世界那一侧的动词，搜到就算破。
+
+(function () {
+  const Render = (window.Render = {});
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  Render.esc = esc;
+
+  // 文档里那点记号（**粗** / `代码` / 空行分段）换成 HTML。只是排版。
+  Render.mdBlock = function (text) {
+    const paras = String(text || "").split(/\n\s*\n/);
+    return paras.map((p) => "<p>" + esc(p)
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\n/g, "<br>") + "</p>").join("");
+  };
+
+  // 一格一个字符（导出器定的写法）→ 颜色。**这张表是配色，不是判断。**
+  const FILL = {
+    ".": "var(--floor)", "#": "var(--wall)", "x": "var(--hazard)",
+    "m": "var(--marker)", "M": "var(--marker-on)", "p": "var(--piece)",
+  };
+  // 开关 a…h / 门 A…H：字母是「这一关第几个色名」，帧里带着这一关的色号表 f.t；
+  // 显示色读 web/export.py 从 ARC-AGI-3 官方色表取好的 TRACE.palette，这里不另抄。
+  const TINT = "abcdefgh", GATE = "ABCDEFGH";
+
+  // 画一帧。`hi` 是导出器给的「这一步变了的格」下标。
+  Render.board = function (fi, opts) {
+    opts = opts || {};
+    const T = window.TRACE;
+    if (fi === null || fi === undefined || !T) return '<div class="note">（这一帧读不成世界：终局画面）</div>';
+    const f = T.frames[fi];
+    const px = opts.px || 16;
+    const hi = new Set(opts.hi || []);
+    const lit = f.c.indexOf("M") >= 0;
+    let out = `<svg class="grid" width="${f.k * px + 2}" height="${f.r * px + 2}" viewBox="-1 -1 ${f.k * px + 2} ${f.r * px + 2}">`;
+    for (let i = 0; i < f.c.length; i++) {
+      const ch = f.c[i], x = (i % f.k) * px, y = Math.floor(i / f.k) * px;
+      let fill = FILL[ch] || "var(--unknown)";
+      const ti = TINT.indexOf(ch) >= 0 ? TINT.indexOf(ch) : GATE.indexOf(ch);
+      if (ti >= 0) fill = T.palette[f.t[ti]] || "var(--unknown)";
+      if (ch === "p" && lit) fill = "var(--piece-dim)";
+      out += `<rect x="${x}" y="${y}" width="${px}" height="${px}" fill="${fill}" stroke="var(--floor-line)" stroke-width="0.5"/>`;
+      if (ch === "x") out += `<path d="M${x} ${y}L${x + px} ${y + px}M${x + px} ${y}L${x} ${y + px}" stroke="var(--hazard-2)" stroke-width="1"/>`;
+      if (ch >= "A" && ch <= "H") out += `<rect x="${x + 2}" y="${y + 2}" width="${px - 4}" height="${px - 4}" fill="none" stroke="var(--wall)" stroke-width="2"/>`;
+      if (ch >= "a" && ch <= "h") out += `<circle cx="${x + px / 2}" cy="${y + px / 2}" r="${px / 4}" fill="var(--wall)"/>`;
+      if (ch === "m" || ch === "M") out += `<rect x="${x + px / 3}" y="${y + px / 3}" width="${px / 3}" height="${px / 3}" fill="var(--wall)"/>`;
+      if (hi.has(i)) out += `<rect x="${x + 1}" y="${y + 1}" width="${px - 2}" height="${px - 2}" fill="none" stroke="var(--changed)" stroke-width="2"/>`;
+    }
+    out += "</svg>";
+    const cap = opts.caption ? `<figcaption>${esc(opts.caption)}</figcaption>` : "";
+    return `<figure class="board" style="margin:0">${cap}${out}<div class="note">计数带 ${f.b}</div></figure>`;
+  };
+
+  Render.chip = function (v) {
+    const cls = { T: "TRUE", F: "FALSE", N: "NA", U: "NA", y: "TRUE", n: "FALSE", a: "NA" }[v] || "NA";
+    const word = { T: "对", F: "错", N: "不管", U: "读不成", y: "对上", n: "判错", a: "闭嘴" }[v] || "—";
+    return `<span class="chip ${cls}">${word}</span>`;
+  };
+
+  // 一条真实转移：前后两帧 + 每条规则说了什么。
+  Render.row = function (i) {
+    const T = window.TRACE, D = window.DATA;
+    const r = T.steps[i];
+    const names = D.rule_names;
+    let tbl = '<table><tr><th>规则</th><th>它这一步说什么</th></tr>';
+    for (let k = 0; k < names.length; k++) {
+      tbl += `<tr><td class="mono"><a href="${window.UP || ""}rules/${names[k]}.html">${names[k]}</a></td><td>${Render.chip(r.v[k])}</td></tr>`;
+    }
+    tbl += `<tr><td>Lean 模型（按纤维判）</td><td>${r.lean ? Render.chip(r.lean) : '<span class="chip NA">不进逐条那一层</span>'}</td></tr></table>`;
+    const head = `<div class="note">第 ${r.i} 行 · seq ${r.seq} · 上游步号 ${r.step} · 第 ${r.lv} 关 · 这一关第 ${r.m} 步 · 动作 <code>${esc(r.act)}</code>`
+      + (r.up ? " · <b>这一步换关</b>" : "") + (r.cert ? " · 认证段" : " · 探索段（不当见证）") + `</div>`;
+    return head + `<div class="boards" style="margin:10px 0">`
+      + Render.board(r.p, { caption: "这一步之前", hi: r.chg })
+      + Render.board(r.up ? r.n : r.n, { caption: r.up ? "下一帧（已是下一关的盘 / 终局画面）" : "这一步之后（黄框 = 变了的格）", hi: r.up ? [] : r.chg })
+      + `</div>` + tbl;
+  };
+
+  function initReplay() {
+    const box = document.getElementById("replay");
+    if (!box) return;
+    const T = window.TRACE;
+    const slider = document.getElementById("slider");
+    slider.max = T.steps.length - 1;
+    const show = () => { box.innerHTML = Render.row(+slider.value); document.getElementById("pos").textContent = slider.value; };
+    slider.oninput = show;
+    document.getElementById("prevbtn").onclick = () => { slider.value = Math.max(0, +slider.value - 1); show(); };
+    document.getElementById("nextbtn").onclick = () => { slider.value = Math.min(T.steps.length - 1, +slider.value + 1); show(); };
+    const jump = document.getElementById("jump");
+    if (jump) jump.onchange = () => { slider.value = jump.value; show(); };
+    const q = +(location.hash || "#0").slice(1);
+    slider.value = isNaN(q) ? 0 : q;
+    show();
+  }
+
+  // 首页 / 规则页上那几张图：步号是导出器挑的，页面只按号去画。
+  function initShots() {
+    document.querySelectorAll("[data-row]").forEach((el) => {
+      const i = +el.getAttribute("data-row");
+      const T = window.TRACE;
+      if (!T || isNaN(i)) return;
+      const r = T.steps[i];
+      const which = el.getAttribute("data-which") || "both";
+      let h = "";
+      if (which !== "next") h += Render.board(r.p, { caption: el.getAttribute("data-cap-prev") || "之前", hi: r.up ? [] : r.chg, px: 12 });
+      if (which !== "prev") h += Render.board(r.n, { caption: el.getAttribute("data-cap-next") || "之后", hi: r.up ? [] : r.chg, px: 12 });
+      el.innerHTML = `<div class="boards">${h}</div><div class="note">第 ${r.i} 行 · 第 ${r.lv} 关 · <code>${esc(r.act)}</code> · <a href="${window.UP || ""}replay.html#${r.i}">在回放里看</a></div>`;
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { initReplay(); initShots(); });
+})();
+
+</script>
+<script>
+window.LEANSRC={"source":"/-\n# Pieces —— 两块\n\n对应 Python `objects/mover/pieces.py`。Python 那边是**无序**的一对（帧上读不出哪一块是 direct）；\n这里是**有标的**一对 `d`（照位移走）/ `m`（照镜像位移走）。\n\n这是「按世界写，不按观测写」：世界里两块的身份是确定的，只是帧上看不见。\n这一位于是是模型的一位**隐藏信息**——逐条判的时候按纤维判（两种标法都试），\n每关判的时候开局那一帧挑一种，后面带着走；挑错了逐帧核对第一处有列移动的地方就红。\n-/\nimport Obj.Geometry.Cell\n\nnamespace Game\n\nstructure Pieces where\n  d : Cell      -- 照位移走的那一块\n  m : Cell      -- 照镜像位移走的那一块\nderiving DecidableEq, Repr\n\n/-- 有没有一块站在这一格上。 -/\ndef Pieces.covers (p : Pieces) (x : Cell) : Bool := p.d == x || p.m == x\n\nend Game\n","parts":[]};
+</script>
+<script>
+// **形式化那一层页面。** 形状照 `ledger/templates/web/lean.js`：按角色分组的下拉、拆页的段横条、
+// 公理表大纲、源码上色。这里没有一行世界逻辑——每一个数、每一段源码都是 `web/export.py` 导出来的。
+
+const R = window.Render;
+const $ = (id) => document.getElementById(id);
+
+const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|" +
+  "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using").split("|");
+
+const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+  "rintro|induction|split|rw|apply|unfold|absurd|first|next|subst|injection|contradiction|generalize").split("|");
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 哨兵写成 \uXXXX 转义，不写裸控制字节（模板踩过的坑，别改回去）。给源码上色：只认注释、字符串和几十个词。
+function paint(src) {
+  let h = esc(src);
+  h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/&quot;[^\n]*?&quot;/g, (m) => `\u0003${m}\u0004`);
+  h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+  const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+  const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+  return h
+    .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+    .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+    .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+    .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+    .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+}
+
+// 公理表干不干净。**空的不算干净，算「没人核过」。**
+function axChip(a) {
+  if (!a) return '<span class="chip NA">没打公理表</span>';
+  const dirty = a.indexOf("sorryAx") >= 0 || a.indexOf("ofReduceBool") >= 0;
+  return `<span class="chip ${dirty ? "FALSE" : "TRUE"}">${esc(a)}</span>`;
+}
+
+function outlineHTML(f) {
+  const out = [];
+  for (const it of f.outline) {
+    const thm = it.kind === "theorem";
+    out.push(
+      `<div class="litem${thm ? " thm" : ""}">` +
+      `<div class="lhead"><span class="lkind">${it.kind}</span>` +
+      `<span class="mono lname">${esc(it.name)}</span>` +
+      (thm ? axChip(it.axioms) : "") + "</div>" +
+      (it.doc ? `<div class="ldoc">${R.mdBlock(it.doc)}</div>` : "") +
+      "</div>");
+  }
+  return out.join("\n") || '<div class="note">这一份里没有定义也没有定理（见文件头的理由）。</div>';
+}
+
+// 下拉：按角色分组（角色是 export.py 给的那一列，页面不自己判），留一组「没归类」兜底。
+const NAV_GROUPS = [
+  ["对象", ["对象"]],
+  ["规则", ["规则"]],
+  ["推论", ["推论"]],
+  ["模型面对现实（判据 / 轨迹 / 语料）", ["观测"]],
+  ["要证的东西", ["证明"]],
+  ["装配与破坏测试", ["装配：只做分发", "破坏测试：应当编不过"]],
+];
+
+function flat(name) { return name.replace(".lean", "").replace(/\//g, "-"); }
+
+function navHTML(name) {
+  const files = window.DATA.lean.files;
+  const used = new Set();
+  let opts = "";
+  const add = (x) => {
+    used.add(x.name);
+    opts += `<option value="${flat(x.name)}.html"${x.name === name ? " selected" : ""}>${esc(x.name)} —— ${esc(x.title)}</option>`;
+  };
+  for (const [gname, roles] of NAV_GROUPS) {
+    const xs = files.filter((x) => roles.includes(x.role));
+    if (!xs.length) continue;
+    opts += `<optgroup label="${gname}">`;
+    xs.forEach(add);
+    opts += "</optgroup>";
+  }
+  const rest = files.filter((x) => !used.has(x.name));
+  if (rest.length) {
+    opts += `<optgroup label="没归类（${rest.length} 份）">`;
+    rest.forEach(add);
+    opts += "</optgroup>";
+  }
+  return `<label class="picker"><span>这 ${files.length} 份 Lean</span>`
+       + `<select onchange="if(this.value)location.href=this.value">${opts}</select></label>`
+       + `　<a href="index.html">回形式化首页</a>`;
+}
+
+function partsBar(f, here) {
+  if (!f.parts || !f.parts.length) return "";
+  const items = f.parts.map((p) => p.key === here
+    ? `<span style="color:var(--dim)">${esc(p.title)}</span>`
+    : `<a href="${flat(f.name)}-${p.key}.html">${esc(p.title)}</a>`);
+  const whole = here === null
+    ? `<span style="color:var(--dim)">整份</span>`
+    : `<a href="${flat(f.name)}.html">整份</a>`;
+  return `<div class="partsbar">${whole}${items.map((x) => "　" + x).join("")}</div>`;
+}
+
+function fileOf(name) { return window.DATA.lean.files.find((x) => x.name === name); }
+
+function initFile() {
+  const f = fileOf(window.LEAN_NAME);
+  $("nav").innerHTML = navHTML(f.name) + partsBar(f, null);
+  $("outline").innerHTML = outlineHTML(f);
+  $("src").innerHTML = paint(window.LEANSRC.source);
+}
+
+function initPart() {
+  const f = fileOf(window.LEAN_NAME);
+  $("nav").innerHTML = navHTML(f.name) + partsBar(f, window.LEAN_PART);
+  const p = window.LEANSRC.parts.find((x) => x.key === window.LEAN_PART);
+  $("src").innerHTML = paint(p.source);
+}
+
+function initIndex() {
+  const n = $("nav");
+  if (n) n.innerHTML = navHTML(null);
+}
+
+// 对象页 / 规则页底下附着的那一份 Lean：只上色，不要下拉。
+function initEmbed() {
+  if (window.LEANSRC && $("src")) $("src").innerHTML = paint(window.LEANSRC.source);
+}
+
+document.addEventListener("DOMContentLoaded",
+  () => (window.LEAN_EMBED ? initEmbed()
+       : window.LEAN_PART ? initPart() : window.LEAN_NAME ? initFile() : initIndex()));
+
+</script>
+</body>
+</html>

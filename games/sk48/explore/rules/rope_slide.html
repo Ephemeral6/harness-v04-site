@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rope_slide · sk48</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  --floor: #262b36;  --floor-line: #313846;
+  --hazard: #6b2233; --hazard-2: #8d2c42;
+  --wall: #0b0d12;
+  --unknown: #1d212a;
+  --piece: #59b0ff;  --piece-dim: #3a6c9e;
+  --marker: #c9a227; --marker-on: #ffd84d;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>规则 · rope_slide</h1>
+  <div class="sub">组：一步怎么走 · 文件 rule/一步怎么走/rope_slide.py</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../howto.html">怎么给别人看</a>
+  </nav>
+</header>
+<div class="cols"><div class="card"><h2>读数</h2><p>|scope| 832　沉默 575　判对 832　<b>判错 0</b>　读不成 0　（去重后判对 599）</p><p class="note">变异测试：拒掉 43 个，其中独家 14 个。</p><table><tr><th class="num">行数</th><th>不管的理由（→ 交给谁）</th></tr><tr><td class='num'>442</td><td>垂直于绳的键 → pole_sweep</td></tr><tr><td class='num'>65</td><td>点击 → click_select</td></tr><tr><td class='num'>35</td><td>ACTION7 → a7_one_step</td></tr><tr><td class='num'>25</td><td>过关：下一帧是另一张盘 → win_iff_threaded</td></tr><tr><td class='num'>8</td><td>RESET → reset_restart</td></tr></table><p class="note" style="margin-top:12px">反向测试里打到它的突变体：</p><ul class="tight"><li><code>ALWAYS_FALSE</code>：**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的 —— 这条规则判错 832 行</li><li><code>rope_no_pin</code>：绳上的靶不理会别的绳钉住 —— 这条规则判错 73 行</li><li><code>rope_no_push</code>：伸的时候不推绳尖前那一串 —— 这条规则判错 99 行</li><li><code>rope_push_always</code>：绳尖前那一串推不动也照推 —— 这条规则判错 111 行</li><li><code>rope_wall_ok</code>：绳伸进墙里 —— 这条规则判错 21 行</li><li><code>rope_no_carry</code>：绳上的靶不跟着绳挪 —— 这条规则判错 329 行</li><li><code>parse_rope_short</code>：解析把横绳读短一格 —— 这条规则判错 148 行</li></ul></div><div class="card"><h2>它说什么 · 身份：定义</h2><p>按沿绳的键：绳长 -1 / +1（缩到 0、伸满、伸的那一格是墙 ⇒ 整个世界不变）。绳上每颗靶朝同一方向各挪一格——被别的绳钉住的、目标格被钉住的、目标格被一颗<b>不挪的</b>靶占着的，不挪；伸的时候，绳尖前面那一格起连着的一串靶整串往前推一格（串里有被钉住的、或串尾外面是盘边 / 钉子 / 墙 ⇒ 这一串一颗都不动，绳照样伸过去，把它们串上）。</p><pre class="doc">绳伸缩：按<b>沿绳</b>的键（横玩家左/右、竖玩家上/下），被选中那根绳缩 / 伸一格；绳上的靶跟着挪，绳尖前面顶着的一串被推走。</pre><p class="note">论域：只管沿绳的键。RESET / ACTION7 / 过关 / 点击 / 垂直的键 各归各条（见 scope_ 的箭头）。</p></div><div class="card"><h2>它明确不主张什么</h2><ul class="tight"><li>底条走不走（归 bar_clock）</li><li>绳上的靶挪进墙里会怎样：表示不出来——绳伸不进墙，所以绳盖住的格和它前面那一格都不是墙</li></ul></div><div class="card"><h2>改版史</h2><ul class="tight"><li>v1 h_rope（横）与 v_rope（竖）两条，逐字是同一个算法转 90 度</li><li>v2 合成这一条：转 90 度提成对象 derive/line.py（沿绳 / 垂直）。新旧两套在全部语料上逐条对过：判决一个字不差，拒绝集（变异）不变小，无人区仍是 0（analysis/record.txt 卡 05 那一段）</li></ul><p class="note">见证（tid，内容哈希）：419bb51b683fd42d, ffa9f1be044bfcb7, 09ffa35a9eed1724, 3d4334599ef851aa</p></div><div class="card"><h2>它的 Lean · Rule/Move/RopeSlide.lean</h2><pre class="lean" data-lean="Rule/Move/RopeSlide.lean"></pre></div></div></div>
+<script>window.DATA={"game":"sk48","palette":["#ffffff","#cccccc","#999999","#666666","#333333","#000000","#e53aa3","#ff7bcc","#f93c31","#1e93ff","#88d8f1","#ffdc00","#ff851b","#921231","#4fcc30","#a356d6"],"meta":{"rows":1407,"uniq":1003,"frames":2814,"readable":2811,"parse_a":3,"parse_b":0,"parse_a_criterion":"meta 说这一帧是 WIN（终局画面）","parse_a_list":[[1143,"next"],[1144,"prev"],[1407,"next"]],"marks":{"reset":8,"levelup":28,"win_frame":3},"E_total":0,"gap":0,"reset_inlevel":5,"reset_to_opening":5,"mut_total":120,"mut_rejected":116,"mut_by_parse":24},"corpus":{"trace":"runs/sk48-0908-0719/transitions.jsonl","rows":1407,"uniq":1003,"segments":[{"seg":"01c49132-5a97-4580-807d-fdab6c796a97","seq_lo":1,"seq_hi":176,"n":176,"max_level":4,"certified":false,"resets":1,"rows_per_level":{"0":49,"1":28,"2":42,"3":45,"4":11}},{"seg":"9667bc66-34e5-41d9-bb58-944a44aade8b","seq_lo":177,"seq_hi":495,"n":319,"max_level":5,"certified":false,"resets":2,"rows_per_level":{"0":49,"1":28,"2":42,"3":45,"4":149,"5":4}},{"seg":"379b32a2-1a82-47a1-8b1a-a3e00cd59df8","seq_lo":496,"seq_hi":1143,"n":648,"max_level":8,"certified":false,"resets":4,"rows_per_level":{"0":49,"1":28,"2":42,"3":45,"4":198,"5":112,"6":98,"7":72}},{"seg":"04d2f7e8-eff7-48fb-b6ed-6831e25b3687","seq_lo":1144,"seq_hi":1407,"n":264,"max_level":8,"certified":true,"resets":1,"rows_per_level":{"0":14,"1":30,"2":33,"3":29,"4":41,"5":43,"6":27,"7":46}}],"marks":{"reset":8,"levelup":28,"win_frame":3},"reconciled":true,"certified_level_actions":[14,30,33,29,41,43,27,46]},"groups":{"objects":[{"key":"action","doc":"**动作**：API 发出去的那一串字（`ACTION1` / `ACTION6:x,y` / `RESET` …）读成什么。\n\n它不是世界的一部分，但要进对象层，理由只有一条：`ACTION6` 带的是**像素坐标**，\n而像素只许在 `parse.py` 里碰。于是「点中了谁」在解析那一层就认好，\n上面每一层拿到的是 `Act`（点中的是哪个记号，或者谁也没点中），不再见像素。"},{"key":"board","doc":"**版面**：一关之内不会变的那半边世界。\n\n这一组里的东西，任何一个动作都改不了它们（`rule/说了但不进模型/board_static.py` 在全部语料上核这一句）。\n分成一组的理由：到了形式化那一层，它们住进 `Board`，而 `Board` **不是状态的字段**——\n`step` 碰都碰不到它，于是「走一步版面不会变」不用证，它**表示不出来**。\n\n    board    版面本身：下面几样收成一样东西（`World.board`）\n    grid     棋盘几行几列\n    rail     两条轨各自铺到哪（横玩家能走的格行 / 竖玩家能走的格列）\n    goal     示意图：每根绳子该按什么顺序串哪几种颜色\n    deadrope 死绳：没有主人、永远不动的竖绳（卡 06 从 `pieces/` 搬来）\n    （墙是一组格子，直接是 `frozenset[Cell]`，没有单独的类）"},{"key":"geometry","doc":"几何：格坐标。**这一类里没有任何世界断言**——\n\n它只说「第几行第几列」，不说「那一格是墙」。\n分成一个子文件夹的理由就是这一句：它在任何一局都是同一个意思。"},{"key":"pieces","doc":"**盘上的东西**：一关之内会被动作改动的那半边世界。\n\n    block      靶块：一格一个，带一种颜色\n    hplayer    横玩家：挂在左边竖轨上，往右伸一根横绳\n    vplayer    竖玩家：挂在上边横轨上，往下伸一根竖绳\n\n分成一组的理由：`step` 改的正是这一组，别的它碰不到。\n（死绳原来也在这一组，卡 06 搬去了 `board/`：它一关之内从不动。）"},{"key":"(根)","doc":"唯一碰像素的那一份，和这一局的全部状态。"},{"key":"derive","doc":"**复合概念**：由 `objects/` 里的对象算出来的量。\n\n和 `objects/` 的分界是一句话：**对象是世界的状态，`derive` 是从状态算出来的量。**\n这里的东西同样不许碰像素——输入是 `World`，不是帧。\n\n    beads       一根绳盖住哪几格、串着哪几颗靶（按从绳主往外的顺序）、示意图的每个槽对上没有、赢了没有"}],"rules":[{"key":"一步怎么走","doc":"**这一组管：按一个方向键 / 点一下之后，谁动、动到哪。**\n\n方向键只作用在**被选中**的那个玩家身上。四个键对它是什么意思，只看键和它那根绳的朝向：\n\n    沿绳的键（横玩家 左/右，竖玩家 上/下）      绳缩 / 伸一格            rope_slide\n    垂直于绳的键（横玩家 上/下，竖玩家 左/右）  整根杆平移一格          pole_sweep\n    点击                                        换选中                   click_select\n\n（竖玩家就是横玩家转 90 度，这个对称提成了 `derive/line.py`，于是每件事只说一遍。）\n\n**论域天然错开**：同一条转移只落进一条规则（动作 × 朝向 两个维度切开），\n而每条规则主张的是**整个下一帧世界**（底条除外），不只是它关心的那几样——\n所以「没被选中的不动」「版面不变」这些框架条件也在它的主张里，不另立一条。\n\n过关那一步（下一帧已经是另一张盘）、RESET、ACTION7 一律不归这一组。"},{"key":"什么算赢","doc":"**这一组管：这一步过没过关。**\n\n赢是一个**状态性质**（每根绳都串对了），不是一个转移事件——\n写成事件的话，没有任何一个状态是目标，「这个局面可不可做」就无从问起。\n\n过关那一步的下一帧已经是下一关的盘，拿它判不了「这一步走完之后串对没有」，\n所以过关那一支要用「一步怎么走」那一组**算出来**的下一帧；没过关那一支直接看观测到的下一帧。"},{"key":"说了但不进模型","doc":"**这一组管：写出来了、在语料上判、但明说不进 Lean 模型的说法。**\n\n每一条都要写**为什么不进模型**，并且固定打两个数：\n\n    论域条数     语料里有多少条转移落在它管的范围里\n    被驳倒几次   其中有多少条和它对不上\n\n论域是 0 照样判红：一条谁也管不着的假设，和一条从没被驳倒的假设，读数上必须分得开。\n不进模型的共同原因只有一个：**它依赖一位帧上读不出来的信息**（历史、隐藏的朝向、时钟相位），\n硬塞一个字段进世界，就是给模型加一位帧上没有的信息。"}]},"objects":[{"name":"Act","file":"objects/action/act.py","group":"action","doc":"`Act` —— 一步动作，读成这一局的词。\n\n    kind    'up' / 'down' / 'left' / 'right' / 'a7' / 'click' / 'reset'\n            （ACTION1..4 各自对应 up/down/left/right —— 这只是名字，\n             它们对横玩家、竖玩家各是什么意思，归规则层说）\n    target  只对 click 有意义：点中的那个精灵的记号；点在别处是 None\n\n**点中的判法在解析里**（`parse_action`）：像素落在某个精灵的 6×6 外框里算点中它。\n语料里的点击全部落在精灵正中或空白处，「点在外框边上算不算」没被检验过——写在欠账里。","cdoc":"一步动作。","why":"","ablation":null,"lean":"Obj/Action/Act.lean"},{"name":"Board","file":"objects/board/board.py","group":"board","doc":"`Board` —— **版面**：一关之内不会变的那半边世界，收成一样东西。\n\n    grid    棋盘几行几列\n    walls   墙占的格（`frozenset[Cell]`）\n    hrail   左边竖轨：横玩家能停的格行范围（没有横玩家时 None）\n    vrail   上边横轨：竖玩家能停的格列范围（没有竖玩家时 None）\n    goals   示意图：每根绳该串成的颜色序列\n    deadropes  死绳（卡 06 搬进来的，见 `deadrope.py`）\n\n## 为什么是一样东西，不是五个字段（卡 03 那一刀：合）\n\n分离表上这五个字段**一个都单独分不开**，而且是同一个原因：它们只在换关时变、\n一变就一起变（全部语料逐关核过：每一关里五个字段各只取一个值）。\n那是「同生共死」——它们是**这一关的版面**这一件事的五个部件。\n\n合成一样东西之后，到了形式化那一层它住进 `Board`，而 `Board` **不是状态的字段**：\n`step` 碰不到它，「走一步版面不会变」于是不用证，**它表示不出来**。\n\n合并不是删除：五个部件每一个都还在，规则照旧逐个读它们\n（墙挡绳、格数定边界、轨定能走到哪、示意图定什么算赢）。","cdoc":"一关的版面。","why":"board（版面：格数 / 墙 / 两条轨 / 示意图 / 死绳）—— 为什么删不掉\n\n1. 它记的是什么：这一关不会变的那一半。\n2. 谁读它：rope_slide（格数定绳能伸多长、墙挡绳、死绳当钉子）、pole_sweep（格数、轨限位、墙挡杆）、\n   win_iff_threaded（示意图定什么算赢，死绳的串也要对）、reset_restart 与 a7_one_step（主张「版面不变」）。\n3. 抹成常量（真跑，装置消融，分母 320 条 = 真实抽样 + 变异）：卡 06 那一轮 135 处判决变了。\n4. 分离表：卡 02 / 03 时「分不开」（五个部件只在换关时一起变），卡 06 把死绳并进来之后「分得开」：\n   见证是第 1 关与第 2 关各一帧（seq 1182 next / seq 1212 next）：靶、横玩家、选中、底条全同，\n   只差第 2 关多了一根死绳（格列 3、长 4）——那根死绳把那一列的靶钉住、而且示意图点名要它串的东西。\n   三个读数对得上：有读者、消融变、分得开。\n\n卡 03 那一刀（五个字段合成一个）在卡 06 重量过：五个部件各自仍被规则读（墙 / 轨 / 格数 / 示意图），\n合并没有抹掉任何一位信息，只是换了住处——所以这一刀没砍错。\n","ablation":820,"lean":"Obj/Board/Board.lean"},{"name":"DeadRope","file":"objects/board/deadrope.py","group":"board","doc":"`DeadRope` —— 死绳：从盘顶垂下、**没有主人**的竖绳。\n\n    owner   绳头那个 2×2 小块的颜色（示意图里用它点名这根绳）\n    col     它占的格列\n    length  它盖住格行 0 .. length-1\n\n和 `VPlayer` 的区别只有一条：**没有精灵，谁也选不中它，所以它永远不动**。\n它仍然是一根绳：串在它上面的靶要按示意图的顺序排好，它也把那一列钉住。\n\n## 为什么住在 `board/`（卡 06 那一刀）\n\n卡 02 时它在 `pieces/`（会动的那一组），是 `World` 的一个独立字段。\n卡 06 重取读数：全部语料里每一关它都只取一个值（一关之内从不变），规则只拿它当钉子和示意图的点名对象读。\n于是它搬进版面（`Board.deadropes`）：「死绳永远不动」从一句要每帧核的话，变成**表示不出来**的事。","cdoc":"死绳。","why":"","ablation":null,"lean":"Obj/Board/DeadRope.lean"},{"name":"Goal","file":"objects/board/goal.py","group":"board","doc":"`Goal` —— 示意图里的一组：**哪根绳**，该按什么顺序串**哪几种颜色**。\n\n帧上的样子：底条下面那一带，一个 6×6 的小图标开一组，它右边跟着几个 4×4 色块。\n图标正中 2×2 的颜色指的是盘上哪根绳的主人（横玩家 / 竖玩家精灵的芯色，或者死绳头的颜色）。\n\n    owner    不透明的记号，**只许判相等**：拿它去和盘上各根绳主人的记号比\n    colors   从绳主往外数，第 j 颗应当是什么颜色（也是不透明记号，只和靶的颜色比相等）\n\n「串对了」的读法（第 j 颗 = 第 j 个色）在 `derive/beads.py`；\n示意图上每个槽还会被「挖空」，那是同一件事在帧上的**第二种读法**，\n解析拿两种读法互相核（见 `parse.py` 的良构检查）。","cdoc":"一根绳该串成的颜色序列。","why":"","ablation":null,"lean":"Obj/Board/Goal.lean"},{"name":"Grid","file":"objects/board/grid.py","group":"board","doc":"`Grid` —— 棋盘有几行几列格。\n\n每一关不同（语料里见过 5×5、7×7、7×8 …），一关之内不变。\n**它是量出来的，不是写死的**：解析从帧里认出棋盘那块底色的外接矩形，再除以格边。","cdoc":"棋盘尺寸（格）。","why":"","ablation":null,"lean":"Obj/Board/Grid.lean"},{"name":"Rail","file":"objects/board/rail.py","group":"board","doc":"`Rail` —— 一条轨铺到哪：一个闭区间 `[lo, hi]`。\n\n两条轨，意思对称：\n\n    左边竖轨   横玩家能停的**格行**范围（它上下走，出了这一段就走不动）\n    上边横轨   竖玩家能停的**格列**范围（它左右挪，出了这一段就挪不动）\n\n帧上的样子：每一格正中两像素是一种花纹色，格与格之间是另一种。玩家自己的精灵\n会把轨的一段盖住，所以解析时要把玩家所在那一格并进来。\n**轨是连续的一段**——解析里写成了良构检查：花纹带中间断了一截，这一帧读不成世界。","cdoc":"一条轨覆盖的格区间（闭区间）。","why":"","ablation":null,"lean":"Obj/Board/Rail.lean"},{"name":"Cell","file":"objects/geometry/cell.py","group":"geometry","doc":"`Cell` —— 棋盘上一格的坐标（格行, 格列），从 0 数起。\n\n## 判据 1：世界层不许出现像素\n\n一格占 6×6 像素是**解析**的事。`Cell(0, 0)` 是棋盘左上角那一格，不是帧的左上角：\n平移被商掉了，代价是一个 `Cell` 离开它的棋盘就没有意义——这是有意的。","cdoc":"棋盘格坐标。行在前、列在后。","why":"","ablation":null,"lean":"Obj/Geometry/Cell.lean"},{"name":"Block","file":"objects/pieces/block.py","group":"pieces","doc":"`Block` —— 一颗靶块：在哪一格、什么颜色。\n\n帧上：一格 6×6 里内缩一圈的 4×4 实心色块。**颜色是不透明记号**，只许判相等\n（拿它和示意图里要求的颜色比），不许比大小、不许当成「第几种」。\n一格至多一颗（解析按格读，天然如此）。","cdoc":"一颗靶。","why":"blocks（全部靶块：格 + 颜色）—— 为什么删不掉\n\n1. 它记的是什么：盘上每一颗靶在哪、什么色。\n2. 谁读它：rope_slide、pole_sweep（搬它）、win_iff_threaded（串上的颜色序列从它读）。\n3. 抹成常量：39 处判决变了（卡 03、卡 06 两轮同一个数）。\n4. 分离表：分得开，见证 world 21 / 91（seq 11 next / seq 46 next）：只差靶的位置。\n   没有它，「杆扫过去把靶带走」和「杆扫过去什么都没带」是同一个世界。\n","ablation":303,"lean":"Obj/Pieces/Block.lean"},{"name":"HPlayer","file":"objects/pieces/hplayer.py","group":"pieces","doc":"`HPlayer` —— 横玩家：挂在棋盘左边竖轨上的精灵，拖一根**往右**伸的横绳。\n\n    owner   它的记号（精灵正中 2×2 的颜色，不透明，只判相等）\n    row     它占的格行\n    rope    绳盖住那一行的格列 0 .. rope-1（0 = 一格都没伸进棋盘）\n\n**绳是一根杆**：它盖住的每一格上的靶都算「串在这根绳上」，\n从绳主往外（格列从小到大）读出来的颜色序列，拿去和示意图比。","cdoc":"横玩家。","why":"hplayer（横玩家：记号 / 格行 / 绳长）—— 为什么删不掉\n\n1. 它记的是什么：左边竖轨上那个玩家停在哪一格行、绳往右伸了几格。\n2. 谁读它：rope_slide / pole_sweep（它被选中时就是它在动；它没被选中时它的绳是竖绳的钉子）、\n   click_select（点中它换选中）、win_iff_threaded（它的绳串着什么）、a7_one_step、reset_restart。\n3. 抹成常量：164 处判决变了（六个字段里最多）。\n4. 分离表：分得开，见证第 0 / 1 帧（seq 1 prev / next）：按一下上键，只有它的格行变了。\n","ablation":1150,"lean":"Obj/Pieces/HPlayer.lean"},{"name":"VPlayer","file":"objects/pieces/vplayer.py","group":"pieces","doc":"`VPlayer` —— 竖玩家：挂在棋盘上边横轨上的精灵，拖一根**往下**伸的竖绳。\n\n    owner   它的记号（精灵正中 2×2 的颜色）\n    col     它占的格列\n    rope    绳盖住那一列的格行 0 .. rope-1\n\n它是 `HPlayer` 转 90 度：左右键让它沿横轨挪列，上下键让绳伸缩。","cdoc":"竖玩家。","why":"vplayers（竖玩家：记号 / 格列 / 绳长，按格列排）—— 为什么删不掉\n\n1. 它记的是什么：上边横轨上的玩家（只在第 5–7 关出现，每关一个）停在哪一格列、绳往下伸了几格。\n2. 谁读它：rope_slide / pole_sweep（它被选中时是它在动；它没被选中时它的绳是横绳的钉子）、click_select、win_iff_threaded。\n3. 抹成常量：52 处判决变了（卡 05 时 50）。\n4. 分离表：分得开，见证 world 987 / 989（seq 494 next / 495 next）：只差竖绳长度。\n\n语料说不了的：同一关里两个竖玩家（语料里每关至多一个）。类型允许多个，规则也按「别的每一根绳都是钉子」写，\n但这一支一次都没被检验过。\n","ablation":270,"lean":"Obj/Pieces/VPlayer.lean"},{"name":"World","file":"objects/world.py","group":"(根)","doc":"`World` —— 这一局一帧的**全部状态**。字段就是这一局的对象。\n\n每个字段为什么删不掉，写在 `analysis/<字段>.txt`（卡 02/03/06 三轮的读数都在那里）。\n这里只写它是什么。\n\n    board      版面：一关之内不变的那一半（格数 / 墙 / 两条轨 / 示意图 / 死绳），见 `board/board.py`\n    blocks     全部靶块\n    hplayer    横玩家（语料里每一关都恰好一个；None 只是为了让类型说得出「没有」）\n    vplayers   竖玩家，按格列排\n    selected   此刻方向键作用在谁身上（它的记号）\n    bar        底条已经走掉的格数。**它不进模型**（见 `rule/说了但不进模型/bar_clock.py`），\n               留在世界里是因为它确实在帧上、确实会变，删掉它就是假装帧上没有这一行。\n\n**上游已经给的事实不进 World**：第几关、这一局赢了没有，是 API 给的，规则要用就从 `ctx` 读。","cdoc":"一帧世界。","why":"selected（此刻方向键作用在谁身上：它的记号）—— 为什么删不掉\n\n1. 它记的是什么：被选中的那个玩家。帧上写了三遍（精灵的填充圈、绳的花纹相位、示意图图标的填充），解析拿它们互相核。\n2. 谁读它：rope_slide / pole_sweep（derive/line.py 的 Mover 从它起算：选中横玩家 ⇒ 左右是伸缩，选中竖玩家 ⇒ 上下是伸缩）、\n   click_select（点击改它）、a7_one_step（论域）、reset_restart（RESET 之后回到横玩家）。\n3. 抹成常量：88 处判决变了。\n4. 分离表：分得开，见证 world 981 / 987（seq 491 next / seq 494 next）：两帧只差选中的是谁\n   ——同样按一下「上」，一个是横玩家挪一行，一个是竖绳缩一格。\n\n\nbar（底条已走的格数）—— 为什么删不掉，又为什么不进模型\n\n1. 它记的是什么：帧下方那一整行花纹里已经走掉几格。\n2. 谁读它：只有 bar_clock 一条（方向键 +0/+1、点击与 ACTION7 不动、RESET 与过关归零）。\n   另外 lean2/export_levels.py 拿它当「现实那一侧重来了」的独立信号做交叉检查（它不进模型，所以它独立于模型）。\n3. 抹成常量：64 处判决变了——全部是 bar_clock 的。\n4. 分离表：分得开，见证第 0 / 7 帧：只差底条。\n\n不进模型的理由在 rule/说了但不进模型/bar_clock.py：方向键那一步是 +0 还是 +1 取决于这一关已经按了几下（历史）。\n**删掉它**等于假装帧上没有这一行；**放进模型**等于给模型加一位帧上读不出的历史。两样都不对，所以它留在世界里、不进 Lean 的状态。\n","ablation":null,"lean":"Obj/World.lean"},{"name":"parse","file":"objects/parse.py","group":"(根)","doc":"帧 → 世界。**全局唯一碰像素的地方。**\n\n上面每一层只认 `World` 的字段，读不到帧。\n\n## 这一局的帧长什么样（量出来的，不是猜的）\n\n    帧外底色       左上角那一像素的颜色\n    底条           一整行只由两种花纹色组成（已走 / 未走），它把帧分成上下两半\n    上半：棋盘     底条以上、除帧外底色之外**最多的那种颜色**的外接矩形；格边 6 像素\n          横玩家   棋盘左外侧的 6×6 精灵：外框 + 一圈填充 + 正中 2×2 的芯\n          竖玩家   棋盘上外侧的 6×6 精灵，同形\n          死绳头   棋盘上外侧、某一格列正中两像素上的 2×2 小块，四周是帧外底色（没有精灵框）\n          两条轨   棋盘左外侧第 4、3 列（竖轨）/ 上外侧第 4、3 行（横轨）的花纹带\n    下半：示意图   一个 6×6 图标开一组，右边跟着 4×4 色槽\n\n**按结构认，不按色号认**，只有两处例外，写在明处：\n\n    ROPE      绳的花纹只用这三种颜色（选中的绳 1/2，没选中的 2/3）。\n              读「这一格有没有绳」要一个调色板，结构认不出来——但下面有一道良构检查\n              拿「选中与否」核花纹的**相位**，调色板读错了那道检查会响。\n    格边 6    全部帧、全部关一样。\n\n## 良构检查：同一个量的两种读法必须对得上\n\n对不上就抛 `ParseError`，这一帧读不成世界（分母从转移变成帧）：\n\n  1. 棋盘外接矩形的高、宽都是格边的整数倍；\n  2. 每一格要么是墙（36 像素一色）、要么是靶（正中 4×4 一色）、要么是空格\n     （只剩棋盘底色和绳的花纹）——**第四种东西出现就是读不出来**；\n  3. 恰好一个精灵的填充圈不是棋盘底色（= 恰好一个被选中）；\n  4. **绳的花纹相位 = 主人选中与否**：同一件事（谁被选中）的第二种读法；\n  5. **示意图挖空的槽 = 那根绳上从绳主往外第 j 颗恰好是第 j 个色**：\n     「串对了没有」的第二种读法（第一种在 `derive/beads.py`）；\n  6. 两条轨都是连续的一段；示意图每个图标都点得出盘上的一根绳；\n  7. 示意图里被选中的那个图标，和盘上被选中的精灵是同一个记号。\n\n## 不是局面的帧\n\n`parse` 只管抛，不管归类（归类由拿得到 meta 的那一层做，见 `run_rules.py`）。","cdoc":"","why":"","ablation":null,"lean":null},{"name":"beads","file":"derive/beads.py","group":"derive","doc":"**串珠**：一根绳盖住哪几格、串着什么，以及示意图的每个槽对上没有。\n\n组合分解：它由三样对象组合出来 —— 绳（`HPlayer` / `VPlayer` / `DeadRope` 的位置与长度）、\n靶（`blocks`）、示意图（`goals`）。\n\n    rope_cells(w, owner)   这根绳盖住的格，**从绳主往外**排：\n                           横绳是它那一行的格列 0..n-1，竖绳 / 死绳是它那一列的格行 0..n-1\n    threaded(w, owner)     这些格上的靶色，按同一顺序，**空格跳过**\n    slot_ok(w)             示意图每组每槽：串上的第 j 颗是不是第 j 个色（串得不够长就是没对上）\n    won(w)                 每组每槽都对上了\n\n「空格跳过」与「多串出来的不算」这两半都是量出来的：解析拿示意图的挖空当第二种读法，\n在全部读得成的帧上逐槽对账（`parse.py` 良构检查 5）。","cdoc":"","why":"","ablation":null,"lean":"Obj/Derive/Beads.lean"},{"name":"line","file":"derive/line.py","group":"derive","doc":"**绳的朝向**：把「横玩家」和「竖玩家」换成同一套说法 —— 沿绳 / 垂直于绳。\n\n## 对称（卡 05 那一刀的依据）\n\n竖玩家就是横玩家转 90 度：行列对调、上下键与左右键对调，**规则的判决一个字不变**\n（卡 05 在全部语料上把旧的四条和新的两条逐条对过，见 `analysis/record.txt`）。\n把这个变换提成对象，规则就不必各自说两遍：\n\n    沿绳的键    横玩家的 左/右、竖玩家的 上/下   ⇒ 绳缩 / 伸（`rule/一步怎么走/rope_slide.py`）\n    垂直的键    横玩家的 上/下、竖玩家的 左/右   ⇒ 整根杆平移（`rule/一步怎么走/pole_sweep.py`）\n\n它是**对合**：转两次回到原样（`at` 与 `shift` 的定义里行列对调两次恒等）。\n\n## 组合分解\n\n`Mover` 由三样对象组合出来：被选中的那个玩家（位置、绳长）、版面（格数、轨）、\n别的绳（它们盖住的格就是这根绳的「钉子」）。","cdoc":"","why":"","ablation":null,"lean":"Obj/Derive/Line.lean"}],"rules":[{"name":"click_select","group":"一步怎么走","file":"rule/一步怎么走/click_select.py","doc":"点击：点中另一个玩家的精灵，选中就换到它身上；点在别处（或点中已经选中的），整个世界不变。","claim":"点中某个玩家（横 / 竖）的精灵 ⇒ 选中换成它，别的一样不变；点在任何别处 ⇒ 世界一样不变。","scope_note":"只管 ACTION6。","not_claimed":["点在示意图的小图标上算不算点中——解析只认盘上方 / 左边的精灵；语料里点图标的那一次点的恰好是已选中者，分不开","点在精灵外框边上算不算——语料里的点击全落在精灵正中或空白处","底条走不走（归 bar_clock；语料里点击 0 次推进底条）"],"note":["v1 从册子 a6_select 来：死键说法（a6_noop）早已撤册，这里主张整个下一帧"],"why_not_in_model":null,"evidence":["d28e3cc3500a0dc5","1e2bd00479b28fdb","11b9bdd566fdc179"],"readings":{"scope":65,"N":1342,"C":65,"E":0,"U":0,"NA":0,"C_uniq":59,"E_uniq":0},"N_why":{"方向键 → rope_slide / pole_sweep":1274,"ACTION7 → a7_one_step":35,"RESET → reset_restart":8,"过关：下一帧是另一张盘 → win_iff_threaded":25},"excl":1,"mut_by_rule":6,"identity":["定义"],"lean":"Rule/Move/ClickSelect.lean","mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"click_noop","applied":true,"E":41,"b":0,"per_E":{"click_select":41,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"点击是死键（册子撤掉的 a6_noop）","red":true}]},{"name":"pole_sweep","group":"一步怎么走","file":"rule/一步怎么走/pole_sweep.py","doc":"杆平移：按**垂直于绳**的键（横玩家上/下、竖玩家左/右），被选中的玩家连同整根杆挪一格，杆扫过的靶被带走。","claim":"按垂直于绳的键：玩家挪到相邻一条线（出了盘、出了它的轨、杆要扫进的那条线上、杆盖得到的格里有墙 ⇒ 整个世界不变）。杆盖住的每一格各自结算：那一格有靶就从它起、没有而挪过去那一格有靶就从那一格起，沿挪动方向连着的一串整串挪一格；任何一串会被推出盘 ⇒ 整个世界不变。","scope_note":"只管垂直于绳的键。","not_claimed":["底条走不走（归 bar_clock）","被别的绳钉住的靶挡不挡杆：这一条的算法里不看钉子，语料里扫到的串也从没碰上钉住的格——没被检验过"],"note":["v1 h_pole_sweep（横玩家上下）与 v_pole_sweep（竖玩家左右）两条，同一个算法转 90 度","v2 合成这一条（同 rope_slide 那一刀，依据 derive/line.py）"],"why_not_in_model":null,"evidence":["210e539c12d2ca36","d5bcaffac143efae","b72fb51467cd0be0","0ed3e5406b492600"],"readings":{"scope":442,"N":965,"C":442,"E":0,"U":0,"NA":0,"C_uniq":292,"E_uniq":0},"N_why":{"沿绳的键 → rope_slide":832,"ACTION7 → a7_one_step":35,"点击 → click_select":65,"RESET → reset_restart":8,"过关：下一帧是另一张盘 → win_iff_threaded":25},"excl":12,"mut_by_rule":39,"identity":["定义"],"lean":"Rule/Move/PoleSweep.lean","mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"sweep_no_rail","applied":true,"E":1,"b":0,"per_E":{"click_select":0,"pole_sweep":1,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"玩家不受轨限制","red":true},{"name":"sweep_no_chain","applied":true,"E":64,"b":0,"per_E":{"click_select":0,"pole_sweep":63,"rope_slide":0,"win_iff_threaded":1,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆只带走紧挨着的一颗，不带整串","red":true},{"name":"sweep_no_pushout","applied":true,"E":3,"b":0,"per_E":{"click_select":0,"pole_sweep":3,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"推出盘的串不拦整个动作，只是那一串不动","red":true},{"name":"sweep_no_wall","applied":true,"E":9,"b":0,"per_E":{"click_select":0,"pole_sweep":9,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆扫进墙那一条线也照挪","red":true},{"name":"sweep_no_there","applied":true,"E":60,"b":0,"per_E":{"click_select":0,"pole_sweep":60,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆只带走自己压着的，不顶走挪过去那一格上的","red":true},{"name":"parse_rope_short","applied":true,"E":271,"b":848,"per_E":{"click_select":0,"pole_sweep":115,"rope_slide":148,"win_iff_threaded":6,"a7_one_step":2,"bar_clock":0,"reset_restart":0},"gap":0,"what":"解析把横绳读短一格","red":true}]},{"name":"rope_slide","group":"一步怎么走","file":"rule/一步怎么走/rope_slide.py","doc":"绳伸缩：按**沿绳**的键（横玩家左/右、竖玩家上/下），被选中那根绳缩 / 伸一格；绳上的靶跟着挪，绳尖前面顶着的一串被推走。","claim":"按沿绳的键：绳长 -1 / +1（缩到 0、伸满、伸的那一格是墙 ⇒ 整个世界不变）。绳上每颗靶朝同一方向各挪一格——被别的绳钉住的、目标格被钉住的、目标格被一颗**不挪的**靶占着的，不挪；伸的时候，绳尖前面那一格起连着的一串靶整串往前推一格（串里有被钉住的、或串尾外面是盘边 / 钉子 / 墙 ⇒ 这一串一颗都不动，绳照样伸过去，把它们串上）。","scope_note":"只管沿绳的键。RESET / ACTION7 / 过关 / 点击 / 垂直的键 各归各条（见 scope_ 的箭头）。","not_claimed":["底条走不走（归 bar_clock）","绳上的靶挪进墙里会怎样：表示不出来——绳伸不进墙，所以绳盖住的格和它前面那一格都不是墙"],"note":["v1 h_rope（横）与 v_rope（竖）两条，逐字是同一个算法转 90 度","v2 合成这一条：转 90 度提成对象 derive/line.py（沿绳 / 垂直）。新旧两套在全部语料上逐条对过：判决一个字不差，拒绝集（变异）不变小，无人区仍是 0（analysis/record.txt 卡 05 那一段）"],"why_not_in_model":null,"evidence":["419bb51b683fd42d","ffa9f1be044bfcb7","09ffa35a9eed1724","3d4334599ef851aa"],"readings":{"scope":832,"N":575,"C":832,"E":0,"U":0,"NA":0,"C_uniq":599,"E_uniq":0},"N_why":{"垂直于绳的键 → pole_sweep":442,"ACTION7 → a7_one_step":35,"点击 → click_select":65,"RESET → reset_restart":8,"过关：下一帧是另一张盘 → win_iff_threaded":25},"excl":14,"mut_by_rule":43,"identity":["定义"],"lean":"Rule/Move/RopeSlide.lean","mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"rope_no_pin","applied":true,"E":74,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":73,"win_iff_threaded":1,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳上的靶不理会别的绳钉住","red":true},{"name":"rope_no_push","applied":true,"E":99,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":99,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"伸的时候不推绳尖前那一串","red":true},{"name":"rope_push_always","applied":true,"E":130,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":111,"win_iff_threaded":19,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳尖前那一串推不动也照推","red":true},{"name":"rope_wall_ok","applied":true,"E":21,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":21,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳伸进墙里","red":true},{"name":"rope_no_carry","applied":true,"E":329,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":329,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳上的靶不跟着绳挪","red":true},{"name":"parse_rope_short","applied":true,"E":271,"b":848,"per_E":{"click_select":0,"pole_sweep":115,"rope_slide":148,"win_iff_threaded":6,"a7_one_step":2,"bar_clock":0,"reset_restart":0},"gap":0,"what":"解析把横绳读短一格","red":true}]},{"name":"win_iff_threaded","group":"什么算赢","file":"rule/什么算赢/win_iff_threaded.py","doc":"过关 ⟺ 这一步走完之后，示意图的每一组、每一个槽都串对了。","claim":"一步走完之后，每根绳从绳主往外数第 j 颗靶恰好是示意图那一组第 j 个颜色（空格跳过、多串的不算）⟺ 这一步过关。","scope_note":"RESET 不管 → reset_restart。过关那一支要算出下一帧：用「一步怎么走」那一组的 predict；ACTION7 不进模型，它要是过了关就说不出话（语料里 0 次）。","not_claimed":["串对之后画面怎么过场（终局画面把全部靶和槽涂成同一色，那一帧不是局面）"],"note":["v1 从册子 levelup_threaded / hud_checklist 来：两条原先对「串对」的定义不一致（整串相等 vs 逐槽前缀），这里只留一种，并且让解析拿示意图的挖空当第二种读法逐帧核（parse 良构检查 5）"],"why_not_in_model":null,"evidence":["51d33aaf02be1629","e92c34f386142541","210e539c12d2ca36"],"readings":{"scope":1399,"N":8,"C":1399,"E":0,"U":0,"NA":0,"C_uniq":997,"E_uniq":0},"N_why":{"RESET → reset_restart":8},"excl":1,"mut_by_rule":1,"identity":["定义"],"lean":"Rule/Win/WinIffThreaded.lean","mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"rope_no_pin","applied":true,"E":74,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":73,"win_iff_threaded":1,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳上的靶不理会别的绳钉住","red":true},{"name":"rope_push_always","applied":true,"E":130,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":111,"win_iff_threaded":19,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳尖前那一串推不动也照推","red":true},{"name":"sweep_no_chain","applied":true,"E":64,"b":0,"per_E":{"click_select":0,"pole_sweep":63,"rope_slide":0,"win_iff_threaded":1,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆只带走紧挨着的一颗，不带整串","red":true},{"name":"win_no_skip_gap","applied":true,"E":2,"b":1248,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":2,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"「串对」不跳空格","red":true},{"name":"parse_rope_short","applied":true,"E":271,"b":848,"per_E":{"click_select":0,"pole_sweep":115,"rope_slide":148,"win_iff_threaded":6,"a7_one_step":2,"bar_clock":0,"reset_restart":0},"gap":0,"what":"解析把横绳读短一格","red":true}]},{"name":"a7_one_step","group":"说了但不进模型","file":"rule/说了但不进模型/a7_one_step.py","doc":"ACTION7：横玩家的格行、绳长两样里**恰好一样**变一格；别的玩家、选中、版面都不变。","claim":"选中横玩家时按 ACTION7：横玩家的（格行, 绳长）恰好有一样变了 ±1、另一样不变；竖玩家、死绳、选中、版面一样不变。","scope_note":"只管 ACTION7。过关 → win_iff_threaded（语料里 0 次）。选中竖玩家时的 ACTION7 语料里 0 次。","not_claimed":["四种结果里这一次是哪一种","靶怎么走（35 次里 30 次和对应方向键的结果逐格相同，5 次不同——拖着一串靶走，册子 a7_drag）","底条（归 bar_clock）"],"note":["v1 从册子 a7_shuttle / a7_bounce / a7_fallthrough / a7_drag / frame_not_state 收成一条只说得出的那一半"],"why_not_in_model":"它是四种结果之一（像右键伸绳 / 像下键挪行 / 像左键缩绳 / 像上键挪行），而选哪一种取决于一位**帧上读不出来的朝向**：同一张盘上按 ACTION7，这一次伸、下一次缩（册子 frame_not_state 立过案）。硬塞一个朝向字段进世界，就是给模型加一位帧上没有的信息。","evidence":["5dbf0b9f13770d20","95bb69228812c934","38c4abbc1a9dbdd5"],"readings":{"scope":35,"N":1372,"C":35,"E":0,"U":0,"NA":0,"C_uniq":31,"E_uniq":0},"N_why":{"不是 ACTION7 → 其余各条":1372},"excl":0,"mut_by_rule":1,"identity":["不进模型"],"lean":null,"mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"parse_rope_short","applied":true,"E":271,"b":848,"per_E":{"click_select":0,"pole_sweep":115,"rope_slide":148,"win_iff_threaded":6,"a7_one_step":2,"bar_clock":0,"reset_restart":0},"gap":0,"what":"解析把横绳读短一格","red":true}]},{"name":"bar_clock","group":"说了但不进模型","file":"rule/说了但不进模型/bar_clock.py","doc":"底条：方向键一步最多走一格；点击、ACTION7 一格不走；RESET 与过关之后归零。","claim":"方向键（ACTION1..4）一步之后底条已走的格数 +0 或 +1；ACTION6、ACTION7 之后不变；RESET 之后、过关之后归零。","scope_note":"全部转移都管（两帧都读得成的）。","not_claimed":["+0 还是 +1","底条走满之后会怎样（语料里最多走到十几格，离满很远）"],"note":["v1 从册子 bar_monotone / bar_clock 来；册子里「走完第 step 步不超过 step//3」的上界没收进来：它要读步数（历史）"],"why_not_in_model":"方向键那一步是 +0 还是 +1，取决于这一关已经按了几下方向键（大约每三下走一格，偶尔多一步空档）——那是**历史**，一帧上读不出来。模型只能说「+0 或 +1」，说不出是哪一个，所以底条不进 Lean 的状态，逐帧核对也不比它。","evidence":["210e539c12d2ca36","47d23cc787256054","f171ca1ba9e1992b"],"readings":{"scope":1407,"N":0,"C":1405,"E":0,"U":2,"NA":0,"C_uniq":1001,"E_uniq":0},"N_why":{},"excl":2,"mut_by_rule":64,"identity":["不进模型"],"lean":null,"mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"bar_strict","applied":true,"E":402,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":402,"reset_restart":0},"gap":0,"what":"底条方向键一步一格都不许走","red":true}]},{"name":"reset_restart","group":"说了但不进模型","file":"rule/说了但不进模型/reset_restart.py","doc":"RESET：之后是一张可玩的盘，底条归零，选中回到横玩家；没换关的话版面不变。","claim":"RESET 之后：下一帧读得成世界、底条归零、选中的是横玩家；上游说没换关的话，版面和 RESET 之前一样。（**「放回这一关的开局」不在这条里**，见 WHY_NOT_IN_MODEL。）","scope_note":"只管 RESET。","not_claimed":["下一帧是哪一关（上游给的事实，不进世界）","底条之外的东西是不是回到开局（上面那条假设）"],"note":["v1 新立：册子里 RESET 只在 bar_monotone 里出现过一句「清零」"],"why_not_in_model":"「放回这一关的开局」说的是**历史**：开局长什么样不是当前状态的函数，一帧上读不出来。它在 Lean 里写成一条明处的假设，并且让 RESET 之后那一段的逐帧核对从开局起算——假设错了第一帧就红。认证那一段里关内 RESET 一次都没有，所以那一次被驳倒的机会在认证段上是 0 次；全部语料上关内 RESET 5 次，下一帧与同一段里这一关第一帧逐像素相同 5 / 5（run_rules.py 另打这个读数）。","evidence":["0efe6ea2b2d29ff4","f171ca1ba9e1992b"],"readings":{"scope":8,"N":1399,"C":8,"E":0,"U":0,"NA":0,"C_uniq":6,"E_uniq":0},"N_why":{"不是 RESET → 其余各条":1399},"excl":0,"mut_by_rule":0,"identity":["不进模型"],"lean":null,"mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true}]}],"mutants":[{"name":"ALWAYS_FALSE","applied":true,"E":4186,"b":0,"per_E":{"click_select":65,"pole_sweep":442,"rope_slide":832,"win_iff_threaded":1399,"a7_one_step":35,"bar_clock":1405,"reset_restart":8},"gap":0,"what":"**必红的突变体**：每条规则一律判 FALSE。它不红 ⇒ 这套变异机制自己是死的","red":true},{"name":"rope_no_pin","applied":true,"E":74,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":73,"win_iff_threaded":1,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳上的靶不理会别的绳钉住","red":true},{"name":"rope_no_push","applied":true,"E":99,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":99,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"伸的时候不推绳尖前那一串","red":true},{"name":"rope_push_always","applied":true,"E":130,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":111,"win_iff_threaded":19,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳尖前那一串推不动也照推","red":true},{"name":"rope_wall_ok","applied":true,"E":21,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":21,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳伸进墙里","red":true},{"name":"rope_no_carry","applied":true,"E":329,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":329,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"绳上的靶不跟着绳挪","red":true},{"name":"sweep_no_rail","applied":true,"E":1,"b":0,"per_E":{"click_select":0,"pole_sweep":1,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"玩家不受轨限制","red":true},{"name":"sweep_no_chain","applied":true,"E":64,"b":0,"per_E":{"click_select":0,"pole_sweep":63,"rope_slide":0,"win_iff_threaded":1,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆只带走紧挨着的一颗，不带整串","red":true},{"name":"sweep_no_pushout","applied":true,"E":3,"b":0,"per_E":{"click_select":0,"pole_sweep":3,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"推出盘的串不拦整个动作，只是那一串不动","red":true},{"name":"sweep_no_wall","applied":true,"E":9,"b":0,"per_E":{"click_select":0,"pole_sweep":9,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆扫进墙那一条线也照挪","red":true},{"name":"sweep_no_there","applied":true,"E":60,"b":0,"per_E":{"click_select":0,"pole_sweep":60,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"杆只带走自己压着的，不顶走挪过去那一格上的","red":true},{"name":"click_any","applied":true,"E":0,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"点中死绳头 / 图标也换选中","red":false,"entrance":"等价突变","explain":"解析只把点击认成**精灵**的记号，而精灵全是玩家——「点中了但不是玩家」在这套解析之下不可达。Lean 那一份照样写着这一支（`Act.click` 的记号可以是任何数）"},{"name":"click_noop","applied":true,"E":41,"b":0,"per_E":{"click_select":41,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"点击是死键（册子撤掉的 a6_noop）","red":true},{"name":"win_whole_string","applied":true,"E":0,"b":1290,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"「串对」改成整串相等（多串一颗就不算）","red":true},{"name":"win_no_skip_gap","applied":true,"E":2,"b":1248,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":2,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"「串对」不跳空格","red":true},{"name":"parse_idle_is_sel","applied":true,"E":0,"b":2811,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":0,"reset_restart":0},"gap":0,"what":"解析把「没选中」读成「选中」","red":true},{"name":"parse_rope_short","applied":true,"E":271,"b":848,"per_E":{"click_select":0,"pole_sweep":115,"rope_slide":148,"win_iff_threaded":6,"a7_one_step":2,"bar_clock":0,"reset_restart":0},"gap":0,"what":"解析把横绳读短一格","red":true},{"name":"bar_strict","applied":true,"E":402,"b":0,"per_E":{"click_select":0,"pole_sweep":0,"rope_slide":0,"win_iff_threaded":0,"a7_one_step":0,"bar_clock":402,"reset_restart":0},"gap":0,"what":"底条方向键一步一格都不许走","red":true}],"parse_probes":[{"name":"rope_phase","red":true,"why":"良构检查 4：绳的花纹相位 = 主人选中与否","msg":"横绳第 2 节花纹与选中与否（False）对不上"},{"name":"two_selected","red":true,"why":"良构检查 3：恰好一个精灵被选中","msg":"被选中的精灵有 2 个（应当恰好 1 个）"},{"name":"hud_hollow","red":true,"why":"良构检查 5：示意图挖空 = 串对了","msg":"示意图挖空 ((False, False, False), (False, False, True)) 和绳上串的 ((False, False, False), (False, False, False)) 对不上"},{"name":"odd_cell","red":true,"why":"良构检查 2：每格只能是墙 / 靶 / 空","msg":"格 (0,0) 里有认不出的东西：[4, 7]"},{"name":"board_size","red":true,"why":"良构检查 1：棋盘是格边的整数倍","msg":"棋盘外接矩形 42×43 不是格边 6 的整数倍"}],"detector_probes":{"scope0":true,"gap_when_drop_bar_and_win":25,"gap_expected":25},"ablation":{"board":{"changed":820,"errors":442},"blocks":{"changed":303,"errors":0},"hplayer":{"changed":1150,"errors":0},"vplayers":{"changed":270,"errors":0},"selected":{"changed":466,"errors":2},"bar":{"changed":64,"errors":0}},"lean":{"files":[{"name":"Broken.lean","label":"破坏测试","title":"这一份应当编不过","src":"","compile":null,"theorems":[]},{"name":"Derived/RopeLimit.lean","label":"推论","title":"横绳伸不出棋盘","src":"","compile":{"rc":0,"seconds":1.1,"errors":[],"evals":[]},"theorems":[{"name":"ropeCore_ext_lt","axioms":["propext","Quot.sound"]},{"name":"ropeSlideV_h","axioms":[]},{"name":"poleSweepV_h","axioms":[]},{"name":"ropeSlide_keeps","axioms":["propext","Quot.sound"]},{"name":"poleSweep_keeps","axioms":[]},{"name":"clickSelect_h","axioms":[]},{"name":"step_keeps_hrope","axioms":["propext","Quot.sound"]}]},{"name":"Derived/SelStable.lean","label":"推论","title":"方向键不换选中","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[{"name":"settle_eq","axioms":["propext"]},{"name":"step_arrow_keeps_sel","axioms":["propext"]},{"name":"ropeSlideV_sel","axioms":[]},{"name":"ropeSlide_sel","axioms":[]},{"name":"poleSweepV_sel","axioms":[]},{"name":"poleSweep_sel","axioms":[]}]},{"name":"Obj/Action/Act.lean","label":"对象","title":"动作读成的词","src":"","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Board/Board.lean","label":"对象","title":"版面：一关之内不变的那一半","src":"","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Board/DeadRope.lean","label":"对象","title":"死绳","src":"","compile":{"rc":0,"seconds":0.7,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Board/Goal.lean","label":"对象","title":"示意图的一组","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Board/Grid.lean","label":"对象","title":"棋盘几行几列","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Board/Rail.lean","label":"对象","title":"一条轨铺到哪","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Derive/Beads.lean","label":"对象","title":"串珠：绳上串着什么、示意图对上没有","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Derive/Line.lean","label":"对象","title":"绳的朝向：沿绳 / 垂直于绳","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Geometry/Cell.lean","label":"对象","title":"格坐标","src":"","compile":{"rc":0,"seconds":0.7,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Pieces/Block.lean","label":"对象","title":"靶块","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Pieces/HPlayer.lean","label":"对象","title":"横玩家","src":"","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/Pieces/VPlayer.lean","label":"对象","title":"竖玩家","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obj/World.lean","label":"对象","title":"一帧世界 = 版面 + 盘上那一半","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Obs/Check.lean","label":"观测","title":"两把尺子：逐条 / 整条路","src":"","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[]},{"name":"Obs/Corpus.lean","label":"观测","title":"逐条：模型面对全部真实转移，与 Python 规则层逐行对账","src":"","compile":{"rc":0,"seconds":57.5,"errors":[],"evals":["(1364, 0, 42, 1)"]},"theorems":[{"name":"rows_len","axioms":[]},{"name":"py_no_disagree","axioms":[]},{"name":"py_counts","axioms":[]},{"name":"reconciled_0","axioms":["propext"]},{"name":"reconciled_1","axioms":["propext"]},{"name":"reconciled_2","axioms":["propext"]},{"name":"reconciled_3","axioms":["propext"]},{"name":"reconciled_4","axioms":["propext"]},{"name":"reconciled_5","axioms":["propext"]},{"name":"reconciled_6","axioms":["propext"]},{"name":"reconciled_7","axioms":["propext"]},{"name":"reconciled_8","axioms":["propext"]},{"name":"reconciled_9","axioms":["propext"]},{"name":"reconciled_10","axioms":["propext"]},{"name":"reconciled_11","axioms":["propext"]},{"name":"reconciled_12","axioms":["propext"]},{"name":"reconciled_13","axioms":["propext"]},{"name":"reconciled_14","axioms":["propext"]},{"name":"chunks_cover","axioms":[]}]},{"name":"Obs/Replay.lean","label":"观测","title":"整条轨迹，只存这一份","src":"","compile":{"rc":0,"seconds":7.0,"errors":[],"evals":["REPLAY rows=1407 boards=8 states=786"]},"theorems":[]},{"name":"Proof/Levels/L0.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":3.3,"errors":[],"evals":["L0  一处都没分家（共 13 步）"]},"theorems":[{"name":"L0_len","axioms":["propext"]},{"name":"L0_clean","axioms":[]},{"name":"L0_trace","axioms":["propext"]},{"name":"L0_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L1.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":4.3,"errors":[],"evals":["L1  一处都没分家（共 29 步）"]},"theorems":[{"name":"L1_len","axioms":["propext"]},{"name":"L1_clean","axioms":[]},{"name":"L1_trace","axioms":["propext"]},{"name":"L1_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L2.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":4.8,"errors":[],"evals":["L2  一处都没分家（共 32 步）"]},"theorems":[{"name":"L2_len","axioms":["propext"]},{"name":"L2_clean","axioms":[]},{"name":"L2_trace","axioms":["propext"]},{"name":"L2_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L3.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":4.8,"errors":[],"evals":["L3  一处都没分家（共 28 步）"]},"theorems":[{"name":"L3_len","axioms":["propext"]},{"name":"L3_clean","axioms":[]},{"name":"L3_trace","axioms":["propext"]},{"name":"L3_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L4.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":6.0,"errors":[],"evals":["L4  一处都没分家（共 40 步）"]},"theorems":[{"name":"L4_len","axioms":["propext"]},{"name":"L4_clean","axioms":[]},{"name":"L4_trace","axioms":["propext"]},{"name":"L4_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L5.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":6.6,"errors":[],"evals":["L5  一处都没分家（共 42 步）"]},"theorems":[{"name":"L5_len","axioms":["propext"]},{"name":"L5_clean","axioms":[]},{"name":"L5_trace","axioms":["propext"]},{"name":"L5_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L6.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":5.1,"errors":[],"evals":["L6  一处都没分家（共 26 步）"]},"theorems":[{"name":"L6_len","axioms":["propext"]},{"name":"L6_clean","axioms":[]},{"name":"L6_trace","axioms":["propext"]},{"name":"L6_winnable","axioms":["propext"]}]},{"name":"Proof/Levels/L7.lean","label":"证明","title":"每一关一条定理","src":"","compile":{"rc":0,"seconds":6.8,"errors":[],"evals":["L7  一处都没分家（共 45 步）"]},"theorems":[{"name":"L7_len","axioms":["propext"]},{"name":"L7_clean","axioms":[]},{"name":"L7_trace","axioms":["propext"]},{"name":"L7_winnable","axioms":["propext"]}]},{"name":"Proof/Reachable.lean","label":"证明","title":"可做 / 不可做的骨架","src":"","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[{"name":"unsolvable_of_invariant","axioms":["propext"]},{"name":"not_both","axioms":["propext"]}]},{"name":"Rule/Move/ClickSelect.lean","label":"规则","title":"点击换选中","src":"","compile":{"rc":0,"seconds":0.7,"errors":[],"evals":[]},"theorems":[]},{"name":"Rule/Move/PoleSweep.lean","label":"规则","title":"杆平移","src":"","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[]},{"name":"Rule/Move/RopeSlide.lean","label":"规则","title":"绳伸缩","src":"/-\n# RopeSlide —— 绳伸缩（Python：`rule/一步怎么走/rope_slide.py`）　**身份：定义**\n\n按沿绳的键：绳长 ±1（缩到 0、伸满、伸的那一格是墙 ⇒ 不变）。\n绳上每颗靶朝同一方向各挪一格——被钉住的、目标被钉住的、目标被一颗不挪的靶占着的，不挪；\n伸的时候绳尖前面连着的一串被整串推一格（串里有钉子、或串尾外是盘边 / 钉子 / 墙 ⇒ 这一串不动，绳照样伸过去）。\n\n`ropeCore` 返回 `none` 表示「整个世界不变」。\n-/\nimport Obj.Derive.Line\n\nnamespace Game\n\n/-- 从第 `i` 格起沿线连着有靶的格号，最多 `fuel` 格。 -/\ndef runFrom (s : St) (ln : Line) : Nat → Nat → List Nat\n  | _, 0 => []\n  | i, fuel + 1 => if i < ln.len && s.has (ln.cellAt i) then i :: runFrom s ln (i + 1) fuel else []\n\n/-- 一颗在第 `i` 格的靶，挪到第 `t` 格去被不被拦下（钉子 / 出线 / 被一颗不挪的靶占着）。 -/\ndef blocked (s : St) (ln : Line) (pins : List Cell) (acc run : List Nat) (t : Nat) : Bool :=\n  !(t < ln.len) || pins.contains (ln.cellAt t) ||\n    (s.has (ln.cellAt t) && !(acc.contains t) && !(run.contains t))\n\ndef ropeCore (walls pins : List Cell) (s : St) (ln : Line) (n : Nat) (ext : Bool) : Option (List Block) :=\n  if ext && (decide (ln.len ≤ n) || walls.contains (ln.cellAt n)) then none\n  else if !ext && n == 0 then none\n  else\n    let occ := (List.range (min n ln.len)).filter (fun i => s.has (ln.cellAt i))\n    let run := if ext then runFrom s ln n ln.len else []\n    let runOk : Bool :=\n      match run.getLast? with\n      | none => false\n      | some last =>\n        !(run.any (fun i => pins.contains (ln.cellAt i))) && last + 1 < ln.len &&\n          !(pins.contains (ln.cellAt (last + 1))) && !(walls.contains (ln.cellAt (last + 1)))\n    let movingRun := if runOk then run else []\n    let order := if ext then occ.reverse else occ\n    let moving := order.foldl (fun acc i =>\n        if pins.contains (ln.cellAt i) then acc\n        else if ext then (if blocked s ln pins acc movingRun (i + 1) then acc else acc ++ [i])\n        else if i == 0 then acc\n        else if blocked s ln pins acc movingRun (i - 1) then acc else acc ++ [i]) []\n    let go := movingRun ++ moving\n    some (s.blocks.map (fun bl =>\n      match go.find? (fun i => ln.cellAt i == bl.cell) with\n      | some i => { bl with cell := ln.cellAt (if ext then i + 1 else i - 1) }\n      | none => bl))\n\ndef stepLen (ext : Bool) (n : Nat) : Nat := if ext then n + 1 else n - 1\n\n/-- 选中的是竖玩家：它那一列就是这条线。 -/\ndef ropeSlideV (b : Board) (s : St) (ext : Bool) : St :=\n  match s.vSel with\n  | some v =>\n    match ropeCore b.walls (pinsOf b s v.owner) s ⟨fun i => ⟨i, v.col⟩, b.grid.rows⟩ v.rope ext with\n    | some bl => { s with blocks := bl,\n                          vs := s.vs.map (fun x => if x.owner == v.owner then { x with rope := stepLen ext x.rope } else x) }\n    | none => s\n  | none => s\n\n/-- 选中的是横玩家：它那一行就是这条线；否则交给竖玩家那一支。 -/\ndef ropeSlide (b : Board) (s : St) (ext : Bool) : St :=\n  match s.h with\n  | some h =>\n    if h.owner == s.sel then\n      match ropeCore b.walls (pinsOf b s h.owner) s ⟨fun i => ⟨h.row, i⟩, b.grid.cols⟩ h.rope ext with\n      | some bl => { s with blocks := bl, h := some { h with rope := stepLen ext h.rope } }\n      | none => s\n    else ropeSlideV b s ext\n  | none => ropeSlideV b s ext\n\nend Game\n","compile":{"rc":0,"seconds":0.9,"errors":[],"evals":[]},"theorems":[]},{"name":"Rule/Win/WinIffThreaded.lean","label":"规则","title":"什么算赢","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]},{"name":"Step.lean","label":"装配","title":"一步怎么走：只做分发","src":"","compile":{"rc":0,"seconds":0.8,"errors":[],"evals":[]},"theorems":[]}],"levels":[{"level":0,"file":"Proof/Levels/L0.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":13,"win_steps":1,"compiled":true,"eval":"L0  一处都没分家（共 13 步）"},{"level":1,"file":"Proof/Levels/L1.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":29,"win_steps":1,"compiled":true,"eval":"L1  一处都没分家（共 29 步）"},{"level":2,"file":"Proof/Levels/L2.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":32,"win_steps":1,"compiled":true,"eval":"L2  一处都没分家（共 32 步）"},{"level":3,"file":"Proof/Levels/L3.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":28,"win_steps":1,"compiled":true,"eval":"L3  一处都没分家（共 28 步）"},{"level":4,"file":"Proof/Levels/L4.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":40,"win_steps":1,"compiled":true,"eval":"L4  一处都没分家（共 40 步）"},{"level":5,"file":"Proof/Levels/L5.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":42,"win_steps":1,"compiled":true,"eval":"L5  一处都没分家（共 42 步）"},{"level":6,"file":"Proof/Levels/L6.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":26,"win_steps":1,"compiled":true,"eval":"L6  一处都没分家（共 26 步）"},{"level":7,"file":"Proof/Levels/L7.lean","trace":true,"winnable":true,"unsolvable":false,"trace_steps":45,"win_steps":1,"compiled":true,"eval":"L7  一处都没分家（共 45 步）"}],"corpus":{"chunks":15,"chunks_clean":15,"tally_eval":[1364,0,42,1],"agree":1364,"disagree":0,"silent":42,"noprev":1,"compiled":true},"broken":{"rc":1,"errors":1,"error_lines":[25],"mark_line":25,"first_error":"Broken.lean:25:2: error: Tactic `decide` proved that the proposition"},"identity":[{"rule":"click_select","group":"一步怎么走","identity":["定义"],"lean":"Rule/Move/ClickSelect.lean","scope":65,"refuted":0},{"rule":"pole_sweep","group":"一步怎么走","identity":["定义"],"lean":"Rule/Move/PoleSweep.lean","scope":442,"refuted":0},{"rule":"rope_slide","group":"一步怎么走","identity":["定义"],"lean":"Rule/Move/RopeSlide.lean","scope":832,"refuted":0},{"rule":"win_iff_threaded","group":"什么算赢","identity":["定义"],"lean":"Rule/Win/WinIffThreaded.lean","scope":1399,"refuted":0},{"rule":"a7_one_step","group":"说了但不进模型","identity":["不进模型"],"lean":null,"scope":35,"refuted":0,"why":"它是四种结果之一（像右键伸绳 / 像下键挪行 / 像左键缩绳 / 像上键挪行），而选哪一种取决于一位**帧上读不出来的朝向**：同一张盘上按 ACTION7，这一次伸、下一次缩（册子 frame_not_state 立过案）。硬塞一个朝向字段进世界，就是给模型加一位帧上没有的信息。"},{"rule":"bar_clock","group":"说了但不进模型","identity":["不进模型"],"lean":null,"scope":1407,"refuted":0,"why":"方向键那一步是 +0 还是 +1，取决于这一关已经按了几下方向键（大约每三下走一格，偶尔多一步空档）——那是**历史**，一帧上读不出来。模型只能说「+0 或 +1」，说不出是哪一个，所以底条不进 Lean 的状态，逐帧核对也不比它。"},{"rule":"reset_restart","group":"说了但不进模型","identity":["不进模型"],"lean":null,"scope":8,"refuted":0,"why":"「放回这一关的开局」说的是**历史**：开局长什么样不是当前状态的函数，一帧上读不出来。它在 Lean 里写成一条明处的假设，并且让 RESET 之后那一段的逐帧核对从开局起算——假设错了第一帧就红。认证那一段里关内 RESET 一次都没有，所以那一次被驳倒的机会在认证段上是 0 次；全部语料上关内 RESET 5 次，下一帧与同一段里这一关第一帧逐像素相同 5 / 5（run_rules.py 另打这个读数）。"}],"derived":[{"file":"Derived/SelStable.lean","theorem":"step_arrow_keeps_sel","replaces":"册子 a6_select 的「方向键只作用在选中者身上、不改选中」那半句","clean":true},{"file":"Derived/RopeLimit.lean","theorem":"step_keeps_hrope","replaces":"册子 rope_limit（绳长不超过列数）","clean":true}],"theorems":{"total":66,"axioms_printed":66,"dirty":0,"sorryAx":0,"by_file":{"Derived/RopeLimit.lean":7,"Derived/SelStable.lean":6,"Obs/Corpus.lean":19,"Proof/Levels/L0.lean":4,"Proof/Levels/L1.lean":4,"Proof/Levels/L2.lean":4,"Proof/Levels/L3.lean":4,"Proof/Levels/L4.lean":4,"Proof/Levels/L5.lean":4,"Proof/Levels/L6.lean":4,"Proof/Levels/L7.lean":4,"Proof/Reachable.lean":2}},"gaps":[],"toolchain":{"exe":"~\\.elan\\toolchains\\leanprover--lean4---v4.34.0\\bin\\lean.exe","probe_rc":0,"probe_seconds":0.82},"step_theorems":0,"device":{"ok":true,"owed":[],"notes":["扫目录：32 份 .lean","分层（按目录认）：对象 13、推论 2、装配 1、观测 3、规则 4、证明 9","跑成的分层检查：import 方向、长在世界上","lean：工具链 leanprover--lean4---v4.34.0（绕开 elan shim）","可信基：66/66 条定理跑过 `#print axioms`，干净（只有 propext / Classical.choice / Quot.sound）"]}},"replay":{"boards":[],"worlds":[],"rows":[]},"home":{"picks":[{"seq":1145,"side":"prev","cap":"第 0 关开局（seq 1145 的前一帧）"},{"seq":1153,"side":"both","cap":"seq 1153：ACTION2，杆扫过去把一串靶带走"},{"seq":1158,"side":"prev","cap":"seq 1158：再按一下 ACTION4 就过关"},{"seq":1292,"side":"prev","cap":"第 5 关开局：盘上方多了一个竖玩家（seq 1292）"}]},"gaps":["突变体 click_any 没红（等价突变）：解析只把点击认成**精灵**的记号，而精灵全是玩家——「点中了但不是玩家」在这套解析之下不可达。Lean 那一份照样写着这一支（`Act.click` 的记号可以是任何数）","「RESET 把局面放回这一关的开局」不进模型，写成明处的假设；认证那一段里关内 RESET 0 次，**这条假设在认证段上一次被驳倒的机会都没有**。全部语料上关内 RESET 5 次、下一帧与开局逐像素相同 5 次——那是读数，不是证明。","ACTION7 不进模型（它取决于一位帧上读不出的朝向）：所以「这一关走不通」如果将来要写，准确的意思只能是「**不经过 ACTION7、不经过 RESET** 就走不通」。这一局八关都走得通，这句话暂时没有用上。"]};</script>
+<script>window.LEAN = window.DATA.lean;window.LEAN_INLINE=true;</script>
+<script>
+// **画世界的那一份**：按本局的对象画格子。只有尺寸与配色，一行世界逻辑都没有。
+//
+// 拿到的是 `web/export.py` 算好的一帧世界（字段名和对象层逐字相同）：
+//   board   : { rows, cols, walls, hrail, vrail, goals, deadropes }
+//   world   : { blocks, hplayer, vplayers, selected, bar, slots }
+// `slots`（示意图每个槽对上没有）、`changed`（这一步哪些格变了）都是导出侧算好的，这里只摆。
+//
+// 颜色是**前端配的**：世界那边的颜色是不透明记号，只许判相等；这里给每个记号挑一个好认的色。
+
+(function () {
+  const CELL = 26;
+  const PAD = 34;          // 左边留给横玩家，上边留给竖玩家 / 死绳头
+  const HUD = 40;
+
+  // 色号 → 颜色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号）。
+  // 靶的色号和主人记号（精灵芯色）都是帧里的色号，查同一张表；这里不抄。
+  const PALETTE = ((window.DATA || {}).palette || []).slice();
+  const OWNER = PALETTE;
+
+  function col(id, tbl) { return tbl[id] || "#9aa3b5"; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  function board(b, w, opts) {
+    opts = opts || {};
+    const W = PAD + b.cols * CELL + 10;
+    const Hh = PAD + b.rows * CELL + 12 + HUD;
+    const o = [];
+    const X = (c) => PAD + c * CELL;
+    const Y = (r) => PAD + r * CELL;
+    o.push(`<svg class="grid" width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}">`);
+    // 两条轨
+    if (b.hrail) o.push(`<rect x="${PAD - 12}" y="${Y(b.hrail[0]) + 6}" width="4" height="${(b.hrail[1] - b.hrail[0]) * CELL + CELL - 12}" fill="#3a4152"/>`);
+    if (b.vrail) o.push(`<rect x="${X(b.vrail[0]) + 6}" y="${PAD - 12}" width="${(b.vrail[1] - b.vrail[0]) * CELL + CELL - 12}" height="4" fill="#3a4152"/>`);
+    // 格
+    for (let r = 0; r < b.rows; r++) {
+      for (let c = 0; c < b.cols; c++) {
+        o.push(`<rect x="${X(c)}" y="${Y(r)}" width="${CELL}" height="${CELL}" fill="var(--floor)" stroke="var(--floor-line)"/>`);
+      }
+    }
+    for (const [r, c] of b.walls) o.push(`<rect x="${X(c)}" y="${Y(r)}" width="${CELL}" height="${CELL}" fill="var(--wall)"/>`);
+    // 死绳：头在盘外上方，绳往下
+    for (const [ow, c, n] of b.deadropes) {
+      const x = X(c) + CELL / 2;
+      o.push(`<rect x="${x - 4}" y="${PAD - 26}" width="8" height="8" fill="${col(ow, OWNER)}"/>`);
+      if (n > 0) o.push(`<line x1="${x}" y1="${PAD - 16}" x2="${x}" y2="${Y(n) - 3}" stroke="${col(ow, OWNER)}" stroke-width="3" stroke-dasharray="4 3"/>`);
+    }
+    // 靶
+    for (const [r, c, k] of w.blocks) {
+      o.push(`<rect x="${X(c) + 4}" y="${Y(r) + 4}" width="${CELL - 8}" height="${CELL - 8}" rx="3" fill="${col(k, PALETTE)}"/>`);
+    }
+    // 横玩家与横绳
+    if (w.hplayer) {
+      const [ow, row, n] = w.hplayer;
+      const y = Y(row) + CELL / 2;
+      const sel = ow === w.selected;
+      if (n > 0) o.push(`<line x1="${PAD - 4}" y1="${y}" x2="${X(n) - 3}" y2="${y}" stroke="${col(ow, OWNER)}" stroke-width="${sel ? 4 : 2.5}" opacity="${sel ? 1 : .6}"/>`);
+      o.push(`<rect x="${PAD - 26}" y="${Y(row) + 3}" width="${CELL - 6}" height="${CELL - 6}" rx="4" fill="${sel ? col(ow, OWNER) : "none"}" stroke="${col(ow, OWNER)}" stroke-width="2"/>`);
+    }
+    // 竖玩家与竖绳
+    for (const [ow, c, n] of w.vplayers) {
+      const x = X(c) + CELL / 2;
+      const sel = ow === w.selected;
+      if (n > 0) o.push(`<line x1="${x}" y1="${PAD - 4}" x2="${x}" y2="${Y(n) - 3}" stroke="${col(ow, OWNER)}" stroke-width="${sel ? 4 : 2.5}" opacity="${sel ? 1 : .6}"/>`);
+      o.push(`<rect x="${X(c) + 3}" y="${PAD - 26}" width="${CELL - 6}" height="${CELL - 6}" rx="4" fill="${sel ? col(ow, OWNER) : "none"}" stroke="${col(ow, OWNER)}" stroke-width="2"/>`);
+    }
+    // 这一步变了的格（导出侧算好的）
+    for (const [r, c] of (opts.changed || [])) {
+      o.push(`<rect x="${X(c) + 1}" y="${Y(r) + 1}" width="${CELL - 2}" height="${CELL - 2}" fill="none" stroke="#ffd84d" stroke-width="2"/>`);
+    }
+    // 示意图：每组一个主人记号，后面是要串的颜色；对上了的槽打勾（对没对上是导出侧算好的）
+    let hx = 6;
+    const hy = PAD + b.rows * CELL + 18;
+    b.goals.forEach(([ow, cols], g) => {
+      o.push(`<rect x="${hx}" y="${hy}" width="14" height="14" rx="3" fill="none" stroke="${col(ow, OWNER)}" stroke-width="2"/>`);
+      hx += 20;
+      cols.forEach((k, j) => {
+        const ok = w.slots && w.slots[g] && w.slots[g][j];
+        o.push(`<rect x="${hx}" y="${hy}" width="14" height="14" rx="2" fill="${col(k, PALETTE)}" opacity="${ok ? 1 : .45}"/>`);
+        if (ok) o.push(`<text x="${hx + 3}" y="${hy + 11}" font-size="11" fill="#111">✓</text>`);
+        hx += 17;
+      });
+      hx += 12;
+    });
+    o.push(`<text x="${W - 8}" y="${Hh - 6}" font-size="10" fill="#8b93a7" text-anchor="end">底条 ${w.bar}</text>`);
+    o.push("</svg>");
+    return o.join("");
+  }
+
+  // 极简的 Markdown：**粗体**、`代码`、空行分段。只排版，不理解。
+  function mdBlock(s) {
+    return String(s || "").split(/\n\s*\n/).map((p) => "<p>" + esc(p)
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\n/g, "<br>") + "</p>").join("");
+  }
+
+  window.Render = { board, mdBlock, PALETTE, OWNER };
+})();
+
+</script>
+<script>
+// **形式化那一层页面的骨架。跨局可搬的那几段都在这里。**
+//
+// 这一份从一局的 `web/lean.js` 里摘出来：留下的是**形状**
+// （按角色分组的下拉、拆页的段横条、公理表大纲、源码上色），
+// 拿掉的是那一局专属的东西（画盘面、语料读数表）。
+//
+// 一条不许破的：**这里没有一行世界逻辑。** 每一个数、每一个框都是
+// `web/export.py` 在 Python 那边算好导出来的；这一份只摆数据、只画图形。
+// `check_no_logic.py` 会来这里搜对象层的方法名，搜到就算破了。
+
+const R = window.Render;
+const $ = (id) => document.getElementById(id);
+
+const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|" +
+  "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using").split("|");
+
+const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+  "rintro|induction|split|rw|apply|unfold|absurd|first|next").split("|");
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 哨兵用 \uXXXX **写成转义，不写裸控制字节**：裸字节在磁盘上能跑，
+// 但一被任何会规范化控制字符的工具读一遍再写出来就没了，
+// 而那时这几行正则会变成空正则、整页炸掉——**照抄这一份的人第一个撞上**。
+// 给 Lean 源码上色。**这是渲染**：它不理解一个字，只认注释、字符串和几十个词。
+function paint(src) {
+  let h = esc(src);
+  h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+  h = h.replace(/&quot;[^\n]*?&quot;/g, (m) => `\u0003${m}\u0004`);
+  h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+  const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+  const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+  h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+  return h
+    .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+    .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+    .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+    .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+    .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+}
+
+// 公理表干不干净。**空的不算干净，算「没人核过」。**
+function axChip(a) {
+  if (!a) return '<span class="chip NA">没打公理表</span>';
+  const dirty = a.indexOf("sorryAx") >= 0 || a.indexOf("ofReduceBool") >= 0;
+  return `<span class="chip ${dirty ? "FALSE" : "TRUE"}">${esc(a)}</span>`;
+}
+
+function outlineHTML(f) {
+  const out = [];
+  for (const it of f.outline) {
+    if (it.kind === "section") {
+      out.push(`<h3 class="lsec">${esc(it.name)}</h3>`);
+      continue;
+    }
+    const thm = it.kind === "theorem";
+    out.push(
+      `<div class="litem${thm ? " thm" : ""}">` +
+      `<div class="lhead"><span class="lkind">${it.kind}</span>` +
+      `<span class="mono lname">${esc(it.name)}</span>` +
+      (thm ? axChip(it.axioms) : "") + "</div>" +
+      (it.doc ? `<div class="ldoc">${R.mdBlock(it.doc)}</div>` : "") +
+      "</div>");
+  }
+  return out.join("\n");
+}
+
+// **26 个链接平铺谁也不会看**——不管摆的是角色还是文件名，一排 26 个都一样。
+// 改成一个下拉：按角色分组，当前这份选中，选谁跳谁。
+// 角色是 export.py 给的那一列；这里只按它分组，**不自己判**任何一份是什么。
+
+const NAV_GROUPS = [
+  ["对象", ["对象"]],
+  ["规则", ["规则"]],
+  ["推论（Derived/）", ["推论"]],
+  ["要证的东西（Proof/）", ["证明"]],
+  ["模型面对现实（Obs/）", ["观测"]],
+  ["装配与破坏测试", ["装配", "破坏测试"]],
+];
+
+// **拍平路径用正则加 g，不要用字符串形式。**
+// JS 的 `replace("/", "-")` 只换**第一个**，而 Python 的 `str.replace` 是全换。
+// 分组分到两层之后（`Obj/Frame/World.lean`），页面生成对了、链接却指向一个
+// 不存在的路径——**两边都不会报错**，只是点不开。
+function shortName(x) {
+  return x.name.replace(".lean", "").replace(/^(Obj|Rule|Derived)\//, "");
+}
+
+function navHTML(name) {
+  const files = window.LEAN.files;
+  const used = new Set();
+  let opts = "";
+  for (const [gname, roles] of NAV_GROUPS) {
+    const xs = files.filter((x) => roles.includes(x.label));
+    if (!xs.length) continue;
+    opts += `<optgroup label="${gname}">`;
+    for (const x of xs) {
+      used.add(x.name);
+      const href = x.name.replace(".lean", "").replace(/\//g, "-") + ".html";
+      opts += `<option value="${href}"${x.name === name ? " selected" : ""}>`
+            + `${shortName(x)} —— ${x.title}</option>`;
+    }
+    opts += "</optgroup>";
+  }
+  // **漏了的不许悄悄不见。** 新加一份 Lean 却忘了给它角色时，
+  // 它会掉进这一组里露出来，而不是从导航上凭空消失。
+  const rest = files.filter((x) => !used.has(x.name));
+  if (rest.length) {
+    opts += `<optgroup label="没归类（${rest.length} 份）">`;
+    for (const x of rest) {
+      const href = x.name.replace(".lean", "").replace(/\//g, "-") + ".html";
+      opts += `<option value="${href}"${x.name === name ? " selected" : ""}>`
+            + `${shortName(x)} —— ${x.title}</option>`;
+    }
+    opts += "</optgroup>";
+  }
+  return `<label class="picker"><span>这 ${files.length} 份 Lean</span>`
+       + `<select onchange="if(this.value)location.href=this.value">${opts}</select></label>`
+       + `　<a href="index.html">回形式化首页</a>`;
+}
+
+function flat(name) { return name.replace(".lean", "").replace(/\//g, "-"); }
+
+function partsBar(f, here) {
+  if (!f.parts || !f.parts.length) return "";
+  const items = f.parts.map((p) => p.key === here
+    ? `<span style="color:var(--dim)">${p.title}</span>`
+    : `<a href="${flat(f.name)}-${p.key}.html">${p.title}</a>`);
+  const whole = here === null
+    ? `<span style="color:var(--dim)">整份</span>`
+    : `<a href="${flat(f.name)}.html">整份</a>`;
+  return `<div class="partsbar">${whole}${items.map((x) => "　" + x).join("")}</div>`;
+}
+
+// ---------------------------------------------------------------- 本局要填的
+
+// `initPart()` / `initFile()` / `initIndex()` 三支各自把上面这些拼进页面。
+// 它们里面有本局专属的东西（画盘面、语料读数表），照着本局写。
+//
+// 三支的分派固定成这一句——**顺序不能换**：
+//
+//   document.addEventListener("DOMContentLoaded",
+//     () => (window.LEAN_PART ? initPart()
+//          : window.LEAN_NAME ? initFile() : initIndex()));
+//
+// 拆页那一段还有一条必须记着的：**拆页的生成（pages.py）和打包（bundle.py）
+// 必须一起改**。只改前者的话链接点不开，而首页和整份页照样满绿——
+// 这种坏没有任何一条自检看得见。
+//
+// 这一局没有拆段：每一关本来就是一份（Proof/Levels/L<n>.lean），不需要 initPart。
+
+function thmRows(f) {
+  if (!f.theorems.length) {
+    return '<tr><td colspan="2" class="note">这一份里没有定理（全是定义）。</td></tr>';
+  }
+  return f.theorems.map((t) => `<tr><td class="mono">${esc(t.name)}</td><td>` +
+    axChip(t.axioms === null || t.axioms === undefined ? null
+      : (t.axioms.length ? t.axioms.join(", ") : "不依赖任何公理")) + "</td></tr>").join("");
+}
+
+function initFile() {
+  const f = window.LEAN.files.find((x) => x.name === window.LEAN_NAME);
+  $("nav").innerHTML = navHTML(f.name);
+  $("thms").innerHTML = thmRows(f);
+  $("src").innerHTML = paint(f.src);
+}
+
+function initIndex() {
+  $("nav").innerHTML = navHTML(null);
+}
+
+// 一段 Lean 附在对象 / 规则页下面：同一处源码，页面只上色。
+function initInline() {
+  document.querySelectorAll("[data-lean]").forEach((el) => {
+    const f = window.LEAN.files.find((x) => x.name === el.dataset.lean);
+    el.innerHTML = f ? paint(f.src) : "（这一份 Lean 不在导出的数据里）";
+  });
+}
+
+document.addEventListener("DOMContentLoaded",
+  () => (window.LEAN_INLINE ? initInline() : window.LEAN_NAME ? initFile() : initIndex()));
+
+
+</script>
+</body>
+</html>

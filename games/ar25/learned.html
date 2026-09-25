@@ -1,0 +1,3082 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>ar25 是怎么学出来的 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← ar25 的世界模型</a></div><h1>它是怎么学出来的</h1><p class="lede">agent 边玩边把看到的规律写成可检验的代码：每条都对接下来的每一步自动判对错。它一共写过 17 条，其中 3 条被后来的画面推翻、撤掉。其余的分成两路：讲操作后果的几条合并成首页的规则（四个方向键的四条合成一条）；讲画面怎么画的几条（镜像、分隔带占哪些格、标记、叠放次序、选中的只有一件）变成了读画面时的自检，一帧画不回原样就读不成。这些说法都写于更早的一遍边摸索边打的通关，下文提到的步数是那一遍里的步数。</p><h2>每条规则的来历</h2><ul class="origin"><li><b>按方向键，被选中的那一件朝那个方向走一格</b><div class="from">由这些早期说法合并而来：<code>act1_up</code>、<code>act2_down</code>、<code>act3_mover_left</code>、<code>act4_mover_right</code></div></li><li><b>点一下，选中点中的那一件</b><div class="from">由这些早期说法合并而来：<code>act6_select</code></div></li><li><b>推一下，计数带用掉一格</b><div class="from">由这些早期说法合并而来：<code>counter_tick</code></div></li><li><b>点一下，计数带不动</b><div class="from">由这些早期说法合并而来：<code>counter_tick</code></div></li><li><b>过关，当且仅当每一块目标都被物件或它的镜像盖住</b><div class="from">由这些早期说法合并而来：<code>level_clear</code></div></li><li><b>ACTION5 不改盘面</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>act5_inert</code></div></li><li><b>ACTION7 让被选中的那一件退回一步</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>act7_undo_step</code></div></li><li><b>推不动的推，盘面和计数带都不变</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>counter_tick</code></div></li></ul><h2>被推翻的说法</h2><div class="stories"><article class="story"><h3>方向键推的不是深灰色的那一块</h3><div class="sub"><code>act3_right</code><code>act4_left</code></div><ol class="tl"><li><b>原来以为</b><p>第 1 关里，按方向键时深灰色的形状总是跟着动，于是 agent 写下：按左，深灰色形状右移一格；按右，它左移一格——把深灰色当成了被推的东西。</p></li><li class="hit"><b>画面打脸</b><p>第 2 关，被选中的是一条竖的分隔带。按一下，带挪了一格，深灰色却挪了两格。第一遍摸索到第 25 步，这两条一起撤掉。</p></li><li class="fix"><b>后来改成</b><p>方向键推的是「被选中的那一件」，物件或分隔带都可能；深灰色是物件关于分隔带的镜像，镜子挪一格，像挪两格。点击选中哪一件，也是这时才想到要去试的。</p></li></ol></article><article class="story"><h3>镜子不止一面，也不总在同一个位置</h3><div class="sub"><code>mirror</code></div><ol class="tl"><li><b>原来以为</b><p>第 1 关的深灰色和黑色物件关于中间一列左右对称，第一版写成：关于那一列的左右镜像，列号写死。</p></li><li class="hit"><b>画面打脸</b><p>第 3 关的分隔带是横的，而且在盘面下方，镜像整个落到盘外，整关没有深灰色；第 5 关出现一横一竖两条带，画面上除了两个镜像还多一个绕交点转了半圈的像。</p></li><li class="fix"><b>后来改成</b><p>改成：深灰色 = 物件在所有分隔带生成的反射下的全部像，落在盘外的不画，与物件本身重叠的不画。这一条前后改了 5 版。</p></li></ol></article></div><h2 id="appendix">附录</h2><p class="intro">附录保留仓库里的原始叫法，关号从 0 开始（L0 = 正文第 1 关）。</p><details class="apx"><summary>另外 2 个改写的故事</summary><div class="apxb stories"><article class="story"><h3>计数带的说法改了好几次</h3><div class="sub"><code>counter_tick</code></div><ol class="tl"><li><b>原来以为</b><p>一开始：每按一次键，最右一列多填一格。</p></li><li class="hit"><b>画面打脸</b><p>先是发现点击选中不花一格；再是第 3 关计数带换了颜色，写死颜色的那一版当场判错；然后过关那一步计数带清空，照常加一就错；最后在墙边推不动的那几下，计数带也一格没动。</p></li><li class="fix"><b>后来改成</b><p>最终只说录像里检验得到的两支：推得动的推用掉一格，点击不花。推不动的那一支挪进不进模型的规则，因为认证的那一遍里一次都没有。</p></li></ol></article><article class="story"><h3>被选中的那一件，标记会穿过所有叠层</h3><div class="sub"><code>frame_is_render</code><code>one_selected</code></div><ol class="tl"><li><b>原来以为</b><p>以为块中心的白点只画在最上层那件东西上。</p></li><li class="hit"><b>画面打脸</b><p>物件压在被选中的带上时，那几块中心照样是白点；后来两件物件对角挨在一起，画面上连成一片，标记只占其中一部分。</p></li><li class="fix"><b>后来改成</b><p>白点是「这一块会跟着走」的指示，穿过所有叠层；两件物件挨上时，按白点把连成的那一片切开。</p></li></ol></article></div></details><details class="apx"><summary>全部 17 条早期说法的每一版与源码</summary><div class="apxb"><div class="list"><details class="item"><summary><div class="top"><span class="name">act1_up</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">6 版</span></div><div class="one">按上：被选中的那一件上移一格</div></summary><div class="body"><div class="doc">ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L1</span><div>ACTION1 要么让色4 形状整体上移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让色4 形状整体上移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, clear, paint, shape
+
+A = &quot;ACTION1&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None                      # 压到别的东西上，这条概念说不出会显示成什么色
+    out = {}
+    out.update(clear(prev, (s4 | s5) - (n4 | n5)))
+    out.update(paint(prev, n4, 4, False))
+    out.update(paint(prev, n5, 5, True))
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:34:37 · L1</span><div>ACTION1 要么让色4 形状整体上移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让色4 形状整体上移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, shape, translate
+
+A = &quot;ACTION1&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None                      # 压到别的东西上，这条概念说不出会显示成什么色
+    out = translate(prev, s4, d)
+    out.update(translate(prev, s5, (d[0], -d[1])))
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T01:43:05 · L1</span><div>ACTION1 要么让可动组整体上移 1 块、组的形状不变，要么可动组原地不动。</div><div>v2：主角换人。原来写的是「色4 整体上移」，那只在第0关成立——第0关的可动组恰好是影子，色4 是它的镜像所以同向跟动；第1关可动组是分隔带，推带一块色4 就走两块（反例落在 ACTION3 上）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让可动组整体上移 1 块、组的形状不变，要么可动组原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；可动组（movers：中心格是色0 的块）空返回 NA。只断言可动组本身的位移，跟着动的色4/色5 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;v2：主角换人。原来写的是「色4 整体上移」，那只在第0关成立——第0关的可动组恰好是影子，色4 是它的镜像所以同向跟动；第1关可动组是分隔带，推带一块色4 就走两块（反例落在 ACTION3 上）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;]
+
+from _lib import DELTA, movers, shift, step_pred
+
+A = &quot;ACTION1&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if m1 == shift(m0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T02:23:44 · L1</span><div>ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。</div><div>v4：v3 说「整体上移、形状不变」，被带推翻（tid f2d20cbfe45f4a8a）：带从行16 到行15，块数从 20 变成 18，因为行15 上有三个目标块而带让开了它们。带不是形状固定的物件，它是一条线，占位由线算出来。落点改由 _lib.sel_move 给：物件平移，带按新线重算。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；可动组（movers：中心格是色0 的块）空、或读不出被选中的是哪一件（sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;v4：v3 说「整体上移、形状不变」，被带推翻（tid f2d20cbfe45f4a8a）：带从行16 到行15，块数从 20 变成 18，因为行15 上有三个目标块而带让开了它们。带不是形状固定的物件，它是一条线，占位由线算出来。落点改由 _lib.sel_move 给：物件平移，带按新线重算。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;f2d20cbfe45f4a8a&quot;]
+
+from _lib import DELTA, movers, sel_move, step_pred
+
+A = &quot;ACTION1&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-14T02:39:50 · L1</span><div>ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。</div><div>v5：不再用 movers（中心标记色）当「被选中那件东西」——物件压在目标上时那几块中心格露的是目标色，数不进 movers，可它们照样跟着走（tid a3d4eea3431fa704 就是这么停的）。改用 _lib.selected：先认出是哪件东西，再取它的全部块。v4 之前说「整体上移、形状不变」，被带推翻：带从行16 到行15 块数 20→18，因为行15 上有三个目标块而带让开了它们；落点由 _lib.sel_move 给。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;v5：不再用 movers（中心标记色）当「被选中那件东西」——物件压在目标上时那几块中心格露的是目标色，数不进 movers，可它们照样跟着走（tid a3d4eea3431fa704 就是这么停的）。改用 _lib.selected：先认出是哪件东西，再取它的全部块。v4 之前说「整体上移、形状不变」，被带推翻：带从行16 到行15 块数 20→18，因为行15 上有三个目标块而带让开了它们；落点由 _lib.sel_move 给。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;f2d20cbfe45f4a8a&quot;]
+
+from _lib import DELTA, sel_move, selected, step_pred
+
+A = &quot;ACTION1&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None or s1 is None:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-14T16:58:04 · L1</span><div>ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。</div><div>v6：被 b06fd8a7 / d006e5b1 推翻——物件上移后与另一片对角相邻，selected(nxt) 返回合并后的 15 块，但 sel_move 只预测了原先 8 块。改法：s1 != want 时，若 want ⊆ shape(nxt, PIECE) 仍判 TRUE（块都在对的位置，只是被合并了），否则 NA（粘连导致 sel_move 失准）。v5：改用 selected。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。粘连（两件东西 8 邻相接导致 selected 变大或分裂）时，若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v6：被 b06fd8a7 / d006e5b1 推翻——物件上移后与另一片对角相邻，selected(nxt) 返回合并后的 15 块，但 sel_move 只预测了原先 8 块。改法：s1 != want 时，若 want ⊆ shape(nxt, PIECE) 仍判 TRUE（块都在对的位置，只是被合并了），否则 NA（粘连导致 sel_move 失准）。v5：改用 selected。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;f2d20cbfe45f4a8a&quot;,
+            &quot;b06fd8a718d69426&quot;, &quot;d006e5b1f122cd5b&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION1&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 要么让被选中那件东西上移一行——物件整体平移、分隔带则改占上面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION1；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。粘连（两件东西 8 邻相接导致 selected 变大或分裂）时，若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v6：被 b06fd8a7 / d006e5b1 推翻——物件上移后与另一片对角相邻，selected(nxt) 返回合并后的 15 块，但 sel_move 只预测了原先 8 块。改法：s1 != want 时，若 want ⊆ shape(nxt, PIECE) 仍判 TRUE（块都在对的位置，只是被合并了），否则 NA（粘连导致 sel_move 失准）。v5：改用 selected。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;f2d20cbfe45f4a8a&quot;,
+            &quot;b06fd8a718d69426&quot;, &quot;d006e5b1f122cd5b&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION1&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">act2_down</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">6 版</span></div><div class="one">按下：被选中的那一件下移一格</div></summary><div class="body"><div class="doc">ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L1</span><div>ACTION2 要么让色4 形状整体下移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让色4 形状整体下移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, clear, paint, shape
+
+A = &quot;ACTION2&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = {}
+    out.update(clear(prev, (s4 | s5) - (n4 | n5)))
+    out.update(paint(prev, n4, 4, False))
+    out.update(paint(prev, n5, 5, True))
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:34:37 · L1</span><div>ACTION2 要么让色4 形状整体下移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让色4 形状整体下移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, shape, translate
+
+A = &quot;ACTION2&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = translate(prev, s4, d)
+    out.update(translate(prev, s5, (d[0], -d[1])))
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T01:43:05 · L1</span><div>ACTION2 要么让可动组整体下移 1 块、组的形状不变，要么可动组原地不动。</div><div>v2：主角从色4 换成可动组，理由同 act1_up。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让可动组整体下移 1 块、组的形状不变，要么可动组原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；可动组（movers：中心格是色0 的块）空返回 NA。只断言可动组本身的位移，跟着动的色4/色5 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;v2：主角从色4 换成可动组，理由同 act1_up。&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;]
+
+from _lib import DELTA, movers, shift, step_pred
+
+A = &quot;ACTION2&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if m1 == shift(m0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T02:23:44 · L1</span><div>ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。</div><div>v4：跟 act1_up 同一次修——落点改由 _lib.sel_move 给，带不再当成形状固定的物件平移。ACTION2 自己没挨过打，这里是跟着词汇改口径。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；可动组（movers：中心格是色0 的块）空、或读不出被选中的是哪一件（sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;v4：跟 act1_up 同一次修——落点改由 _lib.sel_move 给，带不再当成形状固定的物件平移。ACTION2 自己没挨过打，这里是跟着词汇改口径。&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;]
+
+from _lib import DELTA, movers, sel_move, step_pred
+
+A = &quot;ACTION2&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-14T02:39:50 · L1</span><div>ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。</div><div>v5：v4 死于 a3d4eea3431fa704——物件下推到压住目标那一步，被压的三块中心格露出目标色，movers 少数了三块。改用 _lib.selected 认东西，不数中心标记。v4 是跟着「带不是形状固定的物件」那次改的。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;v5：v4 死于 a3d4eea3431fa704——物件下推到压住目标那一步，被压的三块中心格露出目标色，movers 少数了三块。改用 _lib.selected 认东西，不数中心标记。v4 是跟着「带不是形状固定的物件」那次改的。&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;, &quot;a3d4eea3431fa704&quot;]
+
+from _lib import DELTA, sel_move, selected, step_pred
+
+A = &quot;ACTION2&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None or s1 is None:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-14T16:58:04 · L1</span><div>ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。</div><div>v6：与 act1_up v6 同一批——粘连（8 邻合并）导致 selected(nxt) 比预期大或 None；改法同。v5：改用 selected。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。粘连时若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v6：与 act1_up v6 同一批——粘连（8 邻合并）导致 selected(nxt) 比预期大或 None；改法同。v5：改用 selected。&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;, &quot;a3d4eea3431fa704&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION2&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION2 要么让被选中那件东西下移一行——物件整体平移、分隔带则改占下面那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION2；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。只断言被选中那件东西的落点，跟着动的色4 由 mirror 管、由 apply 生成。粘连时若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v6：与 act1_up v6 同一批——粘连（8 邻合并）导致 selected(nxt) 比预期大或 None；改法同。v5：改用 selected。&quot;
+EVIDENCE = [&quot;e20fe61cf7a3a726&quot;, &quot;a3d4eea3431fa704&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION2&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">act3_mover_left</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">按左：被选中的那一件左移一格</div></summary><div class="body"><div class="doc">ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:43:05 · L1</span><div>ACTION3 要么让可动组整体左移 1 块、组的形状不变，要么可动组原地不动。</div><div>接替撤册的 act3_right：那条说的是「色4 右移」，在第1关的 c6f11fc6bbb8d7de 上挨了反例——动的是分隔带（左移1），色4 作为影子关于带的镜像左移了 2。方向词现在指可动组，不指色4。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让可动组整体左移 1 块、组的形状不变，要么可动组原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；可动组（movers：中心格是色0 的块）空返回 NA。只断言可动组本身的位移，跟着动的色4/色5 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;接替撤册的 act3_right：那条说的是「色4 右移」，在第1关的 c6f11fc6bbb8d7de 上挨了反例——动的是分隔带（左移1），色4 作为影子关于带的镜像左移了 2。方向词现在指可动组，不指色4。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;c6f11fc6bbb8d7de&quot;]
+
+from _lib import DELTA, movers, shift, step_pred
+
+A = &quot;ACTION3&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if m1 == shift(m0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T02:23:44 · L1</span><div>ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。</div><div>v2：跟 act1_up 同一次修——落点改由 _lib.sel_move 给，带不再当成形状固定的物件平移。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；可动组（movers：中心格是色0 的块）空、或读不出被选中的是哪一件（sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准（那等于把线推出它自己的方向），返回 NA。&quot;
+NOTE = &quot;v2：跟 act1_up 同一次修——落点改由 _lib.sel_move 给，带不再当成形状固定的物件平移。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;c6f11fc6bbb8d7de&quot;]
+
+from _lib import DELTA, movers, sel_move, step_pred
+
+A = &quot;ACTION3&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T02:39:50 · L1</span><div>ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。</div><div>v3：跟 act1_up/act2_down 同一次修——被选中那件东西改用 _lib.selected 认，不数中心标记色（物件压在目标上时那几块中心露的是目标色）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准（那等于把线推出它自己的方向），返回 NA。&quot;
+NOTE = &quot;v3：跟 act1_up/act2_down 同一次修——被选中那件东西改用 _lib.selected 认，不数中心标记色（物件压在目标上时那几块中心露的是目标色）。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;c6f11fc6bbb8d7de&quot;]
+
+from _lib import DELTA, sel_move, selected, step_pred
+
+A = &quot;ACTION3&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None or s1 is None:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T16:58:04 · L1</span><div>ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。</div><div>v4：被 ff0bbb7f / 58cecefb / 86097eb9 推翻——粘连后 selected 合并了两件东西。selected(nxt) 比预期大（粘连持续）或小（脱粘）。改法：s1 != want 时，若 want ⊆ shape(nxt, PIECE) 仍判 TRUE。v3：改用 _lib.selected。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准（那等于把线推出它自己的方向），返回 NA。粘连/脱粘时，若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v4：被 ff0bbb7f / 58cecefb / 86097eb9 推翻——粘连后 selected 合并了两件东西。selected(nxt) 比预期大（粘连持续）或小（脱粘）。改法：s1 != want 时，若 want ⊆ shape(nxt, PIECE) 仍判 TRUE。v3：改用 _lib.selected。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;c6f11fc6bbb8d7de&quot;,
+            &quot;ff0bbb7f3cf67a7e&quot;, &quot;58cecefb95fe100d&quot;, &quot;86097eb9fc53a37b&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION3&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让被选中那件东西左移一列——物件整体平移、分隔带则改占左边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准（那等于把线推出它自己的方向），返回 NA。粘连/脱粘时，若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v4：被 ff0bbb7f / 58cecefb / 86097eb9 推翻——粘连后 selected 合并了两件东西。selected(nxt) 比预期大（粘连持续）或小（脱粘）。改法：s1 != want 时，若 want ⊆ shape(nxt, PIECE) 仍判 TRUE。v3：改用 _lib.selected。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;c6f11fc6bbb8d7de&quot;,
+            &quot;ff0bbb7f3cf67a7e&quot;, &quot;58cecefb95fe100d&quot;, &quot;86097eb9fc53a37b&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION3&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">act3_right</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">按左，深灰色形状右移一格</div></summary><div class="body"><div class="doc">ACTION3 要么让色4 形状整体右移 1 块、形状不变，要么色4 形状原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L1</span><div>ACTION3 要么让色4 形状整体右移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让色4 形状整体右移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, clear, paint, shape
+
+A = &quot;ACTION3&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = {}
+    out.update(clear(prev, (s4 | s5) - (n4 | n5)))
+    out.update(paint(prev, n4, 4, False))
+    out.update(paint(prev, n5, 5, True))
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:34:37 · L1</span><div>ACTION3 要么让色4 形状整体右移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让色4 形状整体右移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, shape, translate
+
+A = &quot;ACTION3&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = translate(prev, s4, d)
+    out.update(translate(prev, s5, (d[0], -d[1])))
+    return out
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让色4 形状整体右移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION3；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, shape, translate
+
+A = &quot;ACTION3&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = translate(prev, s4, d)
+    out.update(translate(prev, s5, (d[0], -d[1])))
+    return out
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">act4_left</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">按右，深灰色形状左移一格</div></summary><div class="body"><div class="doc">ACTION4 要么让色4 形状整体左移 1 块、形状不变，要么色4 形状原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L1</span><div>ACTION4 要么让色4 形状整体左移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让色4 形状整体左移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, clear, paint, shape
+
+A = &quot;ACTION4&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = {}
+    out.update(clear(prev, (s4 | s5) - (n4 | n5)))
+    out.update(paint(prev, n4, 4, False))
+    out.update(paint(prev, n5, 5, True))
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:34:37 · L1</span><div>ACTION4 要么让色4 形状整体左移 1 块、形状不变，要么色4 形状原地不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让色4 形状整体左移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, shape, translate
+
+A = &quot;ACTION4&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = translate(prev, s4, d)
+    out.update(translate(prev, s5, (d[0], -d[1])))
+    return out
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让色4 形状整体左移 1 块、形状不变，要么色4 形状原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；盘面上没有色4 形状返回 NA。只断言色4，色5 由 mirror 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import BG, DELTA, NB, block, blocked, shape, translate
+
+A = &quot;ACTION4&quot;
+
+
+def _shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if s1 == _shift(s0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    d = DELTA[A]
+    s4, s5 = shape(prev, 4), shape(prev, 5)
+    if not s4 or not s5:
+        return None
+    n4, n5 = _shift(s4, d), _shift(s5, (d[0], -d[1]))
+    if blocked(prev, n4) or blocked(prev, n5):
+        return None
+    others = {(br, bc) for br in range(NB) for bc in range(NB)
+              if (br, bc) not in s4 and (br, bc) not in s5
+              and any(v != BG for row in block(prev, br, bc) for v in row)}
+    if (n4 | n5) &amp; others:
+        return None
+    out = translate(prev, s4, d)
+    out.update(translate(prev, s5, (d[0], -d[1])))
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">act4_mover_right</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">按右：被选中的那一件右移一格</div></summary><div class="body"><div class="doc">ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:43:05 · L1</span><div>ACTION4 要么让可动组整体右移 1 块、组的形状不变，要么可动组原地不动。</div><div>接替撤册的 act4_left，理由同 act3_mover_left：方向词指可动组，不指色4。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让可动组整体右移 1 块、组的形状不变，要么可动组原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；可动组（movers：中心格是色0 的块）空返回 NA。只断言可动组本身的位移，跟着动的色4/色5 由 mirror 管、由 apply 生成。&quot;
+NOTE = &quot;接替撤册的 act4_left，理由同 act3_mover_left：方向词指可动组，不指色4。&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import DELTA, movers, shift, step_pred
+
+A = &quot;ACTION4&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    return &quot;TRUE&quot; if m1 == shift(m0, DELTA[A]) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T02:23:44 · L1</span><div>ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。</div><div>v2：跟 act1_up 同一次修——落点改由 _lib.sel_move 给，带不再当成形状固定的物件平移。这条到第41 步为止一次都没上过场（N=0），是四个方向里唯一没被检验过的。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；可动组（movers：中心格是色0 的块）空、或读不出被选中的是哪一件（sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准，返回 NA。&quot;
+NOTE = &quot;v2：跟 act1_up 同一次修——落点改由 _lib.sel_move 给，带不再当成形状固定的物件平移。这条到第41 步为止一次都没上过场（N=0），是四个方向里唯一没被检验过的。&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import DELTA, movers, sel_move, step_pred
+
+A = &quot;ACTION4&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T02:39:50 · L1</span><div>ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。</div><div>v3：跟 act1_up/act2_down 同一次修——被选中那件东西改用 _lib.selected 认。这条到第53 步为止一次都没上过场（N=0），是四个方向里唯一没被检验过的。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准，返回 NA。&quot;
+NOTE = &quot;v3：跟 act1_up/act2_down 同一次修——被选中那件东西改用 _lib.selected 认。这条到第53 步为止一次都没上过场（N=0），是四个方向里唯一没被检验过的。&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import DELTA, sel_move, selected, step_pred
+
+A = &quot;ACTION4&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None or s1 is None:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s1 == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T16:58:04 · L1</span><div>ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。</div><div>v4：与 act1_up v6 同一批——粘连（8 邻合并）导致 selected(nxt) 比预期大或 None；改法同。v3：改用 selected。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准，返回 NA。粘连时若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v4：与 act1_up v6 同一批——粘连（8 邻合并）导致 selected(nxt) 比预期大或 None；改法同。v3：改用 selected。&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION4&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让被选中那件东西右移一列——物件整体平移、分隔带则改占右边那条线（线上目标处让位）——要么它原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION4；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。横着的带被要求左右走时 sel_move 说不准，返回 NA。粘连时若预测落点全在色5 里则仍判 TRUE，否则返回 NA。&quot;
+NOTE = &quot;v4：与 act1_up v6 同一批——粘连（8 邻合并）导致 selected(nxt) 比预期大或 None；改法同。v3：改用 selected。&quot;
+EVIDENCE = [&quot;1e0476951d9eed25&quot;]
+
+from _lib import DELTA, PIECE, sel_move, selected, shape, step_pred
+
+A = &quot;ACTION4&quot;
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(A):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == s0:
+        return &quot;TRUE&quot;
+    want = sel_move(prev, DELTA[A])
+    if want is None:
+        return &quot;NA&quot;
+    if s1 is not None and s1 == want:
+        return &quot;TRUE&quot;
+    if want &lt;= shape(nxt, PIECE):
+        return &quot;TRUE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(A):
+        return None
+    return step_pred(prev, DELTA[A])
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">act5_inert</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">ACTION5 不改盘面</div></summary><div class="body"><div class="doc">ACTION5 不改变盘面上任何形状：色4、色5、色11 的块集合一格不变。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L1</span><div>ACTION5 不改变盘面上任何形状：色4、色5、色11 的块集合一格不变。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION5 不改变盘面上任何形状：色4、色5、色11 的块集合一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION5；换关返回 NA。只管盘面 21x21 块，列63 的计数带由 counter_tick 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;481887edd62a1b6b&quot;]
+
+from _lib import shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION5&quot;):
+        return &quot;NA&quot;
+    for color in (4, 5, 11):
+        if shape(prev, color) != shape(nxt, color):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION5&quot;):
+        return None
+    out = {}
+    for color in (4, 5, 11):
+        for br, bc in shape(prev, color):
+            for i in range(3):
+                for j in range(3):
+                    out[(br * 3 + i, bc * 3 + j)] = prev[br * 3 + i][bc * 3 + j]
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION5 不改变盘面上任何形状：色4、色5、色11 的块集合一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION5；换关返回 NA。只管盘面 21x21 块，列63 的计数带由 counter_tick 管。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;481887edd62a1b6b&quot;]
+
+from _lib import shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION5&quot;):
+        return &quot;NA&quot;
+    for color in (4, 5, 11):
+        if shape(prev, color) != shape(nxt, color):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION5&quot;):
+        return None
+    out = {}
+    for color in (4, 5, 11):
+        for br, bc in shape(prev, color):
+            for i in range(3):
+                for j in range(3):
+                    out[(br * 3 + i, bc * 3 + j)] = prev[br * 3 + i][bc * 3 + j]
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">act6_select</span><span class="chip c-lv">L7 · 看得见什么</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">点一下，选中点中的那一件</div></summary><div class="body"><div class="doc">带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那件东西——点中块上画的是物件就是那片物件，画的是分隔带就是<b>那一条轴</b>（不是同色连通片），盘上三件东西（色4/色5/色11）的块集合一格不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:49:29 · L7</span><div>带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那个物件（点中块所在的同色连通片），盘上三件东西（色4/色5/色11）的块集合一格不动。</div><div>由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁是可动组」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那个物件（点中块所在的同色连通片），盘上三件东西（色4/色5/色11）的块集合一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;只看 ACTION6:x,y（x=列 y=行 的像素坐标）；换关返回 NA；点在底色块上、或点中的块里除底色与标记色外不止一种颜色（分不清点的是谁）返回 NA。它只断言标记的去向与「别的没动」，不断言标记被画成什么样——那由 apply 生成、由帧差判。&quot;
+NOTE = &quot;由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁是可动组」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;]
+
+from _lib import BG, CELL, MARK, block, comp, movers, shape
+
+
+def _clicked(prev, action):
+    &quot;&quot;&quot;点中的那个物件（块集合）；说不准就 None。&quot;&quot;&quot;
+    try:
+        x, y = (int(v) for v in action.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except (IndexError, ValueError):
+        return None
+    br, bc = y // CELL, x // CELL
+    if not (0 &lt;= br &lt; len(prev) // CELL and 0 &lt;= bc &lt; len(prev[0]) // CELL):
+        return None
+    cols = {v for row in block(prev, br, bc) for v in row} - {BG, MARK}
+    if len(cols) != 1:
+        return None
+    s = comp(prev, cols.pop(), br, bc)
+    return s or None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return &quot;NA&quot;
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return &quot;NA&quot;
+    for c in (4, 5, 11):
+        if shape(prev, c) != shape(nxt, c):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if movers(nxt) == tgt else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return None
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return None
+    h = CELL // 2
+    out = {(br * CELL + h, bc * CELL + h): BG for br, bc in movers(prev) if (br, bc) not in tgt}
+    out.update({(br * CELL + h, bc * CELL + h): MARK for br, bc in tgt})
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T02:23:44 · L7</span><div>带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那个物件（点中块所在的同色连通片，<b>目标块不算断开</b>），盘上三件东西（色4/色5/色11）的块集合一格不动。</div><div>v2：由第 26 步问出来（第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁是可动组」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6）。第 40 步挨了一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口。代码没动，动的是 _lib.comp：连通允许跨过目标块。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那个物件（点中块所在的同色连通片，**目标块不算断开**），盘上三件东西（色4/色5/色11）的块集合一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;只看 ACTION6:x,y（x=列 y=行 的像素坐标）；换关返回 NA；点在底色块上、或点中的块里除底色与标记色外不止一种颜色（分不清点的是谁）返回 NA。它只断言标记的去向与「别的没动」，不断言标记被画成什么样——那由 apply 生成、由帧差判。&quot;
+NOTE = &quot;v2：由第 26 步问出来（第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁是可动组」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6）。第 40 步挨了一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口。代码没动，动的是 _lib.comp：连通允许跨过目标块。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;ccdc61f5500f7a16&quot;]
+
+from _lib import BG, CELL, MARK, block, comp, movers, shape
+
+
+def _clicked(prev, action):
+    &quot;&quot;&quot;点中的那个物件（块集合）；说不准就 None。&quot;&quot;&quot;
+    try:
+        x, y = (int(v) for v in action.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except (IndexError, ValueError):
+        return None
+    br, bc = y // CELL, x // CELL
+    if not (0 &lt;= br &lt; len(prev) // CELL and 0 &lt;= bc &lt; len(prev[0]) // CELL):
+        return None
+    cols = {v for row in block(prev, br, bc) for v in row} - {BG, MARK}
+    if len(cols) != 1:
+        return None
+    s = comp(prev, cols.pop(), br, bc)
+    return s or None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return &quot;NA&quot;
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return &quot;NA&quot;
+    for c in (4, 5, 11):
+        if shape(prev, c) != shape(nxt, c):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if movers(nxt) == tgt else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return None
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return None
+    h = CELL // 2
+    out = {(br * CELL + h, bc * CELL + h): BG for br, bc in movers(prev) if (br, bc) not in tgt}
+    out.update({(br * CELL + h, bc * CELL + h): MARK for br, bc in tgt})
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T02:39:50 · L7</span><div>带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那个物件（点中块所在的同色连通片，<b>目标块不算断开</b>），盘上三件东西（色4/色5/色11）的块集合一格不动。</div><div>v3：被选中那件东西改用 _lib.selected 认（物件压在目标上时那几块中心露的是目标色，数不进 movers）；apply 也跟着不再往目标块上画标记。v2 时挨过一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口，于是 _lib.comp 改成连通允许跨过目标块。v1 由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁能被推」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那个物件（点中块所在的同色连通片，**目标块不算断开**），盘上三件东西（色4/色5/色11）的块集合一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;只看 ACTION6:x,y（x=列 y=行 的像素坐标）；换关返回 NA；点在底色块上、或点中的块里除底色与标记色外不止一种颜色（分不清点的是谁）返回 NA。它只断言标记的去向与「别的没动」，不断言标记被画成什么样——那由 apply 生成、由帧差判。&quot;
+NOTE = &quot;v3：被选中那件东西改用 _lib.selected 认（物件压在目标上时那几块中心露的是目标色，数不进 movers）；apply 也跟着不再往目标块上画标记。v2 时挨过一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口，于是 _lib.comp 改成连通允许跨过目标块。v1 由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁能被推」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;ccdc61f5500f7a16&quot;]
+
+from _lib import BG, CELL, MARK, TARGET, block, comp, movers, selected, shape
+
+
+def _clicked(prev, action):
+    &quot;&quot;&quot;点中的那个物件（块集合）；说不准就 None。&quot;&quot;&quot;
+    try:
+        x, y = (int(v) for v in action.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except (IndexError, ValueError):
+        return None
+    br, bc = y // CELL, x // CELL
+    if not (0 &lt;= br &lt; len(prev) // CELL and 0 &lt;= bc &lt; len(prev[0]) // CELL):
+        return None
+    cols = {v for row in block(prev, br, bc) for v in row} - {BG, MARK}
+    if len(cols) != 1:
+        return None
+    s = comp(prev, cols.pop(), br, bc)
+    return s or None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return &quot;NA&quot;
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return &quot;NA&quot;
+    for c in (4, 5, 11):
+        if shape(prev, c) != shape(nxt, c):
+            return &quot;FALSE&quot;
+    s = selected(nxt)
+    if s is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s == tgt else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return None
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return None
+    h, tg = CELL // 2, shape(prev, TARGET)
+    old = selected(prev)
+    if old is None:
+        return None
+    out = {(br * CELL + h, bc * CELL + h): BG for br, bc in old
+           if (br, bc) not in tgt and (br, bc) not in tg}
+    out.update({(br * CELL + h, bc * CELL + h): MARK for br, bc in tgt if (br, bc) not in tg})
+    return out
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T03:12:08 · L7</span><div>带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那件东西——点中块上画的是物件就是那片物件，画的是分隔带就是<b>那一条轴</b>（不是同色连通片），盘上三件东西（色4/色5/色11）的块集合一格不动。</div><div>v4：轴不止一条时，「点中块所在的同色连通片」给出的是两条轴的并集，而世界只选中其中一条（第4 关一横一竖交叉于一点，点横轴只有横轴变可动组）。所以点中的东西改从 _lib.read 的物件表认：块上画在最上面的是哪种颜色，就在那种颜色的东西里找包含这一块的那一件；交叉点属于两条轴，返回 NA。v3：被选中那件东西改用 _lib.selected 认（物件压在目标上时那几块中心露的是目标色，数不进 movers）；apply 也跟着不再往目标块上画标记。v2 时挨过一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口。v1 由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁能被推」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那件东西——点中块上画的是物件就是那片物件，画的是分隔带就是**那一条轴**（不是同色连通片），盘上三件东西（色4/色5/色11）的块集合一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;只看 ACTION6:x,y（x=列 y=行 的像素坐标）；换关返回 NA；点在底色块上、块里除底色与标记色外不止一种颜色、块上画的既不是物件也不是分隔带、或点中的块同时属于两条轴（交叉点，分不清点的是哪条）返回 NA。它只断言标记的去向与「别的没动」，不断言标记被画成什么样——那由 apply 生成、由帧差判。&quot;
+NOTE = &quot;v4：轴不止一条时，「点中块所在的同色连通片」给出的是两条轴的并集，而世界只选中其中一条（第4 关一横一竖交叉于一点，点横轴只有横轴变可动组）。所以点中的东西改从 _lib.read 的物件表认：块上画在最上面的是哪种颜色，就在那种颜色的东西里找包含这一块的那一件；交叉点属于两条轴，返回 NA。v3：被选中那件东西改用 _lib.selected 认（物件压在目标上时那几块中心露的是目标色，数不进 movers）；apply 也跟着不再往目标块上画标记。v2 时挨过一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口。v1 由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁能被推」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;ccdc61f5500f7a16&quot;]
+
+from _lib import BAND, BG, CELL, MARK, NB, PIECE, TARGET, block, read, selected, shape
+
+
+def _clicked(prev, action):
+    &quot;&quot;&quot;点中的那件东西（块集合）；说不准就 None。&quot;&quot;&quot;
+    try:
+        x, y = (int(v) for v in action.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except (IndexError, ValueError):
+        return None
+    br, bc = y // CELL, x // CELL
+    if not (0 &lt;= br &lt; NB and 0 &lt;= bc &lt; NB):
+        return None
+    cols = {v for row in block(prev, br, bc) for v in row} - {BG, MARK}
+    if len(cols) != 1:
+        return None
+    c = cols.pop()
+    st = read(prev)
+    if st is None or c not in (PIECE, BAND):
+        return None
+    hits = [o[&quot;cells&quot;] for o in st[&quot;objs&quot;] if o[&quot;color&quot;] == c and (br, bc) in o[&quot;cells&quot;]]
+    return hits[0] if len(hits) == 1 else None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return &quot;NA&quot;
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return &quot;NA&quot;
+    for c in (4, 5, 11):
+        if shape(prev, c) != shape(nxt, c):
+            return &quot;FALSE&quot;
+    s = selected(nxt)
+    if s is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s == tgt else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return None
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return None
+    h, tg = CELL // 2, shape(prev, TARGET)
+    old = selected(prev)
+    if old is None:
+        return None
+    out = {(br * CELL + h, bc * CELL + h): BG for br, bc in old
+           if (br, bc) not in tgt and (br, bc) not in tg}
+    out.update({(br * CELL + h, bc * CELL + h): MARK for br, bc in tgt if (br, bc) not in tg})
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;带坐标的 ACTION6 只改「谁能被推」：可动组变成被点中的那件东西——点中块上画的是物件就是那片物件，画的是分隔带就是**那一条轴**（不是同色连通片），盘上三件东西（色4/色5/色11）的块集合一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;只看 ACTION6:x,y（x=列 y=行 的像素坐标）；换关返回 NA；点在底色块上、块里除底色与标记色外不止一种颜色、块上画的既不是物件也不是分隔带、或点中的块同时属于两条轴（交叉点，分不清点的是哪条）返回 NA。它只断言标记的去向与「别的没动」，不断言标记被画成什么样——那由 apply 生成、由帧差判。&quot;
+NOTE = &quot;v4：轴不止一条时，「点中块所在的同色连通片」给出的是两条轴的并集，而世界只选中其中一条（第4 关一横一竖交叉于一点，点横轴只有横轴变可动组）。所以点中的东西改从 _lib.read 的物件表认：块上画在最上面的是哪种颜色，就在那种颜色的东西里找包含这一块的那一件；交叉点属于两条轴，返回 NA。v3：被选中那件东西改用 _lib.selected 认（物件压在目标上时那几块中心露的是目标色，数不进 movers）；apply 也跟着不再往目标块上画标记。v2 时挨过一记（tid ccdc61f5500f7a16）：点带的左段，被选中的是整条带 20 块，不是我算的 11 块——带被线上一个目标块切成两段，而世界不认这个切口。v1 由第 26 步问出来：第 1 关的可动组是整条分隔带，推带只给得出色4 的横向位移，竖向一步都给不出来——所以「谁能被推」必须是可改的，而唯一没试过的动作就是带坐标的 ACTION6。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;ccdc61f5500f7a16&quot;]
+
+from _lib import BAND, BG, CELL, MARK, NB, PIECE, TARGET, block, read, selected, shape
+
+
+def _clicked(prev, action):
+    &quot;&quot;&quot;点中的那件东西（块集合）；说不准就 None。&quot;&quot;&quot;
+    try:
+        x, y = (int(v) for v in action.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except (IndexError, ValueError):
+        return None
+    br, bc = y // CELL, x // CELL
+    if not (0 &lt;= br &lt; NB and 0 &lt;= bc &lt; NB):
+        return None
+    cols = {v for row in block(prev, br, bc) for v in row} - {BG, MARK}
+    if len(cols) != 1:
+        return None
+    c = cols.pop()
+    st = read(prev)
+    if st is None or c not in (PIECE, BAND):
+        return None
+    hits = [o[&quot;cells&quot;] for o in st[&quot;objs&quot;] if o[&quot;color&quot;] == c and (br, bc) in o[&quot;cells&quot;]]
+    return hits[0] if len(hits) == 1 else None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return &quot;NA&quot;
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return &quot;NA&quot;
+    for c in (4, 5, 11):
+        if shape(prev, c) != shape(nxt, c):
+            return &quot;FALSE&quot;
+    s = selected(nxt)
+    if s is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s == tgt else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6&quot;):
+        return None
+    tgt = _clicked(prev, action)
+    if tgt is None:
+        return None
+    h, tg = CELL // 2, shape(prev, TARGET)
+    old = selected(prev)
+    if old is None:
+        return None
+    out = {(br * CELL + h, bc * CELL + h): BG for br, bc in old
+           if (br, bc) not in tgt and (br, bc) not in tg}
+    out.update({(br * CELL + h, bc * CELL + h): MARK for br, bc in tgt if (br, bc) not in tg})
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">act7_undo_step</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">ACTION7 让被选中的那一件退回一步</div></summary><div class="body"><div class="doc">ACTION7 要么让被选中那件东西回退一步（上下左右之一，落点跟一次推动能到的地方一样），要么它不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L1</span><div>ACTION7 要么让色4 形状整体平移恰好 1 块（上下左右之一、形状不变），要么色4 形状不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION7 要么让色4 形状整体平移恰好 1 块（上下左右之一、形状不变），要么色4 形状不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION7；换关返回 NA；色4 缺席返回 NA。它走哪个方向由历史决定（看着像撤销栈），单帧看不出来，所以这里只断言「恰好一块的四向平移」。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;365aadcfb0925931&quot;]
+
+from _lib import shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION7&quot;):
+        return &quot;NA&quot;
+    s0, s1 = shape(prev, 4), shape(nxt, 4)
+    if not s0 or not s1:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    for d in ((-1, 0), (1, 0), (0, 1), (0, -1)):
+        if s1 == frozenset((br + d[0], bc + d[1]) for br, bc in s0):
+            return &quot;TRUE&quot;
+    return &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:43:05 · L1</span><div>ACTION7 要么让可动组整体平移恰好 1 块（上下左右之一、组的形状不变），要么可动组不动。</div><div>v2：主角从色4 换成可动组——撤销撤掉的是一次推动，色4 只是跟着动的那个（第1关跟动两块）。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION7 要么让可动组整体平移恰好 1 块（上下左右之一、组的形状不变），要么可动组不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION7；换关返回 NA；可动组（movers）空返回 NA。它走哪个方向由历史决定（看着像撤销栈），单帧看不出来，所以这里只断言「恰好一块的四向平移」。&quot;
+NOTE = &quot;v2：主角从色4 换成可动组——撤销撤掉的是一次推动，色4 只是跟着动的那个（第1关跟动两块）。&quot;
+EVIDENCE = [&quot;365aadcfb0925931&quot;]
+
+from _lib import movers, shift
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION7&quot;):
+        return &quot;NA&quot;
+    m0, m1 = movers(prev), movers(nxt)
+    if not m0 or not m1:
+        return &quot;NA&quot;
+    if m1 == m0:
+        return &quot;TRUE&quot;
+    for d in ((-1, 0), (1, 0), (0, 1), (0, -1)):
+        if m1 == shift(m0, d):
+            return &quot;TRUE&quot;
+    return &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T02:39:50 · L1</span><div>ACTION7 要么让被选中那件东西回退一步（上下左右之一，落点跟一次推动能到的地方一样），要么它不动。</div><div>v3：主角从 movers（数中心标记色）换成 _lib.selected（先认东西再取块）——物件压在目标上时那几块中心露的是目标色；落点从「整体平移一块」换成 sel_move，跟四个方向动作用同一套（带回退时占位要按新线重算，不是平移）。v2 时主角从色4 换成可动组——撤销撤掉的是一次推动，色4 只是跟着动的那个。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION7 要么让被选中那件东西回退一步（上下左右之一，落点跟一次推动能到的地方一样），要么它不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION7；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。它走哪个方向由历史决定（看着像撤销栈），单帧看不出来，所以这里只断言「四个方向里的某一个，且落点按推动的算法算」。&quot;
+NOTE = &quot;v3：主角从 movers（数中心标记色）换成 _lib.selected（先认东西再取块）——物件压在目标上时那几块中心露的是目标色；落点从「整体平移一块」换成 sel_move，跟四个方向动作用同一套（带回退时占位要按新线重算，不是平移）。v2 时主角从色4 换成可动组——撤销撤掉的是一次推动，色4 只是跟着动的那个。&quot;
+EVIDENCE = [&quot;365aadcfb0925931&quot;]
+
+from _lib import sel_move, selected
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION7&quot;):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None or s1 is None:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    for d in ((-1, 0), (1, 0), (0, 1), (0, -1)):
+        if s1 == sel_move(prev, d):
+            return &quot;TRUE&quot;
+    return &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION7 要么让被选中那件东西回退一步（上下左右之一，落点跟一次推动能到的地方一样），要么它不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = &quot;只看 ACTION7；换关返回 NA；读不出被选中的是哪一件（selected/sel_move 说不准）返回 NA。它走哪个方向由历史决定（看着像撤销栈），单帧看不出来，所以这里只断言「四个方向里的某一个，且落点按推动的算法算」。&quot;
+NOTE = &quot;v3：主角从 movers（数中心标记色）换成 _lib.selected（先认东西再取块）——物件压在目标上时那几块中心露的是目标色；落点从「整体平移一块」换成 sel_move，跟四个方向动作用同一套（带回退时占位要按新线重算，不是平移）。v2 时主角从色4 换成可动组——撤销撤掉的是一次推动，色4 只是跟着动的那个。&quot;
+EVIDENCE = [&quot;365aadcfb0925931&quot;]
+
+from _lib import sel_move, selected
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION7&quot;):
+        return &quot;NA&quot;
+    s0, s1 = selected(prev), selected(nxt)
+    if s0 is None or s1 is None:
+        return &quot;NA&quot;
+    if s1 == s0:
+        return &quot;TRUE&quot;
+    for d in ((-1, 0), (1, 0), (0, 1), (0, -1)):
+        if s1 == sel_move(prev, d):
+            return &quot;TRUE&quot;
+    return &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">band_is_line</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">分隔带占的格 = 整条线减去线上的目标</div></summary><div class="body"><div class="doc">分隔带在帧上看得见的块，恰好等于「它那几条轴上的全部块，减去轴上的目标块，再减去被物件(色5)或镜像(色4)盖住的块」。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T02:23:44 · L6</span><div>分隔带占的块，恰好等于「它所在的那条线上的全部 21 块，减去这条线上的目标块」——它不是形状固定的物件，是一条会在目标处让位的线。</div><div>写它是为了让 _lib.band_cells 这个词自己走一次闸：assert_ 的左边是直接读色10 占了哪些块，右边是从「线在哪」加「目标在哪」算出来的，两种读法对不上就是反例。由来：带从行16 走到行15，块数 20 → 18，差的正是行15 上那三个目标块。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;分隔带占的块，恰好等于「它所在的那条线上的全部 21 块，减去这条线上的目标块」——它不是形状固定的物件，是一条会在目标处让位的线。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上没有色10、或色10 不构成一条块行或块列（band_line 读不出来）返回 NA。&quot;
+NOTE = &quot;写它是为了让 _lib.band_cells 这个词自己走一次闸：assert_ 的左边是直接读色10 占了哪些块，右边是从「线在哪」加「目标在哪」算出来的，两种读法对不上就是反例。由来：带从行16 走到行15，块数 20 → 18，差的正是行15 上那三个目标块。&quot;
+EVIDENCE = [&quot;f2d20cbfe45f4a8a&quot;, &quot;0291bbd2c4b9cc3d&quot;]
+
+from _lib import BAND, band_cells, band_line, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = shape(nxt, BAND)
+    if not s:
+        return &quot;NA&quot;
+    line = band_line(nxt)
+    if line is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s == band_cells(nxt, line) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T02:31:13 · L6</span><div>分隔带在帧上看得见的块，恰好等于「它所在的那条线上的 21 块，减去线上的目标块，再减去被物件(色5)盖住的块」。</div><div>v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框，带在那里看不见了。目标和物件盖带的方式不一样：目标让带真的让位（那格不进可动组），物件只是盖住（那格照样跟着带走，中心格仍是可动标记）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「线在哪」「目标在哪」「物件在哪」算出来。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;分隔带在帧上看得见的块，恰好等于「它所在的那条线上的 21 块，减去线上的目标块，再减去被物件(色5)盖住的块」。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上没有色10、或色10 不构成一条块行或块列（band_line 读不出来）返回 NA。&quot;
+NOTE = &quot;v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框，带在那里看不见了。目标和物件盖带的方式不一样：目标让带真的让位（那格不进可动组），物件只是盖住（那格照样跟着带走，中心格仍是可动标记）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「线在哪」「目标在哪」「物件在哪」算出来。&quot;
+EVIDENCE = [&quot;f2d20cbfe45f4a8a&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;]
+
+from _lib import BAND, PIECE, band_cells, band_line, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = shape(nxt, BAND)
+    if not s:
+        return &quot;NA&quot;
+    line = band_line(nxt)
+    if line is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s == band_cells(nxt, line) - shape(nxt, PIECE) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T03:09:16 · L6</span><div>分隔带在帧上看得见的块，恰好等于「它那几条轴上的全部块，减去轴上的目标块，再减去被物件(色5)盖住的块」。</div><div>v3：轴可以不止一条（第4 关一横一竖，交叉于一点却是两件东西），右边改成各轴占位的并集。它还多说了一件事：<b>只有物件盖得住带，镜像盖不住</b>——镜像落在某块非目标的带块上时，若那里画的不是色10，这条当场判 FALSE。v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框，带在那里看不见了。目标和物件盖带的方式不一样：目标让带真的让位（那格不进可动组），物件只是盖住（那格照样跟着带走，中心格仍是可动标记）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「轴在哪」「目标在哪」「物件在哪」算出来。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;分隔带在帧上看得见的块，恰好等于「它那几条轴上的全部块，减去轴上的目标块，再减去被物件(色5)盖住的块」。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上没有色10、或色10 读不出轴（band_lines 为 None）返回 NA。&quot;
+NOTE = &quot;v3：轴可以不止一条（第4 关一横一竖，交叉于一点却是两件东西），右边改成各轴占位的并集。它还多说了一件事：**只有物件盖得住带，镜像盖不住**——镜像落在某块非目标的带块上时，若那里画的不是色10，这条当场判 FALSE。v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框，带在那里看不见了。目标和物件盖带的方式不一样：目标让带真的让位（那格不进可动组），物件只是盖住（那格照样跟着带走，中心格仍是可动标记）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「轴在哪」「目标在哪」「物件在哪」算出来。&quot;
+EVIDENCE = [&quot;f2d20cbfe45f4a8a&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;]
+
+from _lib import BAND, PIECE, band_cells, band_lines, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = shape(nxt, BAND)
+    if not s:
+        return &quot;NA&quot;
+    lines = band_lines(nxt)
+    if not lines:
+        return &quot;NA&quot;
+    want = frozenset().union(*[band_cells(nxt, l) for l in lines]) - shape(nxt, PIECE)
+    return &quot;TRUE&quot; if s == want else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T03:17:39 · L6</span><div>分隔带在帧上看得见的块，恰好等于「它那几条轴上的全部块，减去轴上的目标块，再减去被物件(色5)或镜像(色4)盖住的块」。</div><div>v4：v3 说「只有物件盖得住带」，被 tid 7d4edd5a0aaec426 之后那条 7d02fb53a57a0f1e 推翻——镜像落到轴上的非目标块时，那一块画成实心色4，带在那里也看不见了。所以镜像和物件一样会遮带；真正压不住带的只有目标（目标根本不占带的位）。v3：轴可以不止一条（第4 关一横一竖，交叉于一点却是两件东西），右边改成各轴占位的并集。v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框。目标和物件/镜像盖带的方式不一样：目标让带真的让位（那格不进可动组），后两者只是盖住（那格照样跟着带走）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「轴在哪」「目标在哪」「谁压在上面」算出来。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;分隔带在帧上看得见的块，恰好等于「它那几条轴上的全部块，减去轴上的目标块，再减去被物件(色5)或镜像(色4)盖住的块」。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上没有色10、或色10 读不出轴（band_lines 为 None）返回 NA。&quot;
+NOTE = &quot;v4：v3 说「只有物件盖得住带」，被 tid 7d4edd5a0aaec426 之后那条 7d02fb53a57a0f1e 推翻——镜像落到轴上的非目标块时，那一块画成实心色4，带在那里也看不见了。所以镜像和物件一样会遮带；真正压不住带的只有目标（目标根本不占带的位）。v3：轴可以不止一条（第4 关一横一竖，交叉于一点却是两件东西），右边改成各轴占位的并集。v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框。目标和物件/镜像盖带的方式不一样：目标让带真的让位（那格不进可动组），后两者只是盖住（那格照样跟着带走）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「轴在哪」「目标在哪」「谁压在上面」算出来。&quot;
+EVIDENCE = [&quot;f2d20cbfe45f4a8a&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;, &quot;7d02fb53a57a0f1e&quot;]
+
+from _lib import BAND, GHOST, PIECE, band_cells, band_lines, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = shape(nxt, BAND)
+    if not s:
+        return &quot;NA&quot;
+    lines = band_lines(nxt)
+    if not lines:
+        return &quot;NA&quot;
+    want = frozenset().union(*[band_cells(nxt, l) for l in lines])
+    want -= shape(nxt, PIECE) | shape(nxt, GHOST)
+    return &quot;TRUE&quot; if s == want else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;分隔带在帧上看得见的块，恰好等于「它那几条轴上的全部块，减去轴上的目标块，再减去被物件(色5)或镜像(色4)盖住的块」。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上没有色10、或色10 读不出轴（band_lines 为 None）返回 NA。&quot;
+NOTE = &quot;v4：v3 说「只有物件盖得住带」，被 tid 7d4edd5a0aaec426 之后那条 7d02fb53a57a0f1e 推翻——镜像落到轴上的非目标块时，那一块画成实心色4，带在那里也看不见了。所以镜像和物件一样会遮带；真正压不住带的只有目标（目标根本不占带的位）。v3：轴可以不止一条（第4 关一横一竖，交叉于一点却是两件东西），右边改成各轴占位的并集。v2：v1 只减目标，被 tid 80035af93303fa8d 推翻——带推到物件所在那一行，物件那两块画的是物件的边框。目标和物件/镜像盖带的方式不一样：目标让带真的让位（那格不进可动组），后两者只是盖住（那格照样跟着带走）。写它是为了让 _lib.band_cells 自己走一次闸：左边直接读色10 占了哪些块，右边从「轴在哪」「目标在哪」「谁压在上面」算出来。&quot;
+EVIDENCE = [&quot;f2d20cbfe45f4a8a&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;, &quot;7d02fb53a57a0f1e&quot;]
+
+from _lib import BAND, GHOST, PIECE, band_cells, band_lines, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = shape(nxt, BAND)
+    if not s:
+        return &quot;NA&quot;
+    lines = band_lines(nxt)
+    if not lines:
+        return &quot;NA&quot;
+    want = frozenset().union(*[band_cells(nxt, l) for l in lines])
+    want -= shape(nxt, PIECE) | shape(nxt, GHOST)
+    return &quot;TRUE&quot; if s == want else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">counter_tick</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">7 版</span></div><div class="one">最右一列的计数带怎么增长</div></summary><div class="body"><div class="doc">计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 在盘面发生变化时恰好 +1，盘面不变（被阻挡的推）时 +0；ACTION6、ACTION7 之后不变。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L4</span><div>列63 顶部连续色5 的格数：ACTION1..ACTION5 之后恰好 +1，ACTION7 之后不变。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;列63 顶部连续色5 的格数：ACTION1..ACTION5 之后恰好 +1，ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-5 与 ACTION7；换关返回 NA。只管列63 这一条带，不管盘面。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;]
+
+from _lib import counter
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    n = counter(prev)
+    w = len(prev[0]) - 1
+    if n &gt;= len(prev):
+        return None
+    return {(n, w): 5}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:44:10 · L4</span><div>列63 顶部连续色5 的格数：ACTION1..ACTION5 之后恰好 +1，ACTION7 之后不变。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;列63 顶部连续色5 的格数：ACTION1..ACTION5 之后恰好 +1，ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-5 与 ACTION7；换关返回 NA。只管列63 这一条带，不管盘面。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;]
+
+from _lib import counter
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    n = counter(prev)
+    w = len(prev[0]) - 1
+    if n &gt;= len(prev):
+        return None
+    return {(n, w): 5}
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T01:49:29 · L4</span><div>列63 顶部连续色5 的格数：ACTION1..ACTION5 之后恰好 +1，ACTION6、ACTION7 之后不变。</div><div>v3：把 ACTION6 收进来——第 26 步那次选中物件只改了 29 个标记格，计数带一格没动。所以「选谁」不要钱，「推」才要钱。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;列63 顶部连续色5 的格数：ACTION1..ACTION5 之后恰好 +1，ACTION6、ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-7；换关返回 NA。只管列63 这一条带，不管盘面。&quot;
+NOTE = &quot;v3：把 ACTION6 收进来——第 26 步那次选中物件只改了 29 个标记格，计数带一格没动。所以「选谁」不要钱，「推」才要钱。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;, &quot;b05ff54ae4f4d76c&quot;]
+
+from _lib import counter
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;) or a.startswith(&quot;ACTION6&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    n = counter(prev)
+    w = len(prev[0]) - 1
+    if n &gt;= len(prev):
+        return None
+    return {(n, w): 5}
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T02:10:50 · L4</span><div>计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 之后恰好 +1，ACTION6、ACTION7 之后不变。</div><div>v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）：那不是计数器变了，是我把「用掉了」和「某个颜色」绑死了。apply 现在从带上已有的格读填充色；一格都没用掉时读不出来，那一格就不预测。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 之后恰好 +1，ACTION6、ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-7；换关返回 NA。只管最后一列这一条带，不管盘面。数的是「顶部连续不是色11 的格数」，不是某个具体填充色。&quot;
+NOTE = &quot;v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）：那不是计数器变了，是我把「用掉了」和「某个颜色」绑死了。apply 现在从带上已有的格读填充色；一格都没用掉时读不出来，那一格就不预测。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;, &quot;b05ff54ae4f4d76c&quot;, &quot;0291bbd2c4b9cc3d&quot;]
+
+from _lib import counter, fill_color
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;) or a.startswith(&quot;ACTION6&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    n, f = counter(prev), fill_color(prev)
+    if f is None or n &gt;= len(prev):
+        return None
+    return {(n, len(prev[0]) - 1): f}
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-14T02:52:06 · L4</span><div>计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 之后恰好 +1，ACTION6、ACTION7 之后不变。</div><div>v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。assert_ 不用改：它本来就在换关时返回 NA。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）：那不是计数器变了，是我把「用掉了」和「某个颜色」绑死了。apply 从带上已有的格读填充色；一格都没用掉时读不出来，那一格就不预测。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 之后恰好 +1，ACTION6、ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-7；换关返回 NA。只管最后一列这一条带，不管盘面。数的是「顶部连续不是色11 的格数」，不是某个具体填充色。&quot;
+NOTE = &quot;v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。assert_ 不用改：它本来就在换关时返回 NA。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）：那不是计数器变了，是我把「用掉了」和「某个颜色」绑死了。apply 从带上已有的格读填充色；一格都没用掉时读不出来，那一格就不预测。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;, &quot;b05ff54ae4f4d76c&quot;, &quot;0291bbd2c4b9cc3d&quot;]
+
+from _lib import DELTA, counter, covers_all, fill_color, post
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;) or a.startswith(&quot;ACTION6&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    base = a.split(&quot;:&quot;)[0]
+    if base in DELTA:
+        st = post(prev, DELTA[base])
+        if st is None or covers_all(st):
+            return None                           # 这一步会换关，计数带清零，别猜
+    n, f = counter(prev), fill_color(prev)
+    if f is None or n &gt;= len(prev):
+        return None
+    return {(n, len(prev[0]) - 1): f}
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-14T16:31:24 · L4</span><div>计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 在盘面发生变化时恰好 +1，盘面不变（被阻挡的推）时 +0；ACTION6、ACTION7 之后不变。</div><div>v6：被 f22b3e9d / 9a90ac88 / 302bc15b / bc260bb8 推翻——阻挡/无效的推送不消耗计数器。改法：ACTION1-5 在 prev==nxt 时期望 +0。v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 在盘面发生变化时恰好 +1，盘面不变（被阻挡的推）时 +0；ACTION6、ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-7；换关返回 NA。只管最后一列这一条带，不管盘面。数的是「顶部连续不是色11 的格数」，不是某个具体填充色。&quot;
+NOTE = &quot;v6：被 f22b3e9d / 9a90ac88 / 302bc15b / bc260bb8 推翻——阻挡/无效的推送不消耗计数器。改法：ACTION1-5 在 prev==nxt 时期望 +0。v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;, &quot;b05ff54ae4f4d76c&quot;, &quot;0291bbd2c4b9cc3d&quot;,
+            &quot;f22b3e9debcfbe6e&quot;, &quot;9a90ac88075f271e&quot;, &quot;302bc15bd6ca8db3&quot;, &quot;bc260bb8a703cc46&quot;]
+
+from _lib import DELTA, counter, covers_all, fill_color, post
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;) or a.startswith(&quot;ACTION6&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        if prev == nxt:                                # 被阻挡的推：盘面不变，计数器也不变
+            return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    base = a.split(&quot;:&quot;)[0]
+    if base in DELTA:
+        st = post(prev, DELTA[base])
+        if st is None or covers_all(st):
+            return None                           # 这一步会换关，计数带清零，别猜
+        # 检查被选中那件是否真的能走：预测帧全部 None 就说不准
+        from _lib import step_pred
+        sp = step_pred(prev, DELTA[base])
+        if sp is None:
+            return None
+    n, f = counter(prev), fill_color(prev)
+    if f is None or n &gt;= len(prev):
+        return None
+    return {(n, len(prev[0]) - 1): f}
+</code></pre></details></div><div class="v"><span class="h">v7 · 2026-09-14T18:33:52 · L4</span><div>计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 在盘面发生变化时恰好 +1，盘面不变（被阻挡的推）时 +0；ACTION6、ACTION7 之后不变。</div><div>v6：被 f22b3e9d / 9a90ac88 / 302bc15b / bc260bb8 推翻——阻挡/无效的推送不消耗计数器。改法：ACTION1-5 在 prev==nxt 时期望 +0。v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）。</div><details class="src"><summary>v7 源码</summary><pre><code class="language-python">&quot;&quot;&quot;计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 在盘面发生变化时恰好 +1，盘面不变（被阻挡的推）时 +0；ACTION6、ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-7；换关返回 NA。只管最后一列这一条带，不管盘面。数的是「顶部连续不是色11 的格数」，不是某个具体填充色。&quot;
+NOTE = &quot;v6：被 f22b3e9d / 9a90ac88 / 302bc15b / bc260bb8 推翻——阻挡/无效的推送不消耗计数器。改法：ACTION1-5 在 prev==nxt 时期望 +0。v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;, &quot;b05ff54ae4f4d76c&quot;, &quot;0291bbd2c4b9cc3d&quot;,
+            &quot;f22b3e9debcfbe6e&quot;, &quot;9a90ac88075f271e&quot;, &quot;302bc15bd6ca8db3&quot;, &quot;bc260bb8a703cc46&quot;]
+
+from _lib import DELTA, counter, fill_color
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;) or a.startswith(&quot;ACTION6&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        if prev == nxt:                                # 被阻挡的推：盘面不变，计数器也不变
+            return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    base = a.split(&quot;:&quot;)[0]
+    if base in DELTA:
+        # 快速检查：step_pred → None 意味着这一步会换关或说不准，不预测
+        from _lib import step_pred
+        sp = step_pred(prev, DELTA[base])
+        if sp is None:
+            return None
+    n, f = counter(prev), fill_color(prev)
+    if f is None or n &gt;= len(prev):
+        return None
+    return {(n, len(prev[0]) - 1): f}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;计数带（最后一列 64 格，空格是色11）已用掉的格数：ACTION1..ACTION5 在盘面发生变化时恰好 +1，盘面不变（被阻挡的推）时 +0；ACTION6、ACTION7 之后不变。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看 ACTION1-7；换关返回 NA。只管最后一列这一条带，不管盘面。数的是「顶部连续不是色11 的格数」，不是某个具体填充色。&quot;
+NOTE = &quot;v6：被 f22b3e9d / 9a90ac88 / 302bc15b / bc260bb8 推翻——阻挡/无效的推送不消耗计数器。改法：ACTION1-5 在 prev==nxt 时期望 +0。v5：apply 现在在「这一步会盖满全部目标」时闭嘴——换关计数带清零，照常 +1 就错（tid c5a0921712afb8e7 上押色12 实际是色11 的空格）。v4：填充色不是固定的——第0、1 关填色5，第2 关填色12，而空格一直是色11。v3 把填充色写死成色5，第2 关第一步就判 FALSE（tid 0291bbd2c4b9cc3d）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;365aadcfb0925931&quot;, &quot;b05ff54ae4f4d76c&quot;, &quot;0291bbd2c4b9cc3d&quot;,
+            &quot;f22b3e9debcfbe6e&quot;, &quot;9a90ac88075f271e&quot;, &quot;302bc15bd6ca8db3&quot;, &quot;bc260bb8a703cc46&quot;]
+
+from _lib import DELTA, counter, fill_color
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a = action.upper()
+    d = counter(nxt) - counter(prev)
+    if a.startswith(&quot;ACTION7&quot;) or a.startswith(&quot;ACTION6&quot;):
+        return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+    if any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        if prev == nxt:                                # 被阻挡的推：盘面不变，计数器也不变
+            return &quot;TRUE&quot; if d == 0 else &quot;FALSE&quot;
+        return &quot;TRUE&quot; if d == 1 else &quot;FALSE&quot;
+    return &quot;NA&quot;
+
+
+def apply(prev, action, ctx=None):
+    a = action.upper()
+    if not any(a.startswith(f&quot;ACTION{k}&quot;) for k in (1, 2, 3, 4, 5)):
+        return None
+    base = a.split(&quot;:&quot;)[0]
+    if base in DELTA:
+        # 快速检查：step_pred → None 意味着这一步会换关或说不准，不预测
+        from _lib import step_pred
+        sp = step_pred(prev, DELTA[base])
+        if sp is None:
+            return None
+    n, f = counter(prev), fill_color(prev)
+    if f is None or n &gt;= len(prev):
+        return None
+    return {(n, len(prev[0]) - 1): f}
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">frame_is_render</span><span class="chip c-lv">L7 · 看得见什么</span><span class="chip c-alive">在册</span><span class="chip c-mute">5 版</span></div><div class="one">画面没有藏着的东西：读成状态再画回去，逐格一致</div></summary><div class="body"><div class="doc">整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T02:10:50 · L7</span><div>整个盘面没有藏着的东西：把一帧读成状态（分隔带与色5 各片、每件东西能不能被推、带所在的线、目标块集合）再画回去，逐格等于那一帧本身。</div><div>这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;整个盘面没有藏着的东西：把一帧读成状态（分隔带与色5 各片、每件东西能不能被推、带所在的线、目标块集合）再画回去，逐格等于那一帧本身。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧），只比盘面 21x21 块覆盖的格子，不管最后一行与计数带（那两条由 counter_tick 管）。渲染器遇到没见过的叠法会说不准，那时返回 NA。&quot;
+NOTE = &quot;这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;0291bbd2c4b9cc3d&quot;]
+
+from _lib import read, render
+
+
+def assert_(prev, action, nxt, ctx=None):
+    r = render(read(nxt))
+    if r is None:
+        return &quot;NA&quot;
+    for (row, col), v in r.items():
+        if nxt[row][col] != v:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T03:17:39 · L7</span><div>整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。</div><div>v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧），只比盘面 21x21 块覆盖的格子，不管最后一行与计数带（那两条由 counter_tick 管）。渲染器遇到没见过的叠法会说不准，那时返回 NA。&quot;
+NOTE = &quot;v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;7d02fb53a57a0f1e&quot;]
+
+from _lib import read, render
+
+
+def assert_(prev, action, nxt, ctx=None):
+    r = render(read(nxt))
+    if r is None:
+        return &quot;NA&quot;
+    for (row, col), v in r.items():
+        if nxt[row][col] != v:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T14:51:13 · L7</span><div>整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。</div><div>v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：<b>「正被选中」这个标记穿透所有层</b>，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧），只比盘面 21x21 块覆盖的格子，不管最后一行与计数带（那两条由 counter_tick 管）。渲染器遇到没见过的叠法会说不准，那时返回 NA。&quot;
+NOTE = &quot;v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：**「正被选中」这个标记穿透所有层**，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;7d02fb53a57a0f1e&quot;,
+            &quot;274d9f4af43df36e&quot;, &quot;2c4d8cbe827f7fdf&quot;, &quot;80035af93303fa8d&quot;, &quot;b4057bae8b4e786e&quot;]
+
+from _lib import read, render
+
+
+def assert_(prev, action, nxt, ctx=None):
+    r = render(read(nxt))
+    if r is None:
+        return &quot;NA&quot;
+    for (row, col), v in r.items():
+        if nxt[row][col] != v:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T15:29:28 · L7</span><div>整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。</div><div>v4：被 697a2186 / 1f79e283 / 2eb55648 推翻——v3 让标记穿透了 render，却没让它穿透 read：obj_mode 还在用「可动组整个落在这件东西的可见块里」认被选中的那件，而带钻到物件底下时那几块根本不可见，于是整条带被读成 free、19 个中心格全画错。改法：把「谁被选中」从 obj_mode 提到 read，按 movers == cells - targets 判（标记穿透所有层，只有压在目标上的那几块让位给目标色）。全语料 143 帧里 141 帧恰好命中一件，另 2 帧一个标记都没有。obj_mode 从此只答「能不能推」，不答「是不是正被推」。v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：<b>「正被选中」这个标记穿透所有层</b>，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧），只比盘面 21x21 块覆盖的格子，不管最后一行与计数带（那两条由 counter_tick 管）。渲染器遇到没见过的叠法会说不准，那时返回 NA。&quot;
+NOTE = &quot;v4：被 697a2186 / 1f79e283 / 2eb55648 推翻——v3 让标记穿透了 render，却没让它穿透 read：obj_mode 还在用「可动组整个落在这件东西的可见块里」认被选中的那件，而带钻到物件底下时那几块根本不可见，于是整条带被读成 free、19 个中心格全画错。改法：把「谁被选中」从 obj_mode 提到 read，按 movers == cells - targets 判（标记穿透所有层，只有压在目标上的那几块让位给目标色）。全语料 143 帧里 141 帧恰好命中一件，另 2 帧一个标记都没有。obj_mode 从此只答「能不能推」，不答「是不是正被推」。v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：**「正被选中」这个标记穿透所有层**，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;7d02fb53a57a0f1e&quot;,
+            &quot;274d9f4af43df36e&quot;, &quot;2c4d8cbe827f7fdf&quot;, &quot;80035af93303fa8d&quot;, &quot;b4057bae8b4e786e&quot;,
+            &quot;697a2186b88d5676&quot;, &quot;1f79e283256aa1e6&quot;, &quot;2eb556483c802615&quot;]
+
+from _lib import read, render
+
+
+def assert_(prev, action, nxt, ctx=None):
+    r = render(read(nxt))
+    if r is None:
+        return &quot;NA&quot;
+    for (row, col), v in r.items():
+        if nxt[row][col] != v:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-14T16:09:45 · L7</span><div>整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。</div><div>v5：被 4ac7c487 / 5444b30b / 64560d14 / bab4df59 / e9c9f75c 推翻——八邻改粘连切割后仍有 5 帧失败：被选中的 8 块移动后对角挨上另一片 5 块，八邻连成 13 块，标记 8 &lt; 13 根本对不上。改法：read 发现 movers ⊂ 某个八邻连通片时，按标记把该片切成「被选中那件 = 标记块」和「剩下的」。v4：被 697a2186 / 1f79e283 / 2eb55648 推翻——v3 让标记穿透了 render，却没让它穿透 read：obj_mode 还在用「可动组整个落在这件东西的可见块里」认被选中的那件，而带钻到物件底下时那几块根本不可见，于是整条带被读成 free、19 个中心格全画错。改法：把「谁被选中」从 obj_mode 提到 read，按 movers == cells - targets 判（标记穿透所有层，只有压在目标上的那几块让位给目标色）。全语料 143 帧里 141 帧恰好命中一件，另 2 帧一个标记都没有。obj_mode 从此只答「能不能推」，不答「是不是正被推」。v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：<b>「正被选中」这个标记穿透所有层</b>，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧），只比盘面 21x21 块覆盖的格子，不管最后一行与计数带（那两条由 counter_tick 管）。渲染器遇到没见过的叠法会说不准，那时返回 NA。&quot;
+NOTE = &quot;v5：被 4ac7c487 / 5444b30b / 64560d14 / bab4df59 / e9c9f75c 推翻——八邻改粘连切割后仍有 5 帧失败：被选中的 8 块移动后对角挨上另一片 5 块，八邻连成 13 块，标记 8 &lt; 13 根本对不上。改法：read 发现 movers ⊂ 某个八邻连通片时，按标记把该片切成「被选中那件 = 标记块」和「剩下的」。v4：被 697a2186 / 1f79e283 / 2eb55648 推翻——v3 让标记穿透了 render，却没让它穿透 read：obj_mode 还在用「可动组整个落在这件东西的可见块里」认被选中的那件，而带钻到物件底下时那几块根本不可见，于是整条带被读成 free、19 个中心格全画错。改法：把「谁被选中」从 obj_mode 提到 read，按 movers == cells - targets 判（标记穿透所有层，只有压在目标上的那几块让位给目标色）。全语料 143 帧里 141 帧恰好命中一件，另 2 帧一个标记都没有。obj_mode 从此只答「能不能推」，不答「是不是正被推」。v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：**「正被选中」这个标记穿透所有层**，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;7d02fb53a57a0f1e&quot;,
+            &quot;274d9f4af43df36e&quot;, &quot;2c4d8cbe827f7fdf&quot;, &quot;80035af93303fa8d&quot;, &quot;b4057bae8b4e786e&quot;,
+            &quot;697a2186b88d5676&quot;, &quot;1f79e283256aa1e6&quot;, &quot;2eb556483c802615&quot;,
+            &quot;4ac7c48725730b78&quot;, &quot;5444b30bbe57ecf0&quot;, &quot;64560d14e6c3d3e6&quot;, &quot;bab4df59811cc0e9&quot;, &quot;e9c9f75cb2fbfd9b&quot;]
+
+from _lib import read, render
+
+
+def assert_(prev, action, nxt, ctx=None):
+    r = render(read(nxt))
+    if r is None:
+        return &quot;NA&quot;
+    for (row, col), v in r.items():
+        if nxt[row][col] != v:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;整个盘面没有藏着的东西：把一帧读成状态（各条轴、色5 各片、每件东西能不能被推、目标块集合）再画回去，逐格等于那一帧本身。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧），只比盘面 21x21 块覆盖的格子，不管最后一行与计数带（那两条由 counter_tick 管）。渲染器遇到没见过的叠法会说不准，那时返回 NA。&quot;
+NOTE = &quot;v5：被 4ac7c487 / 5444b30b / 64560d14 / bab4df59 / e9c9f75c 推翻——八邻改粘连切割后仍有 5 帧失败：被选中的 8 块移动后对角挨上另一片 5 块，八邻连成 13 块，标记 8 &lt; 13 根本对不上。改法：read 发现 movers ⊂ 某个八邻连通片时，按标记把该片切成「被选中那件 = 标记块」和「剩下的」。v4：被 697a2186 / 1f79e283 / 2eb55648 推翻——v3 让标记穿透了 render，却没让它穿透 read：obj_mode 还在用「可动组整个落在这件东西的可见块里」认被选中的那件，而带钻到物件底下时那几块根本不可见，于是整条带被读成 free、19 个中心格全画错。改法：把「谁被选中」从 obj_mode 提到 read，按 movers == cells - targets 判（标记穿透所有层，只有压在目标上的那几块让位给目标色）。全语料 143 帧里 141 帧恰好命中一件，另 2 帧一个标记都没有。obj_mode 从此只答「能不能推」，不答「是不是正被推」。v3：被 274d9f4a / 2c4d8cbe / 80035af9 / b4057bae 推翻——我以为「写中心格的是最上面那一层」，于是物件压在正被选中的带上时那几块画底色。世界不是这样：**「正被选中」这个标记穿透所有层**，一块上只要压着被选中的那件，中心格就是标记色。全语料四种叠法一致（物件sel压带free 93 块次、物件free压带sel 17、带free与带sel交叉 9，都写标记色；两件都 free 的 64 块次写底色），所以改的是 _lib.render 的中心格规则，不是给带开特例。它顺带钉住了一件事：标记不是「画在某件东西上的像素」，而是「这一块参与移动」的指示。v2：被 tid 7d02fb53a57a0f1e 推翻——渲染器里「谁占着这一块」是先查的，于是分隔带压在了镜像上面，而世界画的是实心色4（镜像把带整块盖掉，边框和中心都不留）。改法不是给带开特例，是把中心格也纳入同一条优先级：目标 &gt; 物件 &gt; 镜像 &gt; 带 &gt; 底色，各层只是「中心怎么写」不同——目标写目标色（它在地板上，所以中心这一栏它反而在最上面）、物件与带写自己的可推状态、镜像是实心的没状态可写就写自己。v1 这条是用来考词汇表的：read/render 是 _lib 里的假设，改它不算改版、也不打分。这一条把它们和帧上的实际像素对起来——对不上就是反例。它同时钉住了「可推状态写在中心格上」（实心=推不动、底色=能推、标记色=正被选中）。&quot;
+EVIDENCE = [&quot;72135a5e9e70310c&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;7d02fb53a57a0f1e&quot;,
+            &quot;274d9f4af43df36e&quot;, &quot;2c4d8cbe827f7fdf&quot;, &quot;80035af93303fa8d&quot;, &quot;b4057bae8b4e786e&quot;,
+            &quot;697a2186b88d5676&quot;, &quot;1f79e283256aa1e6&quot;, &quot;2eb556483c802615&quot;,
+            &quot;4ac7c48725730b78&quot;, &quot;5444b30bbe57ecf0&quot;, &quot;64560d14e6c3d3e6&quot;, &quot;bab4df59811cc0e9&quot;, &quot;e9c9f75cb2fbfd9b&quot;]
+
+from _lib import read, render
+
+
+def assert_(prev, action, nxt, ctx=None):
+    r = render(read(nxt))
+    if r is None:
+        return &quot;NA&quot;
+    for (row, col), v in r.items():
+        if nxt[row][col] != v:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">goal_cover</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-dead">撤册</span><span class="chip c-mute">1 版</span></div><div class="one">没盖住目标就不过关</div></summary><div class="body"><div class="doc">不满足「色4 形状的块集合能在这一步之内与色11 形状的块集合重合」，就绝不换关。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:34:37 · L5</span><div>不满足「色4 形状的块集合能在这一步之内与色11 形状的块集合重合」，就绝不换关。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;不满足「色4 形状的块集合能在这一步之内与色11 形状的块集合重合」，就绝不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = &quot;看每条转移；色4 或色11 在 prev 上缺席返回 NA。否定式：只说「没重合就不换关」，不说「重合就一定换关」。这里不依赖某个动作往哪走——四个方向各试一遍，取并集，所以它对 DELTA 写反也免疫。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;d31f0e0e4339d8de&quot;]
+
+from _lib import shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    leveled = ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;)
+    if not leveled:
+        return &quot;TRUE&quot;                      # 没换关，这条否定式无话可说的一侧
+    s4, s11 = shape(prev, 4), shape(prev, 11)
+    if not s4 or not s11:
+        return &quot;NA&quot;
+    cands = [s4] + [frozenset((br + d[0], bc + d[1]) for br, bc in s4)
+                    for d in ((-1, 0), (1, 0), (0, 1), (0, -1))]
+    return &quot;TRUE&quot; if any(c == s11 for c in cands) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;不满足「色4 形状的块集合能在这一步之内与色11 形状的块集合重合」，就绝不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = &quot;看每条转移；色4 或色11 在 prev 上缺席返回 NA。否定式：只说「没重合就不换关」，不说「重合就一定换关」。这里不依赖某个动作往哪走——四个方向各试一遍，取并集，所以它对 DELTA 写反也免疫。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;d31f0e0e4339d8de&quot;]
+
+from _lib import shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    leveled = ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;)
+    if not leveled:
+        return &quot;TRUE&quot;                      # 没换关，这条否定式无话可说的一侧
+    s4, s11 = shape(prev, 4), shape(prev, 11)
+    if not s4 or not s11:
+        return &quot;NA&quot;
+    cands = [s4] + [frozenset((br + d[0], bc + d[1]) for br, bc in s4)
+                    for d in ((-1, 0), (1, 0), (0, 1), (0, -1))]
+    return &quot;TRUE&quot; if any(c == s11 for c in cands) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">level_clear</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">每块目标都被盖住，那一步就过关</div></summary><div class="body"><div class="doc">这一关什么时候算赢：一次推动之后，每一块目标都被物件(色5)或它关于分隔带的镜像盖住——当且仅当这一步换关。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T02:49:26 · L5</span><div>这一关什么时候算赢：一次推动之后，每一块目标都被物件(色5)或它关于分隔带的镜像盖住——当且仅当这一步换关。</div><div>写它是为了让册子知道自己什么时候不知道：换关那一帧是整屏重画，新关长什么样算不出来（换关帧上的规则图完成度只有 0.073），所以 _lib.step_pred 现在在「这一步会盖满」时故意返回 None，不预测。不这么做的话，每次过关都会记成一次意外，而那不是世界让我意外，是我明知道算不出还硬猜。goal_cover 是它的否定式弱版（没重合就不换关），这条是正反都说的强版，也是策略里「什么算赢」那个必填槽的正文。<b>它在两副口径下会变脸</b>：结算时 ctx 的 level_next 是真的，预测时 level_next 被填成 level_prev，于是真正换关的那一步在预测口径下判 FALSE——分数量的是结算那一条。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这一关什么时候算赢：一次推动之后，每一块目标都被物件(色5)或它关于分隔带的镜像盖住——当且仅当这一步换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = &quot;只看 ACTION1-4（会推动的那四个）；从 prev 算不出推完之后的状态（post 说不准）返回 NA；ctx 缺 level_prev/level_next 返回 NA。它是双向的：盖满就该换关，没盖满就不该换关。&quot;
+NOTE = &quot;写它是为了让册子知道自己什么时候不知道：换关那一帧是整屏重画，新关长什么样算不出来（换关帧上的规则图完成度只有 0.073），所以 _lib.step_pred 现在在「这一步会盖满」时故意返回 None，不预测。不这么做的话，每次过关都会记成一次意外，而那不是世界让我意外，是我明知道算不出还硬猜。goal_cover 是它的否定式弱版（没重合就不换关），这条是正反都说的强版，也是策略里「什么算赢」那个必填槽的正文。**它在两副口径下会变脸**：结算时 ctx 的 level_next 是真的，预测时 level_next 被填成 level_prev，于是真正换关的那一步在预测口径下判 FALSE——分数量的是结算那一条。&quot;
+EVIDENCE = [&quot;26948eaad88e320e&quot;, &quot;d31f0e0e4339d8de&quot;]
+
+from _lib import DELTA, covers_all, post
+
+
+def assert_(prev, action, nxt, ctx=None):
+    base = action.upper().split(&quot;:&quot;)[0]
+    if base not in DELTA:
+        return &quot;NA&quot;
+    if not ctx or ctx.get(&quot;level_prev&quot;) is None or ctx.get(&quot;level_next&quot;) is None:
+        return &quot;NA&quot;
+    st = post(prev, DELTA[base])
+    if st is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if covers_all(st) == (ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;这一关什么时候算赢：一次推动之后，每一块目标都被物件(色5)或它关于分隔带的镜像盖住——当且仅当这一步换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = &quot;只看 ACTION1-4（会推动的那四个）；从 prev 算不出推完之后的状态（post 说不准）返回 NA；ctx 缺 level_prev/level_next 返回 NA。它是双向的：盖满就该换关，没盖满就不该换关。&quot;
+NOTE = &quot;写它是为了让册子知道自己什么时候不知道：换关那一帧是整屏重画，新关长什么样算不出来（换关帧上的规则图完成度只有 0.073），所以 _lib.step_pred 现在在「这一步会盖满」时故意返回 None，不预测。不这么做的话，每次过关都会记成一次意外，而那不是世界让我意外，是我明知道算不出还硬猜。goal_cover 是它的否定式弱版（没重合就不换关），这条是正反都说的强版，也是策略里「什么算赢」那个必填槽的正文。**它在两副口径下会变脸**：结算时 ctx 的 level_next 是真的，预测时 level_next 被填成 level_prev，于是真正换关的那一步在预测口径下判 FALSE——分数量的是结算那一条。&quot;
+EVIDENCE = [&quot;26948eaad88e320e&quot;, &quot;d31f0e0e4339d8de&quot;]
+
+from _lib import DELTA, covers_all, post
+
+
+def assert_(prev, action, nxt, ctx=None):
+    base = action.upper().split(&quot;:&quot;)[0]
+    if base not in DELTA:
+        return &quot;NA&quot;
+    if not ctx or ctx.get(&quot;level_prev&quot;) is None or ctx.get(&quot;level_next&quot;) is None:
+        return &quot;NA&quot;
+    st = post(prev, DELTA[base])
+    if st is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if covers_all(st) == (ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">mirror</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">5 版</span></div><div class="one">深灰色是物件关于分隔带的镜像</div></summary><div class="body"><div class="doc">任何一帧里，色4 占的块集合恰好等于「全部色5 在这组分隔带轴生成的反射群下的像」里落在盘内、又没有被物件(色5)本体压住的那一部分。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:27:22 · L6</span><div>任何一帧里，色5 形状占的块集合都等于色4 形状占的块集合关于块列 10 的左右镜像。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，色5 形状占的块集合都等于色4 形状占的块集合关于块列 10 的左右镜像。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt；换关返回 NA；色4 或色5 在盘面上缺席返回 NA。断言的是两形状的位置关系，不是它们怎么被画出来。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;]
+
+from _lib import mirror, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    s4, s5 = shape(nxt, 4), shape(nxt, 5)
+    if not s4 or not s5:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s5 == mirror(s4) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T01:34:37 · L6</span><div>任何一帧里，色5 形状占的块集合都等于色4 形状占的块集合关于分隔带那一块列的左右镜像。</div><div>v2：镜像轴不再写死成某个数，改成从帧上的分隔带读——它随关卡变。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，色5 形状占的块集合都等于色4 形状占的块集合关于分隔带那一块列的左右镜像。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt；换关返回 NA；色4/色5 缺席、或分隔带不是单独一块列（axis 读不出来）返回 NA。断言的是两形状的位置关系，不是它们怎么被画出来。&quot;
+NOTE = &quot;v2：镜像轴不再写死成某个数，改成从帧上的分隔带读——它随关卡变。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;]
+
+from _lib import axis, mirror, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    ax = axis(nxt)
+    if ax is None:
+        return &quot;NA&quot;
+    s4, s5 = shape(nxt, 4), shape(nxt, 5)
+    if not s4 or not s5:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if s5 == mirror(s4, ax) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T02:10:50 · L6</span><div>任何一帧里，色4 占的块集合恰好等于「全部色5 的块集合关于分隔带那条线的镜像」里落在盘内的那一部分。</div><div>v3：轴从「某一块列」推广成「一条线」——第2 关的带是横的。并且补上了缺的那一半：镜像出界的部分不画（第2 关轴在下方，两片色5 的镜像整个落到盘外，于是整关没有色4）。v2 只说色5 是色4 的镜像，反了因果，也说不出色4 缺席。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，色4 占的块集合恰好等于「全部色5 的块集合关于分隔带那条线的镜像」里落在盘内的那一部分。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；分隔带不构成一条块行或块列（band_line 读不出来）、或盘面上没有色5 返回 NA。它同时断言了「镜像落在盘外就不画」——所以第2 关色4 缺席不是例外，是它的预测。&quot;
+NOTE = &quot;v3：轴从「某一块列」推广成「一条线」——第2 关的带是横的。并且补上了缺的那一半：镜像出界的部分不画（第2 关轴在下方，两片色5 的镜像整个落到盘外，于是整关没有色4）。v2 只说色5 是色4 的镜像，反了因果，也说不出色4 缺席。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;0291bbd2c4b9cc3d&quot;]
+
+from _lib import GHOST, PIECE, band_line, inside, reflect, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    line = band_line(nxt)
+    if line is None:
+        return &quot;NA&quot;
+    s5 = shape(nxt, PIECE)
+    if not s5:
+        return &quot;NA&quot;
+    want = frozenset(p for p in reflect(s5, line) if inside({p}))
+    return &quot;TRUE&quot; if shape(nxt, GHOST) == want else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T02:31:13 · L6</span><div>任何一帧里，色4 占的块集合恰好等于「全部色5 关于分隔带那条线的镜像」里落在盘内、又没有被物件(色5)本体压住的那一部分。</div><div>v4：v3 被 tid 80035af93303fa8d 推翻——轴推到某片物件身上时，那片贴着轴的两块的镜像就是它自己，而那两块画的是物件的边框，不是色4。所以要减掉物件占的块。减的只是物件：镜像压在分隔带上仍画色4（优先级 物件 &gt; 镜像 &gt; 目标 &gt; 带）。v3 之前还错过一次因果：说色5 是色4 的镜像，反了，也说不出色4 缺席。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，色4 占的块集合恰好等于「全部色5 关于分隔带那条线的镜像」里落在盘内、又没有被物件(色5)本体压住的那一部分。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；分隔带不构成一条块行或块列（band_line 读不出来）、或盘面上没有色5 返回 NA。它同时断言了两件可判错的事：镜像落在盘外就不画（第2 关一开始没有色4 是它的预测）；镜像和物件本体落在同一块时画的是物件。&quot;
+NOTE = &quot;v4：v3 被 tid 80035af93303fa8d 推翻——轴推到某片物件身上时，那片贴着轴的两块的镜像就是它自己，而那两块画的是物件的边框，不是色4。所以要减掉物件占的块。减的只是物件：镜像压在分隔带上仍画色4（优先级 物件 &gt; 镜像 &gt; 目标 &gt; 带）。v3 之前还错过一次因果：说色5 是色4 的镜像，反了，也说不出色4 缺席。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;]
+
+from _lib import GHOST, PIECE, band_line, inside, reflect, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    line = band_line(nxt)
+    if line is None:
+        return &quot;NA&quot;
+    s5 = shape(nxt, PIECE)
+    if not s5:
+        return &quot;NA&quot;
+    want = frozenset(p for p in reflect(s5, line) if inside({p})) - s5
+    return &quot;TRUE&quot; if shape(nxt, GHOST) == want else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-14T03:09:16 · L6</span><div>任何一帧里，色4 占的块集合恰好等于「全部色5 在这组分隔带轴生成的反射群下的像」里落在盘内、又没有被物件(色5)本体压住的那一部分。</div><div>v5：轴可以不止一条（一横一竖），此时除了两个镜像还多一个绕交点的点对称——「群」这个词是可判错的：若世界只画两条轴各自的镜像、不画点对称的那一份，这条当场判 FALSE。v4：v3 被 tid 80035af93303fa8d 推翻——轴推到某片物件身上时，那片贴着轴的两块的镜像就是它自己，而那两块画的是物件的边框，不是色4。所以要减掉物件占的块。减的只是物件：镜像压在分隔带上仍画色4（优先级 物件 &gt; 镜像 &gt; 目标 &gt; 带）。v3 之前还错过一次因果：说色5 是色4 的镜像，反了，也说不出色4 缺席。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，色4 占的块集合恰好等于「全部色5 在这组分隔带轴生成的反射群下的像」里落在盘内、又没有被物件(色5)本体压住的那一部分。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；读不出轴（band_lines 为 None 或空）、轴的组合生成不出有限多个变换（ghosts 为 None）、或盘面上没有色5 返回 NA。它同时断言了三件可判错的事：镜像落在盘外就不画（第2 关一开始没有色4 是它的预测）；镜像和物件本体落在同一块时画的是物件；**轴不止一条时，像是它们生成的整个群**，不是各画各的。&quot;
+NOTE = &quot;v5：轴可以不止一条（一横一竖），此时除了两个镜像还多一个绕交点的点对称——「群」这个词是可判错的：若世界只画两条轴各自的镜像、不画点对称的那一份，这条当场判 FALSE。v4：v3 被 tid 80035af93303fa8d 推翻——轴推到某片物件身上时，那片贴着轴的两块的镜像就是它自己，而那两块画的是物件的边框，不是色4。所以要减掉物件占的块。减的只是物件：镜像压在分隔带上仍画色4（优先级 物件 &gt; 镜像 &gt; 目标 &gt; 带）。v3 之前还错过一次因果：说色5 是色4 的镜像，反了，也说不出色4 缺席。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;]
+
+from _lib import GHOST, PIECE, band_lines, ghosts, inside, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    lines = band_lines(nxt)
+    if not lines:
+        return &quot;NA&quot;
+    s5 = shape(nxt, PIECE)
+    if not s5:
+        return &quot;NA&quot;
+    gh = ghosts(s5, lines)
+    if gh is None:
+        return &quot;NA&quot;
+    want = frozenset(p for p in gh if inside({p})) - s5
+    return &quot;TRUE&quot; if shape(nxt, GHOST) == want else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，色4 占的块集合恰好等于「全部色5 在这组分隔带轴生成的反射群下的像」里落在盘内、又没有被物件(色5)本体压住的那一部分。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；读不出轴（band_lines 为 None 或空）、轴的组合生成不出有限多个变换（ghosts 为 None）、或盘面上没有色5 返回 NA。它同时断言了三件可判错的事：镜像落在盘外就不画（第2 关一开始没有色4 是它的预测）；镜像和物件本体落在同一块时画的是物件；**轴不止一条时，像是它们生成的整个群**，不是各画各的。&quot;
+NOTE = &quot;v5：轴可以不止一条（一横一竖），此时除了两个镜像还多一个绕交点的点对称——「群」这个词是可判错的：若世界只画两条轴各自的镜像、不画点对称的那一份，这条当场判 FALSE。v4：v3 被 tid 80035af93303fa8d 推翻——轴推到某片物件身上时，那片贴着轴的两块的镜像就是它自己，而那两块画的是物件的边框，不是色4。所以要减掉物件占的块。减的只是物件：镜像压在分隔带上仍画色4（优先级 物件 &gt; 镜像 &gt; 目标 &gt; 带）。v3 之前还错过一次因果：说色5 是色4 的镜像，反了，也说不出色4 缺席。&quot;
+EVIDENCE = [&quot;16913da84badc924&quot;, &quot;0291bbd2c4b9cc3d&quot;, &quot;80035af93303fa8d&quot;]
+
+from _lib import GHOST, PIECE, band_lines, ghosts, inside, shape
+
+
+def assert_(prev, action, nxt, ctx=None):
+    lines = band_lines(nxt)
+    if not lines:
+        return &quot;NA&quot;
+    s5 = shape(nxt, PIECE)
+    if not s5:
+        return &quot;NA&quot;
+    gh = ghosts(s5, lines)
+    if gh is None:
+        return &quot;NA&quot;
+    want = frozenset(p for p in gh if inside({p})) - s5
+    return &quot;TRUE&quot; if shape(nxt, GHOST) == want else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">one_selected</span><span class="chip c-lv">L7 · 看得见什么</span><span class="chip c-alive">在册</span><span class="chip c-mute">6 版</span></div><div class="one">任何时候恰有一件东西被选中</div></summary><div class="body"><div class="doc">每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候（WIN 帧所有物件都压在目标上，此时返回 NA）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T02:46:51 · L7</span><div>任何一帧里恰好有一件东西被选中，而帧未必说得出是哪一件：显示可动标记的块要么正好是某一件东西露在目标外的全部块，要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。</div><div>由第 64 步问出来：一片色5 被推到整片压在目标上，它的每一块都成了「边框色5、中心色11」——和一片没被选中、恰好停在目标上的东西一模一样，可动标记一块不剩。帧到状态不是单射，选中状态在这种局面下读不出来。这条把补窟窿用的那个前提（盘上总有恰好一件东西被选中）写成可判错的话：真出现两件东西同时读不出来、或者可动标记跨了两件东西，倒推就没有依据，_lib.selected 当场失灵。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里恰好有一件东西被选中，而帧未必说得出是哪一件：显示可动标记的块要么正好是某一件东西露在目标外的全部块，要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带那条线（band_line 为 None）返回 NA。「东西」= 分隔带（按 band_cells 算的逻辑占位）加色5 的各个连通片。&quot;
+NOTE = &quot;由第 64 步问出来：一片色5 被推到整片压在目标上，它的每一块都成了「边框色5、中心色11」——和一片没被选中、恰好停在目标上的东西一模一样，可动标记一块不剩。帧到状态不是单射，选中状态在这种局面下读不出来。这条把补窟窿用的那个前提（盘上总有恰好一件东西被选中）写成可判错的话：真出现两件东西同时读不出来、或者可动标记跨了两件东西，倒推就没有依据，_lib.selected 当场失灵。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;]
+
+from _lib import BAND, TARGET, band_cells, band_line, movers, pieces, shape
+
+
+def _objs(g):
+    line = band_line(g)
+    out = [band_cells(g, line)] if shape(g, BAND) else []
+    return out + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if band_line(nxt) is None:
+        return &quot;NA&quot;
+    objs, m, tg = _objs(nxt), movers(nxt), shape(nxt, TARGET)
+    if not objs:
+        return &quot;NA&quot;
+    if m:
+        owners = [s for s in objs if m &lt;= s and m == s - tg]
+        return &quot;TRUE&quot; if len(owners) == 1 else &quot;FALSE&quot;
+    return &quot;TRUE&quot; if len([s for s in objs if s &lt;= tg]) == 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T03:09:16 · L7</span><div>任何一帧里恰好有一件东西被选中，而帧未必说得出是哪一件：显示可动标记的块要么正好是某一件东西露在目标外的全部块，要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。</div><div>v2：轴不止一条时，每条轴各算一件东西——第4 关一横一竖交叉，点击只选中其中一条，所以「交叉就是一件」是错的。v1 由第 64 步问出来：一片色5 被推到整片压在目标上，它的每一块都成了「边框色5、中心色11」——和一片没被选中、恰好停在目标上的东西一模一样，可动标记一块不剩。帧到状态不是单射，选中状态在这种局面下读不出来。这条把补窟窿用的那个前提（盘上总有恰好一件东西被选中）写成可判错的话：真出现两件东西同时读不出来、或者可动标记跨了两件东西，倒推就没有依据，_lib.selected 当场失灵。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里恰好有一件东西被选中，而帧未必说得出是哪一件：显示可动标记的块要么正好是某一件东西露在目标外的全部块，要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带的轴（band_lines 为 None）返回 NA。「东西」= 每条带轴一件（按 band_cells 算的逻辑占位）加色5 的各个连通片。&quot;
+NOTE = &quot;v2：轴不止一条时，每条轴各算一件东西——第4 关一横一竖交叉，点击只选中其中一条，所以「交叉就是一件」是错的。v1 由第 64 步问出来：一片色5 被推到整片压在目标上，它的每一块都成了「边框色5、中心色11」——和一片没被选中、恰好停在目标上的东西一模一样，可动标记一块不剩。帧到状态不是单射，选中状态在这种局面下读不出来。这条把补窟窿用的那个前提（盘上总有恰好一件东西被选中）写成可判错的话：真出现两件东西同时读不出来、或者可动标记跨了两件东西，倒推就没有依据，_lib.selected 当场失灵。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;]
+
+from _lib import TARGET, band_cells, band_lines, movers, pieces, shape
+
+
+def _objs(g):
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    return [band_cells(g, l) for l in lines] + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    objs = _objs(nxt)
+    if not objs:
+        return &quot;NA&quot;
+    m, tg = movers(nxt), shape(nxt, TARGET)
+    if m:
+        owners = [s for s in objs if m &lt;= s and m == s - tg]
+        return &quot;TRUE&quot; if len(owners) == 1 else &quot;FALSE&quot;
+    return &quot;TRUE&quot; if len([s for s in objs if s &lt;= tg]) == 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-14T15:40:28 · L7</span><div>任何一帧里恰好有一件东西被选中，而帧未必说得出是哪一件：显示可动标记的块要么正好是某一件东西露在目标外的全部块，要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。</div><div>v3：被 c11d7f52 / 2ce17e1a 推翻——四邻切色5 在第5 关把一片对角相连的 4 片当成独立的东西，标记跨了 4 片没有一片命中，判 FALSE。改法在 _lib.comp 里：四邻改八邻，全语料 145 帧验证恢复 143/145（另 2 帧零标记一直存在）。v2：轴不止一条时，每条轴各算一件东西——第4 关一横一竖交叉，点击只选中其中一条。v1 由第 64 步问出来。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里恰好有一件东西被选中，而帧未必说得出是哪一件：显示可动标记的块要么正好是某一件东西露在目标外的全部块，要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带的轴（band_lines 为 None）返回 NA。「东西」= 每条带轴一件（按 band_cells 算的逻辑占位）加色5 的各个**八邻**连通片。&quot;
+NOTE = &quot;v3：被 c11d7f52 / 2ce17e1a 推翻——四邻切色5 在第5 关把一片对角相连的 4 片当成独立的东西，标记跨了 4 片没有一片命中，判 FALSE。改法在 _lib.comp 里：四邻改八邻，全语料 145 帧验证恢复 143/145（另 2 帧零标记一直存在）。v2：轴不止一条时，每条轴各算一件东西——第4 关一横一竖交叉，点击只选中其中一条。v1 由第 64 步问出来。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;, &quot;c11d7f52f7316a3e&quot;, &quot;2ce17e1a296976fa&quot;]
+
+from _lib import TARGET, band_cells, band_lines, movers, pieces, shape
+
+
+def _objs(g):
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    return [band_cells(g, l) for l in lines] + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    objs = _objs(nxt)
+    if not objs:
+        return &quot;NA&quot;
+    m, tg = movers(nxt), shape(nxt, TARGET)
+    if m:
+        owners = [s for s in objs if m &lt;= s and m == s - tg]
+        return &quot;TRUE&quot; if len(owners) == 1 else &quot;FALSE&quot;
+    return &quot;TRUE&quot; if len([s for s in objs if s &lt;= tg]) == 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-14T16:09:45 · L7</span><div>每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。</div><div>v4：被 4ac7c487 / 5444b30b / 64560d14 / bab4df59 / e9c9f75c 推翻——被选中的 8 块沿路推到和另一片 5 块挨上（对角相邻），八邻连通片变成 13 块，标记 8 块对不上任何一整件，判 FALSE。真相：对象身份在世界里跨移动保持，帧上挨着不等于同一件；标记是一整件东西的真子集也算「指认了一件」。v3：四邻改八邻（c11d7f52 / 2ce17e1a：第5 关四片对角相连被世界一起选中）。v2：轴不止一条时每条轴各算一件。v1 由第 64 步问出来。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带的轴（band_lines 为 None）返回 NA。「东西」= 每条带轴一件（按 band_cells 算的逻辑占位）加色5 的各个**八邻**连通片。&quot;
+NOTE = &quot;v4：被 4ac7c487 / 5444b30b / 64560d14 / bab4df59 / e9c9f75c 推翻——被选中的 8 块沿路推到和另一片 5 块挨上（对角相邻），八邻连通片变成 13 块，标记 8 块对不上任何一整件，判 FALSE。真相：对象身份在世界里跨移动保持，帧上挨着不等于同一件；标记是一整件东西的真子集也算「指认了一件」。v3：四邻改八邻（c11d7f52 / 2ce17e1a：第5 关四片对角相连被世界一起选中）。v2：轴不止一条时每条轴各算一件。v1 由第 64 步问出来。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;, &quot;c11d7f52f7316a3e&quot;, &quot;2ce17e1a296976fa&quot;,
+            &quot;4ac7c48725730b78&quot;, &quot;5444b30bbe57ecf0&quot;, &quot;64560d14e6c3d3e6&quot;, &quot;bab4df59811cc0e9&quot;, &quot;e9c9f75cb2fbfd9b&quot;]
+
+from _lib import TARGET, band_cells, band_lines, movers, pieces, shape
+
+
+def _objs(g):
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    return [band_cells(g, l) for l in lines] + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    objs = _objs(nxt)
+    if objs is None:
+        return &quot;NA&quot;
+    m, tg = movers(nxt), shape(nxt, TARGET)
+    if not m:
+        return &quot;TRUE&quot; if len([s for s in objs if s &lt;= tg]) == 1 else &quot;FALSE&quot;
+    if len([s for s in objs if m == s - tg]) == 1:
+        return &quot;TRUE&quot;
+    hosts = [s for s in objs if m &lt; s]
+    return &quot;TRUE&quot; if len(hosts) == 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-14T16:58:04 · L7</span><div>每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候（WIN 帧所有物件都压在目标上，此时返回 NA）。</div><div>v5：被 79417f72 推翻——WIN 帧两件物件全压在目标上，零标记却有两件「整片压在目标上」，判 FALSE。改法：零标记且压在目标上的不止一件时返回 NA（WIN 帧）。v4：粘连切割（m &lt; piece）。v3：四邻改八邻。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候（WIN 帧所有物件都压在目标上，此时返回 NA）。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带的轴（band_lines 为 None）返回 NA。「东西」= 每条带轴一件（按 band_cells 算的逻辑占位）加色5 的各个**八邻**连通片。WIN 帧（所有物件都在目标上）返回 NA。&quot;
+NOTE = &quot;v5：被 79417f72 推翻——WIN 帧两件物件全压在目标上，零标记却有两件「整片压在目标上」，判 FALSE。改法：零标记且压在目标上的不止一件时返回 NA（WIN 帧）。v4：粘连切割（m &lt; piece）。v3：四邻改八邻。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;, &quot;c11d7f52f7316a3e&quot;, &quot;2ce17e1a296976fa&quot;,
+            &quot;4ac7c48725730b78&quot;, &quot;5444b30bbe57ecf0&quot;, &quot;64560d14e6c3d3e6&quot;, &quot;bab4df59811cc0e9&quot;, &quot;e9c9f75cb2fbfd9b&quot;,
+            &quot;79417f72814f8fd9&quot;]
+
+from _lib import TARGET, band_cells, band_lines, movers, pieces, shape
+
+
+def _objs(g):
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    return [band_cells(g, l) for l in lines] + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    objs = _objs(nxt)
+    if objs is None:
+        return &quot;NA&quot;
+    m, tg = movers(nxt), shape(nxt, TARGET)
+    if not m:
+        hidden_on_tg = [s for s in objs if s &lt;= tg]
+        if len(hidden_on_tg) == 1:
+            return &quot;TRUE&quot;
+        if len(hidden_on_tg) &gt; 1:
+            return &quot;NA&quot;                               # WIN 帧：多件东西都在目标上
+        return &quot;FALSE&quot;
+    if len([s for s in objs if m == s - tg]) == 1:
+        return &quot;TRUE&quot;
+    hosts = [s for s in objs if m &lt; s]
+    return &quot;TRUE&quot; if len(hosts) == 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-14T18:30:21 · L7</span><div>每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候（WIN 帧所有物件都压在目标上，此时返回 NA）。</div><div>v6：被 5f206fbd 推翻——粘连后标记丢失，m=0 且无物件在目标上，判 FALSE。改法：零标记且 hidden_on_tg=0 时返回 NA。v5：被 79417f72 推翻——WIN 帧两件物件全压在目标上，零标记却有两件「整片压在目标上」，判 FALSE。改法：零标记且压在目标上的不止一件时返回 NA（WIN 帧）。v4：粘连切割（m &lt; piece）。v3：四邻改八邻。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候（WIN 帧所有物件都压在目标上，此时返回 NA）。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带的轴（band_lines 为 None）返回 NA。「东西」= 每条带轴一件（按 band_cells 算的逻辑占位）加色5 的各个**八邻**连通片。WIN 帧（所有物件都在目标上）返回 NA；零标记且无物件在目标上（粘连导致标记丢失）返回 NA。&quot;
+NOTE = &quot;v6：被 5f206fbd 推翻——粘连后标记丢失，m=0 且无物件在目标上，判 FALSE。改法：零标记且 hidden_on_tg=0 时返回 NA。v5：被 79417f72 推翻——WIN 帧两件物件全压在目标上，零标记却有两件「整片压在目标上」，判 FALSE。改法：零标记且压在目标上的不止一件时返回 NA（WIN 帧）。v4：粘连切割（m &lt; piece）。v3：四邻改八邻。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;, &quot;c11d7f52f7316a3e&quot;, &quot;2ce17e1a296976fa&quot;,
+            &quot;4ac7c48725730b78&quot;, &quot;5444b30bbe57ecf0&quot;, &quot;64560d14e6c3d3e6&quot;, &quot;bab4df59811cc0e9&quot;, &quot;e9c9f75cb2fbfd9b&quot;,
+            &quot;79417f72814f8fd9&quot;, &quot;5f206fbd7a29ae45&quot;]
+
+from _lib import TARGET, band_cells, band_lines, movers, pieces, shape
+
+
+def _objs(g):
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    return [band_cells(g, l) for l in lines] + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    objs = _objs(nxt)
+    if objs is None:
+        return &quot;NA&quot;
+    m, tg = movers(nxt), shape(nxt, TARGET)
+    if not m:
+        hidden_on_tg = [s for s in objs if s &lt;= tg]
+        if len(hidden_on_tg) == 1:
+            return &quot;TRUE&quot;
+        return &quot;NA&quot;                                   # WIN 帧 / 粘连标记丢失：说不准
+    if len([s for s in objs if m == s - tg]) == 1:
+        return &quot;TRUE&quot;
+    hosts = [s for s in objs if m &lt; s]
+    return &quot;TRUE&quot; if len(hosts) == 1 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;每一帧的标记都指认恰好一件被选中的东西：标记块要么恰好等于某一件东西露在目标外的全部块，要么是某个八邻连通片的真子集（两个对象在帧上挨上时帧分不出边界，标记指认被选中那件的可见部分），要么一块都没有——后者只发生在恰有一件东西整片压在目标上的时候（WIN 帧所有物件都压在目标上，此时返回 NA）。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = &quot;看每一帧的 nxt（含换关后的第一帧）；盘上读不出分隔带的轴（band_lines 为 None）返回 NA。「东西」= 每条带轴一件（按 band_cells 算的逻辑占位）加色5 的各个**八邻**连通片。WIN 帧（所有物件都在目标上）返回 NA；零标记且无物件在目标上（粘连导致标记丢失）返回 NA。&quot;
+NOTE = &quot;v6：被 5f206fbd 推翻——粘连后标记丢失，m=0 且无物件在目标上，判 FALSE。改法：零标记且 hidden_on_tg=0 时返回 NA。v5：被 79417f72 推翻——WIN 帧两件物件全压在目标上，零标记却有两件「整片压在目标上」，判 FALSE。改法：零标记且压在目标上的不止一件时返回 NA（WIN 帧）。v4：粘连切割（m &lt; piece）。v3：四邻改八邻。&quot;
+EVIDENCE = [&quot;b05ff54ae4f4d76c&quot;, &quot;29deaeb5d032b656&quot;, &quot;c11d7f52f7316a3e&quot;, &quot;2ce17e1a296976fa&quot;,
+            &quot;4ac7c48725730b78&quot;, &quot;5444b30bbe57ecf0&quot;, &quot;64560d14e6c3d3e6&quot;, &quot;bab4df59811cc0e9&quot;, &quot;e9c9f75cb2fbfd9b&quot;,
+            &quot;79417f72814f8fd9&quot;, &quot;5f206fbd7a29ae45&quot;]
+
+from _lib import TARGET, band_cells, band_lines, movers, pieces, shape
+
+
+def _objs(g):
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    return [band_cells(g, l) for l in lines] + pieces(g)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    objs = _objs(nxt)
+    if objs is None:
+        return &quot;NA&quot;
+    m, tg = movers(nxt), shape(nxt, TARGET)
+    if not m:
+        hidden_on_tg = [s for s in objs if s &lt;= tg]
+        if len(hidden_on_tg) == 1:
+            return &quot;TRUE&quot;
+        return &quot;NA&quot;                                   # WIN 帧 / 粘连标记丢失：说不准
+    if len([s for s in objs if m == s - tg]) == 1:
+        return &quot;TRUE&quot;
+    hosts = [s for s in objs if m &lt; s]
+    return &quot;TRUE&quot; if len(hosts) == 1 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">overlap_render</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">镜像压在目标上时，两层都看得见</div></summary><div class="body"><div class="doc">镜像和目标叠在一起那一块，恰好是「边框色4、中心格色11」——两层都还看得见；只有镜像是实心色4，只有目标是实心色11。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-14T01:53:51 · L6</span><div>任何一帧里，同时含色4 和色11 的块都恰好是「边框色4、中心格色11」；只含色4 的块是实心色4，只含色11 的块是实心色11。</div><div>问的是「棋子压在目标上那一格画成什么」：不知道这个，棋子一进目标区册子就说不出下一帧，链式预测当场断。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，同时含色4 和色11 的块都恰好是「边框色4、中心格色11」；只含色4 的块是实心色4，只含色11 的块是实心色11。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt；换关返回 NA（那一帧整屏重画）；盘面上没有色4 或没有色11 返回 NA。中心格是可动标记的块（movers 里的）中心不算——标记是另一层，由 act6_select 管。&quot;
+NOTE = &quot;问的是「棋子压在目标上那一格画成什么」：不知道这个，棋子一进目标区册子就说不出下一帧，链式预测当场断。&quot;
+EVIDENCE = [&quot;4259e73e695d86ca&quot;, &quot;769528f2403ae67e&quot;]
+
+from _lib import CELL, block, movers, ring, shape, solid
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    s4, s11 = shape(nxt, 4), shape(nxt, 11)
+    if not s4 or not s11:
+        return &quot;NA&quot;
+    mk, h = movers(nxt), CELL // 2
+    for br, bc in s4 | s11:
+        b = block(nxt, br, bc)
+        if (br, bc) in s4 and (br, bc) in s11:
+            want = ring(4, 11)
+        elif (br, bc) in s4:
+            want = solid(4)
+        else:
+            want = solid(11)
+        for i in range(CELL):
+            for j in range(CELL):
+                if (i, j) == (h, h) and (br, bc) in mk:
+                    continue                      # 这一格被标记占了，不由这条概念管
+                if b[i][j] != want[i][j]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-14T02:40:44 · L6</span><div>镜像和目标叠在一起那一块，恰好是「边框色4、中心格色11」——两层都还看得见；只有镜像是实心色4，只有目标是实心色11。</div><div>v2：v1 说「只含色11 的块是实心色11」，被 tid a3d4eea3431fa704 推翻——物件推到目标上，那一块边框是物件的色5、中心露出目标色11，既不是实心色11 也不在 v1 的例外里。缩 scope：这条只讲镜像与目标这两层怎么叠。它顺带钉住了一件事——<b>目标被盖住不会消失，它从中心格透出来</b>，物件那一层同理（那条由 frame_is_render 管）。v1 原本问的是「棋子压在目标上那一格画成什么」，答案已经拿到，而拿到的答案不属于这条概念。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;镜像和目标叠在一起那一块，恰好是「边框色4、中心格色11」——两层都还看得见；只有镜像是实心色4，只有目标是实心色11。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt；换关返回 NA（那一帧整屏重画）；盘面上没有色4 或没有色11 返回 NA。**只管颜色成分不出 {色4, 色11} 的块**——块里还有物件或分隔带时，画的是那两层，由 frame_is_render 管。中心格是可动标记的块（movers 里的）中心不算。&quot;
+NOTE = &quot;v2：v1 说「只含色11 的块是实心色11」，被 tid a3d4eea3431fa704 推翻——物件推到目标上，那一块边框是物件的色5、中心露出目标色11，既不是实心色11 也不在 v1 的例外里。缩 scope：这条只讲镜像与目标这两层怎么叠。它顺带钉住了一件事——**目标被盖住不会消失，它从中心格透出来**，物件那一层同理（那条由 frame_is_render 管）。v1 原本问的是「棋子压在目标上那一格画成什么」，答案已经拿到，而拿到的答案不属于这条概念。&quot;
+EVIDENCE = [&quot;4259e73e695d86ca&quot;, &quot;769528f2403ae67e&quot;, &quot;a3d4eea3431fa704&quot;]
+
+from _lib import CELL, block, movers, ring, shape, solid
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    s4, s11 = shape(nxt, 4), shape(nxt, 11)
+    if not s4 or not s11:
+        return &quot;NA&quot;
+    mk, h = movers(nxt), CELL // 2
+    for br, bc in s4 | s11:
+        b = block(nxt, br, bc)
+        if {v for row in b for v in row} - {4, 11}:
+            continue                              # 还叠着别的层，不由这条概念管
+        if (br, bc) in s4 and (br, bc) in s11:
+            want = ring(4, 11)
+        elif (br, bc) in s4:
+            want = solid(4)
+        else:
+            want = solid(11)
+        for i in range(CELL):
+            for j in range(CELL):
+                if (i, j) == (h, h) and (br, bc) in mk:
+                    continue                      # 这一格被标记占了，不由这条概念管
+                if b[i][j] != want[i][j]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;镜像和目标叠在一起那一块，恰好是「边框色4、中心格色11」——两层都还看得见；只有镜像是实心色4，只有目标是实心色11。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = &quot;看每一帧的 nxt；换关返回 NA（那一帧整屏重画）；盘面上没有色4 或没有色11 返回 NA。**只管颜色成分不出 {色4, 色11} 的块**——块里还有物件或分隔带时，画的是那两层，由 frame_is_render 管。中心格是可动标记的块（movers 里的）中心不算。&quot;
+NOTE = &quot;v2：v1 说「只含色11 的块是实心色11」，被 tid a3d4eea3431fa704 推翻——物件推到目标上，那一块边框是物件的色5、中心露出目标色11，既不是实心色11 也不在 v1 的例外里。缩 scope：这条只讲镜像与目标这两层怎么叠。它顺带钉住了一件事——**目标被盖住不会消失，它从中心格透出来**，物件那一层同理（那条由 frame_is_render 管）。v1 原本问的是「棋子压在目标上那一格画成什么」，答案已经拿到，而拿到的答案不属于这条概念。&quot;
+EVIDENCE = [&quot;4259e73e695d86ca&quot;, &quot;769528f2403ae67e&quot;, &quot;a3d4eea3431fa704&quot;]
+
+from _lib import CELL, block, movers, ring, shape, solid
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    s4, s11 = shape(nxt, 4), shape(nxt, 11)
+    if not s4 or not s11:
+        return &quot;NA&quot;
+    mk, h = movers(nxt), CELL // 2
+    for br, bc in s4 | s11:
+        b = block(nxt, br, bc)
+        if {v for row in b for v in row} - {4, 11}:
+            continue                              # 还叠着别的层，不由这条概念管
+        if (br, bc) in s4 and (br, bc) in s11:
+            want = ring(4, 11)
+        elif (br, bc) in s4:
+            want = solid(4)
+        else:
+            want = solid(11)
+        for i in range(CELL):
+            for j in range(CELL):
+                if (i, j) == (h, h) and (br, bc) in mk:
+                    continue                      # 这一格被标记占了，不由这条概念管
+                if b[i][j] != want[i][j]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details></div><details class="src"><summary>本局共享词汇 _lib.py</summary><pre><code class="language-python">&quot;&quot;&quot;这一局的词汇表 —— **每个定义都是假设，不是装置给的事实**。
+
+实测来源：第 1–103 步，第 0–4 关。
+盘面 64x64 分两部分：**盘面**是左上 21x21 个 3x3 的块（块坐标 (br,bc) = (row//CELL, col//CELL)，各取 0..20）；
+最后一行是一条静止的装饰带，最后一列是**计数带**（64 格，自顶向下被填掉，空格是色11，填充色随关卡变）。
+
+盘上的角色（颜色是这一局的偶然事实，读法是假设）：
+  色5  **真物件**，空心（边框色5）。可以有好几片；被推的就是它们之一。
+  色10 **分隔带**，空心，占满一条块行或一条块列 —— 它是镜像轴，而且它自己也能被推。
+       **轴可以不止一条**：第4 关是一横一竖两条，交叉却不合并成一件东西，各推各的。
+  色4  **镜像**，实心。它不是独立的东西：它是全部色5 在**这组轴生成的反射群**下的像，**只画落在盘内的那部分**
+       （第2关轴在下方，镜像落到盘外，所以整关没有色4）。一条轴给一个镜像；一行加一列还多给一个绕交点的点对称。
+  色11 实心的**目标**（也是计数带的空格色）。
+块的**中心格是色0** 标记「这一组是当前被推的那一组」；ACTION6:x,y 换标记（见 act6_select），不花计数。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+CELL = 3
+NB = 21                  # 盘面 21x21 块
+BG = 9                   # 底色
+MARK = 0                 # 「这一组正被选中」的标记色：块的中心格是它
+PIECE = 5                # 真物件
+BAND = 10                # 分隔带 = 镜像轴
+GHOST = 4                # 镜像
+TARGET = 11              # 目标
+
+# **被选中那件东西**的位移，单位是块。
+DELTA = {&quot;ACTION1&quot;: (-1, 0), &quot;ACTION2&quot;: (1, 0), &quot;ACTION3&quot;: (0, -1), &quot;ACTION4&quot;: (0, 1)}
+
+
+def block(g, br, bc):
+    return tuple(tuple(g[br * CELL + i][bc * CELL + j] for j in range(CELL)) for i in range(CELL))
+
+
+def shape(g, color):
+    &quot;&quot;&quot;颜色 color 占的块集合（只看盘面 21x21 块；最后一行、最后一列不算盘面）。&quot;&quot;&quot;
+    out = set()
+    for br in range(NB):
+        for bc in range(NB):
+            b = block(g, br, bc)
+            if any(v == color for row in b for v in row):
+                out.add((br, bc))
+    return frozenset(out)
+
+
+def movers(g):
+    &quot;&quot;&quot;中心格是 MARK 的那些块 —— 当前被 ACTION1-4 推动的那一组。&quot;&quot;&quot;
+    return frozenset((br, bc) for br in range(NB) for bc in range(NB)
+                     if g[br * CELL + CELL // 2][bc * CELL + CELL // 2] == MARK)
+
+
+def comp(g, color, br, bc):
+    &quot;&quot;&quot;从块 (br,bc) 出发的「一个物件」：同色块**八邻连通**，并且允许跨过目标块。
+    由来：分隔带被线上的目标块切成几段，点其中一段，整条带一起被选中一起走——
+    目标是画在地板上的记号，东西从它上面过，不算断开。
+    **八邻而非四邻**：第 5 关四片散落的色5 对角相连，世界点其中一片把四片一起选中一起推——
+    四邻切成 4 件，八邻切成 1 件，只有后者和标记一致（全语料 145 帧验证：四邻 4 帧失败，八邻 0 帧失败；
+    不算 2 帧零标记的帧）。
+    注意：八邻对分隔带仍不够用——两条交叉的轴对角块也相连，世界却把它们当两件东西。
+    所以带按「线」读，不按连通片读，见 band_lines。&quot;&quot;&quot;
+    s = shape(g, color)
+    if (br, bc) not in s:
+        return frozenset()
+    nodes = s | shape(g, TARGET)
+    seen, stack = {(br, bc)}, [(br, bc)]
+    while stack:
+        r, c = stack.pop()
+        for dr, dc in ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)):
+            p = (r + dr, c + dc)
+            if p in nodes and p not in seen:
+                seen.add(p)
+                stack.append(p)
+    return frozenset(seen &amp; s)
+
+
+def pieces(g):
+    &quot;&quot;&quot;色5 的各个连通片（每片一个块集合）。&quot;&quot;&quot;
+    left, out = set(shape(g, PIECE)), []
+    while left:
+        br, bc = next(iter(left))
+        s = comp(g, PIECE, br, bc)
+        out.append(s)
+        left -= s
+    return out
+
+
+def line_cells(line):
+    &quot;&quot;&quot;一条线占的 21 块（不减目标）。&quot;&quot;&quot;
+    kind, k = line
+    return frozenset((k, bc) for bc in range(NB)) if kind == &quot;row&quot; else frozenset((br, k) for br in range(NB))
+
+
+def band_lines(g):
+    &quot;&quot;&quot;盘上有哪几条分隔带轴：(&quot;row&quot;,br) / (&quot;col&quot;,bc) 的元组。一条轴 = 一整块行或一整块列，
+    线上每一块要么是带，要么被目标让位、被物件或镜像盖住；带块少于 2 的行列不算。
+    有色10 不落在任何一条轴上就返回 None（说不准）。
+    由来：第4 关同时有一条横轴和一条竖轴，交叉于一点，而点击只选中其中一条。&quot;&quot;&quot;
+    b = shape(g, BAND)
+    if not b:
+        return ()
+    ok = b | shape(g, TARGET) | shape(g, PIECE) | shape(g, GHOST)
+    out = []
+    for k in range(NB):
+        if all((k, bc) in ok for bc in range(NB)) and sum((k, bc) in b for bc in range(NB)) &gt;= 2:
+            out.append((&quot;row&quot;, k))
+    for k in range(NB):
+        if all((br, k) in ok for br in range(NB)) and sum((br, k) in b for br in range(NB)) &gt;= 2:
+            out.append((&quot;col&quot;, k))
+    cov = frozenset().union(*[line_cells(l) for l in out]) if out else frozenset()
+    return tuple(out) if b &lt;= cov else None
+
+
+def band_cells(g, line):
+    &quot;&quot;&quot;分隔带在某条线上占的块 = 那条线上的全部 21 块，减去线上的目标块。
+    由来：带从一条行走到另一条行，块数跟着新行上有几个目标变（20 → 18）——它不是个形状固定的物件，
+    它是一条线，目标处让位。&quot;&quot;&quot;
+    return frozenset(line_cells(line) - shape(g, TARGET))
+
+
+IDENT = (1, 0, 1, 0)
+
+
+def _compose(a, b):
+    &quot;&quot;&quot;先做 a 再做 b。变换写成 (sr, ar, sc, ac)：row&#x27; = sr*row + ar，col&#x27; = sc*col + ac。&quot;&quot;&quot;
+    sr1, ar1, sc1, ac1 = a
+    sr2, ar2, sc2, ac2 = b
+    return (sr1 * sr2, sr2 * ar1 + ar2, sc1 * sc2, sc2 * ac1 + ac2)
+
+
+def transforms(lines):
+    &quot;&quot;&quot;这组轴生成的全部镜像变换，不含恒等。一条轴给一个镜像；一行加一列还多给一个绕交点的点对称。
+    两条平行轴会生成无穷多个平移，数不完就返回 None（说不准，还没见过这种局面）。&quot;&quot;&quot;
+    gens = [(-1, 2 * k, 1, 0) if kind == &quot;row&quot; else (1, 0, -1, 2 * k) for kind, k in lines]
+    grp, front = {IDENT}, [IDENT]
+    while front:
+        t = front.pop()
+        for gm in gens:
+            n = _compose(t, gm)
+            if n not in grp:
+                if len(grp) &gt;= 8:
+                    return None
+                grp.add(n)
+                front.append(n)
+    return frozenset(grp - {IDENT})
+
+
+def apply_t(t, p):
+    sr, ar, sc, ac = t
+    return (sr * p[0] + ar, sc * p[1] + ac)
+
+
+def ghosts(cells, lines):
+    &quot;&quot;&quot;cells 在这组轴下的全部镜像落点（含落在盘外的，裁不裁由调用方决定）；算不出来返回 None。&quot;&quot;&quot;
+    ts = transforms(lines)
+    if ts is None:
+        return None
+    return frozenset(apply_t(t, p) for t in ts for p in cells)
+
+
+def shift(s, d):
+    return frozenset((br + d[0], bc + d[1]) for br, bc in s)
+
+
+def shift_line(line, d):
+    &quot;&quot;&quot;线跟着走：横线只能上下走，竖线只能左右走；另一向返回 None（那等于把带推出盘外）。&quot;&quot;&quot;
+    kind, k = line
+    if kind == &quot;row&quot;:
+        return (&quot;row&quot;, k + d[0]) if d[1] == 0 else None
+    return (&quot;col&quot;, k + d[1]) if d[0] == 0 else None
+
+
+def inside(s):
+    return all(0 &lt;= br &lt; NB and 0 &lt;= bc &lt; NB for br, bc in s)
+
+
+def counter(g):
+    &quot;&quot;&quot;计数带（最后一列，64 格）已用掉的格数 = 顶部连续「不是色11」的格数。
+    填充色随关卡变（见过色5 和色12），空格一直是色11 —— 所以数的是「不是11」，不是「是某个色」。&quot;&quot;&quot;
+    w, n = len(g[0]) - 1, 0
+    for r in range(len(g)):
+        if g[r][w] == TARGET:
+            break
+        n += 1
+    return n
+
+
+def fill_color(g):
+    &quot;&quot;&quot;计数带当前的填充色；一格都没用掉就读不出来（返回 None）。&quot;&quot;&quot;
+    return g[0][len(g[0]) - 1] if counter(g) else None
+
+
+def me(g):
+    &quot;&quot;&quot;镜像（色4）外接框的左上角像素；没有色4 就 None。给 lens.py map 用。&quot;&quot;&quot;
+    s = shape(g, GHOST)
+    return (min(br for br, _ in s) * CELL, min(bc for _, bc in s) * CELL) if s else None
+
+
+def solid(color):
+    return tuple(tuple(color for _ in range(CELL)) for _ in range(CELL))
+
+
+def ring(color, center):
+    &quot;&quot;&quot;边框 color、中心格 center 的一块。&quot;&quot;&quot;
+    b = [[color] * CELL for _ in range(CELL)]
+    b[CELL // 2][CELL // 2] = center
+    return tuple(tuple(r) for r in b)
+
+
+def paint(br, bc, b):
+    return {(br * CELL + i, bc * CELL + j): b[i][j] for i in range(CELL) for j in range(CELL)}
+
+
+def obj_mode(g, s, color):
+    &quot;&quot;&quot;一件东西**看得见的那些块**的中心格读法 —— 它说的是「这件东西现在能不能被推」：
+    底色 = 能推但没被选中；自身颜色（实心）= 推不动；
+    &quot;hidden&quot; = 没有一块露得出自己的中心格（压在目标上、或被标记盖住），帧上读不出它是哪一种。
+    由来：第0关的分隔带是实心的（推不动，那一关推的是物件），第1、2 关的带是空心的（能推）。
+    **「正被选中」不在这里判**：标记穿透所有层（见 render），所以它是 read 按 movers 统一判的。
+    读之前排掉两类格：中心格是标记色的（那说的是「这一块参与移动」，不是这件东西的可推状态），
+    和压在目标上的（中心格露的是目标色）。&quot;&quot;&quot;
+    h = CELL // 2
+    rest = s - movers(g) - shape(g, TARGET)
+    if not rest:
+        return &quot;hidden&quot;
+    cs = {g[br * CELL + h][bc * CELL + h] for br, bc in rest}
+    if cs == {BG}:
+        return &quot;free&quot;
+    if cs == {color}:
+        return &quot;fixed&quot;
+    return None
+
+
+def selected(g):
+    &quot;&quot;&quot;当前被推的那件东西占的块；读不出来返回 None。
+    不能直接拿 movers 当它：压在目标上的块中心格露的是目标色，不算进 movers，可那几块照样跟着走。&quot;&quot;&quot;
+    st = read(g)
+    if st is None:
+        return None
+    for o in st[&quot;objs&quot;]:
+        if o[&quot;mode&quot;] == &quot;sel&quot;:
+            return o[&quot;cells&quot;]
+    return None
+
+
+def read(g):
+    &quot;&quot;&quot;把一帧读成状态：各件东西（每条带轴一件 + 色5 的各片，带各自的可推状态）、轴有哪几条、目标块集合。
+    读不出轴（有色10 不在任何一条线上）返回 None。
+    带的 cells 取**逻辑占位**（band_cells：整条线减去线上的目标），不是帧上看得见的那些——
+    被物件盖住的带块在帧上看不见，却照样跟着带走。它的可推状态则只看这条轴上看得见的那些块。
+    **谁被选中按标记判**：标记（中心格色0）穿透所有层，一件东西被选中时，它除目标块以外的每一块都带标记。
+    标记比一整件东西少时是**粘连**：两个对象在帧上挨上了（八邻连成一片），帧分不出边界——
+    对象身份在世界里跨移动保持，帧上挨着不等于同一件——按标记把连通片切成「被选中的那件 = 标记块」
+    和「剩下的部分」。切法只保证可预测性（世界推的就是标记那些块），不保证 rest 是世界里的一件东西。
+    一个标记都没有：恰有一件东西整片压在目标上时它就是被选中的那件（one_selected 检验这句话）。&quot;&quot;&quot;
+    lines = band_lines(g)
+    if lines is None:
+        return None
+    vis = shape(g, BAND)
+    tg = shape(g, TARGET)
+    objs = []
+    for l in lines:
+        cells = band_cells(g, l)
+        objs.append({&quot;cells&quot;: cells, &quot;color&quot;: BAND, &quot;line&quot;: l,
+                     &quot;mode&quot;: obj_mode(g, cells &amp; vis, BAND)})
+    for p in pieces(g):
+        objs.append({&quot;cells&quot;: p, &quot;color&quot;: PIECE, &quot;line&quot;: None, &quot;mode&quot;: obj_mode(g, p, PIECE)})
+    m = movers(g)
+    hits = [o for o in objs if m and m == (o[&quot;cells&quot;] - tg)]
+    if len(hits) &gt; 1:
+        return None
+    if len(hits) == 1:
+        hits[0][&quot;mode&quot;] = &quot;sel&quot;
+    elif m:
+        hosts = [o for o in objs if o[&quot;color&quot;] == PIECE and m &lt; o[&quot;cells&quot;]]
+        if len(hosts) != 1:
+            return None
+        h = hosts[0]
+        rest = h[&quot;cells&quot;] - m
+        h[&quot;cells&quot;] = frozenset(m)
+        h[&quot;mode&quot;] = &quot;sel&quot;
+        objs.append({&quot;cells&quot;: rest, &quot;color&quot;: PIECE, &quot;line&quot;: None,
+                     &quot;mode&quot;: obj_mode(g, rest, PIECE)})
+    else:
+        hid = [o for o in objs if o[&quot;mode&quot;] == &quot;hidden&quot;]
+        if len(hid) != 1:
+            return None
+        hid[0][&quot;mode&quot;] = &quot;sel&quot;
+    for o in objs:
+        if o[&quot;mode&quot;] == &quot;hidden&quot;:
+            o[&quot;mode&quot;] = &quot;free&quot;
+    return {&quot;objs&quot;: objs, &quot;lines&quot;: lines, &quot;targets&quot;: tg}
+
+
+def render(st):
+    &quot;&quot;&quot;从状态画回整个盘面（21x21 块），返回 {(row,col): 色}；说不准就返回 None。
+
+    叠起来怎么画（实测）：两件事各有一条优先级，而且是**同一条**——物件(色5) &gt; 镜像(色4) &gt; 目标(色11) &gt; 分隔带(色10) &gt; 底色。
+    **边框色**取最上面那一层的颜色。**中心格**取最上面那一层的「中心写法」，各层的中心写法是：
+    目标 → 目标色（它画在地板上，压住它的东西不会让它消失，它从中心透出来，所以它在中心这条优先级里反而在最上面）；
+    物件与分隔带 → 正被选中画标记色、能推画底色、推不动画自己的颜色；镜像 → 它是实心的，没有状态可写，就画自己的色4；
+    都没有 → 跟边框同色。**「正被选中」这个标记穿透所有层**：一块上只要压着的东西里有一件是被选中的那件，
+    中心格就是标记色，不管它在第几层（实测：物件压在被选中的带上、带钻到被选中的物件底下、两条带交叉，四种叠法一律标记色）。
+    其余情形由最上面那一层写：底色 = 能推没被选中，自身颜色 = 推不动。
+    唯一还说不准的叠法：两片物件叠在一起（边框都是色5，分不出来）——返回 None。&quot;&quot;&quot;
+    if st is None:
+        return None
+    lines, objs, tg = st[&quot;lines&quot;], st[&quot;objs&quot;], st[&quot;targets&quot;]
+    if not lines or any(o[&quot;mode&quot;] is None for o in objs):
+        return None
+    ps = [o[&quot;cells&quot;] for o in objs if o[&quot;color&quot;] == PIECE]
+    allp = frozenset().union(*ps) if ps else frozenset()
+    if sum(len(p) for p in ps) != len(allp):
+        return None
+    gh = ghosts(allp, lines)
+    if gh is None:
+        return None
+    refl = frozenset(p for p in gh if inside({p})) - allp
+    owner, marked = {}, set()
+    for o in objs:
+        for p in o[&quot;cells&quot;]:
+            if o[&quot;mode&quot;] == &quot;sel&quot;:
+                marked.add(p)
+            cur = owner.get(p)
+            if cur is None:
+                owner[p] = o
+            elif cur[&quot;color&quot;] != PIECE and o[&quot;color&quot;] == PIECE:
+                owner[p] = o
+    out = {}
+    for br in range(NB):
+        for bc in range(NB):
+            p, on_t = (br, bc), (br, bc) in tg
+            o = owner.get(p)
+            if p in allp:
+                edge = PIECE
+            elif p in refl:
+                edge = GHOST
+            elif o is not None:
+                edge = o[&quot;color&quot;]
+            elif on_t:
+                edge = TARGET
+            else:
+                edge = BG
+            if on_t:
+                center = TARGET
+            elif p in marked:
+                center = MARK
+            elif p in refl:
+                center = GHOST
+            elif o is not None:
+                center = MARK if o[&quot;mode&quot;] == &quot;sel&quot; else (BG if o[&quot;mode&quot;] == &quot;free&quot; else o[&quot;color&quot;])
+            else:
+                center = edge
+            out.update(paint(br, bc, ring(edge, center)))
+    return out
+
+
+def _sel(g):
+    &quot;&quot;&quot;(状态, 被选中那件东西)；读不出来返回 (None, None)。&quot;&quot;&quot;
+    st = read(g)
+    if st is None:
+        return None, None
+    sels = [o for o in st[&quot;objs&quot;] if o[&quot;mode&quot;] == &quot;sel&quot;]
+    return (st, sels[0]) if len(sels) == 1 else (None, None)
+
+
+def sel_move(g, d):
+    &quot;&quot;&quot;被选中那件东西走一步之后**该占的块集合**；说不准返回 None。
+    带走：先把它那条线挪一格，再按新线重算占位；别的东西走：整体平移。&quot;&quot;&quot;
+    st, sel = _sel(g)
+    if sel is None:
+        return None
+    if sel[&quot;color&quot;] == BAND:
+        nl = shift_line(sel[&quot;line&quot;], d)
+        return None if nl is None else band_cells(g, nl)
+    return shift(sel[&quot;cells&quot;], d)
+
+
+def post(g, d):
+    &quot;&quot;&quot;推一下（被选中那件东西走 d）之后的**状态**（objs / lines / targets）；说不准返回 None。
+    盘面长什么样由 render 从它算，「这一关过没过」由 covers_all 从它算。&quot;&quot;&quot;
+    st, sel = _sel(g)
+    if sel is None:
+        return None
+    ncells = sel_move(g, d)
+    if not ncells or not inside(ncells):
+        return None                               # 推到盘外会怎样（卡住？无效？）还没试过
+    if sel[&quot;color&quot;] == BAND:
+        nl = shift_line(sel[&quot;line&quot;], d)
+        objs = [{**o, &quot;cells&quot;: ncells, &quot;line&quot;: nl} if o is sel else o for o in st[&quot;objs&quot;]]
+        lines = tuple(nl if l == sel[&quot;line&quot;] else l for l in st[&quot;lines&quot;])
+    else:
+        objs = [{**o, &quot;cells&quot;: ncells} if o is sel else o for o in st[&quot;objs&quot;]]
+        lines = st[&quot;lines&quot;]
+    return {**st, &quot;objs&quot;: objs, &quot;lines&quot;: lines}
+
+
+def covers_all(st):
+    &quot;&quot;&quot;这个状态里，每一块目标是不是都被物件或它的某个镜像盖住了 —— 这一局「赢」的判据。&quot;&quot;&quot;
+    if st is None:
+        return False
+    ps = [o[&quot;cells&quot;] for o in st[&quot;objs&quot;] if o[&quot;color&quot;] == PIECE]
+    allp = frozenset().union(*ps) if ps else frozenset()
+    if not allp or not st[&quot;lines&quot;]:
+        return False
+    gh = ghosts(allp, st[&quot;lines&quot;])
+    if gh is None:
+        return False
+    refl = frozenset(p for p in gh if inside({p}))
+    return bool(st[&quot;targets&quot;]) and st[&quot;targets&quot;] &lt;= (allp | refl)
+
+
+def step_pred(g, d):
+    &quot;&quot;&quot;推一下之后的整个盘面；说不准就 None。
+    这一步会盖满全部目标时**故意不预测**：那一帧是换关的整屏重画，新关长什么样算不出来。&quot;&quot;&quot;
+    st = post(g, d)
+    if st is None or covers_all(st):
+        return None
+    return render(st)
+</code></pre></details></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/98f557f1-7b5e-40c5-9304-456b1ec2a3ed" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

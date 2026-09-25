@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World.icons</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     这一局：走得进 / 走不进 / 出口 / 玩家 / 臂 / 枢纽 / 图标 / 这一步变了的格。
+     垫子四种色对、两种相变格的颜色写在 site.js 的两张小表里（它们按编号取色）。 */
+  --floor: #2b3140;
+  --wall: #0b0d12;
+  --goal: #f2d24b;
+  --me: #59b0ff;
+  --arm: #8c6fd6;
+  --hub: #5b4a91;
+  --icon: #3ec6c0;
+  --hl: #ff5d5d;
+  --link: #7ab8ff;
+  --fg: #e8eaf0;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body data-page="">
+<div class="wrap">
+<header>
+  <h1>World.icons</h1>
+  <div class="sub"><code>Icon</code> —— 地上一枚可以捡的图标。</div>
+  <nav><a href="../index.html">这是个什么游戏</a> <a href="../replay.html">回放</a> <a href="../objects/index.html">对象</a> <a href="../rules/index.html">规则</a> <a href="../lean/index.html">形式化</a> <a href="../howto.html">怎么给别人看</a></nav>
+</header>
+
+<div class="card"><h2>读数</h2>
+<table>
+<tr><th style="width:190px">分离表（语料里只差这一位的一对帧）</th><td><b>分不开</b>——语料里找不到只差这一位的一对帧</td></tr>
+<tr><th>字段消融（抹成常量，判决变几处）</th><td>3 处</td></tr>
+<tr><th>读它的规则</th><td>pickup</td></tr>
+<tr><th>消融见证（分不开时另找的一条）</th><td>seq 212（第 1 关，tid <code>2fb7fe5122ee4500</code>）：规则 <a href='../rules/pickup.html'>pickup</a> 的判决 TRUE → NA</td></tr>
+</table></div>
+<div class="card"><h2>它是什么（objects/map/icon.py）</h2><div id="doc"><p><code>Icon</code> —— 地上一枚可以捡的图标。</p><p>帧上长这样（X 是图标色，<code>.</code> 是地板色 2）：</p><p>    . X X .
+    X X X X</p><p>六个像素，不一定对齐格（第 1 关那一枚跨在两行格上）。
+玩家走进它盖着的任何一格，它就消失，同时面板上多出一张 <b>X 色</b>的卡。</p><p>记两样：它盖着哪几格、它是什么色（= 捡到之后多出来的那张卡的颜色）。</p></div></div>
+<div class="card"><h2>为什么删不掉（analysis/icons.txt）</h2><pre class="doc">World.icons —— 地上可以捡的图标
+
+1. 它记的是什么：<code>. X X . / X X X X</code> 六像素图案（<code>.</code> 是地板色 2）盖着的格与颜色 X。
+2. 谁读它：pickup（走进去之后面板多出 X 色的卡）。
+3. 抹成常量：消融判决变 3 处。另找的消融见证：seq 212（第 1 关，tid 2fb7fe5122ee4500），抹掉之后 pickup TRUE → NA。
+4. 分离表：<b>分不开</b>——捡起图标那一步 cards 同时变，「只差图标」的一对帧不存在（同生共死）。
+
+该合吗：分离表说它与 cards 同生共死；但规则只在 pickup 这一条里读它、而且要的是「它在哪几格」，cards 里没有位置。
+不合。只有一条读者、21 次开口——语料够撑，不是只靠个位数转移活着。
+</pre></div>
+<div class="card"><h2>它的 Lean：Obj/Map/Icon.lean　<span class="chip TRUE">定义</span></h2>
+<pre class="lean" data-src>/-
+# Icon —— 地上一枚可以捡的图标（↔ `objects/map/icon.py`）
+
+它盖着的格、它的颜色（= 捡到之后面板上多出来的那张卡的颜色）。在哪是版面（关内不变），
+捡没捡过由 `World.cards` 里有没有那种颜色说出来。
+-/
+
+import Obj.Geometry.Cell
+
+namespace Game
+
+structure Icon where
+  cells : List Cell
+  color : Nat
+deriving DecidableEq, Repr
+
+end Game
+</pre></div>
+
+</div>
+<script>window.DATA={"colors":["#FFFFFF","#CCCCCC","#999999","#666666","#333333","#000000","#E53AA3","#FF7BCC","#F93C31","#1E93FF","#88D8F1","#FFDC00","#FF851B","#921231","#4FCC30","#A356D6"],"counts":{"rows":2664,"walk":2632,"levels":6,"rules":17,"false":0,"nobody":0,"frames":1456},"rule_names":["move","bands_notch","bars_shift","click_keeps_player","click_nothing","click_touches_own_cells","hub_transpose","icon_cycles_pad","move_keeps_map","phase_flip","pickup","teleport","under_revealed","reach_goal","reset_to_start","union_open","unmodeled_cards_leave_model_alone"],"world_doc":"`World` —— 一帧里读得出来的这一局的**全部状态**。\n\n字段就是这一局的对象。每个字段为什么删不掉，写在 `analysis/<字段>.txt`，\n装置的消融读数写在 `analysis/字段-<字段>.txt`。\n\n    me       玩家在哪一格\n    goal     出口格（四像素全色 11）。走进去就过关\n    open     地图上此刻**走得进**的格（不含出口格）。玩家脚下那一格算走得进\n    pads     露着的垫子（位置 + 色对）\n    bridges  相变格（位置 + 颜色）；此刻实心还是棋盘 = 它在不在 `open` 里\n    hubs     枢纽 + 臂装置\n    icons    地上可以捡的图标\n    cards    面板上的卡\n\n**帧上读不出来的东西不在这里**：玩家脚下被盖住的那块垫子是什么色对。\n它在形式化那一层是一个由 `step` 推进的隐藏量，不是世界的字段——\n硬塞进来就等于给 `parse` 一位它读不到的信息。\n关号、状态字符串也不在这里（戒律 3：上游已给的事实不进世界，规则从 `ctx` 读）。","parse_doc":"帧 → 世界。**全局唯一碰像素的地方。**\n\n上面每一层只认 `World` 的字段，读不到帧。这里的每一条读法都是一句**可判错的话**，\n来由写在旁边；它们大多是起点册子里那本词汇表（`_lib`）拿反例拼出来的界线，\n这里用对象的口径重写了一遍（不 import 那一份）。\n\n## 一格 = 2×2 像素\n\n玩家是 2×2 的色 14，地图上的东西全按 2×2 对齐、相位 (0,0)。行 62–63 是 HUD，不进世界。\n\n## 读不出来就抛 `ParseError`\n\n只有一种：**找不到玩家**（色 14 的小块按格位数，最多的那一格不唯一或一个都没有）。\n这里只管抛，不管归类——「这一帧是不是一张可玩的盘」由拿得到 meta 的那一层判（`corpus.py`）。","rule_groups":{"一步怎么走":"**这一组管：按一个方向键之后，玩家落在哪一格。**\n\n只说位置，不说「过没过关」（隔壁 `什么算赢/`），也不说版面上别的东西变不变（`世界怎么回应/`）。","世界怎么回应":"**这一组管：点一下卡、走一步之后，版面上的物件怎么变。**\n\n点在卡面以外什么都不变；点色 K 的卡翻色 K 的桥；点枢纽那张卡转臂；点色 6 的卡换位；\n点四色小图标换一块垫子的花色；走进图标把它捡走；走一步不碰版面。\n\n这一组的规则**各管一种卡**，论域按「点中的是哪张卡」天然错开。\n点色 11 的卡推横条、点色 2 的卡挪带子（第二轮接手）。第 4、5 关另有几种卡（爪子、十字件、方框、菱形）模型不描述，\n它们的去向写在 `说了但不进模型/`。\n\n这一组里身份是「推论」的那几条（move_keeps_map、click_keeps_player、click_touches_own_cells），\nLean 那边住在 `Derived/`——它们在模型里是推出来的定理，不是定义。","什么算赢":"**这一组管：什么时候过关。**\n\n赢是一个**状态**性质：玩家站进出口格。这一组只有一条，它是「赢」的定义。","说了但不进模型":"**这一组管：写出来了、能被语料驳倒，但不进形式化的模型。**\n\n每一条都固定打两个数：**论域条数**（语料里多少条转移落在它管的范围里）和**被驳倒几次**。\n论域是 0 的照样判红——一条谁也管不着的假设，和一条从没被驳倒的假设，读数上必须分得开。\n\n这一组里的每一条，都是形式化那一层**明写的假设**：它不进 `step`，但模型的某一处结论靠着它。"},"object_groups":{"geometry":"几何：格坐标。**这一类里没有任何世界断言**——它只说「第几行第几列」，不说「那一格是墙」。","map":"**版面上的东西**：地图区里读得出来、会被规则读到的物件——垫子、相变格、枢纽与臂、图标。\n\n分成一组的理由：它们都**住在地图的格子上**，而且都会因为玩家的一个动作而改变\n（垫子被色 6 卡换位、相变格被色 K 卡翻相、臂被枢纽那张卡转置、图标被走进去捡走）。\n地图上「走不走得进」这件事本身不在这里，在 `World.open`。","panel":"**面板上的东西**：右侧那块底色 5 的面板上画着的、可以点的卡。\n\n分成一组的理由：它们不在地图上、玩家走不到；只通过「点一下」起作用。"},"boards":{"0":{"bridge":{"9":8},"arm_zone":12,"dynamic":20,"unmodeled":0,"union_open":45,"goal":1,"tracks":[],"bands":[],"cyc_site":null},"1":{"bridge":{"9":12},"arm_zone":64,"dynamic":76,"unmodeled":0,"union_open":107,"goal":1,"tracks":[],"bands":[],"cyc_site":null},"2":{"bridge":{"15":18,"9":16},"arm_zone":32,"dynamic":66,"unmodeled":0,"union_open":93,"goal":1,"tracks":[],"bands":[],"cyc_site":null},"3":{"bridge":{},"arm_zone":0,"dynamic":32,"unmodeled":0,"union_open":73,"goal":1,"tracks":[[14,4,11],[19,2,9]],"bands":[[10,4,false],[20,8,true]],"cyc_site":null},"4":{"bridge":{"15":18,"9":8},"arm_zone":0,"dynamic":146,"unmodeled":105,"union_open":176,"goal":1,"tracks":[[27,7,13]],"bands":[[22,7,false]],"cyc_site":null},"5":{"bridge":{},"arm_zone":0,"dynamic":292,"unmodeled":268,"union_open":408,"goal":1,"tracks":[[27,3,10],[28,3,10],[29,3,10]],"bands":[],"cyc_site":[24,9]}},"reverse":{"table":[{"name":"必红·走一步永远不动","file":"rule/一步怎么走/move.py","what":"种下的必红突变体：方向键一律原地不动。1825 次成功的走动全该判错","red":true,"why":"判错 move×1729","seed":true},{"name":"走不进也走进去","file":"rule/一步怎么走/move.py","what":"move 丢了「走不进就不动」那一半","red":true,"why":"判错 move×96"},{"name":"上下颠倒","file":"derive/action.py","what":"方向表里上下对调","red":true,"why":"判错 move×1154、union_open×8、reach_goal×2、pickup×1"},{"name":"色8至少两像素这条界线丢了","file":"objects/parse.py","what":"对象层「什么格走得进」少了十字件环那一支","red":true,"why":"判错 move×46、union_open×46"},{"name":"图例标记格当墙","file":"objects/parse.py","what":"对象层「含色 0 的只有标记格例外」那一支","red":true,"why":"判错 move×49、union_open×49"},{"name":"相变不看玩家在不在桥上","file":"rule/世界怎么回应/phase_flip.py","what":"phase_flip 丢了「站在桥上就不翻」","red":true,"why":"判错 phase_flip×3"},{"name":"桥下的玩家读不出来","file":"objects/parse.py","what":"对象层不再推断玩家站在桥上","red":true,"why":"判错 phase_flip×3"},{"name":"臂按反对角线翻","file":"derive/transpose.py","what":"转置公式换成另一条对角线","red":true,"why":"判错 click_touches_own_cells×8、hub_transpose×8"},{"name":"转臂不看玩家在不在臂上","file":"rule/世界怎么回应/hub_transpose.py","what":"hub_transpose 丢了「站在臂上就不转」","red":true,"why":"判错 hub_transpose×6"},{"name":"挨着臂尖也算在臂上","file":"objects/parse.py","what":"撤掉对象层 v1.1 那一句","red":true,"why":"判错 hub_transpose×1"},{"name":"色6卡从不换位","file":"rule/世界怎么回应/teleport.py","what":"teleport 只剩「原地不动」那一支","red":true,"why":"判错 teleport×84"},{"name":"换位不管色对","file":"rule/世界怎么回应/teleport.py","what":"落点色对取反","red":true,"why":"判错 teleport×84"},{"name":"图标倒着换花色","file":"rule/世界怎么回应/icon_cycles_pad.py","what":"循环方向反了","red":true,"why":"判错 icon_cycles_pad×4"},{"name":"横条往左推","file":"derive/bars.py","what":"横条走反了","red":true,"why":"判错 bars_shift×219"},{"name":"横条到头不绕回","file":"derive/bars.py","what":"到头之后冲出轨道","red":true,"why":"判错 bars_shift×78"},{"name":"横条不管玩家脚下","file":"rule/世界怎么回应/bars_shift.py","what":"丢了「卡不搬玩家脚下的地」","red":true,"why":"判错 bars_shift×9"},{"name":"带子到头不折返","file":"rule/世界怎么回应/bands_notch.py","what":"档 4 之后被要求继续涨","red":true,"why":"判错 bands_notch×7"},{"name":"两条带子同向","file":"rule/世界怎么回应/bands_notch.py","what":"丢了「两条反向」","red":true,"why":"判错 bands_notch×42"},{"name":"捡图标不出卡","file":"rule/世界怎么回应/pickup.py","what":"pickup 的结论取反","red":true,"why":"判错 pickup×21"},{"name":"出口不算赢","file":"rule/什么算赢/reach_goal.py","what":"赢的定义被抹掉","red":true,"why":"判错 reach_goal×22"},{"name":"重来不回开局","file":"rule/说了但不进模型/reset_to_start.py","what":"RESET 当成什么都没发生","red":true,"why":"判错 reset_to_start×10"},{"name":"点空白也会动","file":"rule/世界怎么回应/click_nothing.py","what":"click_nothing 的结论取反","red":true,"why":"判错 click_nothing×10"},{"name":"点卡不许改机关格","file":"rule/世界怎么回应/click_touches_own_cells.py","what":"把模型不描述的机关格也算成「不许动」","red":true,"why":"判错 click_touches_own_cells×299"},{"name":"走一步连卡也不许变","file":"rule/世界怎么回应/move_keeps_map.py","what":"move_keeps_map 越界去管面板（捡图标、亮菱形都会让它红）","red":true,"why":"判错 move_keeps_map×125"},{"name":"未建模的卡也不许动地图","file":"rule/说了但不进模型/unmodeled_cards_leave_model_alone.py","what":"把「不碰模型那几样」加强成「一格都不动」——第 3–5 关的机关会让它红","red":true,"why":"判错 unmodeled_cards_leave_model_alone×186"},{"name":"论域为 0","file":"rule/说了但不进模型/union_open.py","what":"一条规则的论域写没了：|scope|=0 必须判红","red":true,"why":"|scope|=0：union_open"},{"name":"解析读不出","file":"objects/parse.py","what":"玩家在下半张盘时读不成世界：(b) 档 > 0 必须判红","red":true,"why":"判错 under_revealed×14；无人区 685；(b) 档 387"},{"name":"规则目录为空","file":"rules_load.py","what":"加载器 rglob 到空表","red":true,"why":"NoRules: runs\\_wb-dc22\\mut\\empty_rules 下一条规则都没找到（rglob）——空表判红"}],"red_n":28,"total":28,"ok":true},"device":{"ablation":{"me":{"changed":342,"errors":0},"goal":{"changed":3,"errors":0},"open":{"changed":367,"errors":0},"pads":{"changed":11,"errors":0},"bridges":{"changed":16,"errors":0},"hubs":{"changed":8,"errors":0},"icons":{"changed":3,"errors":0},"cards":{"changed":350,"errors":0}},"rows":320,"mutants":120,"rejected":100,"by_parse":0,"by_rule":{"move":59,"bands_notch":2,"bars_shift":11,"click_keeps_player":22,"click_nothing":4,"click_touches_own_cells":16,"hub_transpose":0,"icon_cycles_pad":0,"move_keeps_map":50,"phase_flip":3,"pickup":1,"teleport":4,"under_revealed":2,"reach_goal":0,"reset_to_start":0,"union_open":1,"unmodeled_cards_leave_model_alone":7},"unique":{"move":17,"bands_notch":0,"bars_shift":1,"click_keeps_player":1,"click_nothing":4,"click_touches_own_cells":0,"hub_transpose":0,"icon_cycles_pad":0,"move_keeps_map":8,"phase_flip":2,"pickup":0,"teleport":1,"under_revealed":0,"reach_goal":0,"reset_to_start":0,"union_open":0,"unmodeled_cards_leave_model_alone":0}},"lean":{"levels":[{"level":0,"conclusion":"走得通","segments":[{"k":0,"s0":1628,"n":23,"trace":true}],"checked_steps":23,"resets":0,"win_seq":1651,"start":1628,"witness_len":24},{"level":1,"conclusion":"走得通","segments":[{"k":0,"s0":1652,"n":42,"trace":true}],"checked_steps":42,"resets":0,"win_seq":1694,"start":1652,"witness_len":43},{"level":2,"conclusion":"走得通","segments":[{"k":0,"s0":1695,"n":44,"trace":true}],"checked_steps":44,"resets":0,"win_seq":1739,"start":1695,"witness_len":45},{"level":3,"conclusion":"走得通","segments":[{"k":0,"s0":1740,"n":91,"trace":true}],"checked_steps":91,"resets":0,"win_seq":1831,"start":1740,"witness_len":92},{"level":4,"conclusion":"走得通","segments":[{"k":0,"s0":1832,"n":113,"trace":true}],"checked_steps":113,"resets":0,"win_seq":1945,"start":1832,"witness_len":114},{"level":5,"conclusion":"走得通","segments":[{"k":0,"s0":1946,"n":142,"trace":true},{"k":1,"s0":2089,"n":137,"trace":true},{"k":2,"s0":2227,"n":52,"trace":true},{"k":3,"s0":2280,"n":65,"trace":true},{"k":4,"s0":2346,"n":122,"trace":true},{"k":5,"s0":2469,"n":195,"trace":true}],"checked_steps":713,"resets":5,"win_seq":2664,"start":1946,"witness_len":196}],"identity":[{"rule":"move","group":"一步怎么走","identity":"定义","lean":"Rule/Move/Move.lean","ok":true,"why":""},{"rule":"bands_notch","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/BandsNotch.lean","ok":true,"why":""},{"rule":"bars_shift","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/BarsShift.lean","ok":true,"why":""},{"rule":"click_keeps_player","group":"世界怎么回应","identity":"推论","lean":"Derived/ClickKeepsPlayer.lean","ok":true,"why":""},{"rule":"click_nothing","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/ClickNothing.lean","ok":true,"why":""},{"rule":"click_touches_own_cells","group":"世界怎么回应","identity":"推论","lean":"Derived/ClickTouchesOwnCells.lean","ok":true,"why":""},{"rule":"hub_transpose","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/HubTranspose.lean","ok":true,"why":""},{"rule":"icon_cycles_pad","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/IconCyclesPad.lean","ok":true,"why":""},{"rule":"move_keeps_map","group":"世界怎么回应","identity":"推论","lean":"Derived/MoveKeepsMap.lean","ok":true,"why":""},{"rule":"phase_flip","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/PhaseFlip.lean","ok":true,"why":""},{"rule":"pickup","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/Pickup.lean","ok":true,"why":""},{"rule":"teleport","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/Teleport.lean","ok":true,"why":""},{"rule":"under_revealed","group":"世界怎么回应","identity":"定义","lean":"Rule/Respond/Under.lean","ok":true,"why":""},{"rule":"reach_goal","group":"什么算赢","identity":"定义","lean":"Rule/Win/ReachGoal.lean","ok":true,"why":""},{"rule":"reset_to_start","group":"说了但不进模型","identity":"不进模型","lean":"Obs/Assume/ResetToStart.lean","ok":true,"why":""},{"rule":"union_open","group":"说了但不进模型","identity":"不进模型","lean":"Obs/Assume/UnionOpen.lean","ok":true,"why":""},{"rule":"unmodeled_cards_leave_model_alone","group":"说了但不进模型","identity":"不进模型","lean":"Obs/Assume/UnmodeledCards.lean","ok":true,"why":""}],"identity_counts":{"定义":11,"推论":3,"不进模型":3},"broken":{"rc":1,"errors":1,"error_lines":[34],"mark_line":34,"false_reason":true,"out":"Broken.lean:34:2: error: Tactic `decide` proved that the proposition\n  everWon (boardAt 0) (startAt 0 1628) (noCards L0_acts) = true\nis false"},"n_files":32,"n_theorems":77,"compiled_ok":32,"checked_steps_total":1026,"notes":["装置 ledger/lean_check.py：欠 11 件"],"toolchain":"~\\.elan\\toolchains\\leanprover--lean4---v4.34.0\\bin\\lean.exe","device_lean_check":{"ok":false,"owed":["`Derived/ClickKeepsPlayer.lean`（推论）一条对象层的 import 都没有 —— 它没长在这个世界上。","`Derived/ClickTouchesOwnCells.lean`（推论）一条对象层的 import 都没有 —— 它没长在这个世界上。","`Derived/MoveKeepsMap.lean`（推论）一条对象层的 import 都没有 —— 它没长在这个世界上。","`Proof/Levels.lean`（证明）一条对象层的 import 都没有 —— 它没长在这个世界上。","`Derived/ClickTouchesOwnCells.lean` 里有 7 条定理的语句里一个对象层的名字都没出现（foldl_keep、setTrack_bit、setBand_bit、bit_testBit、foldl_or_bit、zoneMask_bit）——它们跟这一局没有关系。","`Obs/Assume/ResetToStart.lean` 里有 2 条定理的语句里一个对象层的名字都没出现（reset_scope、reset_holds）——它们跟这一局没有关系。","`Obs/Assume/UnionOpen.lean` 里有 2 条定理的语句里一个对象层的名字都没出现（unionOpen_scope、unionOpen_holds）——它们跟这一局没有关系。","`Obs/Assume/UnmodeledCards.lean` 里有 2 条定理的语句里一个对象层的名字都没出现（unmodeled_scope、unmodeled_holds）——它们跟这一局没有关系。","`Obs/Corpus.lean` 里有 13 条定理的语句里一个对象层的名字都没出现（cases_len、L0_cases_len、L0_all_agree、L1_cases_len、L1_all_agree、L2_cases_len）——它们跟这一局没有关系。","`Proof/Levels.lean` 里有 28 条定理的语句里一个对象层的名字都没出现（L0_0_len、L0_0_trace、L0_winnable、L1_0_len、L1_0_trace、L1_winnable）——它们跟这一局没有关系。","`#print axioms` 跑不起来（退出码 1）：\n_Axioms.lean:33:14: error(lean.unknownIdentifier): Unknown constant `phaseFlip_me`\n_Axioms.lean:34:14: error(lean.unknownIdentifier): Unknown constant `Hub.turn_me`\n_Axioms.lean:35:14: error(lean.unknownIdentifier): Unknown constant `hubTurn_me`\n_Axioms.lean:36:14: error(lean.unknownIdentifier): Unknown constant `iconPress_me`\n_Axioms.lean:37:14: error(lean.unknownIdentifier): Unknown constant `barsShift_me`\n_Axioms.lean:38:14: error(lean.unknownIdentifier): Unknown constant `bandsNotch_me`\n_Axioms.lean:39:14: error(lean.unknownIdentifier): Unknown constant `press_keeps_me`\n_Axioms.lean:40:14: error(lean.unknownIdentifier): Unknown constant `step_press_keeps_me`"],"notes":["扫目录：32 份 .lean","分层（按目录认）：对象 9、推论 3、没归类 1、观测 6、规则 11、证明 2","没归类 Step.lean —— 它们不在任何一层里，下面几条分层检查对它们不起作用","跑成的分层检查：import 方向、长在世界上","lean：工具链 leanprover--lean4---v4.34.0（绕开 elan shim）"]}},"old_vs_new":{"nobody_old":12,"false_total_old":0,"old":{"action1_right":{"counts":{"TRUE":603,"NA":2061},"false_seq":[],"sec":0.1},"action2_left":{"counts":{"NA":2154,"TRUE":510},"false_seq":[],"sec":0.1},"action3_up":{"counts":{"NA":2369,"TRUE":295},"false_seq":[],"sec":0.0},"action4_down":{"counts":{"NA":2296,"TRUE":368},"false_seq":[],"sec":0.1},"blocking":{"counts":{"NA":2568,"TRUE":96},"false_seq":[],"sec":0.3},"card11_bars_shift":{"counts":{"NA":2564,"TRUE":100},"false_seq":[],"sec":0.0},"card11_l3_bars_shift":{"counts":{"NA":2570,"TRUE":94},"false_seq":[],"sec":0.4},"card11_refused_if_player_stranded":{"counts":{"NA":2622,"TRUE":42},"false_seq":[],"sec":0.0},"card2_gate_bounce":{"counts":{"NA":2646,"TRUE":18},"false_seq":[],"sec":0.0},"card2_l3_bands_one_notch":{"counts":{"NA":2608,"TRUE":56},"false_seq":[],"sec":0.0},"card6_flips_pad_phase":{"counts":{"NA":2558,"TRUE":106},"false_seq":[],"sec":0.1},"card6_refused_if_player_stranded":{"counts":{"NA":2658,"TRUE":6},"false_seq":[],"sec":0.1},"card6_rotates_piece":{"counts":{"NA":2551,"TRUE":113},"false_seq":[],"sec":0.1},"card6_teleport":{"counts":{"NA":2511,"TRUE":153},"false_seq":[],"sec":0.2},"card6_teleport_by_color_pair":{"counts":{"NA":2604,"TRUE":60},"false_seq":[],"sec":0.1},"card6_transposes_color7_arms":{"counts":{"NA":2655,"TRUE":9},"false_seq":[],"sec":0.1},"card8_clamps_box_on_piece":{"counts":{"NA":2660,"TRUE":4},"false_seq":[],"sec":0.0},"card8_gate_toggle":{"counts":{"NA":2637,"TRUE":27},"false_seq":[],"sec":0.0},"card8_transposes_arms":{"counts":{"NA":2637,"TRUE":27},"false_seq":[],"sec":0.1},"card_l4_claw_slides":{"counts":{"NA":2527,"TRUE":137},"false_seq":[],"sec":0.3},"card_l4_claw_waist_peek":{"counts":{"NA":2572,"TRUE":92},"false_seq":[],"sec":0.1},"card_phase_swap_by_color":{"counts":{"NA":2604,"TRUE":60},"false_seq":[],"sec":0.4},"card_pickup_clears_icon":{"counts":{"NA":2635,"TRUE":29},"false_seq":[],"sec":0.4},"cell_enterable":{"counts":{"TRUE":1825,"NA":839},"false_seq":[],"sec":0.3},"clamped_piece_slides":{"counts":{"NA":2598,"TRUE":66},"false_seq":[],"sec":0.1},"diamonds_inert":{"counts":{"NA":2664},"false_seq":[],"sec":0.0},"gameover_counter":{"counts":{"NA":2664},"false_seq":[],"sec":0.0},"goal_is_color11_block":{"counts":{"TRUE":1847,"NA":817},"false_seq":[],"sec":0.1},"hud_alternating_counter":{"counts":{"TRUE":2552,"NA":112},"false_seq":[],"sec":0.0},"icon_recolors_pad":{"counts":{"NA":2637,"TRUE":27},"false_seq":[],"sec":0.0},"l3_twin_band_meter":{"counts":{"NA":2330,"TRUE":334},"false_seq":[],"sec":0.0},"l4_card11_slides_bar":{"counts":{"NA":2648,"TRUE":16},"false_seq":[],"sec":0.0},"l4_card2_fills_meter":{"counts":{"NA":2648,"TRUE":16},"false_seq":[],"sec":0.0},"l4_card8_closes_clamp":{"counts":{"NA":2659,"TRUE":5},"false_seq":[],"sec":0.0},"legend_marker_lights_diamond":{"counts":{"NA":2568,"TRUE":96},"false_seq":[],"sec":0.3},"lit_diamond_moves_box":{"counts":{"NA":2642,"TRUE":22},"false_seq":[],"sec":0.1},"move_into_piece_ring_keeps_ring_pixels":{"counts":{"NA":2660,"TRUE":4},"false_seq":[],"sec":0.6},"pad_partner_under_player":{"counts":{"NA":2648,"TRUE":16},"false_seq":[],"sec":0.4},"pad_sites_pinned_except_hub":{"counts":{"NA":1427,"TRUE":1237},"false_seq":[],"sec":0.3},"panel_ring_fades_on_click":{"counts":{"TRUE":19,"NA":2645},"false_seq":[],"sec":5.1},"reset_clears_state":{"counts":{"NA":2654,"TRUE":10},"false_seq":[],"sec":0.0},"underfoot_reveals_floor_vote":{"counts":{"TRUE":753,"NA":1911},"false_seq":[],"sec":1.3}},"rejection":{"mutants":400,"old":329,"new":327,"both":303},"only_old_n":26},"picks":{"start":1628,"flip":1629,"tele":1969,"win":2664},"gaps":["有几种机关（第 4 关的爪子与它夹的杆，第 5 关的十字件、方框、菱形）**模型不描述**：第 4 关 105 格、第 5 关 268 格 时开时关，模型在这些格上取整关并集（一律当开着）。这一口径在语料上被检验了（316 次走向这些格，全部开着），但它不是那些机关的规律。","**拒绝集比起点册子小了**：同一批 400 个变异，起点册子（读像素的 42 条）拒掉 329 个，这一套拒掉 327 个；只有起点册子拒得掉的 26 个，多数落在上面那几种没建模的机关上，其余是 HUD 计数与像素颜色（世界里不记）。","「重来一次把局面放回这一关的开局」是一条**假设**，不在模型里；它在这批语料上 10 次都没被驳倒，认证段里重来之后的 5 段从开局起算的逐帧核对也都没红——**没红不构成证明**。","「走不通」的定理这一局一条都没有：6 关里 6 关有「走得通」的定理，没有一关需要「走不通」。骨架在（`Proof/Reachable.lean`），钥匙没有——不为填满这一栏去编一个局面。"]};</script>
+<script>
+// **页面这一侧只画、只排版，一行世界逻辑都没有。**
+//
+// 每一帧的世界（玩家在哪、哪些格走得进、垫子、相变格、臂、图标）、每一步哪些格变了、
+// 每条规则说了什么——全部是 `web/export.py` 在 Python 那边算好导出来的。
+// 这里只把它们画成格子：**尺寸与配色**是这一份新增的全部东西。
+// `web/check_no_logic.py` 会来这里搜对象层 / 规则层的函数名，搜到就算破了。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  const COLS = 32, ROWS = 31, PX = 11;
+  const PAIR = ["#3fae6a", "#c05ab8", "#d8b43a", "#4a86d8"];   // 垫子四种色对：配色是页面配的，不是世界里的颜色
+  // 相变格按它在世界里的色号上色：色号 → 屏幕色只有一个来源，export.py 从官方 arc_agi.rendering.COLOR_MAP 写进的 D.colors
+  const BRIDGE = D.colors;
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // 位掩码（十六进制串）→ 第 i 位是不是 1。这是**读数据的编码**，不是算世界。
+  function bitsOf(hex) {
+    const out = new Set();
+    let pos = 0;
+    for (let k = hex.length - 1; k >= 0; k--) {
+      const v = parseInt(hex[k], 16);
+      for (let b = 0; b < 4; b++) if (v & (1 << b)) out.add(pos + b);
+      pos += 4;
+    }
+    return out;
+  }
+
+  function rect(r, c, fill, extra) {
+    return `<rect x="${c * PX}" y="${r * PX}" width="${PX}" height="${PX}" fill="${fill}" ${extra || ""}/>`;
+  }
+
+  // 画一帧。hl = 这一步变了的格（导出器算好的），框出来。
+  function board(f, hl, title) {
+    const open = bitsOf(f.open);
+    const parts = [];
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        parts.push(rect(r, c, open.has(r * COLS + c) ? "var(--floor)" : "var(--wall)"));
+    for (const [r, c, k] of f.bridges)
+      parts.push(rect(r, c, BRIDGE[k] || "#888", `opacity="${open.has(r * COLS + c) ? 0.9 : 0.35}"`));
+    for (const [r, c] of f.arms) parts.push(rect(r, c, "var(--arm)"));
+    for (const [r, c] of f.hubs) parts.push(`<rect x="${c * PX}" y="${r * PX}" width="${2 * PX}" height="${2 * PX}" fill="var(--hub)"/>`);
+    for (const ic of f.icons) { const cells = ic.slice(0, -1); for (const [r, c] of cells) parts.push(rect(r, c, "var(--icon)")); }
+    for (const [r, c, k] of f.pads) parts.push(rect(r, c, PAIR[k]));
+    for (const [r, c] of f.goal) parts.push(rect(r, c, "var(--goal)"));
+    const [mr, mc] = f.me;
+    parts.push(`<rect x="${mc * PX + 1}" y="${mr * PX + 1}" width="${PX - 2}" height="${PX - 2}" rx="2" fill="var(--me)"/>`);
+    for (const [r, c] of (hl || [])) parts.push(`<rect x="${c * PX + .5}" y="${r * PX + .5}" width="${PX - 1}" height="${PX - 1}" fill="none" stroke="var(--hl)" stroke-width="1.5"/>`);
+    return `<figure class="board"><figcaption>${esc(title || "")}</figcaption>` +
+      `<svg class="grid" width="${COLS * PX}" height="${ROWS * PX}" viewBox="0 0 ${COLS * PX} ${ROWS * PX}">${parts.join("")}</svg></figure>`;
+  }
+
+  function stepBySeq(seq) { return D.steps.find((s) => s.seq === seq); }
+
+  function legend() {
+    return `<div class="legend">` +
+      `<span><i style="background:var(--floor)"></i>走得进</span><span><i style="background:var(--wall)"></i>走不进</span>` +
+      `<span><i style="background:var(--goal)"></i>出口</span><span><i style="background:var(--me)"></i>玩家</span>` +
+      PAIR.map((c, k) => `<span><i style="background:${c}"></i>垫子色对 ${k}</span>`).join("") +
+      `<span><i style="background:${BRIDGE[9]}"></i>色 9 相变格（淡 = 此刻走不进）</span>` +
+      `<span><i style="background:${BRIDGE[15]}"></i>色 15 相变格</span>` +
+      `<span><i style="background:var(--arm)"></i>臂</span><span><i style="background:var(--hub)"></i>枢纽</span>` +
+      `<span><i style="background:var(--icon)"></i>图标</span>` +
+      `<span><i style="background:none;border-color:var(--hl)"></i>这一步变了的格</span></div>`;
+  }
+
+  // ---------------------------------------------------------------- 首页配图（步号由导出器挑好）
+  function initHome() {
+    for (const el of document.querySelectorAll("[data-shot]")) {
+      const s = stepBySeq(D.picks[el.dataset.shot]);
+      if (!s) { el.innerHTML = '<p class="note">（这一张图没挑到）</p>'; continue; }
+      el.innerHTML = board(D.frames[s.pre], null, `seq ${s.seq} 之前（第 ${s.lv} 关）`) +
+        board(D.frames[s.post], s.chg, `按 ${s.act} 之后`);
+    }
+    const lg = $("legend");
+    if (lg) lg.innerHTML = legend();
+  }
+
+  // ---------------------------------------------------------------- 回放
+  function initReplay() {
+    const sl = $("slider");
+    sl.max = D.steps.length - 1;
+    const names = D.rule_names;
+    function show(i) {
+      const s = D.steps[i];
+      $("label").textContent = `第 ${i + 1} / ${D.steps.length} 行 · seq ${s.seq} · 段 ${s.guid} · 第 ${s.lv} 关 · ${s.act} · 标记 ${s.mark}`;
+      $("boards").innerHTML = board(D.frames[s.pre], null, "这一步之前") + board(D.frames[s.post], s.chg, "这一步之后（框 = 变了的格）");
+      const rows = names.map((n, k) => {
+        const v = s.v[k];
+        const chip = v === "T" ? '<span class="chip TRUE">判对</span>' : v === "F" ? '<span class="chip FALSE">判错</span>'
+          : '<span class="chip NA">不管</span>';
+        return `<tr><td><a href="rules/${n}.html" class="mono">${n}</a></td><td>${chip}</td></tr>`;
+      });
+      $("verdicts").innerHTML = `<table>${rows.join("")}</table>`;
+      sl.value = i;
+    }
+    sl.addEventListener("input", () => show(+sl.value));
+    $("prev").onclick = () => show(Math.max(0, +sl.value - 1));
+    $("next").onclick = () => show(Math.min(D.steps.length - 1, +sl.value + 1));
+    $("jump").onchange = () => {
+      const want = +$("jump").value;
+      const i = D.steps.findIndex((s) => s.seq === want);
+      if (i >= 0) show(i);
+    };
+    $("legend").innerHTML = legend();
+    const q = new URLSearchParams(location.search).get("seq");
+    const i0 = q ? D.steps.findIndex((s) => s.seq === +q) : 0;
+    show(i0 >= 0 ? i0 : 0);
+  }
+
+  // ---------------------------------------------------------------- Lean 源码上色（**渲染**：只认注释、字符串和几十个词）
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|open|set_option|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+    "rintro|induction|split|rw|apply|unfold|absurd|first|next|generalize|revert").split("|");
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+  function initLean() {
+    for (const el of document.querySelectorAll("pre.lean[data-src]")) {
+      el.innerHTML = paint(el.textContent);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (document.body.dataset.page === "home") initHome();
+    if (document.body.dataset.page === "replay") initReplay();
+    initLean();
+  });
+})();
+
+</script>
+</body>
+</html>

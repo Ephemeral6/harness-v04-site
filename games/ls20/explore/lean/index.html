@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>形式化</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  --floor: #2b303c;  --floor-line: #353c4b;
+  --wall: #0b0d12;
+  --unknown: #3a3f4c;
+  --me: #59b0ff;
+  --door: #6b5a2a;
+  --rotator: #d9d9d9;  --shaper: #9aa4b8;  --painter: #c47bd6;  --refill: #58c48a;
+  --spring: #e0c341;
+  --changed: #ff5c7a;
+  /* 墨色（色号）不在这里配：由 web/export.py 从官方色表写进 DATA.palette，site.js 读它。 */
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>形式化</h1>
+  <div class="sub">对象、规则、分发全是定义；定理只有「这一关做不做得了」和几条推论。</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../reverse.html">反向测试</a>
+    <a href="../share.html">怎么给别人看</a>
+  </nav>
+</header>
+<div class="card" style="border-color:#6b5a2a"><h2>明写的缺口（22 条）</h2><ul class="tight"><li>撞墙扣不扣能量：模型取「撞墙都扣单价、撞锁不扣」；另一种说法「只有有巡逻装置的关撞墙才扣」这批语料分不开——撞墙的 39 次全在第 4、6 关，撞锁的 2 次全在第 0、2 关。分开它的实验：在第 0～3 关任选一处撞一次墙，或在第 4、6 关撞一次锁着的门，看能量掉不掉。</li><li>第 0 关踩十字开关不扣能量（3 跑各 1 次），第 1～6 关踩开关照扣：只登记（level_table.PRESS_FREE），解释不了。分开它的实验：在第 0 关连踩两次十字开关（离开再回来），看是「每次踩都免费」还是「只有第一次」。</li><li>第 6 关（有雾）巡逻的十字开关开局那一帧看不见：开局位置与方向由模型自己挑——12 个（位置, 方向）候选逐个代进去算整关，恰好 1 个一处都不分家。这是「用模型拟合一个帧上读不出来的初值」，不是从帧上读出来的；每关一条定理的开局写着它。</li><li>逐条那一把（Obs/Corpus.lean）有 5 条说不出话（seq 947、959、990、1080、1449）：有雾，玩家这一步落到了前一帧看不见的格上，那一格上有什么前一帧没给。不是反例，也不是判对。</li><li>「掉命之后这一关从开局重来、命少一条」不进模型，是明写的假设：只在第 4 关尾段（54 步）被用过一次、没被驳倒；Python 那一侧论域 10 条、被驳倒 0 次。没红不构成证明。</li><li>每关开局用的是「整关取并集」的口径（版面、静止装置、补给、门）：比玩家在第一帧看到的多知道几格，有雾的第 6 关尤其如此。</li><li>成绩单用的是 run 目录里那一份 scorecard.json（封存局 archive/ 那一份被拦读）；它和 trace_source 认领到的 run_id 是同一跑，逐关步数对上。</li><li>语料里 0 次：第 0 关撞墙 0 次（这一关撞墙扣不扣能量，模型取「扣单价」，没被检验）</li><li>语料里 0 次：第 1 关撞墙 0 次（这一关撞墙扣不扣能量，模型取「扣单价」，没被检验）</li><li>语料里 0 次：第 1 关撞锁 0 次（撞锁不扣能量只在第 0、2 关见过）</li><li>语料里 0 次：第 2 关撞墙 0 次（这一关撞墙扣不扣能量，模型取「扣单价」，没被检验）</li><li>语料里 0 次：第 3 关撞墙 0 次（这一关撞墙扣不扣能量，模型取「扣单价」，没被检验）</li><li>语料里 0 次：第 3 关撞锁 0 次（撞锁不扣能量只在第 0、2 关见过）</li><li>语料里 0 次：第 4 关撞锁 0 次（撞锁不扣能量只在第 0、2 关见过）</li><li>语料里 0 次：第 5 关撞墙 0 次（这一关撞墙扣不扣能量，模型取「扣单价」，没被检验）</li><li>语料里 0 次：第 5 关撞锁 0 次（撞锁不扣能量只在第 0、2 关见过）</li><li>语料里 0 次：第 6 关撞锁 0 次（撞锁不扣能量只在第 0、2 关见过）</li><li>语料里 0 次：只剩一条命时能量用光：0 次（掉最后一条命之后会怎样，没人见过）</li><li>语料里 0 次：滑动途中经过装置或补给：0 次（滑过去算不算踩到、吃不吃补给，没被检验；模型取「只看停下的那一格」）</li><li>语料里 0 次：RESET 只出现在「过关后」与「第 5 关中途」各 1 次；关中途 RESET 之后是否回到第 0 关开局只见过这 1 次</li><li>语料里 0 次：第 7 关以后：没有（最后一关过完即通关）</li><li>语料里 0 次：钥匙图样在 24 种之外、墨色在四色环之外：0 次（换形 / 换色会说不出来，模型返回 unknown）</li></ul></div>
+<div class="card"><h2>每一关一条结论</h2><table><tr><th>关</th><th>结论</th><th>逐帧对上</th><th>核过的步数</th><th>成绩单步数</th><th>说明</th></tr><tr><td>第 0 关</td><td class="ok">走得通（L0_winnable）</td><td class="ok">L0_trace</td><td class="num">12</td><td class="num">13</td><td class="note"></td></tr><tr><td>第 1 关</td><td class="ok">走得通（L1_winnable）</td><td class="ok">L1_trace</td><td class="num">44</td><td class="num">45</td><td class="note"></td></tr><tr><td>第 2 关</td><td class="ok">走得通（L2_winnable）</td><td class="ok">L2_trace</td><td class="num">38</td><td class="num">39</td><td class="note"></td></tr><tr><td>第 3 关</td><td class="ok">走得通（L3_winnable）</td><td class="ok">L3_trace</td><td class="num">42</td><td class="num">43</td><td class="note"></td></tr><tr><td>第 4 关</td><td class="ok">走得通（L4_winnable）</td><td class="ok">L4_trace + L4_tail_trace</td><td class="num">21 + 54</td><td class="num">77</td><td class="note">掉命在 seq [1261]；尾段从「重来之后的开局」起算（明写的假设）</td></tr><tr><td>第 5 关</td><td class="ok">走得通（L5_winnable）</td><td class="ok">L5_trace</td><td class="num">97</td><td class="num">98</td><td class="note"></td></tr><tr><td>第 6 关</td><td class="ok">走得通（L6_winnable）</td><td class="ok">L6_trace</td><td class="num">52</td><td class="num">53</td><td class="note">；会动的装置开局方向：12 个候选里恰好 1 个一处不分家</td></tr></table><p class="note">「核过的步数」= 从这一关开局起，模型<b>自己算</b>、每一帧都和观测对上的步数；比成绩单少的那一步是过关那一脚（它的下一帧是另一张盘，所以不在路里；逐条那一层里它是一条用例）。所有「走得通」的见证都是<b>不经过掉命</b>的路。</p></div><div class="card"><h2>模型面对每一条真实转移（逐条，按纤维判）</h2><p>1465 条用例：对上 <b>1460</b>、反例 <b>0</b>、说不出 5（seq [947, 959, 990, 1080, 1449]：有雾，玩家落脚的那一格前一帧看不见（那一格上有什么前一帧没给））；RESET 2 条不是用例。</p><p class="note">这一行是 <code>#eval</code> 的读数（走求值器，不进可信基）；另有 13 条每类一条用 <code>decide</code> 走内核证过（<a href="Obs-Corpus.html">Obs/Corpus.lean</a>）。</p><p>两份现役对账（Python 规则逐条判 vs Lean 模型逐条判）：Python 判错的行 []、Lean 反例的行 [] → <b>对上</b>。</p></div><div class="card"><h2>每条规则的身份（恰好一种）</h2><table><tr><th>规则</th><th>身份</th><th>在哪</th><th>理由 / 两个数</th></tr><tr><td><a class="mono" href="../rules/blocked.html">blocked</a></td><td>定义</td><td class="mono">Rule/Move/Blocked.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/board_holds.html">board_holds</a></td><td>不进模型</td><td class="mono">—</td><td class="note">表示不出来：版面住在 Board 里，Board 不是 World 的字段，step 只能读不能写——「走一步版面不变」在模型里说都说不出来，所以既不是定义也不是定理；它在语料那一侧的读数就是这两个数 论域 1434，被驳倒 0</td></tr><tr><td><a class="mono" href="../rules/devices_stay.html">devices_stay</a></td><td>推论</td><td class="mono">Derived/DevicesStay.lean</td><td class="note">step 不写静止装置那三张表、补给只 erase：分发的推论</td></tr><tr><td><a class="mono" href="../rules/door_consumed.html">door_consumed</a></td><td>定义</td><td class="mono">Rule/Outcome/DoorConsumed.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/energy_cost.html">energy_cost</a></td><td>定义</td><td class="mono">Rule/World/EnergyCost.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/fog.html">fog</a></td><td>定义</td><td class="mono">Rule/World/Fog.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/goals_hold.html">goals_hold</a></td><td>推论</td><td class="mono">Derived/GoalsHold.lean</td><td class="note">step 只在开门那一支写 goals：分发的推论</td></tr><tr><td><a class="mono" href="../rules/key_holds.html">key_holds</a></td><td>推论</td><td class="mono">Derived/KeyHolds.lean</td><td class="note">三条「钥匙怎么变」的上界：pressKey 只在同格时改钥匙，所以是分发的推论</td></tr><tr><td><a class="mono" href="../rules/key_recolors.html">key_recolors</a></td><td>定义</td><td class="mono">Rule/Key/KeyRecolors.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/key_reshapes.html">key_reshapes</a></td><td>定义</td><td class="mono">Rule/Key/KeyReshapes.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/key_rotates.html">key_rotates</a></td><td>定义</td><td class="mono">Rule/Key/KeyRotates.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/last_door_wins.html">last_door_wins</a></td><td>定义</td><td class="mono">Rule/Outcome/LastDoorWins.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/lives_hold.html">lives_hold</a></td><td>推论</td><td class="mono">Derived/LivesHold.lean</td><td class="note">step 的三种 ok 都不动 lives：分发的推论</td></tr><tr><td><a class="mono" href="../rules/orbit.html">orbit</a></td><td>定义</td><td class="mono">Rule/World/Orbit.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/out_of_energy.html">out_of_energy</a></td><td>定义</td><td class="mono">Rule/Outcome/OutOfEnergy.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/patrol.html">patrol</a></td><td>定义</td><td class="mono">Rule/World/Patrol.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/refill.html">refill</a></td><td>定义</td><td class="mono">Rule/World/Refill.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/reset_restarts_game.html">reset_restarts_game</a></td><td>不进模型</td><td class="mono">Rule/Unmodeled/ResetRestartsGame.lean</td><td class="note">RESET 不是一步棋，Act 里没有它；整局第一帧是历史。每关逐帧核对都从开局起算 论域 2，被驳倒 0</td></tr><tr><td><a class="mono" href="../rules/restart_to_start.html">restart_to_start</a></td><td>不进模型</td><td class="mono">Rule/Unmodeled/RestartToStart.lean</td><td class="note">掉命之后是哪一帧：这一关的开局是历史，帧上读不出来。写成明处的假设 restart（Obs/Check.lean），掉过命的那一关尾段从它起算，假设错了第一帧就红 论域 10，被驳倒 0</td></tr><tr><td><a class="mono" href="../rules/slide.html">slide</a></td><td>定义</td><td class="mono">Rule/Move/Slide.lean</td><td class="note"></td></tr><tr><td><a class="mono" href="../rules/walk.html">walk</a></td><td>定义</td><td class="mono">Rule/Move/Walk.lean</td><td class="note"></td></tr></table></div><div class="card"><h2>把 Lean 模型改坏一处，两把尺子各红几处</h2><p class="note" style="margin-top:0">第一个是种下的必红：红了，机制是活的。「逐条反例」是逐条那一把（从观测起算一步）的反例数；「分家的关」是每关那一把（从开局起一路自己算）第一处分家的步号。<b>两把尺子逮到的不一样</b>：有的只有每关那一把看得见（逐条那一把每步都被拉回正轨）。</p><table><tr><th>编号</th><th>改了什么</th><th>红没红</th><th>逐条反例</th><th>分家的关（步号）</th><th>编不过的文件</th></tr><tr><td>LM0</td><td>【种下的必红】普通地板那一支改成原地不动</td><td class="ok">红</td><td class="num">1314</td><td>{&quot;0&quot;: 0, &quot;1&quot;: 0, &quot;2&quot;: 0, &quot;3&quot;: 0, &quot;4&quot;: 0, &quot;5&quot;: 0, &quot;6&quot;: 0}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM1</td><td>钥匙改成逆时针转</td><td class="ok">红</td><td class="num">72</td><td>{&quot;0&quot;: 5, &quot;1&quot;: 16, &quot;2&quot;: 33, &quot;5&quot;: 17, &quot;6&quot;: 41}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM2</td><td>形状环里两种形状对调</td><td class="ok">红</td><td class="num">22</td><td>{&quot;5&quot;: 71, &quot;6&quot;: 12}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM3</td><td>颜色环倒着走</td><td class="ok">红</td><td class="num">46</td><td>{&quot;2&quot;: 16, &quot;3&quot;: 12, &quot;4&quot;: 6, &quot;5&quot;: 9, &quot;6&quot;: 6}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM4</td><td>巡逻到端点不掉头（停在端点）</td><td class="ok">红</td><td class="num">0</td><td>{&quot;4&quot;: 2, &quot;5&quot;: 4, &quot;6&quot;: 35}</td><td class="note">Proof/Levels.lean</td></tr><tr><td>LM5</td><td>绕圈倒着走</td><td class="ok">红</td><td class="num">490</td><td>{&quot;5&quot;: 0}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM6</td><td>撞墙不扣能量</td><td class="ok">红</td><td class="num">39</td><td>{}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM7</td><td>取消「踩十字开关免费」</td><td class="ok">红</td><td class="num">3</td><td>{&quot;0&quot;: 5}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM8</td><td>滑动可以滑进门</td><td class="ok">红</td><td class="num">7</td><td>{&quot;2&quot;: 37}</td><td class="note">Proof/Levels.lean</td></tr><tr><td>LM9</td><td>迷雾半径缩一圈</td><td class="ok">红</td><td class="num">17</td><td>{&quot;6&quot;: 0}</td><td class="note">Proof/Levels.lean</td></tr><tr><td>LM10</td><td>门只比形状不比颜色</td><td class="ok">红</td><td class="num">1</td><td>{}</td><td class="note"></td></tr><tr><td>LM11</td><td>补给不回满（照常扣）</td><td class="ok">红</td><td class="num">41</td><td>{&quot;1&quot;: 19, &quot;2&quot;: 21, &quot;3&quot;: 36, &quot;5&quot;: 3, &quot;6&quot;: 20}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr><tr><td>LM12</td><td>巡逻的装置撞上玩家不算踩</td><td class="ok">红</td><td class="num">713</td><td>{&quot;4&quot;: 0, &quot;5&quot;: 0, &quot;6&quot;: 39}</td><td class="note">Obs/Corpus.lean, Proof/Levels.lean</td></tr></table></div><div class="card"><h2>凭什么信上面这些</h2><p>36 份 Lean 全部编过；42 条定理，42 条跟了 <code>#print axioms</code>，公理只有 propext / Classical.choice / Quot.sound，0 个 sorryAx（装置 <code>ledger/lean_check.py</code> 另核一遍：可信基：42/42 条定理跑过 `#print axioms`，干净（只有 propext / Classical.choice / Quot.sound））。</p><p>破坏测试 <a href="Broken.html">Broken.lean</a>：退出码 1，错误在第 [21] 行，标记在第 21 行 → 只在标记那一行红。</p></div><div class="card"><h2>全部文件</h2><label class="picker"><span>这 37 份 Lean</span><select onchange="if(this.value)location.href=this.value"><option value="">挑一份…</option><optgroup label="对象（8 份）"><option value="Obj-Geometry-Cell.html">Obj/Geometry/Cell.lean</option><option value="Obj-Geometry-Delta.html">Obj/Geometry/Delta.lean</option><option value="Obj-Board-Line.html">Obj/Board/Line.lean</option><option value="Obj-Board-Patrol.html">Obj/Board/Patrol.lean</option><option value="Obj-Board-Board.html">Obj/Board/Board.lean</option><option value="Obj-Hud-Key.html">Obj/Hud/Key.lean</option><option value="Obj-Devices-Goal.html">Obj/Devices/Goal.lean</option><option value="Obj-World.html">Obj/World.lean</option></optgroup><optgroup label="规则（16 份）"><option value="Rule-Move-Blocked.html">Rule/Move/Blocked.lean</option><option value="Rule-Move-Slide.html">Rule/Move/Slide.lean</option><option value="Rule-Move-Walk.html">Rule/Move/Walk.lean</option><option value="Rule-Key-KeyRotates.html">Rule/Key/KeyRotates.lean</option><option value="Rule-Key-KeyReshapes.html">Rule/Key/KeyReshapes.lean</option><option value="Rule-Key-KeyRecolors.html">Rule/Key/KeyRecolors.lean</option><option value="Rule-Outcome-LastDoorWins.html">Rule/Outcome/LastDoorWins.lean</option><option value="Rule-Outcome-DoorConsumed.html">Rule/Outcome/DoorConsumed.lean</option><option value="Rule-Outcome-OutOfEnergy.html">Rule/Outcome/OutOfEnergy.lean</option><option value="Rule-World-Patrol.html">Rule/World/Patrol.lean</option><option value="Rule-World-Orbit.html">Rule/World/Orbit.lean</option><option value="Rule-World-Refill.html">Rule/World/Refill.lean</option><option value="Rule-World-EnergyCost.html">Rule/World/EnergyCost.lean</option><option value="Rule-World-Fog.html">Rule/World/Fog.lean</option><option value="Rule-Unmodeled-RestartToStart.html">Rule/Unmodeled/RestartToStart.lean</option><option value="Rule-Unmodeled-ResetRestartsGame.html">Rule/Unmodeled/ResetRestartsGame.lean</option></optgroup><optgroup label="推论（6 份）"><option value="Derived-Lemmas.html">Derived/Lemmas.lean</option><option value="Derived-DevicesStay.html">Derived/DevicesStay.lean</option><option value="Derived-GoalsHold.html">Derived/GoalsHold.lean</option><option value="Derived-KeyHolds.html">Derived/KeyHolds.lean</option><option value="Derived-LivesHold.html">Derived/LivesHold.lean</option><option value="Derived-RotCwOrder.html">Derived/RotCwOrder.lean</option></optgroup><optgroup label="观测（3 份）"><option value="Obs-Check.html">Obs/Check.lean</option><option value="Obs-Replay.html">Obs/Replay.lean</option><option value="Obs-Corpus.html">Obs/Corpus.lean</option></optgroup><optgroup label="证明（2 份）"><option value="Proof-Reachable.html">Proof/Reachable.lean</option><option value="Proof-Levels.html">Proof/Levels.lean</option></optgroup><optgroup label="没归类（1 份）"><option value="Step.html">Step.lean</option></optgroup><optgroup label="破坏测试（1 份）"><option value="Broken.html">Broken.lean</option></optgroup></select></label><div class="subrows"><span class="note">Proof/Levels.lean 按关拆开：</span><a class="sub-row" href="Proof-Levels-L0.html"><span class="mono">第 0 关</span></a><a class="sub-row" href="Proof-Levels-L1.html"><span class="mono">第 1 关</span></a><a class="sub-row" href="Proof-Levels-L2.html"><span class="mono">第 2 关</span></a><a class="sub-row" href="Proof-Levels-L3.html"><span class="mono">第 3 关</span></a><a class="sub-row" href="Proof-Levels-L4.html"><span class="mono">第 4 关</span></a><a class="sub-row" href="Proof-Levels-L5.html"><span class="mono">第 5 关</span></a><a class="sub-row" href="Proof-Levels-L6.html"><span class="mono">第 6 关</span></a></div><details><summary class="note">逐份编译结果</summary><table><tr><th>角色</th><th>文件</th><th>定理</th><th>退出码</th><th>秒</th></tr><tr><td>对象</td><td><a class="mono" href="Obj-Geometry-Cell.html">Obj/Geometry/Cell.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-Geometry-Delta.html">Obj/Geometry/Delta.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-Board-Line.html">Obj/Board/Line.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-Board-Patrol.html">Obj/Board/Patrol.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-Board-Board.html">Obj/Board/Board.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-Hud-Key.html">Obj/Hud/Key.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-Devices-Goal.html">Obj/Devices/Goal.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>对象</td><td><a class="mono" href="Obj-World.html">Obj/World.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Move-Blocked.html">Rule/Move/Blocked.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.5</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Move-Slide.html">Rule/Move/Slide.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Move-Walk.html">Rule/Move/Walk.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Key-KeyRotates.html">Rule/Key/KeyRotates.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Key-KeyReshapes.html">Rule/Key/KeyReshapes.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Key-KeyRecolors.html">Rule/Key/KeyRecolors.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Outcome-LastDoorWins.html">Rule/Outcome/LastDoorWins.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Outcome-DoorConsumed.html">Rule/Outcome/DoorConsumed.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Outcome-OutOfEnergy.html">Rule/Outcome/OutOfEnergy.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-World-Patrol.html">Rule/World/Patrol.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-World-Orbit.html">Rule/World/Orbit.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-World-Refill.html">Rule/World/Refill.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-World-EnergyCost.html">Rule/World/EnergyCost.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-World-Fog.html">Rule/World/Fog.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Unmodeled-RestartToStart.html">Rule/Unmodeled/RestartToStart.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>规则</td><td><a class="mono" href="Rule-Unmodeled-ResetRestartsGame.html">Rule/Unmodeled/ResetRestartsGame.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>推论</td><td><a class="mono" href="Derived-Lemmas.html">Derived/Lemmas.lean</a></td><td class="num">2</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>推论</td><td><a class="mono" href="Derived-DevicesStay.html">Derived/DevicesStay.lean</a></td><td class="num">2</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>推论</td><td><a class="mono" href="Derived-GoalsHold.html">Derived/GoalsHold.lean</a></td><td class="num">1</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>推论</td><td><a class="mono" href="Derived-KeyHolds.html">Derived/KeyHolds.lean</a></td><td class="num">3</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>推论</td><td><a class="mono" href="Derived-LivesHold.html">Derived/LivesHold.lean</a></td><td class="num">1</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>推论</td><td><a class="mono" href="Derived-RotCwOrder.html">Derived/RotCwOrder.lean</a></td><td class="num">3</td><td class="num">0</td><td class="num">1.1</td></tr><tr><td>观测</td><td><a class="mono" href="Obs-Check.html">Obs/Check.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.7</td></tr><tr><td>观测</td><td><a class="mono" href="Obs-Replay.html">Obs/Replay.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">7.4</td></tr><tr><td>观测</td><td><a class="mono" href="Obs-Corpus.html">Obs/Corpus.lean</a></td><td class="num">13</td><td class="num">0</td><td class="num">3.0</td></tr><tr><td>证明</td><td><a class="mono" href="Proof-Reachable.html">Proof/Reachable.lean</a></td><td class="num">2</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>证明</td><td><a class="mono" href="Proof-Levels.html">Proof/Levels.lean</a></td><td class="num">15</td><td class="num">0</td><td class="num">5.8</td></tr><tr><td>没归类</td><td><a class="mono" href="Step.html">Step.lean</a></td><td class="num">0</td><td class="num">0</td><td class="num">0.6</td></tr><tr><td>破坏测试</td><td><a class="mono" href="Broken.html">Broken.lean</a></td><td class="num">1</td><td class="num">1</td><td class="num"></td></tr></table></details></div>
+</div>
+<script>window.DATA={};</script>
+<script>
+// 这一局的前端脚本：**只画、只摆**。
+//
+// 每一个数、每一格是什么、这一步哪些格变了、每条规则说了什么——
+// 全是 web/export.py 在 Python 那边算好导出来的（window.DATA）。
+// 这一份新增的只有两样：**尺寸**和**配色**。check_no_logic.py 会来这里搜世界那一侧的动词。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  const S = 22;                       // 一格画多大（尺寸）
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // 类别字 → 配色
+  const FILL = { "#": "var(--wall)", ".": "var(--floor)", "?": "var(--unknown)", "@": "var(--floor)",
+                 "G": "var(--door)", "R": "var(--floor)", "S": "var(--floor)", "P": "var(--floor)",
+                 "F": "var(--floor)" };
+  const MARK = { "R": "var(--rotator)", "S": "var(--shaper)", "P": "var(--painter)", "F": "var(--refill)" };
+  // 墨色是色号：显示色读 web/export.py 从 ARC-AGI-3 官方色表取好的 DATA.palette，这里不另抄。
+  function inkColor(i) { return (D.palette && D.palette[i]) || "#aaa"; }
+
+  function keyCells(shape, ink, x, y, u) {
+    let o = "";
+    for (let k = 0; k < 9; k++) {
+      if (!shape[k]) continue;
+      o += `<rect x="${x + (k % 3) * u}" y="${y + Math.floor(k / 3) * u}" width="${u - 0.6}" height="${u - 0.6}" fill="${inkColor(ink)}"/>`;
+    }
+    return o;
+  }
+
+  function boardSVG(fi, changed) {
+    const f = D.frames[fi];
+    let o = `<svg class="grid" width="${12 * S}" height="${12 * S}" viewBox="0 0 ${12 * S} ${12 * S}">`;
+    for (let j = 0; j < 144; j++) {
+      const ch = f.b[j], x = (j % 12) * S, y = Math.floor(j / 12) * S;
+      o += `<rect x="${x}" y="${y}" width="${S}" height="${S}" fill="${FILL[ch] || "#f0f"}" stroke="var(--floor-line)" stroke-width="0.5"/>`;
+      if (MARK[ch]) o += `<rect x="${x + 5}" y="${y + 5}" width="${S - 10}" height="${S - 10}" rx="${ch === "F" ? 6 : 1}" fill="none" stroke="${MARK[ch]}" stroke-width="2.4"/>`;
+      if (ch === "R") o += `<path d="M${x + S / 2} ${y + 6}V${y + S - 6}M${x + 6} ${y + S / 2}H${x + S - 6}" stroke="var(--rotator)" stroke-width="2"/>`;
+      if (ch === "@") o += `<rect x="${x + 2}" y="${y + 2}" width="${S - 4}" height="${S - 4}" rx="3" fill="var(--me)"/>`;
+    }
+    for (const g of f.goals) o += keyCells(g.shape, g.ink, g.c * S + 4, g.r * S + 4, (S - 8) / 3);
+    for (const l of f.lines) {
+      // 线画在被推那一格「推向」的反面那条边上
+      const x = l.c * S, y = l.r * S;
+      const e = l.dr === 1 ? [x, y, x + S, y] : l.dr === -1 ? [x, y + S, x + S, y + S]
+              : l.dc === 1 ? [x, y, x, y + S] : [x + S, y, x + S, y + S];
+      o += `<line x1="${e[0]}" y1="${e[1]}" x2="${e[2]}" y2="${e[3]}" stroke="var(--spring)" stroke-width="3"/>`;
+    }
+    for (const j of changed || []) {
+      o += `<rect x="${(j % 12) * S + 1}" y="${Math.floor(j / 12) * S + 1}" width="${S - 2}" height="${S - 2}" fill="none" stroke="var(--changed)" stroke-width="1.6"/>`;
+    }
+    return o + "</svg>";
+  }
+
+  function hudHTML(fi, hud) {
+    const f = D.frames[fi];
+    const mark = (n) => (hud && hud.indexOf(n) >= 0 ? ' style="color:var(--changed)"' : "");
+    const k = `<svg width="36" height="36">${keyCells(f.key.shape, f.key.ink, 0, 0, 12)}</svg>`;
+    return `<div class="note" style="display:flex;gap:14px;align-items:center;margin-top:6px">`
+      + `<span${mark("key")}>钥匙 ${k} 墨 ${f.key.ink}</span>`
+      + `<span${mark("energy")}>能量 <b>${f.energy}</b>/42</span>`
+      + `<span${mark("lives")}>命 <b>${f.lives}</b></span></div>`;
+  }
+
+  function figure(fi, caption, changed, hud) {
+    return `<figure class="board" style="margin:0"><figcaption>${caption}</figcaption>${boardSVG(fi, changed)}${hudHTML(fi, hud)}</figure>`;
+  }
+
+  // ---------------------------------------------------------------- 首页
+
+  function home() {
+    const box = $("picks");
+    if (!box) return;
+    box.innerHTML = D.home.map((h) =>
+      `<div class="card"><div class="boards">${figure(h.frame, "第 " + h.seq + " 步的" + (h.which === "prev" ? "前一帧" : "后一帧"))}` +
+      `<p class="scene-words">${esc(h.text)}</p></div></div>`).join("");
+  }
+
+  // ---------------------------------------------------------------- 回放
+
+  const CODE = { T: ["TRUE", "判对"], F: ["FALSE", "判错"], N: ["NA", "闭嘴"], U: ["NA", "读不成"], E: ["FALSE", "ERROR"] };
+
+  function replay() {
+    const sl = $("slider");
+    if (!sl) return;
+    sl.max = D.steps.length - 1;
+    const names = Object.keys(D.steps[0].v);
+    function show(i) {
+      const s = D.steps[i];
+      $("label").textContent = `第 ${i + 1} / ${D.steps.length} 条  seq ${s.seq}  第 ${s.lvl} 关  ${s.act}  段 ${s.guid}`;
+      $("boards").innerHTML = figure(s.p, "按之前") + figure(s.n, "按之后（红框 = 变了的格）", s.changed, s.hud);
+      let rows = "";
+      for (const n of names) {
+        const v = s.v[n];
+        const [cls, word] = typeof v === "number" ? ["NA", "闭嘴"] : CODE[v];
+        const why = typeof v === "number" ? D.reasons[v] : "";
+        rows += `<tr><td><a href="rules/${n}.html" class="mono">${n}</a></td><td><span class="chip ${cls}">${word}</span></td><td class="why">${esc(why)}</td></tr>`;
+      }
+      $("verdicts").innerHTML = `<table><tr><th>规则</th><th>这一步</th><th>闭嘴的理由</th></tr>${rows}</table>`;
+      sl.value = i;
+    }
+    sl.addEventListener("input", () => show(+sl.value));
+    $("prev").addEventListener("click", () => show(Math.max(0, +sl.value - 1)));
+    $("next").addEventListener("click", () => show(Math.min(D.steps.length - 1, +sl.value + 1)));
+    $("jump").addEventListener("change", (e) => {
+      const want = +e.target.value;
+      const i = D.steps.findIndex((s) => s.seq === want);
+      if (i >= 0) show(i);
+    });
+    const q = new URLSearchParams(location.search).get("seq");
+    const i0 = q ? D.steps.findIndex((s) => s.seq === +q) : 0;
+    show(i0 >= 0 ? i0 : 0);
+  }
+
+  // ---------------------------------------------------------------- Lean 源码上色（**这是渲染**，只认注释、字符串和几十个词）
+
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|open|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using|set_option").split("|");
+  const TAC = ("simp|simp_all|omega|decide|rfl|exact|intro|cases|rcases|obtain|refine|constructor|" +
+    "induction|split|rw|apply|unfold|absurd|first|injection|subst|rename_i").split("|");
+
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/"[^"\n]*"/g, (m) => `\u0003${m}\u0004`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+
+  function leanBlocks() {
+    for (const el of document.querySelectorAll("pre.lean[data-src]")) {
+      el.innerHTML = paint(el.textContent);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { home(); replay(); leanBlocks(); });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Obj/Derive/Click.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Obj/Derive/Click.lean</h1><p></p><details><summary>公理表（0 条）</summary><ul></ul></details><pre>/-
+# Obj/Derive/Click —— 这一下点中了什么（对应 `derive/click.py`）
+
+点击坐标 `(x, y)` 是 API 给的（x 列、y 行，不带偏移）；这里加上偏移再和盘面比。
+面板先按图标中心认（缩 / 伸），再按框认（框里别处），最后认图例框。
+-/
+
+import Obj.World
+
+namespace Game
+
+inductive Click where
+  | shrink (K : Nat)
+  | grow (K : Nat)
+  | rot (K : Nat)
+  | elsewhere
+  deriving DecidableEq, Repr
+
+def inBox (b : Rect) (r c : Nat) : Bool :=
+  Nat.ble b.r0 r &amp;&amp; Nat.ble r b.r1 &amp;&amp; Nat.ble b.c0 c &amp;&amp; Nat.ble c b.c1
+
+def iconHit (r c : Nat) : List Panel → Option Click
+  | [] =&gt; none
+  | p :: ps =&gt;
+    if p.shrink == (r, c) then some (.shrink p.color)
+    else if p.grow == (r, c) then some (.grow p.color)
+    else iconHit r c ps
+
+def boxHit (r c : Nat) : List Panel → Bool
+  | [] =&gt; false
+  | p :: ps =&gt; inBox p.box r c || boxHit r c ps
+
+def legendHit (r c : Nat) : List Legend → Option Click
+  | [] =&gt; none
+  | l :: ls =&gt; if inBox l.box r c then some (.rot l.color) else legendHit r c ls
+
+def decode (bd : Board) (x y : Nat) : Click :=
+  match iconHit (y + O) (x + O) bd.panels with
+  | some k =&gt; k
+  | none =&gt;
+    if boxHit (y + O) (x + O) bd.panels then .elsewhere
+    else (legendHit (y + O) (x + O) bd.legends).getD .elsewhere
+
+end Game
+</pre></div></main></body></html>

@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rule/Move/Blocked.lean</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  --floor: #2b303c;  --floor-line: #353c4b;
+  --wall: #0b0d12;
+  --unknown: #3a3f4c;
+  --me: #59b0ff;
+  --door: #6b5a2a;
+  --rotator: #d9d9d9;  --shaper: #9aa4b8;  --painter: #c47bd6;  --refill: #58c48a;
+  --spring: #e0c341;
+  --changed: #ff5c7a;
+  /* 墨色（色号）不在这里配：由 web/export.py 从官方色表写进 DATA.palette，site.js 读它。 */
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Rule/Move/Blocked.lean</h1>
+  <div class="sub">规则</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../reverse.html">反向测试</a>
+    <a href="../share.html">怎么给别人看</a>
+  </nav>
+</header>
+
+<div class="card"><h2>读数</h2><p>角色：规则；定理 0 条；退出码 0</p></div><div class="card"><h2>源码</h2><pre class="lean" data-src="1">/-
+# blocked —— 撞墙、撞锁：原地不动（对应 `rule/move/blocked.py`）
+
+两个谓词，`Rule/Move/Walk.lean` 里的 `landing` 用它们分出「挡住了」那两支。
+-/
+import Obj.World
+
+namespace Game
+
+/-- 目标格不是地板（含走出格阵）。 -/
+def isWall (b : Board) (t : Cell) : Bool := !(memC t b.floor)
+
+/-- 目标格是门心而钥匙（形状与颜色）对不上。 -/
+def isLocked (w : World) (t : Cell) : Bool :=
+  match goalAt t w.goals with
+  | some g =&gt; !(Key.eqb g.key w.key)
+  | none   =&gt; false
+
+end Game
+</pre></div>
+</div>
+<script>window.DATA={};</script>
+<script>
+// 这一局的前端脚本：**只画、只摆**。
+//
+// 每一个数、每一格是什么、这一步哪些格变了、每条规则说了什么——
+// 全是 web/export.py 在 Python 那边算好导出来的（window.DATA）。
+// 这一份新增的只有两样：**尺寸**和**配色**。check_no_logic.py 会来这里搜世界那一侧的动词。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  const S = 22;                       // 一格画多大（尺寸）
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // 类别字 → 配色
+  const FILL = { "#": "var(--wall)", ".": "var(--floor)", "?": "var(--unknown)", "@": "var(--floor)",
+                 "G": "var(--door)", "R": "var(--floor)", "S": "var(--floor)", "P": "var(--floor)",
+                 "F": "var(--floor)" };
+  const MARK = { "R": "var(--rotator)", "S": "var(--shaper)", "P": "var(--painter)", "F": "var(--refill)" };
+  // 墨色是色号：显示色读 web/export.py 从 ARC-AGI-3 官方色表取好的 DATA.palette，这里不另抄。
+  function inkColor(i) { return (D.palette && D.palette[i]) || "#aaa"; }
+
+  function keyCells(shape, ink, x, y, u) {
+    let o = "";
+    for (let k = 0; k < 9; k++) {
+      if (!shape[k]) continue;
+      o += `<rect x="${x + (k % 3) * u}" y="${y + Math.floor(k / 3) * u}" width="${u - 0.6}" height="${u - 0.6}" fill="${inkColor(ink)}"/>`;
+    }
+    return o;
+  }
+
+  function boardSVG(fi, changed) {
+    const f = D.frames[fi];
+    let o = `<svg class="grid" width="${12 * S}" height="${12 * S}" viewBox="0 0 ${12 * S} ${12 * S}">`;
+    for (let j = 0; j < 144; j++) {
+      const ch = f.b[j], x = (j % 12) * S, y = Math.floor(j / 12) * S;
+      o += `<rect x="${x}" y="${y}" width="${S}" height="${S}" fill="${FILL[ch] || "#f0f"}" stroke="var(--floor-line)" stroke-width="0.5"/>`;
+      if (MARK[ch]) o += `<rect x="${x + 5}" y="${y + 5}" width="${S - 10}" height="${S - 10}" rx="${ch === "F" ? 6 : 1}" fill="none" stroke="${MARK[ch]}" stroke-width="2.4"/>`;
+      if (ch === "R") o += `<path d="M${x + S / 2} ${y + 6}V${y + S - 6}M${x + 6} ${y + S / 2}H${x + S - 6}" stroke="var(--rotator)" stroke-width="2"/>`;
+      if (ch === "@") o += `<rect x="${x + 2}" y="${y + 2}" width="${S - 4}" height="${S - 4}" rx="3" fill="var(--me)"/>`;
+    }
+    for (const g of f.goals) o += keyCells(g.shape, g.ink, g.c * S + 4, g.r * S + 4, (S - 8) / 3);
+    for (const l of f.lines) {
+      // 线画在被推那一格「推向」的反面那条边上
+      const x = l.c * S, y = l.r * S;
+      const e = l.dr === 1 ? [x, y, x + S, y] : l.dr === -1 ? [x, y + S, x + S, y + S]
+              : l.dc === 1 ? [x, y, x, y + S] : [x + S, y, x + S, y + S];
+      o += `<line x1="${e[0]}" y1="${e[1]}" x2="${e[2]}" y2="${e[3]}" stroke="var(--spring)" stroke-width="3"/>`;
+    }
+    for (const j of changed || []) {
+      o += `<rect x="${(j % 12) * S + 1}" y="${Math.floor(j / 12) * S + 1}" width="${S - 2}" height="${S - 2}" fill="none" stroke="var(--changed)" stroke-width="1.6"/>`;
+    }
+    return o + "</svg>";
+  }
+
+  function hudHTML(fi, hud) {
+    const f = D.frames[fi];
+    const mark = (n) => (hud && hud.indexOf(n) >= 0 ? ' style="color:var(--changed)"' : "");
+    const k = `<svg width="36" height="36">${keyCells(f.key.shape, f.key.ink, 0, 0, 12)}</svg>`;
+    return `<div class="note" style="display:flex;gap:14px;align-items:center;margin-top:6px">`
+      + `<span${mark("key")}>钥匙 ${k} 墨 ${f.key.ink}</span>`
+      + `<span${mark("energy")}>能量 <b>${f.energy}</b>/42</span>`
+      + `<span${mark("lives")}>命 <b>${f.lives}</b></span></div>`;
+  }
+
+  function figure(fi, caption, changed, hud) {
+    return `<figure class="board" style="margin:0"><figcaption>${caption}</figcaption>${boardSVG(fi, changed)}${hudHTML(fi, hud)}</figure>`;
+  }
+
+  // ---------------------------------------------------------------- 首页
+
+  function home() {
+    const box = $("picks");
+    if (!box) return;
+    box.innerHTML = D.home.map((h) =>
+      `<div class="card"><div class="boards">${figure(h.frame, "第 " + h.seq + " 步的" + (h.which === "prev" ? "前一帧" : "后一帧"))}` +
+      `<p class="scene-words">${esc(h.text)}</p></div></div>`).join("");
+  }
+
+  // ---------------------------------------------------------------- 回放
+
+  const CODE = { T: ["TRUE", "判对"], F: ["FALSE", "判错"], N: ["NA", "闭嘴"], U: ["NA", "读不成"], E: ["FALSE", "ERROR"] };
+
+  function replay() {
+    const sl = $("slider");
+    if (!sl) return;
+    sl.max = D.steps.length - 1;
+    const names = Object.keys(D.steps[0].v);
+    function show(i) {
+      const s = D.steps[i];
+      $("label").textContent = `第 ${i + 1} / ${D.steps.length} 条  seq ${s.seq}  第 ${s.lvl} 关  ${s.act}  段 ${s.guid}`;
+      $("boards").innerHTML = figure(s.p, "按之前") + figure(s.n, "按之后（红框 = 变了的格）", s.changed, s.hud);
+      let rows = "";
+      for (const n of names) {
+        const v = s.v[n];
+        const [cls, word] = typeof v === "number" ? ["NA", "闭嘴"] : CODE[v];
+        const why = typeof v === "number" ? D.reasons[v] : "";
+        rows += `<tr><td><a href="rules/${n}.html" class="mono">${n}</a></td><td><span class="chip ${cls}">${word}</span></td><td class="why">${esc(why)}</td></tr>`;
+      }
+      $("verdicts").innerHTML = `<table><tr><th>规则</th><th>这一步</th><th>闭嘴的理由</th></tr>${rows}</table>`;
+      sl.value = i;
+    }
+    sl.addEventListener("input", () => show(+sl.value));
+    $("prev").addEventListener("click", () => show(Math.max(0, +sl.value - 1)));
+    $("next").addEventListener("click", () => show(Math.min(D.steps.length - 1, +sl.value + 1)));
+    $("jump").addEventListener("change", (e) => {
+      const want = +e.target.value;
+      const i = D.steps.findIndex((s) => s.seq === want);
+      if (i >= 0) show(i);
+    });
+    const q = new URLSearchParams(location.search).get("seq");
+    const i0 = q ? D.steps.findIndex((s) => s.seq === +q) : 0;
+    show(i0 >= 0 ? i0 : 0);
+  }
+
+  // ---------------------------------------------------------------- Lean 源码上色（**这是渲染**，只认注释、字符串和几十个词）
+
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|open|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using|set_option").split("|");
+  const TAC = ("simp|simp_all|omega|decide|rfl|exact|intro|cases|rcases|obtain|refine|constructor|" +
+    "induction|split|rw|apply|unfold|absurd|first|injection|subst|rename_i").split("|");
+
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/"[^"\n]*"/g, (m) => `\u0003${m}\u0004`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+
+  function leanBlocks() {
+    for (const el of document.querySelectorAll("pre.lean[data-src]")) {
+      el.innerHTML = paint(el.textContent);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { home(); replay(); leanBlocks(); });
+})();
+
+</script>
+</body>
+</html>

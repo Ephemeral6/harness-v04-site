@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Obj/Piece/Piece.lean</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Lean · Obj/Piece/Piece.lean</h1><div class="sub">源码原样</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class='card'><pre>/-
+# Obj/Piece/Piece —— 会动的东西（对应 `objects/piece/piece.py`）
+
+一件东西 = 几何族 + 颜色 + 包围盒 + hub + hub 画不画本色。
+**全是定义，一条定理都没有。**
+
+和 Python 那一份的差别只有一处，而且是有意的：这里没有 `known`。
+`known` 是**观测的残缺**（某一边读不到底），不是世界的属性——它住在 `Obs/Check.lean` 的 `SeenPiece` 里。
+模型里的东西每一边都是确定的。
+
+格子归属用**算术**判（`mem`），不列格子：Python 那一份用格子集合，这里各自独立写，
+两份的判决由逐帧核对（`Obs/Check.traceOk`）对账——**不许由一份导出另一份**。
+-/
+
+namespace Game
+
+inductive Kind where
+  | cross | box | ex | diamond
+  deriving DecidableEq, Repr
+
+structure Piece where
+  kind   : Kind
+  color  : Nat
+  top    : Int
+  left   : Int
+  bottom : Int
+  right  : Int
+  hr     : Int      -- hub 行：cross 是两条杠的交点，ex / diamond 是对称中心
+  hc     : Int      -- hub 列
+  hollow : Bool     -- hub 那一格不画本色（ex / diamond / box）
+  deriving DecidableEq, Repr
+
+def iabs (x : Int) : Int := if x &lt; 0 then -x else x
+
+/-- ex / diamond 的半径 L（包围盒是正方形，边长 2L+1）。 -/
+def Piece.radius (p : Piece) : Int := p.hr - p.top
+
+/-- 包围盒中心，偶数边长取靠下靠右那一格。光标画在这一格。 -/
+def Piece.cr (p : Piece) : Int := (p.top + p.bottom + 1) / 2
+def Piece.cc (p : Piece) : Int := (p.left + p.right + 1) / 2
+
+/-- (r, c) 这一格是不是它的（理想形状，不裁盘）。 -/
+def Piece.mem (p : Piece) (r c : Int) : Bool :=
+  match p.kind with
+  | .cross =&gt;
+      (r == p.hr &amp;&amp; decide (p.left ≤ c) &amp;&amp; decide (c ≤ p.right)) ||
+      (c == p.hc &amp;&amp; decide (p.top ≤ r) &amp;&amp; decide (r ≤ p.bottom))
+  | .box =&gt;
+      (decide (p.top ≤ r) &amp;&amp; decide (r ≤ p.bottom) &amp;&amp; decide (p.left ≤ c) &amp;&amp; decide (c ≤ p.right) &amp;&amp;
+       (r == p.top || r == p.bottom || c == p.left || c == p.right)) ||
+      (r == p.hr &amp;&amp; c == p.hc &amp;&amp; !p.hollow)
+  | .ex =&gt;
+      let dr := iabs (r - p.hr)
+      let dc := iabs (c - p.hc)
+      (dr == dc &amp;&amp; decide (1 ≤ dr) &amp;&amp; decide (dr ≤ p.radius)) ||
+      (dr == 0 &amp;&amp; dc == 0 &amp;&amp; !p.hollow)
+  | .diamond =&gt;
+      let dr := iabs (r - p.hr)
+      let dc := iabs (c - p.hc)
+      (dr + dc == p.radius) || (dr == 0 &amp;&amp; dc == 0 &amp;&amp; !p.hollow)
+
+/-- 整件平移。 -/
+def Piece.shift (p : Piece) (dr dc : Int) : Piece :=
+  { p with top := p.top + dr, left := p.left + dc, bottom := p.bottom + dr,
+           right := p.right + dc, hr := p.hr + dr, hc := p.hc + dc }
+
+end Game
+</pre></div>
+</div></body></html>

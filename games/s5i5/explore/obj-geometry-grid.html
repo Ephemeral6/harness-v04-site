@@ -1,0 +1,64 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · geometry/grid</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>geometry/grid</h1><pre>格与方向。格就是 `(行, 列)` 两个整数，从 0 数起。
+
+`strip(r, c, dir, k)`：一根条的帽的左上格在 `(r, c)`，身体朝 `dir` 长，
+离帽第 `k` 条（`k = 0` 是帽自己）那一条横截面的三格，按「左上 → 右下」排。
+**中间那一格（下标 1）**就是尖所在的那一列 / 那一行。
+
+判据 4（对称）：四个方向不写四遍，统一成 `DIRS` 里一个单位位移；
+逆时针转一档 = `CCW`，转 4 档回原处（`rot_pt` 是 4 阶循环，见 `lean2/Obj/Geometry`）。</pre>
+<details><summary>源码</summary><pre>&quot;&quot;&quot;格与方向。格就是 `(行, 列)` 两个整数，从 0 数起。
+
+`strip(r, c, dir, k)`：一根条的帽的左上格在 `(r, c)`，身体朝 `dir` 长，
+离帽第 `k` 条（`k = 0` 是帽自己）那一条横截面的三格，按「左上 → 右下」排。
+**中间那一格（下标 1）**就是尖所在的那一列 / 那一行。
+
+判据 4（对称）：四个方向不写四遍，统一成 `DIRS` 里一个单位位移；
+逆时针转一档 = `CCW`，转 4 档回原处（`rot_pt` 是 4 阶循环，见 `lean2/Obj/Geometry`）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+ROWS = 63          # 场地 0..62；第 63 行是计费行，不属于场地
+COLS = 64
+
+DIRS = {&quot;U&quot;: (-1, 0), &quot;D&quot;: (1, 0), &quot;L&quot;: (0, -1), &quot;R&quot;: (0, 1)}
+# 屏幕上看的逆时针（行向下长）：朝下的转一档朝右。
+CCW = {&quot;U&quot;: &quot;L&quot;, &quot;L&quot;: &quot;D&quot;, &quot;D&quot;: &quot;R&quot;, &quot;R&quot;: &quot;U&quot;}
+
+
+def inside(r: int, c: int) -&gt; bool:
+    return 0 &lt;= r &lt; ROWS and 0 &lt;= c &lt; COLS
+
+
+def strip(r: int, c: int, d: str, k: int) -&gt; list[tuple[int, int]]:
+    &quot;&quot;&quot;帽左上格 (r,c)、朝 d 长的条，离帽第 k 条的三格（可能落在盘外）。&quot;&quot;&quot;
+    dr, dc = DIRS[d]
+    if dc == 0:                       # 竖着长：帽是横的一排三格
+        return [(r + dr * k, c + j) for j in range(3)]
+    return [(r + j, c + dc * k) for j in range(3)]
+
+
+def rot_pt(p: tuple[int, int], piv: tuple[int, int]) -&gt; tuple[int, int]:
+    &quot;&quot;&quot;绕格 piv 逆时针转一档（屏幕坐标，行向下）。&quot;&quot;&quot;
+    r, c = p
+    pr, pc = piv
+    return (pr - (c - pc), pc + (r - pr))
+
+
+def rect_cells(r0: int, c0: int, r1: int, c1: int) -&gt; set[tuple[int, int]]:
+    return {(y, x) for y in range(r0, r1 + 1) for x in range(c0, c1 + 1)}
+</pre></details></div></main></body></html>

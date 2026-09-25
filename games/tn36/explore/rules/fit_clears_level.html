@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · fit_clears_level</title>
+<style>
+/* 只有尺寸与配色。形状从 ledger/templates/web/style.css 起手，世界的配色那一块按本局改。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #d9a441;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .6px; }
+.gaps { border-color: var(--warn); }
+.gaps h2 { color: var(--warn); }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+figure { margin: 0; }
+figcaption { color: var(--dim); font-size: 12px; max-width: 300px; margin-top: 6px; }
+canvas.frame { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; min-width: 44px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA, .chip.U { background: #222732; color: var(--faint); }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 14px; }
+.note { color: var(--dim); font-size: 13px; }
+.row { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+.row .t { font-weight: 600; }
+pre.src { background: #0e1015; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+          overflow-x: auto; font-size: 12px; line-height: 1.45; white-space: pre; }
+pre.txt { white-space: pre-wrap; font-size: 12.5px; }
+details > summary { cursor: pointer; color: var(--dim); }
+.controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+button, select { background: #232834; color: var(--ink); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; font-size: 13px; }
+input[type=range] { flex: 1; min-width: 200px; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>规则 · fit_clears_level</h1>
+  <div class="sub">什么算赢</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card "><h2>读数（在最前）</h2><table><tr><th></th><th class='num'>|scope|</th><th class='num'>闭嘴 N</th>
+<th class='num'>判对 C</th><th class='num'>判错 E</th><th class='num'>读不成 U</th></tr>
+<tr><td>按行（292）</td><td class='num'>14</td><td class='num'>278</td><td class='num'>14</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>去重后（249）</td><td class='num'>11</td><td class='num'>238</td><td class='num'>11</td><td class='num'>0</td><td class='num'>0</td></tr></table>
+<p class='note'>闭嘴的理由：</p><ul><li>277 次 · NA：既不是填满的交卷，也不是关卡前进的那一步</li><li>1 次 · NA：RESET 不是过关 → 说了但不进模型/reset_restarts</li></ul>
+<details><summary>变异测试（装置 criteria_run 的读数 + 我补的话）</summary><pre class='txt'># ===== 装置读数（每次结算重写，别手改这一段）=====
+规则 `fit_clears_level`　变异测试读数（120 个变异，册子共拒掉 116 个）
+
+**独家拒绝 0 个** ⇒ 它拒掉的，别的规则也都拒掉了。
+按拒绝集判据它**是写法不是概念**——要么删掉，要么在下面写清它说了什么别人没说的话，并给出一条能打到它的变异。
+
+**盲区**：「独家拒绝 0」不等于「被证明冗余」，只等于「在这一批变异上没说出别人没说的话」。变异是造出来的，不是穷举的。
+# ===== 以上由装置写；下面是你的 =====
+
+
+
+
+
+留，不是写法。装置的变异全是「改帧」，而它只读前一帧与上游的关卡号——改后一帧的四种造法碰不到它，
+「换了个前提」那一种在 120 个抽样里恰好没落到过关那几步。能打到它的变异：reverse.py 的 D1——
+seq 183（第 1 关过关）的前一帧面板少暗一个件，程序不再填满空腔而上游说过关了，**只有它**判 FALSE。
+另外 M01 / M03 / M07 / M16（南北互换、撞墙整道作废、底栏不查、放大锚换左下）里，过关那几步也全靠它红。
+</pre></details></div><div class="card "><h2>它说什么</h2><p>按大圆交卷、程序算出来的终点的形（格、倍数、缺口）与插槽空腔相同 ⇒ 这一下过关；反过来，关卡前进（或整局打完）的那一下，一定是这样一次交卷。</p><p class='note'>过关当且仅当：按大圆交卷，而程序算出来的终点和插槽空腔一模一样。</p></div><div class="card "><h2>论域：什么时候它不管、交给谁</h2><p>开口的只有两类步：点中大圆且算出来填满的那一下（正向），以及上游说关卡前进 / 整局打完的那一下（反向）。RESET（关卡号往回跳）不是过关，归 `说了但不进模型/reset_restarts`。别的步不开口：它们「没过关」这一半由 `一步怎么走/` 的两条逐格核（下一帧还是同一关的版面）。</p></div><div class="card "><h2>它明确不主张什么</h2><p>不主张过关之后下一关长什么样（那是下一关的版面，帧上只看得到结果，模型不描述）。不主张最后一关打完那一帧画成什么样（件进了插槽、记号那一行亮成光带——那一帧读不成世界）。</p></div><div class="card "><h2>改版史</h2><ol><li>v1：由起点册子 disc_fit_clears_level（v6，只剩「填不满 ⇒ 不过关」一半）与 level0_win、clear_refills_counter 合成。册子 v5 那次把「填满 ⇒ 过关」打掉的反例（另一次跑的第 333 步）在本批语料里不存在；按这一版的走法（撞墙跳过、终点要落在花格或空腔），本批语料 30 次交卷（14 次过关、16 次没过）全部对上，于是两个方向合成一个等价。第 0 关不再单列：它的面板只有 1 组，「整列全暗」那个码就是南移，五个南移把件从 (1,4) 送进 (6,4) 的空腔——和别的关是同一条规则。</li></ol><p class='note'>见证（本批语料的 seq）：seq:7、seq:16、seq:47、seq:63、seq:166、seq:174、seq:183、seq:292</p></div><div class="card "><h2>它的 Lean（身份：定义（Rule/ 下的一个 def））</h2><p class='note'>Lean：<a href='../lean/f-Rule-Win-FitClearsLevel.html'>Rule/Win/FitClearsLevel.lean</a>（规则，21 行）</p><details><summary>源码</summary><pre class='src'>/-
+# fit_clears_level —— 对应 `rule/什么算赢/fit_clears_level.py`
+
+-- IDENTITY: definition
+
+**这是「赢」的定义**，不是一条要证的定理：`isGoal` 是一个**状态**性质——
+面板上写着的这道程序，一交上去算出来的终点就和插槽空腔一模一样。`step` 在点中大圆且 `isGoal` 时给出 `won`。
+
+反方向「过关的只有这一种」是 `Derived/WonOnlyByGoal.lean` 里的一条推论。
+-/
+import Obj.Compose.Outcome
+
+namespace Game
+
+def isGoal (L : Layout) (w : World) : Bool :=
+  match outcome L w with
+  | .win =&gt; true
+  | _    =&gt; false
+
+end Game
+</pre></details></div><div class="card "><h2>源码</h2><details><summary>什么算赢/fit_clears_level.py</summary><pre class='src'>&quot;&quot;&quot;过关当且仅当：按大圆交卷，而程序算出来的终点和插槽空腔一模一样。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.click import is_reset, target
+from derive.outcome import outcome
+
+from .._common import level_changed
+
+CLAIM = (&quot;按大圆交卷、程序算出来的终点的形（格、倍数、缺口）与插槽空腔相同 ⇒ 这一下过关；&quot;
+         &quot;反过来，关卡前进（或整局打完）的那一下，一定是这样一次交卷。&quot;)
+
+SCOPE_NOTE = (&quot;开口的只有两类步：点中大圆且算出来填满的那一下（正向），以及上游说关卡前进 / 整局打完的那一下（反向）。&quot;
+              &quot;RESET（关卡号往回跳）不是过关，归 `说了但不进模型/reset_restarts`。别的步不开口：&quot;
+              &quot;它们「没过关」这一半由 `一步怎么走/` 的两条逐格核（下一帧还是同一关的版面）。&quot;)
+
+NOT_CLAIMED = (&quot;不主张过关之后下一关长什么样（那是下一关的版面，帧上只看得到结果，模型不描述）。&quot;
+               &quot;不主张最后一关打完那一帧画成什么样（件进了插槽、记号那一行亮成光带——那一帧读不成世界）。&quot;)
+
+HISTORY = [
+    &quot;v1：由起点册子 disc_fit_clears_level（v6，只剩「填不满 ⇒ 不过关」一半）与 level0_win、clear_refills_counter 合成。&quot;
+    &quot;册子 v5 那次把「填满 ⇒ 过关」打掉的反例（另一次跑的第 333 步）在本批语料里不存在；&quot;
+    &quot;按这一版的走法（撞墙跳过、终点要落在花格或空腔），本批语料 30 次交卷（14 次过关、16 次没过）全部对上，&quot;
+    &quot;于是两个方向合成一个等价。&quot;
+    &quot;第 0 关不再单列：它的面板只有 1 组，「整列全暗」那个码就是南移，五个南移把件从 (1,4) 送进 (6,4) 的空腔——&quot;
+    &quot;和别的关是同一条规则。&quot;,
+]
+
+EVIDENCE = [&quot;seq:7&quot;, &quot;seq:16&quot;, &quot;seq:47&quot;, &quot;seq:63&quot;, &quot;seq:166&quot;, &quot;seq:174&quot;, &quot;seq:183&quot;, &quot;seq:292&quot;]
+
+
+NEEDS = (&quot;w&quot;,)                               # 只读前一帧：过关那一下的下一帧是另一关（或终局画面）
+
+
+def scope_(w, action, nw, ctx):
+    if is_reset(action):
+        return &quot;RESET 不是过关 → 说了但不进模型/reset_restarts&quot;
+    if level_changed(ctx) and (ctx.get(&quot;level_next&quot;, 0) &gt; ctx.get(&quot;level&quot;, 0)
+                               or ctx.get(&quot;state_next&quot;) == &quot;WIN&quot;):
+        return None
+    if target(w, action) == (&quot;disc&quot;,) and outcome(w)[0] == &quot;win&quot;:
+        return None
+    return &quot;既不是填满的交卷，也不是关卡前进的那一步&quot;
+
+
+def assert_(w, action, nw, ctx):
+    fit = target(w, action) == (&quot;disc&quot;,) and outcome(w)[0] == &quot;win&quot;
+    advanced = (ctx.get(&quot;level_next&quot;, 0) &gt; ctx.get(&quot;level&quot;, 0)) or ctx.get(&quot;state_next&quot;) == &quot;WIN&quot;
+    return fit == advanced
+</pre></details></div>
+</div>
+<script>window.PAGE = {};</script>
+<script>
+// 只画、只翻页。**这里没有一行世界逻辑**：每一帧的像素、哪几格变了、每条规则判了什么、
+// 世界字段读出来是多少——全是 web/export.py 在 Python 那边算好的，这一份只摆出来。
+// web/check_no_logic.py 会来这里搜对象层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+// ARC-AGI-3 的 16 色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出，
+// pages.py 放进要画帧的那几页的 PAGE.palette（下标 = 色号）。这里不抄。
+const PALETTE = (window.PAGE && window.PAGE.palette) || [];
+const PX = 4;
+
+function paintFrame(cv, hex, marks) {
+  cv.width = 64 * PX; cv.height = 64 * PX;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 4096; i++) {
+    g.fillStyle = PALETTE[parseInt(hex[i], 16)];
+    g.fillRect((i % 64) * PX, Math.floor(i / 64) * PX, PX, PX);
+  }
+  if (marks) {
+    g.strokeStyle = "#ff2d55"; g.lineWidth = 1;
+    for (const rc of marks) g.strokeRect(rc[1] * PX + .5, rc[0] * PX + .5, PX - 1, PX - 1);
+  }
+}
+
+function paintAll() {
+  const P = window.PAGE || {};
+  document.querySelectorAll("canvas[data-frame]").forEach((cv) => {
+    const id = cv.getAttribute("data-frame");
+    const mk = cv.getAttribute("data-marks");
+    paintFrame(cv, P.frames[id], mk ? P.marks[mk] : null);
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function replayInit() {
+  const P = window.PAGE;
+  if (!P || !P.rows) return;
+  const box = document.getElementById("replay");
+  const slider = document.getElementById("pos");
+  const label = document.getElementById("where");
+  slider.max = P.rows.length - 1;
+  function show(i) {
+    const s = P.rows[i];
+    slider.value = i;
+    label.textContent = `第 ${i + 1} / ${P.rows.length} 行 · seq ${s.seq} · 段 ${s.seg} · 第 ${s.lvl} 关（本关第 ${s.k} 下）`;
+    paintFrame(document.getElementById("cvA"), P.frames[s.prev], null);
+    paintFrame(document.getElementById("cvB"), P.frames[s.next], s.changed);
+    const chips = Object.entries(s.verdicts).map(([n, v]) =>
+      `<tr><td>${esc(n)}</td><td><span class="chip ${v}">${v}</span></td></tr>`).join("");
+    const wv = (w) => w ? `顶栏 ${w.counter}；件 ${esc(w.piece)}；面板程序 ${esc(w.program)}；看得见的花格 ${esc(w.pads)}` : "（读不成世界：终局画面）";
+    document.getElementById("info").innerHTML =
+      `<dl class="kv"><dt>动作</dt><dd class="mono">${esc(s.action)}（${esc(s.kind)}${s.result ? "，交卷结果 " + esc(s.result) : ""}）</dd>` +
+      `<dt>上游</dt><dd>第 ${s.lvl} 关 → 第 ${s.lvl_next} 关，${esc(s.state)}</dd>` +
+      `<dt>变了几格</dt><dd>${s.n_changed}（右图红框，导出侧比好的）</dd>` +
+      `<dt>前一帧</dt><dd>${wv(s.w)}</dd><dt>后一帧</dt><dd>${wv(s.nw)}</dd>` +
+      `<dt>标记</dt><dd>${esc(s.mark)}</dd></dl>` +
+      `<table style="margin-top:10px"><tr><th>规则</th><th>判决</th></tr>${chips}</table>`;
+  }
+  slider.addEventListener("input", () => show(+slider.value));
+  document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+  document.getElementById("nextBtn").onclick = () => show(Math.min(P.rows.length - 1, +slider.value + 1));
+  const jump = document.getElementById("jump");
+  if (jump) jump.onchange = () => show(+jump.value);
+  show(0);
+  box.style.display = "block";
+}
+
+function navSelect() {
+  document.querySelectorAll("select[data-nav]").forEach((s) => {
+    s.onchange = () => { if (s.value) window.location.href = s.value; };
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => { paintAll(); replayInit(); navSelect(); });
+
+</script>
+</body>
+</html>

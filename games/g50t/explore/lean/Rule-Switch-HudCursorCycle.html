@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rule/Switch/HudCursorCycle.lean</title>
+<style>
+/* 只有尺寸与配色（从 ledger/templates/web/style.css 起手）。 */
+/* 按钮 / 门按世界色号上色：--btnN / --doorN 由 web/export.py 从官方 arc_agi.rendering.COLOR_MAP 生成（只有这一个来源） */
+/* 生成的文件，别手改：web/export.py 从 arc_agi.rendering.COLOR_MAP 按色号取色 */
+:root {
+  --btn8: #F93C31;
+  --btn11: #FFDC00;
+  --btn15: #A356D6;
+  --door8: #F93C31;
+  --door11: #FFDC00;
+  --door15: #A356D6;
+}
+
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;
+  /* ↓ 本局专属：世界的配色（前端配的，不是世界里的色号） */
+  --wall: #0b0d12; --floor: #2a2f3b; --goal: #e8e8e8; --hidden: #3d3340;
+  --me: #59b0ff; --ghost: #e5544b; --walker: #b36bff;
+  --spring: #c9a227; --latch: #3fb6a8;
+  --ok: #4caf7d; --bad: #e5544b; --na: #4a5163;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; color: var(--dim); letter-spacing: .8px; }
+.gaps { border-color: #7a5a20; }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin-top: 22px; font-weight: 600; font-size: 15px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--line); }
+.mono, code, pre { font-family: ui-monospace, Consolas, monospace; }
+pre.src { white-space: pre-wrap; font-size: 12px; background: #0f1116; padding: 10px; border-radius: 6px; overflow-x: auto; }
+.prose { white-space: pre-wrap; }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.cells .row { display: flex; }
+.c { display: inline-block; width: 22px; height: 22px; border: 1px solid #0003; }
+.legend .c { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+.c.wall { background: var(--wall); } .c.floor { background: var(--floor); } .c.goal { background: var(--goal); }
+.c.hidden { background: var(--hidden); } .c.me { background: var(--me); } .c.ghost { background: var(--ghost); }
+.c.walker { background: var(--walker); } .c.spring { background: var(--spring); } .c.latch { background: var(--latch); }
+.c.cart { background: #888; }
+.c.btn8 { background: var(--btn8); } .c.btn11 { background: var(--btn11); } .c.btn15 { background: var(--btn15); }
+.c.door8 { background: var(--door8); } .c.door11 { background: var(--door11); } .c.door15 { background: var(--door15); }
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+input[type=range] { flex: 1; min-width: 180px; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+.v-TRUE { color: var(--ok); } .v-FALSE { color: var(--bad); font-weight: 700; } .v-NA { color: var(--na); }
+@media (max-width: 600px) { .c { width: 14px; height: 14px; } }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Rule/Switch/HudCursorCycle.lean</h1><div class="sub">Lean 源码</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+<div class="card"><h2>读数</h2><p>角色：Rule；编译退出码 0；定理 0 条：—</p></div><div class="card"><pre class="src">/-
+# hud_cursor_cycle（`rule/换一盘/hud_cursor_cycle.py`）—— **定义**
+
+ACTION5：游标进一格，到头绕回 0。方向键不动游标（`Step` 里直接不碰它）。
+-/
+import Obj.Panel.Hud
+
+namespace G50t
+
+def hudCursorCycle (h : Hud) : Hud :=
+  { h with cursor := (h.cursor + 1) % h.n }
+
+end G50t
+</pre></div>
+</div></body></html>

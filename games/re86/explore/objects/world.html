@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象 · world</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>对象 · world</h1><div class="sub">objects/world.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>为什么删不掉它</h2><pre>World —— 一帧的全部状态（objects/world.py）
+
+字段逐个（数字来自 字段-*.txt 与 field_split.txt）：
+  pieces    消融 1014 / 分得开          留
+  cursor    消融 1007 / 分得开          留（active 是它的函数，已合）
+  swatches  消融 1014 / 关内恒定分不开   留
+  blockers  消融 35   / 关内恒定分不开   留（translate 的论域、blocked_* 的触发）
+  rings     消融 2    / 关内恒定分不开   留（过关判据）
+  spent     消融 2    / 分得开          留，不进 Lean 模型
+  over      消融 57   / 分不开（与 pieces 同生共死）  留，欠账：一对「几何相同、图层相反」的局面能分开它，语料里 0 次
+
+不在 World 里的：本关步数、每关预算 B、开局长什么样（历史，不是一帧的函数）。
+</pre></div><div class="card"><h2>它是什么</h2><pre>`World` —— 这一局一帧的**全部状态**（读得出来的那一部分）。
+
+    pieces    会动的东西，按几何排好（**排序只为了可比，下标不是身份**）
+    cursor    光标那一格（全图唯一的色 0）；被别的东西盖住时读不出来，记 None
+    rings     环（位置 + 归属色，归属色可能读不出）
+    swatches  色块
+    blockers  挡块占的格子（地形：不动，也从不被盖住）
+    spent     底行 HUD 上「已花掉」的格数
+    over      这一帧**读得到**的「谁压谁」：(i, j) 表示第 i 件画在第 j 件上面。
+              只有两件不同色的东西真的重叠、重叠那一格显示 i 的颜色时才有这一对。
+
+`active`（选中的是第几件）**不是字段**：它是从 cursor 与 pieces 算出来的——
+恰好一件东西的包围盒中心能落在光标上时就是它，否则读不出（None）。
+存成字段的话它和 cursor 是同一件事的两个写法（卡 03「同生共死 ⇒ 合」）。
+
+## 帧上读不全、所以只存「读得到的那几对」的一样
+
+* **图层次序**。它**是**动力学的一部分：ACTION5 按图层从下往上轮着选
+  （规则 `switch/cycle`）。可一帧里只有重叠的那几对读得出来，
+  所以这里只存读到的对（`over`），整条次序由读数那一层**整关取并集**拼出来，
+  并且这个口径写在明处（见 `corpus.py` 的 ctx）。
+
+## 帧上读不出来、所以**不在这里**的两样
+
+* **这一关花了几步**。HUD 读数是它的函数（`round(n·64/B)`），但 n 本身和每关预算 B 都不在帧上。
+* **这一关的开局长什么样**。重来一次之后回到哪，是历史，不是这一帧的函数。
+
+这两样都不编进世界：编进去就是给模型加一位帧上没有的信息。</pre><p class="note">源码：objects/world.py</p></div><div class="card"><h2>它的 Lean（身份：定义）</h2><p class="note">Obj/World.lean</p><pre>/-
+# Obj/World —— 状态与版面（对应 `objects/world.py`）
+
+    World   会变的那一半：东西（**按图层从下往上排**）+ 选中的是第几件
+    Board   不变的那一半：环、色块、挡块
+
+**`Board` 不是 `World` 的字段。** `step` 拿它当参数读，返回值里没有它——
+「走一步版面不会变」在这里**不用证，它表示不出来**。（Python 那边这一句是一条规则
+`board/static`，在语料上判；这边它是架构。身份表里记成「不进模型（表示不出来）」。）
+
+**图层次序住在列表的顺序里。** 推一下用 `List.set`、换人只改下标，列表顺序永远不动——
+「图层一步之内不翻」（Python 的 `board/layers`）在这边是一条推论（`Derived/Slots.lean`）。
+
+HUD 预算条不在这里：涨在哪一步取决于本关步数与本关预算，两样都不在帧上（`notmodel/budget_curve`）。
+-/
+
+import Obj.Piece.Piece
+import Obj.Board.Ring
+import Obj.Board.Swatch
+
+namespace Game
+
+structure World where
+  pieces : List Piece
+  active : Nat
+  deriving DecidableEq, Repr
+
+structure Board where
+  rings    : List Ring
+  swatches : List Swatch
+  blockers : List (Int × Int)
+  deriving DecidableEq, Repr
+
+inductive Act where
+  | up | down | left | right | switch
+  deriving DecidableEq, Repr
+
+/-- 这一步的结果。**没有编出来的分支**：模型说不出下一帧的那一支就是 `na`，不带状态。 -/
+inductive Res where
+  | ok  (s : World)
+  | won (s : World)
+  | na
+  deriving DecidableEq, Repr
+
+def Act.delta : Act → Int × Int
+  | .up =&gt; (-3, 0) | .down =&gt; (3, 0) | .left =&gt; (0, -3) | .right =&gt; (0, 3) | .switch =&gt; (0, 0)
+
+end Game
+</pre></div>
+</div></body></html>

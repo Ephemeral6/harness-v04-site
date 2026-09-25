@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vacated_cells_show_background</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  /* 这一局：格盘上每一格按帧里的色号上色，色号 → 颜色只有一个来源——export.py 从官方
+     arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，site.js 读它。这里只留叠在格盘上的标记色。 */
+  --c-water: rgba(90,170,255,.55);  --c-fed: #ffe27a;
+  --c-changed: #ff5d73;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* ── 本局补的几样：缺口框、预算条、读数小表 ─────────────────────────────── */
+.gaps { background: #2a1f14; border: 1px solid #6b4a22; border-radius: 10px; padding: 12px 16px;
+        margin-bottom: 18px; font-size: 13px; }
+.gaps h2 { margin: 0 0 6px; font-size: 13px; color: #ffb35c; text-transform: none; letter-spacing: 0; }
+.gaps ul { margin: 4px 0 0; padding-left: 18px; }
+.gaps li { margin: 3px 0; }
+.hudbar { height: 6px; background: #2a2f3a; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.hudbar i { display: block; height: 100%; background: #6fb3c8; }
+.big { font-size: 22px; font-weight: 600; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #232834;
+        font-size: 11.5px; color: var(--dim); margin-right: 4px; }
+.pill.def { color: #7ab8ff; } .pill.derived { color: #c08cdc; } .pill.outside { color: #d79a5b; }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 4px 14px;
+            font-size: 12.5px; }
+.verdicts div { display: flex; gap: 8px; align-items: baseline; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>vacated_cells_show_background</h1><div class="sub">世界怎么回应</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+<div class="card"><h2>读数（rule/世界怎么回应/vacated_cells_show_background.py）</h2><table><tr><th>论域 |scope|</th><th>去重</th><th>沉默 N</th><th>判对 C</th><th>判错 E</th><th>读不成 U</th></tr><tr><td class="num big">265</td><td class="num">107</td><td class="num">106</td><td class="num ok">265</td><td class="num ">0</td><td class="num">0</td></tr></table><details><summary>不管的理由（N 的分项）</summary><table><tr><td>不是方向键</td><td class='num'>73</td></tr><tr><td>有件被压住或并排（腾出来的格底下是什么帧上读不出）</td><td class='num'>33</td></tr></table></details></div><div class="card"><h2>它说什么</h2><p>选中件挪一格之后，它腾出来的那几格画成空地色12——前提是它底下没压着别的件。</p></div><div class="card"><h2>它明确不主张什么</h2><p>有件被压住时不说（那时腾出来的格露出的是底下那一件，帧上读不出是什么——Lean 里带着状态从开局走的那一层替它说，而且说对了）。</p><p class="note">论域：只管方向键、同关、挪得动、**没有件被压住**（`ctx.occluded` 为假：可见件数与件格数都等于本关开局）的那一步。</p></div><div class="card"><h2>改版史</h2><ul class="tight"><li>v1（本轮）：起点册子四条方向概念的 apply 里都有这半句（「没压着别的块时腾出的格子变背景色12」），它从来只是生成器、没进过 assert_——所以起点册子里它**从没被判过错**。这里单独立一条，让它能被判错。「底下有没有压着」起点册子用按杯口指纹写死的家当表判（nothing_hidden），这里换成本关开局的件表规模。</li></ul></div><div class="card"><h2>见证（6 条 tid，在本批语料里 6 条）</h2><div data-seq="234"></div><p class="note mono">4bcd64383ea955fd, 5e03a4160bdabd41, ca129639abf37220, 693d38c69824ae6a, ab14a507d85890a3, 1a0f3cfe08bb3e95</p></div><div class="card"><h2>它的 Lean（Derived/VacatedShowsEmpty.lean，身份：推论）</h2><pre class="lean">/-
+# VacatedShowsEmpty —— **推论**：没有任何件压着、也不是版面的格，画出来就是空地 12
+（对应 `rule/世界怎么回应/vacated_cells_show_background.py`）
+
+Python 那边它是一条独立的规则：选中件挪走后腾出来的格露出空地（前提是底下没压着件）。
+在模型里它不是一条规则——它是 `colorAt` 的定义推出来的：腾出来的格不在挪过之后的选中件里，
+底下又没有别的件，那它就谁都不占，画出来只能是 12。
+
+「底下有没有压着件」在这里是前提 `hfree`；Python 那条规则用「可见件表和本关开局一样大」代替它
+（帧上读不出底下压着什么）——两边说的是同一句话，差别只在前提从哪里来。
+-/
+import Obj.Composite.Render
+
+-- 定理放在根命名空间：装置的 `ledger/lean_check.py` 按**短名**逐条 `#print axioms`。
+open Game
+
+theorem vacated_shows_empty (b : Board) (w : World) (p : Pos)
+    (hstatic : staticColor b p = none)
+    (hfree : ∀ pc ∈ w.pieces, pc.cells.contains p = false ∧ pc.marks.contains p = false) :
+    colorAt b w p = 12 := by
+  have aux : ∀ ps : List Piece,
+      (∀ pc ∈ ps, pc.cells.contains p = false ∧ pc.marks.contains p = false) → topColor p ps = none := by
+    intro ps
+    induction ps with
+    | nil =&gt; intro _; rfl
+    | cons pc rest ih =&gt;
+      intro h
+      have h1 := h pc (by simp)
+      have hc : p ∉ pc.cells := by simpa using h1.1
+      have hm : p ∉ pc.marks := by simpa using h1.2
+      have ih&#x27; := ih (fun x hx =&gt; h x (List.mem_cons_of_mem _ hx))
+      cases rest with
+      | nil =&gt; simp [topColor, paint, hc, hm]
+      | cons q rest&#x27; =&gt;
+        simp only [topColor] at ih&#x27; ⊢
+        rw [ih&#x27;]
+        simp [paint, hc, hm]
+  unfold colorAt
+  rw [hstatic, aux w.pieces hfree]
+
+#print axioms vacated_shows_empty
+</pre></div>
+</div>
+<script>window.DATA={"frames":[{"rows":16,"cols":16,"cells":"ccccccccc4ccccccccccccccc6ccccccccccccccccccccccccccccccccccccccccc99999ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccbcbcccbcbcccccccbbbcccbbbccc1111111111111111","hud":64},{"rows":16,"cols":16,"cells":"ccccccccc4ccccccccccccccc6cccccccccccccccccccccccccccccccccccccccccc99999cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccbcbcccbcbcccccccbbbcccbbbccc1111111111111111","hud":62},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"steps":[{"seq":234,"tid":"4bcd64383ea955fd","lv":0,"act":"ACTION4","kind":"move","seg":"84782af3","cert":true,"prev":0,"next":1,"changed":[[4,3],[4,8]],"rules":{"arrow_blocked_is_still":"NA","arrow_shifts_selected":"TRUE","click_elsewhere_is_still":"NA","click_selects_hit_piece":"NA","deselected_rest_color_by_shape":"NA","fire_miss_moves_nothing":"NA","hud_ticks_every_action":"TRUE","vacated_cells_show_background":"TRUE","fire_wins_iff_all_mouths_fed":"NA","fifth_fire_in_a_level_kills":"NA","handoff_goes_to_nearest":"NA","levelup_refills_budget":"NA","reset_returns_to_opening":"NA"},"lean":"yes"}],"home":{},"palette":["#ffffff","#cccccc","#999999","#666666","#333333","#000000","#e53aa3","#ff7bcc","#f93c31","#1e93ff","#88d8f1","#ffdc00","#ff851b","#921231","#4fcc30","#a356d6"]};</script><script>
+// 画盘与回放。**这里没有一行世界逻辑**：每一格的颜色、哪几格变了、水走过哪几格，
+// 都是 web/export.py 在 Python 那边算好导出来的；这一份只按导出的字母查颜色、画方块。
+// check_no_logic.py 会来这里搜对象层 / 复合层 / 规则层的函数名，搜到就算破。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  // 格盘上每一格的颜色：导出的是一个十六进制字母（帧里的色号）。色号 → 颜色只有一个来源：
+  // export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号），这里不抄。
+  const COLOR = Object.fromEntries(((D && D.palette) || []).map((c, i) => [i.toString(16), c]));
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  // 一张盘 → SVG。opts: {px, wet:[[r,c]], fed:[[r,c]], changed:[[r,c]]}
+  function boardSVG(fr, opts) {
+    opts = opts || {};
+    const px = opts.px || 14, R = fr.rows, C = fr.cols;
+    const out = [`<svg class="grid" width="${C * px}" height="${R * px + 10}" viewBox="0 0 ${C * px} ${R * px + 10}">`];
+    for (let i = 0; i < R * C; i++) {
+      const r = Math.floor(i / C), c = i % C;
+      out.push(`<rect x="${c * px}" y="${r * px}" width="${px - 1}" height="${px - 1}" fill="${COLOR[fr.cells[i]] || "#f0f"}"/>`);
+    }
+    for (const [r, c] of (opts.wet || [])) {
+      out.push(`<rect x="${c * px + px / 4}" y="${r * px + px / 4}" width="${px / 2}" height="${px / 2}" fill="var(--c-water)"/>`);
+    }
+    for (const [r, c] of (opts.fed || [])) {
+      out.push(`<rect x="${c * px + 1}" y="${r * px + 1}" width="${px - 3}" height="${px - 3}" fill="none" stroke="var(--c-fed)" stroke-width="2"/>`);
+    }
+    for (const [r, c] of (opts.changed || [])) {
+      out.push(`<rect x="${c * px}" y="${r * px}" width="${px - 1}" height="${px - 1}" fill="none" stroke="var(--c-changed)" stroke-width="1.5"/>`);
+    }
+    const w = Math.round(C * px * fr.hud / 64);
+    out.push(`<rect x="0" y="${R * px + 3}" width="${C * px}" height="5" fill="#2a2f3a"/>`);
+    out.push(`<rect x="0" y="${R * px + 3}" width="${w}" height="5" fill="#6fb3c8"/>`);
+    out.push("</svg>");
+    return out.join("");
+  }
+
+  function figure(fr, cap, opts) {
+    if (fr === null || fr === undefined) return `<figure class="board"><figcaption>${esc(cap)}</figcaption><div class="note">（这一帧读不成世界：终局画面）</div></figure>`;
+    return `<figure class="board"><figcaption>${esc(cap)}</figcaption>${boardSVG(D.frames[fr], opts)}</figure>`;
+  }
+
+  function stepBySeq(seq) { return D.steps.find((s) => s.seq === seq); }
+
+  // 首页：导出器挑好的几帧
+  function initHome() {
+    document.querySelectorAll("[data-pick]").forEach((el) => {
+      const p = D.home[el.dataset.pick];
+      if (!p) return;
+      el.innerHTML = figure(p.frame, "seq " + p.seq, { px: 16, wet: p.wet, fed: p.fed });
+      const cap = document.querySelector(`[data-cap="${el.dataset.pick}"]`);
+      if (cap) cap.textContent = p.cap;
+    });
+  }
+
+  // 规则 / 对象页：画一条见证转移（导出器给的 seq）
+  function initEvidence() {
+    document.querySelectorAll("[data-seq]").forEach((el) => {
+      const s = stepBySeq(Number(el.dataset.seq));
+      if (!s) { el.innerHTML = '<div class="note">这一条不在本批语料里</div>'; return; }
+      el.innerHTML = `<div class="boards">${figure(s.prev, "seq " + s.seq + " 之前", { px: 11 })}` +
+        `${figure(s.next, s.act + " 之后", { px: 11, changed: s.changed })}</div>`;
+    });
+  }
+
+  // 回放：一步一步看，每一步每条规则说了什么、Lean 的模型说了什么
+  function initReplay() {
+    const slider = $("slider"), label = $("label");
+    if (!slider) return;
+    slider.max = D.steps.length - 1;
+    function show(i) {
+      const s = D.steps[i];
+      label.textContent = `第 ${i + 1} / ${D.steps.length} 行 · seq ${s.seq} · 第 ${s.lv} 关 · ${s.act}`;
+      $("boards").innerHTML = figure(s.prev, "动作之前", { px: 15 }) +
+        figure(s.next, "动作之后（红框 = 这一步变了的格）", { px: 15, changed: s.changed });
+      const kind = { move: "同关一步", levelup: "过关", final: "最后一关过关", reset: "RESET（整局重开）" }[s.kind];
+      $("meta").innerHTML = `<span class="pill">${kind}</span><span class="pill">段 ${s.seg}${s.cert ? "（成绩单认证）" : "（未认证）"}</span>` +
+        `<span class="pill">Lean 模型：<span class="chip ${s.lean === "yes" ? "TRUE" : s.lean === "no" ? "FALSE" : "NA"}">${s.lean}</span></span>`;
+      const rows = Object.entries(s.rules).map(([n, v]) =>
+        `<div><span class="chip ${v === "TRUE" ? "TRUE" : v === "FALSE" ? "FALSE" : "NA"}">${v}</span><a href="rules/${n}.html" class="mono">${n}</a></div>`);
+      $("verdicts").innerHTML = rows.join("");
+    }
+    slider.addEventListener("input", () => show(Number(slider.value)));
+    $("prev").onclick = () => { slider.value = Math.max(0, Number(slider.value) - 1); show(Number(slider.value)); };
+    $("next").onclick = () => { slider.value = Math.min(D.steps.length - 1, Number(slider.value) + 1); show(Number(slider.value)); };
+    const h = Number((location.hash || "#0").slice(1)) || 0;
+    slider.value = h;
+    show(h);
+  }
+
+  window.Render = { boardSVG, figure };
+  document.addEventListener("DOMContentLoaded", () => { initHome(); initEvidence(); initReplay(); });
+})();
+
+</script><script>
+// 形式化那几页：只给 Lean 源码上色。**这是渲染**：它不理解一个字，只认注释、字符串和几十个词。
+// 哨兵写成 \uXXXX 转义，不写裸控制字节（模板那一份踩过：裸字节被工具规范化之后整页炸掉）。
+(function () {
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|open|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using|section|variable").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+    "rintro|induction|split|rw|apply|unfold|absurd|first|next|simpa").split("|");
+
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("pre.lean").forEach((el) => { el.innerHTML = paint(el.textContent); });
+  });
+})();
+
+</script>
+</body>
+</html>

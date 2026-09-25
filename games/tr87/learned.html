@@ -1,0 +1,3127 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>tr87 是怎么学出来的 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← tr87 的世界模型</a></div><h1>它是怎么学出来的</h1><p class="lede">agent 边玩边把看到的规律写成可检验的代码：每条都对接下来的每一步自动判对错。它一共写过 13 条，其中 3 条被后来的画面推翻并撤掉；其余的在通关之后按「按一下会怎样」「什么算赢」重新合并，成了首页的规则。</p><h2>每条规则的来历</h2><ul class="origin"><li><b>左右键：焦点走到下一串或上一串，走到头绕回</b><div class="from">由这些早期说法合并而来：<code>cursor_lr</code>、<code>focus_move</code></div></li><li><b>上下键：焦点那一串里每个字形的形状转一格</b><div class="from">由这些早期说法合并而来：<code>shape_step</code></div></li><li><b>按完一下，答题条逐格与目标同形，当且仅当这一关结束</b><div class="from">由这些早期说法合并而来：<code>win_rule</code>、<code>win_prev</code></div></li><li><b>按一下，别处一位都不动</b><div class="from">由这些早期说法合并而来：<code>only_focus</code>、<code>glyph_local</code>、<code>cursor_lr</code></div></li><li><b>每按一下，计数条要么不变、要么多吃一格</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>budget_bar</code></div></li><li><b>过关之后的新一关：焦点停在第一站，计数条清空</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：—</div></li><li><b>上下键不改每一格的朝向</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>wheels</code></div></li></ul><h2>被推翻的说法</h2><div class="stories"><article class="story"><h3>每个位置一张环表，3 张表一起作废</h3><div class="sub"><code>wheel_l0</code><code>wheel_l1</code><code>wheel_l2</code></div><ol class="tl"><li><b>原来以为</b><p>前几关里，agent 给答题条上每个位置手工记下一张环：按一下上键，这一格的字形沿它自己那张环往前走一格。每关一张表。</p></li><li class="hit"><b>画面打脸</b><p>三关的环表没有一张对得上：同一个字形，放在不同的位置、不同的关里，下一步变成的样子不一样。</p></li><li class="fix"><b>后来改成</b><p>改成把形状和朝向拆开：字形按形状族归类，每族的形状循环成一个环，上下键只改形状在环上的位置；每一格另外固定着一个朝向变换，画出来的是这个变换作用在标准形状上的样子。</p></li></ol></article><article class="story"><h3>计数条「每两步吃一格」</h3><div class="sub"><code>budget_bar</code></div><ol class="tl"><li><b>原来以为</b><p>第一关量出来：每走满两步，计数条从右端多吃一格。</p></li><li class="hit"><b>画面打脸</b><p>拿到全部关卡的录像上检验，最后一关变成了隔更多步才吃一格；而且「这一步吃不吃」取决于这一关已经走了几步，画面上读不出来。</p></li><li class="fix"><b>后来改成</b><p>改口成画面上判得了的说法：同一关之内每按一下，计数条要么不变、要么正好多吃一格，从不倒退。这一条只在录像上检验，不进模型。</p></li></ol></article></div><h2 id="appendix">附录</h2><p class="intro">附录保留仓库里的原始叫法，关号从 0 开始（L0 = 正文第 1 关）。</p><details class="apx"><summary>另外 2 个改写的故事</summary><div class="apxb stories"><article class="story"><h3>写死了第一关的坐标</h3><div class="sub"><code>cursor_lr</code><code>glyph_local</code></div><ol class="tl"><li><b>原来以为</b><p>答题条上有几个字形位、各在哪一列，被写成了固定的数；还断言一次按键的帧差只落在光标框住的格子里。</p></li><li class="hit"><b>画面打脸</b><p>换关以后版面变了，写死的坐标全部失效；计数条每隔几步从右端吃一格，这一格也不在光标框里。</p></li><li class="fix"><b>后来改成</b><p>改成每一帧从画面上认出答题行和格数，并把计数条那一行排除在「只动光标那一格」之外。</p></li></ol></article><article class="story"><h3>朝向机制改了 7 版</h3><div class="sub"><code>wheels</code></div><ol class="tl"><li><b>原来以为</b><p>每一格的朝向变换，靠「已知的环都同意它下一步长什么样」来推。</p></li><li class="hit"><b>画面打脸</b><p>一个字形同时落在一条已知的环和一条还没量全的弧上：已知的环都同意，下一步却不是那个样子。</p></li><li class="fix"><b>后来改成</b><p>改成只在候选变换一致时下结论：字形不对称时变换唯一；字形有对称性时，只要求画出来的落在候选集合里。</p></li></ol></article></div></details><details class="apx"><summary>全部 13 条早期说法的每一版与源码</summary><div class="apxb"><div class="list"><details class="item"><summary><div class="top"><span class="name">budget_bar</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">计数条每走满两步吃一格</div></summary><div class="body"><div class="doc">第 63 行是一条 64 格的计数条：每走满 2 步，它从右端多吃掉一格（色 1 变色 4），别的格子不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T18:27:49 · L4</span><div>第 63 行是一条 64 格的计数条：每走满 2 步，它从右端多吃掉一格（色 1 变色 4），别的格子不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 63 行是一条 64 格的计数条：每走满 2 步，它从右端多吃掉一格（色 1 变色 4），别的格子不动。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看第 0 关（level_prev == level_next == 0）；换关返回 NA；ctx 没给 step 返回 NA。&quot;
+         &quot;断言：走完第 s 步之后，计数条右端恰好有 s//2 格是 HUD_FULL，其余是 HUD_EMPTY；&quot;
+         &quot;并且这一行在这一步里最多只多吃一格。别的关是否也这么算，这条不管。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;a071d0035fa0697e&quot;, &quot;59594427f77b7b7d&quot;, &quot;84a8b5e839aec20b&quot;, &quot;0d63bb9218324457&quot;]
+
+from _lib import HUD_EMPTY, HUD_FULL, HUD_ROW
+
+
+def _shape(row, k):
+    &quot;&quot;&quot;整行是否恰好『右端 k 格 HUD_FULL，左边全 HUD_EMPTY』。&quot;&quot;&quot;
+    n = len(row)
+    return all(row[c] == (HUD_FULL if c &gt;= n - k else HUD_EMPTY) for c in range(n))
+
+
+def _want(ctx):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 0 or ctx.get(&quot;level_next&quot;) != 0:
+        return None
+    s = ctx.get(&quot;step&quot;)
+    return None if s is None else s
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = _want(ctx)
+    if s is None:
+        return &quot;NA&quot;
+    if not _shape(prev[HUD_ROW], (s - 1) // 2):
+        return &quot;NA&quot;          # 起点就不是这个形状，这条概念说不上话
+    return &quot;TRUE&quot; if _shape(nxt[HUD_ROW], s // 2) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    s = _want(ctx)
+    if s is None:
+        return None
+    n = len(prev[HUD_ROW])
+    k = s // 2
+    if not _shape(prev[HUD_ROW], (s - 1) // 2):
+        return None
+    return {(HUD_ROW, c): (HUD_FULL if c &gt;= n - k else HUD_EMPTY) for c in range(n)}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 63 行是一条 64 格的计数条：每走满 2 步，它从右端多吃掉一格（色 1 变色 4），别的格子不动。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看第 0 关（level_prev == level_next == 0）；换关返回 NA；ctx 没给 step 返回 NA。&quot;
+         &quot;断言：走完第 s 步之后，计数条右端恰好有 s//2 格是 HUD_FULL，其余是 HUD_EMPTY；&quot;
+         &quot;并且这一行在这一步里最多只多吃一格。别的关是否也这么算，这条不管。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;a071d0035fa0697e&quot;, &quot;59594427f77b7b7d&quot;, &quot;84a8b5e839aec20b&quot;, &quot;0d63bb9218324457&quot;]
+
+from _lib import HUD_EMPTY, HUD_FULL, HUD_ROW
+
+
+def _shape(row, k):
+    &quot;&quot;&quot;整行是否恰好『右端 k 格 HUD_FULL，左边全 HUD_EMPTY』。&quot;&quot;&quot;
+    n = len(row)
+    return all(row[c] == (HUD_FULL if c &gt;= n - k else HUD_EMPTY) for c in range(n))
+
+
+def _want(ctx):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 0 or ctx.get(&quot;level_next&quot;) != 0:
+        return None
+    s = ctx.get(&quot;step&quot;)
+    return None if s is None else s
+
+
+def assert_(prev, action, nxt, ctx=None):
+    s = _want(ctx)
+    if s is None:
+        return &quot;NA&quot;
+    if not _shape(prev[HUD_ROW], (s - 1) // 2):
+        return &quot;NA&quot;          # 起点就不是这个形状，这条概念说不上话
+    return &quot;TRUE&quot; if _shape(nxt[HUD_ROW], s // 2) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    s = _want(ctx)
+    if s is None:
+        return None
+    n = len(prev[HUD_ROW])
+    k = s // 2
+    if not _shape(prev[HUD_ROW], (s - 1) // 2):
+        return None
+    return {(HUD_ROW, c): (HUD_FULL if c &gt;= n - k else HUD_EMPTY) for c in range(n)}
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">cursor_lr</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">左右键：光标在答题条上左右挪一格，带环绕</div></summary><div class="body"><div class="doc">ACTION3 / ACTION4 只把色 0 光标在答题行的字形位上左移 / 右移一格（带环绕），帧上别处一格不变。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T18:24:56 · L1</span><div>ACTION3 / ACTION4 只把色 0 光标在 5 个字形位上左移 / 右移一格（带环绕），帧上别处一格不变。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 / ACTION4 只把色 0 光标在 5 个字形位上左移 / 右移一格（带环绕），帧上别处一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;光标定位不到（cursor 返回 None）返回 NA。断言两件事的合取：光标索引按 ±1 mod 5 变，&quot;
+         &quot;且帧差只发生在光标离开的格与新占的格上。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;844589af5a2f4ba8&quot;, &quot;59594427f77b7b7d&quot;, &quot;3a4e7b9188702ddd&quot;, &quot;1ab85c03eecdd733&quot;]
+
+from _lib import COLS_WORD, CURSOR_COLOR, DELTA, cursor, cursor_cells
+
+
+def _moved(prev, d):
+    &quot;&quot;&quot;光标格子按索引 ±d 平移后的新格子集合；算不出来返回 None。&quot;&quot;&quot;
+    i = cursor(prev)
+    if i is None:
+        return None
+    j = (i + d) % len(COLS_WORD)
+    off = COLS_WORD[j] - COLS_WORD[i]
+    return i, j, frozenset((r, c + off) for r, c in cursor_cells(prev))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return &quot;NA&quot;
+    i, j, want = got
+    if cursor(nxt) != j:
+        return &quot;FALSE&quot;
+    old = cursor_cells(prev)
+    if cursor_cells(nxt) != want:
+        return &quot;FALSE&quot;
+    changed = {(r, c) for r in range(len(prev)) for c in range(len(prev[0])) if prev[r][c] != nxt[r][c]}
+    return &quot;TRUE&quot; if changed &lt;= (old | want) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action not in DELTA:
+        return None
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return None
+    _i, _j, want = got
+    out = {}
+    # 光标腾出来的格子恢复成本行的底色（取同一行第 0 列作样本，那里不属于任何字形带）
+    for r, c in cursor_cells(prev) - want:
+        out[(r, c)] = prev[r][0]
+    for r, c in want:
+        out[(r, c)] = CURSOR_COLOR
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T18:27:49 · L1</span><div>ACTION3 / ACTION4 只把色 0 光标在 5 个字形位上左移 / 右移一格（带环绕），帧上别处一格不变。</div><div>v2：v1 忘了计数条——每两步它会多吃一格，落在光标之外。把那一行排除出去。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 / ACTION4 只把色 0 光标在 5 个字形位上左移 / 右移一格（带环绕），帧上别处一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;光标定位不到（cursor 返回 None）返回 NA。断言两件事的合取：光标索引按 ±1 mod 5 变，&quot;
+         &quot;且帧差（第 HUD_ROW 行豁免，那行归 budget_bar 管）只发生在光标离开的格与新占的格上。&quot;)
+NOTE = &quot;v2：v1 忘了计数条——每两步它会多吃一格，落在光标之外。把那一行排除出去。&quot;
+EVIDENCE = [&quot;844589af5a2f4ba8&quot;, &quot;59594427f77b7b7d&quot;, &quot;3a4e7b9188702ddd&quot;, &quot;1ab85c03eecdd733&quot;]
+
+from _lib import COLS_WORD, CURSOR_COLOR, DELTA, HUD_ROW, cursor, cursor_cells
+
+
+def _moved(prev, d):
+    &quot;&quot;&quot;光标格子按索引 ±d 平移后的新格子集合；算不出来返回 None。&quot;&quot;&quot;
+    i = cursor(prev)
+    if i is None:
+        return None
+    j = (i + d) % len(COLS_WORD)
+    off = COLS_WORD[j] - COLS_WORD[i]
+    return i, j, frozenset((r, c + off) for r, c in cursor_cells(prev))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return &quot;NA&quot;
+    i, j, want = got
+    if cursor(nxt) != j:
+        return &quot;FALSE&quot;
+    old = cursor_cells(prev)
+    if cursor_cells(nxt) != want:
+        return &quot;FALSE&quot;
+    changed = {(r, c) for r in range(len(prev)) for c in range(len(prev[0]))
+               if r != HUD_ROW and prev[r][c] != nxt[r][c]}
+    return &quot;TRUE&quot; if changed &lt;= (old | want) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action not in DELTA:
+        return None
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return None
+    _i, _j, want = got
+    out = {}
+    # 光标腾出来的格子恢复成本行的底色（取同一行第 0 列作样本，那里不属于任何字形带）
+    for r, c in cursor_cells(prev) - want:
+        out[(r, c)] = prev[r][0]
+    for r, c in want:
+        out[(r, c)] = CURSOR_COLOR
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T18:41:01 · L1</span><div>ACTION3 / ACTION4 只把色 0 光标在答题行的字形位上左移 / 右移一格（带环绕），帧上别处一格不变。</div><div>v2：v1 忘了计数条——每两步它会多吃一格，落在光标之外。把那一行排除出去。v3：v1/v2 把「5 个字形位」和它们的列写死在词汇里，那是第 0 关的读数；换关后版面变了，主张改成对识别出来的答题行成立，格数由帧决定。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 / ACTION4 只把色 0 光标在答题行的字形位上左移 / 右移一格（带环绕），帧上别处一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;版面或光标读不出来（cursor 返回 None）返回 NA。断言两件事的合取：&quot;
+         &quot;光标索引按 ±1 mod（答题格数）变，&quot;
+         &quot;且帧差（第 HUD_ROW 行豁免，那行归 budget_bar 管）只发生在光标离开的格与新占的格上。&quot;)
+NOTE = (&quot;v2：v1 忘了计数条——每两步它会多吃一格，落在光标之外。把那一行排除出去。&quot;
+        &quot;v3：v1/v2 把「5 个字形位」和它们的列写死在词汇里，那是第 0 关的读数；&quot;
+        &quot;换关后版面变了，主张改成对识别出来的答题行成立，格数由帧决定。&quot;)
+EVIDENCE = [&quot;844589af5a2f4ba8&quot;, &quot;59594427f77b7b7d&quot;, &quot;3a4e7b9188702ddd&quot;, &quot;1ab85c03eecdd733&quot;]
+
+from _lib import CURSOR_COLOR, DELTA, HUD_ROW, ans_cols, cursor, cursor_cells
+
+
+def _moved(prev, d):
+    &quot;&quot;&quot;光标格子按索引 ±d 平移后的新格子集合；算不出来返回 None。&quot;&quot;&quot;
+    i = cursor(prev)
+    cols = ans_cols(prev)
+    if i is None or cols is None:
+        return None
+    j = (i + d) % len(cols)
+    off = cols[j] - cols[i]
+    return i, j, frozenset((r, c + off) for r, c in cursor_cells(prev))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return &quot;NA&quot;
+    i, j, want = got
+    if cursor(nxt) != j:
+        return &quot;FALSE&quot;
+    old = cursor_cells(prev)
+    if cursor_cells(nxt) != want:
+        return &quot;FALSE&quot;
+    changed = {(r, c) for r in range(len(prev)) for c in range(len(prev[0]))
+               if r != HUD_ROW and prev[r][c] != nxt[r][c]}
+    return &quot;TRUE&quot; if changed &lt;= (old | want) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action not in DELTA:
+        return None
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return None
+    _i, _j, want = got
+    out = {}
+    # 光标腾出来的格子恢复成本行的底色（取同一行第 0 列作样本，那里不属于任何字形带）
+    for r, c in cursor_cells(prev) - want:
+        out[(r, c)] = prev[r][0]
+    for r, c in want:
+        out[(r, c)] = CURSOR_COLOR
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 / ACTION4 只把色 0 光标在答题行的字形位上左移 / 右移一格（带环绕），帧上别处一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;版面或光标读不出来（cursor 返回 None）返回 NA。断言两件事的合取：&quot;
+         &quot;光标索引按 ±1 mod（答题格数）变，&quot;
+         &quot;且帧差（第 HUD_ROW 行豁免，那行归 budget_bar 管）只发生在光标离开的格与新占的格上。&quot;)
+NOTE = (&quot;v2：v1 忘了计数条——每两步它会多吃一格，落在光标之外。把那一行排除出去。&quot;
+        &quot;v3：v1/v2 把「5 个字形位」和它们的列写死在词汇里，那是第 0 关的读数；&quot;
+        &quot;换关后版面变了，主张改成对识别出来的答题行成立，格数由帧决定。&quot;)
+EVIDENCE = [&quot;844589af5a2f4ba8&quot;, &quot;59594427f77b7b7d&quot;, &quot;3a4e7b9188702ddd&quot;, &quot;1ab85c03eecdd733&quot;]
+
+from _lib import CURSOR_COLOR, DELTA, HUD_ROW, ans_cols, cursor, cursor_cells
+
+
+def _moved(prev, d):
+    &quot;&quot;&quot;光标格子按索引 ±d 平移后的新格子集合；算不出来返回 None。&quot;&quot;&quot;
+    i = cursor(prev)
+    cols = ans_cols(prev)
+    if i is None or cols is None:
+        return None
+    j = (i + d) % len(cols)
+    off = cols[j] - cols[i]
+    return i, j, frozenset((r, c + off) for r, c in cursor_cells(prev))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return &quot;NA&quot;
+    i, j, want = got
+    if cursor(nxt) != j:
+        return &quot;FALSE&quot;
+    old = cursor_cells(prev)
+    if cursor_cells(nxt) != want:
+        return &quot;FALSE&quot;
+    changed = {(r, c) for r in range(len(prev)) for c in range(len(prev[0]))
+               if r != HUD_ROW and prev[r][c] != nxt[r][c]}
+    return &quot;TRUE&quot; if changed &lt;= (old | want) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action not in DELTA:
+        return None
+    got = _moved(prev, DELTA[action])
+    if got is None:
+        return None
+    _i, _j, want = got
+    out = {}
+    # 光标腾出来的格子恢复成本行的底色（取同一行第 0 列作样本，那里不属于任何字形带）
+    for r, c in cursor_cells(prev) - want:
+        out[(r, c)] = prev[r][0]
+    for r, c in want:
+        out[(r, c)] = CURSOR_COLOR
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">cursor_shape</span><span class="chip c-lv">L0 · 清点</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">角标是框住焦点那一串的矩形</div></summary><div class="body"><div class="doc">角标（色 0）永远是框住焦点那一串的一个矩形边框：上沿在串顶上方 4 行、下沿在串顶下方 8 行、
+左右正好到串的两端（首槽左列到末槽右列），上下沿内侧再各补两个端格。帧上没有别的色 0 格子。
+
+它把「角标」从一堆散点变成一个由串的位置与长度算得出的形状——串长 1 时 14 格，串长 2 时 28 格，
+所以移动一次的帧差是两个形状的对称差，这一关那些 28/42/57 的帧差就是这么来的。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T20:03:33 · L0</span><div>角标（色 0）永远是框住焦点那一串的一个矩形边框：上沿在串顶上方 4 行、下沿在串顶下方 8 行、</div><div>v1。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;角标（色 0）永远是框住焦点那一串的一个矩形边框：上沿在串顶上方 4 行、下沿在串顶下方 8 行、
+左右正好到串的两端（首槽左列到末槽右列），上下沿内侧再各补两个端格。帧上没有别的色 0 格子。
+
+它把「角标」从一堆散点变成一个由串的位置与长度算得出的形状——串长 1 时 14 格，串长 2 时 28 格，
+所以移动一次的帧差是两个形状的对称差，这一关那些 28/42/57 的帧差就是这么来的。
+&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;每一步同时看 prev 和 nxt 两帧；两帧都读不出焦点时返回 NA。&quot;
+         &quot;注意焦点本身是**从角标框里**读出来的（框内的槽），所以这条概念不检验『框住的是哪一串』，&quot;
+         &quot;只检验『框的形状由那一串唯一决定』——框可以只有四个角、可以高矮不同、可以只盖住半串，&quot;
+         &quot;那些都会让它判 FALSE。&quot;)
+NOTE = &quot;v1。&quot;
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;13c8810c29e35dff&quot;, &quot;eeffe6377ed1869b&quot;]
+
+from _lib import bracket, cursor_cells, focus_run
+
+
+def _ok(g):
+    run = focus_run(g)
+    if not run:
+        return None
+    return cursor_cells(g) == bracket(run)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    a, b = _ok(prev), _ok(nxt)
+    if a is None and b is None:
+        return &quot;NA&quot;
+    if a is False or b is False:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;角标（色 0）永远是框住焦点那一串的一个矩形边框：上沿在串顶上方 4 行、下沿在串顶下方 8 行、
+左右正好到串的两端（首槽左列到末槽右列），上下沿内侧再各补两个端格。帧上没有别的色 0 格子。
+
+它把「角标」从一堆散点变成一个由串的位置与长度算得出的形状——串长 1 时 14 格，串长 2 时 28 格，
+所以移动一次的帧差是两个形状的对称差，这一关那些 28/42/57 的帧差就是这么来的。
+&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;每一步同时看 prev 和 nxt 两帧；两帧都读不出焦点时返回 NA。&quot;
+         &quot;注意焦点本身是**从角标框里**读出来的（框内的槽），所以这条概念不检验『框住的是哪一串』，&quot;
+         &quot;只检验『框的形状由那一串唯一决定』——框可以只有四个角、可以高矮不同、可以只盖住半串，&quot;
+         &quot;那些都会让它判 FALSE。&quot;)
+NOTE = &quot;v1。&quot;
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;13c8810c29e35dff&quot;, &quot;eeffe6377ed1869b&quot;]
+
+from _lib import bracket, cursor_cells, focus_run
+
+
+def _ok(g):
+    run = focus_run(g)
+    if not run:
+        return None
+    return cursor_cells(g) == bracket(run)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    a, b = _ok(prev), _ok(nxt)
+    if a is None and b is None:
+        return &quot;NA&quot;
+    if a is False or b is False:
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">focus_move</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">焦点在可停的串之间循环走位</div></summary><div class="body"><div class="doc">焦点（角标框住的那一串）在「可停的串」之间循环走位：ACTION4 走到阅读序的下一串，
+ACTION3 走到上一串，都带环绕；可停的串是答题条上的各格（焦点在答题条上时），
+或图例里的各个串（每条规则的键串与值串各算一个，焦点在图例上时）。
+
+「什么可以动」不是这个世界的常量：前几关能动的是答案，这一关能动的是规则册子本身。
+这条概念要说的正是这件事——焦点集合由版面结构给出，不由「答题条」这个身份写死。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T19:58:51 · L1</span><div>焦点（角标框住的那一串）在「可停的串」之间循环走位：ACTION4 走到阅读序的下一串，</div><div>v1。它与 cursor_lr 说的是同一件事的两个切面：cursor_lr 说答题条上的索引怎么加减，这一条说焦点在哪一串上。焦点落在图例里时 cursor_lr 整关沉默，这一条照常开口。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;焦点（角标框住的那一串）在「可停的串」之间循环走位：ACTION4 走到阅读序的下一串，
+ACTION3 走到上一串，都带环绕；可停的串是答题条上的各格（焦点在答题条上时），
+或图例里的各个串（每条规则的键串与值串各算一个，焦点在图例上时）。
+
+「什么可以动」不是这个世界的常量：前几关能动的是答案，这一关能动的是规则册子本身。
+这条概念要说的正是这件事——焦点集合由版面结构给出，不由「答题条」这个身份写死。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;版面读不出来、焦点定位不到、或焦点不在它自己那份『可停的串』名单里，返回 NA——&quot;
+         &quot;最后这种情形说明名单构造错了，那是读版面的事，不是这条概念的主张。&quot;)
+NOTE = (&quot;v1。它与 cursor_lr 说的是同一件事的两个切面：cursor_lr 说答题条上的索引怎么加减，&quot;
+        &quot;这一条说焦点在哪一串上。焦点落在图例里时 cursor_lr 整关沉默，这一条照常开口。&quot;)
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;2386de62b1968551&quot;, &quot;fe1d42ffb4d0c6ef&quot;]
+
+from _lib import DELTA, board, focus_cycle
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if action not in DELTA:
+        return &quot;NA&quot;
+    a, b = board(prev), board(nxt)
+    if a is None or b is None or a[&quot;focus&quot;] is None or b[&quot;focus&quot;] is None:
+        return &quot;NA&quot;
+    cyc = focus_cycle(prev)
+    if not cyc:
+        return &quot;NA&quot;
+    heads = [run[0] for run in cyc]
+    if a[&quot;focus&quot;] not in heads:
+        return &quot;NA&quot;
+    want = heads[(heads.index(a[&quot;focus&quot;]) + DELTA[action]) % len(heads)]
+    return &quot;TRUE&quot; if b[&quot;focus&quot;] == want else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T20:03:33 · L1</span><div>焦点（角标框住的那一串）在「可停的串」之间循环走位：ACTION4 走到阅读序的下一串，</div><div>v1。它与 cursor_lr 说的是同一件事的两个切面：cursor_lr 说答题条上的索引怎么加减，这一条说焦点在哪一串上。焦点落在图例里时 cursor_lr 整关沉默，这一条照常开口。apply 里画的角标形状与 cursor_shape 是同一条假设（都从 _lib.bracket 来）：形状错了，两条会一起垮。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;焦点（角标框住的那一串）在「可停的串」之间循环走位：ACTION4 走到阅读序的下一串，
+ACTION3 走到上一串，都带环绕；可停的串是答题条上的各格（焦点在答题条上时），
+或图例里的各个串（每条规则的键串与值串各算一个，焦点在图例上时）。
+
+「什么可以动」不是这个世界的常量：前几关能动的是答案，这一关能动的是规则册子本身。
+这条概念要说的正是这件事——焦点集合由版面结构给出，不由「答题条」这个身份写死。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;版面读不出来、焦点定位不到、或焦点不在它自己那份『可停的串』名单里，返回 NA——&quot;
+         &quot;最后这种情形说明名单构造错了，那是读版面的事，不是这条概念的主张。&quot;)
+NOTE = (&quot;v1。它与 cursor_lr 说的是同一件事的两个切面：cursor_lr 说答题条上的索引怎么加减，&quot;
+        &quot;这一条说焦点在哪一串上。焦点落在图例里时 cursor_lr 整关沉默，这一条照常开口。&quot;
+        &quot;apply 里画的角标形状与 cursor_shape 是同一条假设（都从 _lib.bracket 来）：&quot;
+        &quot;形状错了，两条会一起垮。&quot;)
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;2386de62b1968551&quot;, &quot;fe1d42ffb4d0c6ef&quot;]
+
+from _lib import BRACKET_UP, CURSOR_COLOR, DELTA, board, bracket, focus_cycle
+
+
+def _want(prev, action, ctx):
+    &quot;&quot;&quot;返回焦点该去的那一串 [(行, 列)…]；说不出来返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in DELTA:
+        return None
+    a = board(prev)
+    if a is None or a[&quot;focus&quot;] is None:
+        return None
+    cyc = focus_cycle(prev)
+    if not cyc:
+        return None
+    heads = [run[0] for run in cyc]
+    if a[&quot;focus&quot;] not in heads:
+        return None
+    return cyc[(heads.index(a[&quot;focus&quot;]) + DELTA[action]) % len(heads)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    want = _want(prev, action, ctx)
+    if want is None:
+        return &quot;NA&quot;
+    b = board(nxt)
+    if b is None or b[&quot;focus&quot;] is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;focus&quot;] == want[0] else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    want = _want(prev, action, ctx)
+    if want is None:
+        return None
+    a = board(prev)
+    old, new = bracket(a[&quot;focus_cells&quot;]), bracket(want)
+    r0, c0 = a[&quot;focus_cells&quot;][0]
+    bg = prev[r0 - BRACKET_UP][c0 - 1]     # 角标左外一格：这一关的底色
+    out = {cell: bg for cell in old - new}
+    out.update({cell: CURSOR_COLOR for cell in new})
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;焦点（角标框住的那一串）在「可停的串」之间循环走位：ACTION4 走到阅读序的下一串，
+ACTION3 走到上一串，都带环绕；可停的串是答题条上的各格（焦点在答题条上时），
+或图例里的各个串（每条规则的键串与值串各算一个，焦点在图例上时）。
+
+「什么可以动」不是这个世界的常量：前几关能动的是答案，这一关能动的是规则册子本身。
+这条概念要说的正是这件事——焦点集合由版面结构给出，不由「答题条」这个身份写死。
+&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;版面读不出来、焦点定位不到、或焦点不在它自己那份『可停的串』名单里，返回 NA——&quot;
+         &quot;最后这种情形说明名单构造错了，那是读版面的事，不是这条概念的主张。&quot;)
+NOTE = (&quot;v1。它与 cursor_lr 说的是同一件事的两个切面：cursor_lr 说答题条上的索引怎么加减，&quot;
+        &quot;这一条说焦点在哪一串上。焦点落在图例里时 cursor_lr 整关沉默，这一条照常开口。&quot;
+        &quot;apply 里画的角标形状与 cursor_shape 是同一条假设（都从 _lib.bracket 来）：&quot;
+        &quot;形状错了，两条会一起垮。&quot;)
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;2386de62b1968551&quot;, &quot;fe1d42ffb4d0c6ef&quot;]
+
+from _lib import BRACKET_UP, CURSOR_COLOR, DELTA, board, bracket, focus_cycle
+
+
+def _want(prev, action, ctx):
+    &quot;&quot;&quot;返回焦点该去的那一串 [(行, 列)…]；说不出来返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in DELTA:
+        return None
+    a = board(prev)
+    if a is None or a[&quot;focus&quot;] is None:
+        return None
+    cyc = focus_cycle(prev)
+    if not cyc:
+        return None
+    heads = [run[0] for run in cyc]
+    if a[&quot;focus&quot;] not in heads:
+        return None
+    return cyc[(heads.index(a[&quot;focus&quot;]) + DELTA[action]) % len(heads)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    want = _want(prev, action, ctx)
+    if want is None:
+        return &quot;NA&quot;
+    b = board(nxt)
+    if b is None or b[&quot;focus&quot;] is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;focus&quot;] == want[0] else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    want = _want(prev, action, ctx)
+    if want is None:
+        return None
+    a = board(prev)
+    old, new = bracket(a[&quot;focus_cells&quot;]), bracket(want)
+    r0, c0 = a[&quot;focus_cells&quot;][0]
+    bg = prev[r0 - BRACKET_UP][c0 - 1]     # 角标左外一格：这一关的底色
+    out = {cell: bg for cell in old - new}
+    out.update({cell: CURSOR_COLOR for cell in new})
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">glyph_local</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">上下键：帧差只落在光标框住的那一格</div></summary><div class="body"><div class="doc">ACTION1 / ACTION2 除了计数条那一行以外，帧差完全落在光标框住的那 25 格里。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T18:24:56 · L1</span><div>ACTION1 / ACTION2 的帧差完全落在光标框住的那 25 格（色 7 长条上光标所在的字形位）里。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 / ACTION2 的帧差完全落在光标框住的那 25 格（色 7 长条上光标所在的字形位）里。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关（level_prev != level_next）返回 NA；光标定位不到返回 NA。&quot;
+         &quot;只断言『改动的范围』，不断言改成什么（那是 wheel 那条的事）。整帧不动也算 TRUE。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;, &quot;0d63bb9218324457&quot;]
+
+from _lib import cell_box, cursor
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return &quot;NA&quot;
+    i = cursor(prev)
+    if i is None:
+        return &quot;NA&quot;
+    box = cell_box(i)
+    for r in range(len(prev)):
+        for c in range(len(prev[0])):
+            if prev[r][c] != nxt[r][c] and (r, c) not in box:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T18:27:49 · L1</span><div>ACTION1 / ACTION2 除了计数条那一行以外，帧差完全落在光标框住的那 25 格里。</div><div>v2：v1 说帧差全落在 25 格里，被 19 条转移打脸——每两步计数条会多吃一格，那一格不在光标格里。改法是把计数条那一行明确排除出去，主张缩成『字形带上的局部性』。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 / ACTION2 除了计数条那一行以外，帧差完全落在光标框住的那 25 格里。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关（level_prev != level_next）返回 NA；光标定位不到返回 NA。&quot;
+         &quot;第 HUD_ROW 行（计数条）整行豁免——那一行归 budget_bar 管。&quot;
+         &quot;只断言『改动的范围』，不断言改成什么（那是 wheel 那条的事）。整帧不动也算 TRUE。&quot;)
+NOTE = (&quot;v2：v1 说帧差全落在 25 格里，被 19 条转移打脸——每两步计数条会多吃一格，&quot;
+        &quot;那一格不在光标格里。改法是把计数条那一行明确排除出去，主张缩成『字形带上的局部性』。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;, &quot;0d63bb9218324457&quot;,
+            &quot;07d254ea1ec70a9a&quot;, &quot;10ec300a5a365c3c&quot;, &quot;16766090fb20992f&quot;, &quot;1f3645ece5e8a566&quot;,
+            &quot;2efaf3e6be5f2e10&quot;, &quot;340c9e34f43f95e9&quot;, &quot;3d9605d530efdfb7&quot;, &quot;4f70af86f594fdff&quot;,
+            &quot;57ad7cf61454eded&quot;, &quot;5c8c1bef43279964&quot;, &quot;60a52d9f2d39b8fb&quot;, &quot;67de766302c2137c&quot;,
+            &quot;84a8b5e839aec20b&quot;, &quot;9963e97e721e761d&quot;, &quot;c14289f00b53e7a0&quot;, &quot;c696a434aacf2499&quot;,
+            &quot;d6db3f94b3391cd1&quot;, &quot;f0f989a8e1ab6abc&quot;, &quot;fb4e03fa5831694b&quot;]
+
+from _lib import HUD_ROW, cell_box, cursor
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return &quot;NA&quot;
+    i = cursor(prev)
+    if i is None:
+        return &quot;NA&quot;
+    box = cell_box(i)
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        for c in range(len(prev[0])):
+            if prev[r][c] != nxt[r][c] and (r, c) not in box:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T18:41:01 · L1</span><div>ACTION1 / ACTION2 除了计数条那一行以外，帧差完全落在光标框住的那 25 格里。</div><div>v2：v1 说帧差全落在 25 格里，被 19 条转移打脸——每两步计数条会多吃一格，那一格不在光标格里。改法是把计数条那一行明确排除出去，主张缩成『字形带上的局部性』。v3：字形位的坐标改成从帧上识别，不再用第 0 关量的那套常数。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 / ACTION2 除了计数条那一行以外，帧差完全落在光标框住的那 25 格里。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关（level_prev != level_next）返回 NA；光标定位不到返回 NA。&quot;
+         &quot;第 HUD_ROW 行（计数条）整行豁免——那一行归 budget_bar 管。&quot;
+         &quot;只断言『改动的范围』，不断言改成什么（那是 wheel 那条的事）。整帧不动也算 TRUE。&quot;)
+NOTE = (&quot;v2：v1 说帧差全落在 25 格里，被 19 条转移打脸——每两步计数条会多吃一格，&quot;
+        &quot;那一格不在光标格里。改法是把计数条那一行明确排除出去，主张缩成『字形带上的局部性』。&quot;
+        &quot;v3：字形位的坐标改成从帧上识别，不再用第 0 关量的那套常数。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;, &quot;0d63bb9218324457&quot;,
+            &quot;07d254ea1ec70a9a&quot;, &quot;10ec300a5a365c3c&quot;, &quot;16766090fb20992f&quot;, &quot;1f3645ece5e8a566&quot;,
+            &quot;2efaf3e6be5f2e10&quot;, &quot;340c9e34f43f95e9&quot;, &quot;3d9605d530efdfb7&quot;, &quot;4f70af86f594fdff&quot;,
+            &quot;57ad7cf61454eded&quot;, &quot;5c8c1bef43279964&quot;, &quot;60a52d9f2d39b8fb&quot;, &quot;67de766302c2137c&quot;,
+            &quot;84a8b5e839aec20b&quot;, &quot;9963e97e721e761d&quot;, &quot;c14289f00b53e7a0&quot;, &quot;c696a434aacf2499&quot;,
+            &quot;d6db3f94b3391cd1&quot;, &quot;f0f989a8e1ab6abc&quot;, &quot;fb4e03fa5831694b&quot;]
+
+from _lib import HUD_ROW, cell_box, cursor
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return &quot;NA&quot;
+    i = cursor(prev)
+    if i is None:
+        return &quot;NA&quot;
+    box = cell_box(prev, i)
+    if box is None:
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        for c in range(len(prev[0])):
+            if prev[r][c] != nxt[r][c] and (r, c) not in box:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION1 / ACTION2 除了计数条那一行以外，帧差完全落在光标框住的那 25 格里。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关（level_prev != level_next）返回 NA；光标定位不到返回 NA。&quot;
+         &quot;第 HUD_ROW 行（计数条）整行豁免——那一行归 budget_bar 管。&quot;
+         &quot;只断言『改动的范围』，不断言改成什么（那是 wheel 那条的事）。整帧不动也算 TRUE。&quot;)
+NOTE = (&quot;v2：v1 说帧差全落在 25 格里，被 19 条转移打脸——每两步计数条会多吃一格，&quot;
+        &quot;那一格不在光标格里。改法是把计数条那一行明确排除出去，主张缩成『字形带上的局部性』。&quot;
+        &quot;v3：字形位的坐标改成从帧上识别，不再用第 0 关量的那套常数。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;, &quot;0d63bb9218324457&quot;,
+            &quot;07d254ea1ec70a9a&quot;, &quot;10ec300a5a365c3c&quot;, &quot;16766090fb20992f&quot;, &quot;1f3645ece5e8a566&quot;,
+            &quot;2efaf3e6be5f2e10&quot;, &quot;340c9e34f43f95e9&quot;, &quot;3d9605d530efdfb7&quot;, &quot;4f70af86f594fdff&quot;,
+            &quot;57ad7cf61454eded&quot;, &quot;5c8c1bef43279964&quot;, &quot;60a52d9f2d39b8fb&quot;, &quot;67de766302c2137c&quot;,
+            &quot;84a8b5e839aec20b&quot;, &quot;9963e97e721e761d&quot;, &quot;c14289f00b53e7a0&quot;, &quot;c696a434aacf2499&quot;,
+            &quot;d6db3f94b3391cd1&quot;, &quot;f0f989a8e1ab6abc&quot;, &quot;fb4e03fa5831694b&quot;]
+
+from _lib import HUD_ROW, cell_box, cursor
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return &quot;NA&quot;
+    i = cursor(prev)
+    if i is None:
+        return &quot;NA&quot;
+    box = cell_box(prev, i)
+    if box is None:
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        for c in range(len(prev[0])):
+            if prev[r][c] != nxt[r][c] and (r, c) not in box:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">only_focus</span><span class="chip c-lv">L2 · 什么时候没效果</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">一步之内，焦点、角标、计数条以外的格都不变</div></summary><div class="body"><div class="doc">一步之内，除了焦点串占的格子、角标占的格子、和计数条那一行，帧上其余每一格都不变。
+
+这是「什么可以动」那句话的可判错形式。它把两类关卡合成一句：答题条关里图例一格不动，
+图例关里题面与答题条一格不动——变的永远只有<b>角标此刻框住的那一串</b>，加上角标自己。
+世界哪天在别处改了一格（比如按一下顺带改了别的规则、或者背景自己动了），它当场变反例。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T20:34:55 · L2</span><div>一步之内，除了焦点串占的格子、角标占的格子、和计数条那一行，帧上其余每一格都不变。</div><div>v1。它不写 apply：它说的是「哪些格子不变」，而完成度只数<b>帧差格</b>里被说对的，说对一格没变不进分子；写了反而会在真变了的格子上说错。册子里也没有别的概念读它。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，除了焦点串占的格子、角标占的格子、和计数条那一行，帧上其余每一格都不变。
+
+这是「什么可以动」那句话的可判错形式。它把两类关卡合成一句：答题条关里图例一格不动，
+图例关里题面与答题条一格不动——变的永远只有**角标此刻框住的那一串**，加上角标自己。
+世界哪天在别处改了一格（比如按一下顺带改了别的规则、或者背景自己动了），它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;换关那一步（level_prev != level_next）返回 NA——那一步整块版面重画，这条不管；&quot;
+         &quot;前后两帧里只要有一帧版面读不出来、或焦点串定位不到，返回 NA。&quot;
+         &quot;『可以动的格子』取前后两帧的并集：角标会移动，移动前后占的格子都算它的。&quot;)
+NOTE = (&quot;v1。它不写 apply：它说的是「哪些格子不变」，而完成度只数**帧差格**里被说对的，&quot;
+        &quot;说对一格没变不进分子；写了反而会在真变了的格子上说错。册子里也没有别的概念读它。&quot;)
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;eeffe6377ed1869b&quot;, &quot;29dce1d86b3fe2c8&quot;]
+
+from _lib import CELL, HUD_ROW, board, cursor_cells
+
+
+def _free(g, b):
+    &quot;&quot;&quot;这一帧上允许变的格子。&quot;&quot;&quot;
+    out = set(cursor_cells(g))
+    for r0, c0 in b[&quot;focus_cells&quot;]:
+        out |= {(r0 + r, c0 + c) for r in range(CELL) for c in range(CELL)}
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a, b = board(prev), board(nxt)
+    if a is None or b is None or a[&quot;focus_cells&quot;] is None or b[&quot;focus_cells&quot;] is None:
+        return &quot;NA&quot;
+    free = _free(prev, a) | _free(nxt, b)
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        pr, nr = prev[r], nxt[r]
+        if pr == nr:
+            continue
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，除了焦点串占的格子、角标占的格子、和计数条那一行，帧上其余每一格都不变。
+
+这是「什么可以动」那句话的可判错形式。它把两类关卡合成一句：答题条关里图例一格不动，
+图例关里题面与答题条一格不动——变的永远只有**角标此刻框住的那一串**，加上角标自己。
+世界哪天在别处改了一格（比如按一下顺带改了别的规则、或者背景自己动了），它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;换关那一步（level_prev != level_next）返回 NA——那一步整块版面重画，这条不管；&quot;
+         &quot;前后两帧里只要有一帧版面读不出来、或焦点串定位不到，返回 NA。&quot;
+         &quot;『可以动的格子』取前后两帧的并集：角标会移动，移动前后占的格子都算它的。&quot;)
+NOTE = (&quot;v1。它不写 apply：它说的是「哪些格子不变」，而完成度只数**帧差格**里被说对的，&quot;
+        &quot;说对一格没变不进分子；写了反而会在真变了的格子上说错。册子里也没有别的概念读它。&quot;)
+EVIDENCE = [&quot;155912380b6a3bc4&quot;, &quot;eeffe6377ed1869b&quot;, &quot;29dce1d86b3fe2c8&quot;]
+
+from _lib import CELL, HUD_ROW, board, cursor_cells
+
+
+def _free(g, b):
+    &quot;&quot;&quot;这一帧上允许变的格子。&quot;&quot;&quot;
+    out = set(cursor_cells(g))
+    for r0, c0 in b[&quot;focus_cells&quot;]:
+        out |= {(r0 + r, c0 + c) for r in range(CELL) for c in range(CELL)}
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    a, b = board(prev), board(nxt)
+    if a is None or b is None or a[&quot;focus_cells&quot;] is None or b[&quot;focus_cells&quot;] is None:
+        return &quot;NA&quot;
+    free = _free(prev, a) | _free(nxt, b)
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        pr, nr = prev[r], nxt[r]
+        if pr == nr:
+            continue
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">shape_step</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">上下键：焦点那一串的形状相位加一或减一</div></summary><div class="body"><div class="doc">光标框住的那一串里，ACTION1 让每一格的<b>形状相位</b> +1，ACTION2 让它 -1（模 7），
+所在的形状族始终不变。
+
+这是 wheels 那条「具体环」主张里活下来的部分。第 4 关证明：同一个字形可以同时落在两个不同的
+具体环上（同一张卡、同一个形状族），所以「按哪个具体位图接下去」不由字形单独决定；
+但「形状怎么走」由字形单独决定，而且与在第几关、在答题条上还是在图例里都无关。
+这一关的整条路线是靠这条算出来的——每一格要按几下，只看相位差。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T20:10:15 · L6</span><div>光标框住的那一串里，ACTION1 让每一格的<b>形状相位</b> +1，ACTION2 让它 -1（模 7），</div><div>v1。它不写 apply：相位定形状不定朝向，逐格像素由 wheels 那张具体表负责。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;光标框住的那一串里，ACTION1 让每一格的**形状相位** +1，ACTION2 让它 -1（模 7），
+所在的形状族始终不变。
+
+这是 wheels 那条「具体环」主张里活下来的部分。第 4 关证明：同一个字形可以同时落在两个不同的
+具体环上（同一张卡、同一个形状族），所以「按哪个具体位图接下去」不由字形单独决定；
+但「形状怎么走」由字形单独决定，而且与在第几关、在答题条上还是在图例里都无关。
+这一关的整条路线是靠这条算出来的——每一格要按几下，只看相位差。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;光标框住的那一串定位不到返回 NA。串里某一格**动作前**的字形不在已量到的三个形状族里，&quot;
+         &quot;这一格不判——那是还没量过的形状。整串一格都判不了返回 NA。&quot;
+         &quot;动作前认得、动作后落到三族之外，判 FALSE：那正是这条概念说不会发生的事。&quot;)
+NOTE = &quot;v1。它不写 apply：相位定形状不定朝向，逐格像素由 wheels 那张具体表负责。&quot;
+EVIDENCE = [&quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;bdb98cb0c06174a6&quot;, &quot;29dce1d86b3fe2c8&quot;]
+
+from _lib import focus_run, glyph, phase
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return &quot;NA&quot;
+    run = focus_run(prev)
+    if not run:
+        return &quot;NA&quot;
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    said = False
+    for r0, c0 in run:
+        a = phase(glyph(prev, r0, c0))
+        if a is None:
+            continue
+        said = True
+        b = phase(glyph(nxt, r0, c0))
+        if b is None:
+            return &quot;FALSE&quot;
+        if b != (a[0], (a[1] + d) % 7):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if said else &quot;NA&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;光标框住的那一串里，ACTION1 让每一格的**形状相位** +1，ACTION2 让它 -1（模 7），
+所在的形状族始终不变。
+
+这是 wheels 那条「具体环」主张里活下来的部分。第 4 关证明：同一个字形可以同时落在两个不同的
+具体环上（同一张卡、同一个形状族），所以「按哪个具体位图接下去」不由字形单独决定；
+但「形状怎么走」由字形单独决定，而且与在第几关、在答题条上还是在图例里都无关。
+这一关的整条路线是靠这条算出来的——每一格要按几下，只看相位差。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;光标框住的那一串定位不到返回 NA。串里某一格**动作前**的字形不在已量到的三个形状族里，&quot;
+         &quot;这一格不判——那是还没量过的形状。整串一格都判不了返回 NA。&quot;
+         &quot;动作前认得、动作后落到三族之外，判 FALSE：那正是这条概念说不会发生的事。&quot;)
+NOTE = &quot;v1。它不写 apply：相位定形状不定朝向，逐格像素由 wheels 那张具体表负责。&quot;
+EVIDENCE = [&quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;bdb98cb0c06174a6&quot;, &quot;29dce1d86b3fe2c8&quot;]
+
+from _lib import focus_run, glyph, phase
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return &quot;NA&quot;
+    run = focus_run(prev)
+    if not run:
+        return &quot;NA&quot;
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    said = False
+    for r0, c0 in run:
+        a = phase(glyph(prev, r0, c0))
+        if a is None:
+            continue
+        said = True
+        b = phase(glyph(nxt, r0, c0))
+        if b is None:
+            return &quot;FALSE&quot;
+        if b != (a[0], (a[1] + d) % 7):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if said else &quot;NA&quot;
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">wheel_l0</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">第一关：每个位置沿自己固定的环转</div></summary><div class="body"><div class="doc">第 0 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T18:24:56 · L6</span><div>第 0 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 0 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 0 关（level_prev == level_next == 0）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 0 关实测的常数：位置 0/3/4 共用环 a，位置 1 用环 b，位置 2 用环 c——&quot;
+         &quot;『环由位置决定』本身就是这条概念的主张之一，别的关很可能推翻它。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;,
+            &quot;84a8b5e839aec20b&quot;, &quot;0d63bb9218324457&quot;, &quot;10ec300a5a365c3c&quot;]
+
+from _lib import CELL, COLS_WORD, INK, ROW_7, cursor, glyph
+
+WHEEL_A = [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F]
+WHEEL_B = [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0]
+WHEEL_C = [0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F, 0x04FD7E4, 0x1E9C72F]
+WHEEL_OF = {0: WHEEL_A, 1: WHEEL_B, 2: WHEEL_C, 3: WHEEL_A, 4: WHEEL_A}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (位置, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 0 or ctx.get(&quot;level_next&quot;) != 0:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    if i is None or i not in WHEEL_OF:
+        return None
+    w = WHEEL_OF[i]
+    v = glyph(prev, ROW_7, COLS_WORD[i])
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return i, w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    i, want = got
+    return &quot;TRUE&quot; if glyph(nxt, ROW_7, COLS_WORD[i]) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    i, want = got
+    c0 = COLS_WORD[i]
+    bg = prev[ROW_7 - 1][c0]          # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(ROW_7 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T18:41:01 · L6</span><div>第 0 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 0 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 0 关（level_prev == level_next == 0）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 0 关实测的常数：位置 0/3/4 共用环 a，位置 1 用环 b，位置 2 用环 c——&quot;
+         &quot;『环由位置决定』本身就是这条概念的主张之一，别的关很可能推翻它。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;,
+            &quot;84a8b5e839aec20b&quot;, &quot;0d63bb9218324457&quot;, &quot;10ec300a5a365c3c&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+WHEEL_A = [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F]
+WHEEL_B = [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0]
+WHEEL_C = [0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F, 0x04FD7E4, 0x1E9C72F]
+WHEEL_OF = {0: WHEEL_A, 1: WHEEL_B, 2: WHEEL_C, 3: WHEEL_A, 4: WHEEL_A}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 0 or ctx.get(&quot;level_next&quot;) != 0:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i not in WHEEL_OF or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    w = WHEEL_OF[i]
+    v = b[&quot;answer&quot;][i]
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 0 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 0 关（level_prev == level_next == 0）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 0 关实测的常数：位置 0/3/4 共用环 a，位置 1 用环 b，位置 2 用环 c——&quot;
+         &quot;『环由位置决定』本身就是这条概念的主张之一，别的关很可能推翻它。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;, &quot;059da38e50a87eed&quot;,
+            &quot;84a8b5e839aec20b&quot;, &quot;0d63bb9218324457&quot;, &quot;10ec300a5a365c3c&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+WHEEL_A = [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F]
+WHEEL_B = [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0]
+WHEEL_C = [0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F, 0x04FD7E4, 0x1E9C72F]
+WHEEL_OF = {0: WHEEL_A, 1: WHEEL_B, 2: WHEEL_C, 3: WHEEL_A, 4: WHEEL_A}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 0 or ctx.get(&quot;level_next&quot;) != 0:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i not in WHEEL_OF or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    w = WHEEL_OF[i]
+    v = b[&quot;answer&quot;][i]
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">wheel_l1</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-dead">撤册</span><span class="chip c-mute">1 版</span></div><div class="one">第二关：每个位置沿自己固定的环转</div></summary><div class="body"><div class="doc">第 1 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T18:59:03 · L6</span><div>第 1 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 1 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 1 关（level_prev == level_next == 1）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、位置索引超出实测过的 7 个、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 1 关实测的常数：位置 0/1/2/3/5 共用环 P，位置 4 用环 Q，位置 6 用环 R——&quot;
+         &quot;『环由位置决定、且同一关内不变』是主张的一部分。第 0 关的环与这里没有一个对得上，&quot;
+         &quot;所以『环随关变』也一并主张了；wheel_l0 那条只管第 0 关，两条互不覆盖。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;50213178202d90ba&quot;, &quot;57fcf117bd7011dd&quot;, &quot;aada9f567b025048&quot;,
+            &quot;7e85da547871126e&quot;, &quot;907d478dbc412006&quot;, &quot;e4c38c7a19084b9f&quot;,
+            &quot;335dd78a980589da&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+WHEEL_P = [0x0DC030D, 0x1725C37, 0x1F8923F, 0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615]
+WHEEL_Q = [0x1B8D63B, 0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415]
+WHEEL_R = [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B]
+WHEEL_OF = {0: WHEEL_P, 1: WHEEL_P, 2: WHEEL_P, 3: WHEEL_P,
+            4: WHEEL_Q, 5: WHEEL_P, 6: WHEEL_R}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 1 or ctx.get(&quot;level_next&quot;) != 1:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i not in WHEEL_OF or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    w = WHEEL_OF[i]
+    v = b[&quot;answer&quot;][i]
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 1 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 1 关（level_prev == level_next == 1）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、位置索引超出实测过的 7 个、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 1 关实测的常数：位置 0/1/2/3/5 共用环 P，位置 4 用环 Q，位置 6 用环 R——&quot;
+         &quot;『环由位置决定、且同一关内不变』是主张的一部分。第 0 关的环与这里没有一个对得上，&quot;
+         &quot;所以『环随关变』也一并主张了；wheel_l0 那条只管第 0 关，两条互不覆盖。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;50213178202d90ba&quot;, &quot;57fcf117bd7011dd&quot;, &quot;aada9f567b025048&quot;,
+            &quot;7e85da547871126e&quot;, &quot;907d478dbc412006&quot;, &quot;e4c38c7a19084b9f&quot;,
+            &quot;335dd78a980589da&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+WHEEL_P = [0x0DC030D, 0x1725C37, 0x1F8923F, 0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615]
+WHEEL_Q = [0x1B8D63B, 0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415]
+WHEEL_R = [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B]
+WHEEL_OF = {0: WHEEL_P, 1: WHEEL_P, 2: WHEEL_P, 3: WHEEL_P,
+            4: WHEEL_Q, 5: WHEEL_P, 6: WHEEL_R}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 1 or ctx.get(&quot;level_next&quot;) != 1:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i not in WHEEL_OF or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    w = WHEEL_OF[i]
+    v = b[&quot;answer&quot;][i]
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">wheel_l2</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-dead">撤册</span><span class="chip c-mute">1 版</span></div><div class="one">第三关：每个位置沿自己固定的环转</div></summary><div class="body"><div class="doc">第 2 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T19:22:26 · L6</span><div>第 2 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 2 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 2 关（level_prev == level_next == 2）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、位置索引超出实测过的 7 个、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 2 关实测的常数：位置 0/3/4 共用环 A，位置 1 用环 B，位置 2/5 用环 C，位置 6 用环 D——&quot;
+         &quot;『环由位置决定、同一关内不变、且是闭合的 7 元环』是主张的一部分（这一关连按七下回到原字形，&quot;
+         &quot;已实测）。第 0、1 关的环与这里没有一个对得上，所以『环随关变』也一并主张了；&quot;
+         &quot;wheel_l0 / wheel_l1 各管各的关，三条互不覆盖。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;208be4a4d04b4d3f&quot;, &quot;62db65a96aa2473a&quot;, &quot;e825b9afe1016ca6&quot;,
+            &quot;55c15ae857ba2b66&quot;, &quot;bbc5a6f64fc03f60&quot;, &quot;1a9d6dfea3680f88&quot;,
+            &quot;1d7eefe68ee96710&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+WHEEL_A = [0x118EE3F, 0x1C23887, 0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E]
+WHEEL_B = [0x04FD6A4, 0x1FA429F, 0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1]
+WHEEL_C = [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B]
+WHEEL_D = [0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF, 0x012FE90, 0x1F23884, 0x1B8C7F1]
+WHEEL_OF = {0: WHEEL_A, 1: WHEEL_B, 2: WHEEL_C, 3: WHEEL_A,
+            4: WHEEL_A, 5: WHEEL_C, 6: WHEEL_D}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 2 or ctx.get(&quot;level_next&quot;) != 2:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i not in WHEEL_OF or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    w = WHEEL_OF[i]
+    v = b[&quot;answer&quot;][i]
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;第 2 关：每个答题字形位上，ACTION1 让字形沿该位置固定的 7 元环前进一格，ACTION2 后退一格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看第 2 关（level_prev == level_next == 2）的 ACTION1 / ACTION2；换关或别的关返回 NA；&quot;
+         &quot;光标定位不到、位置索引超出实测过的 7 个、或当前字形不在该位置的环里，返回 NA。&quot;
+         &quot;环是第 2 关实测的常数：位置 0/3/4 共用环 A，位置 1 用环 B，位置 2/5 用环 C，位置 6 用环 D——&quot;
+         &quot;『环由位置决定、同一关内不变、且是闭合的 7 元环』是主张的一部分（这一关连按七下回到原字形，&quot;
+         &quot;已实测）。第 0、1 关的环与这里没有一个对得上，所以『环随关变』也一并主张了；&quot;
+         &quot;wheel_l0 / wheel_l1 各管各的关，三条互不覆盖。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;208be4a4d04b4d3f&quot;, &quot;62db65a96aa2473a&quot;, &quot;e825b9afe1016ca6&quot;,
+            &quot;55c15ae857ba2b66&quot;, &quot;bbc5a6f64fc03f60&quot;, &quot;1a9d6dfea3680f88&quot;,
+            &quot;1d7eefe68ee96710&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+WHEEL_A = [0x118EE3F, 0x1C23887, 0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E]
+WHEEL_B = [0x04FD6A4, 0x1FA429F, 0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1]
+WHEEL_C = [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B]
+WHEEL_D = [0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF, 0x012FE90, 0x1F23884, 0x1B8C7F1]
+WHEEL_OF = {0: WHEEL_A, 1: WHEEL_B, 2: WHEEL_C, 3: WHEEL_A,
+            4: WHEEL_A, 5: WHEEL_C, 6: WHEEL_D}
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is None or ctx.get(&quot;level_prev&quot;) != 2 or ctx.get(&quot;level_next&quot;) != 2:
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i not in WHEEL_OF or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    w = WHEEL_OF[i]
+    v = b[&quot;answer&quot;][i]
+    if v not in w:
+        return None
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">wheels</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">7 版</span></div><div class="one">每一格固定一个朝向变换，画出来的是它作用在标准形状上</div></summary><div class="body"><div class="doc">每个字形槽固定着一个二面体变换 t：槽里显示的就是 t 作用在「本相位的标准形状」上的样子。
+光标框住的那一串里，ACTION1 让每一格的相位 +1、ACTION2 -1，而 t 一格不变——
+所以后继 = t(下一相位的标准形状)。t 不是直接看得见的，它由「哪些变换能把标准形状变成当前字形」定：
+当前字形不对称时 t 唯一，后继就整格说得出来；字形有对称性时 t 不唯一，这时只说<b>所有候选都一致的那些格</b>
+（那些格正是被对称性固定住的）。
+
+这条取代了 v1-v6 的手工环表。环表的毛病是它把「这个槽在哪条环上」当成字形的属性去查，
+而具体环是<b>槽</b>的属性——于是每换一个槽就可能撞出一条没量到的边，每撞一次就得补一次表。
+换成取向之后，同一件事有了机制：两个槽显示同一个对称字形却走向不同后继，是因为它们的 t 不同，
+而对称让这两个 t 都能画出同一个字形。可判错性没有降低，反而更硬：
+真值必须落在几何算出的候选集里（这是纯几何的预言，没有任何拟合参数）。
+
+这条概念不主张 t 是什么，只主张 t 在一步之内不变。哪天世界让同一个槽换了取向，它当场变反例。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T19:35:26 · L6</span><div>这张卡上一共只有这么几个 7 元字形环；光标那一格的字形若恰好落在其中一个环里，</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这张卡上一共只有这么几个 7 元字形环；光标那一格的字形若恰好落在其中一个环里，
+ACTION1 让它沿那个环前进一格，ACTION2 后退一格——**与在第几关无关**。
+
+这条取代了原先按关号分家的三条（wheel_l0 / wheel_l1 / wheel_l2）。促成它的观测：
+第 3 关位0、位1 量出来的环，与另一关某个位置的环**逐字形完全相同**（不是同余，是同一串位图），
+说明环不是每关新造的一套，而是这张卡的常数，每关每个位置只是各挑一个。
+更强的一句附带主张：环恰好 7 元且闭合（连按七下回到原字形，已在多关多位置上实测）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;光标定位不到返回 NA。当前字形不在下表任何一个环里，返回 NA——那是这张卡上还没量过的环，&quot;
+         &quot;这条概念对它没有主张。当前字形同时落在两个以上的环里（下表里有 11 个字形是这样），&quot;
+         &quot;也返回 NA：后继不由字形单独决定，还要看它在哪个环上，而那件事这一帧上看不出来。&quot;
+         &quot;所以这条概念在新卡上会整片沉默，不会假装还认得那里的字形。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+RINGS = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1, 0x04FD6A4, 0x1FA429F],
+    [0x012FE90, 0x1F23884, 0x1B8C7F1, 0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+    [0x04FD7E4, 0x1E9C72F, 0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F],
+    [0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615, 0x0DC030D, 0x1725C37, 0x1F8923F],
+    [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B],
+    [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0],
+]
+
+WHERE = {}
+for _w in RINGS:
+    for _x in _w:
+        WHERE.setdefault(_x, []).append(_w)
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    v = b[&quot;answer&quot;][i]
+    ws = WHERE.get(v)
+    if ws is None or len(ws) != 1:
+        return None
+    w = ws[0]
+    d = 1 if action == &quot;ACTION1&quot; else -1
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], w[(w.index(v) + d) % len(w)]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T19:36:46 · L6</span><div>这张卡上一共只有这么几个 7 元字形环；光标那一格的字形若恰好落在其中一个环里，</div><div>v2：原先只要字形落在两个环里就一律 NA，太粗——下表 11 个共享字形里有 4 个，所有含它的环给出的后继是<b>同一个</b>，那几步本来就说得出口。改成只在后继不一致时才 NA。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这张卡上一共只有这么几个 7 元字形环；光标那一格的字形若恰好落在其中一个环里，
+ACTION1 让它沿那个环前进一格，ACTION2 后退一格——**与在第几关无关**。
+
+这条取代了原先按关号分家的三条（wheel_l0 / wheel_l1 / wheel_l2）。促成它的观测：
+第 3 关位0、位1 量出来的环，与另一关某个位置的环**逐字形完全相同**（不是同余，是同一串位图），
+说明环不是每关新造的一套，而是这张卡的常数，每关每个位置只是各挑一个。
+更强的一句附带主张：环恰好 7 元且闭合（连按七下回到原字形，已在多关多位置上实测）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;光标定位不到返回 NA。当前字形不在下表任何一个环里，返回 NA——那是这张卡上还没量过的环，&quot;
+         &quot;这条概念对它没有主张。当前字形落在两个以上的环里、且这些环给出的后继**不一致**时也返回 NA：&quot;
+         &quot;那种情形下后继不由字形单独决定，还要看它在哪个环上，而那件事这一帧上看不出来。&quot;
+         &quot;所以这条概念在新卡上会整片沉默，不会假装还认得那里的字形。&quot;)
+NOTE = (&quot;v2：原先只要字形落在两个环里就一律 NA，太粗——下表 11 个共享字形里有 4 个，&quot;
+        &quot;所有含它的环给出的后继是**同一个**，那几步本来就说得出口。改成只在后继不一致时才 NA。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;]
+
+from _lib import CELL, INK, board, cursor
+
+RINGS = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1, 0x04FD6A4, 0x1FA429F],
+    [0x012FE90, 0x1F23884, 0x1B8C7F1, 0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+    [0x04FD7E4, 0x1E9C72F, 0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F],
+    [0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615, 0x0DC030D, 0x1725C37, 0x1F8923F],
+    [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B],
+    [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0],
+]
+
+WHERE = {}
+for _w in RINGS:
+    for _i, _x in enumerate(_w):
+        WHERE.setdefault(_x, []).append((_w[(_i + 1) % len(_w)], _w[(_i - 1) % len(_w)]))
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 (行, 列, 目标位图)；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    i = cursor(prev)
+    b = board(prev)
+    if i is None or b is None or i &gt;= len(b[&quot;answer&quot;]):
+        return None
+    ws = WHERE.get(b[&quot;answer&quot;][i])
+    if not ws:
+        return None
+    d = 0 if action == &quot;ACTION1&quot; else 1
+    nxts = {w[d] for w in ws}
+    if len(nxts) != 1:                # 含它的几个环各说各话 —— 这一帧上分辨不出在哪个环上
+        return None
+    return b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i], nxts.pop()
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    r0, c0, want = got
+    b = board(nxt)
+    if b is None or b[&quot;ans_row&quot;] != r0 or c0 not in b[&quot;ans_cols&quot;]:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[&quot;answer&quot;][b[&quot;ans_cols&quot;].index(c0)] == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    r0, c0, want = got
+    bg = prev[r0 - 1][c0]             # 长条内、字形上方那一行的底色
+    out = {}
+    for r in range(CELL):
+        for c in range(CELL):
+            on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+            out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T19:58:51 · L6</span><div>这张卡上一共只有这么几个 7 元字形环；光标框住的那一串里，凡是能唯一认出所在环的格，</div><div>v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串，对串里每一格各查各的环。旧的四关一格没变——那里的串长恰好是 1，且就在答题条上。v2：原先只要字形落在两个环里就一律 NA，太粗——下表 11 个共享字形里有 4 个，所有含它的环给出的后继是<b>同一个</b>，那几步本来就说得出口。改成只在后继不一致时才 NA。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这张卡上一共只有这么几个 7 元字形环；光标框住的那一串里，凡是能唯一认出所在环的格，
+ACTION1 让它沿那个环前进一格，ACTION2 后退一格——**与在第几关无关，也与那一串在答题条上
+还是在图例里无关**；一串里的每一格各走各的环，同进同退。
+
+这条取代了原先按关号分家的三条（wheel_l0 / wheel_l1 / wheel_l2）。促成它的观测：
+第 3 关位0、位1 量出来的环，与另一关某个位置的环**逐字形完全相同**（不是同余，是同一串位图），
+说明环不是每关新造的一套，而是这张卡的常数，每关每个位置只是各挑一个。
+更强的一句附带主张：环恰好 7 元且闭合（连按七下回到原字形，已在多关多位置上实测）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;光标框住的那一串定位不到返回 NA。串里某一格的当前字形不在下表任何一个环里，这一格不预测——&quot;
+         &quot;那是这张卡上还没量过的环，这条概念对它没有主张。某一格的字形落在两个以上的环里、&quot;
+         &quot;且这些环给出的后继**不一致**时，这一格同样不预测：那种情形下后继不由字形单独决定，&quot;
+         &quot;还要看它在哪个环上，而那件事这一帧上看不出来。整串一格都预测不了就返回 NA。&quot;
+         &quot;所以这条概念在新卡上会整片沉默，不会假装还认得那里的字形。&quot;)
+NOTE = (&quot;v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。&quot;
+        &quot;原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串，&quot;
+        &quot;对串里每一格各查各的环。旧的四关一格没变——那里的串长恰好是 1，且就在答题条上。&quot;
+        &quot;v2：原先只要字形落在两个环里就一律 NA，太粗——下表 11 个共享字形里有 4 个，&quot;
+        &quot;所有含它的环给出的后继是**同一个**，那几步本来就说得出口。改成只在后继不一致时才 NA。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;,
+            &quot;eeffe6377ed1869b&quot;, &quot;e2b5095fdcc439b7&quot;, &quot;69bf34dd636db150&quot;]
+
+from _lib import CELL, INK, glyph, focus_run
+
+RINGS = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1, 0x04FD6A4, 0x1FA429F],
+    [0x012FE90, 0x1F23884, 0x1B8C7F1, 0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+    [0x04FD7E4, 0x1E9C72F, 0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F],
+    [0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615, 0x0DC030D, 0x1725C37, 0x1F8923F],
+    [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B],
+    [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0],
+]
+
+WHERE = {}
+for _w in RINGS:
+    for _i, _x in enumerate(_w):
+        WHERE.setdefault(_x, []).append((_w[(_i + 1) % len(_w)], _w[(_i - 1) % len(_w)]))
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 [(行, 列, 目标位图)…]（只含说得出口的那些格）；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    run = focus_run(prev)
+    if not run:
+        return None
+    d = 0 if action == &quot;ACTION1&quot; else 1
+    out = []
+    for r0, c0 in run:
+        ws = WHERE.get(glyph(prev, r0, c0))
+        if not ws:
+            continue                  # 这张卡上还没量过的环 —— 这一格不预测
+        nxts = {w[d] for w in ws}
+        if len(nxts) != 1:            # 含它的几个环各说各话 —— 这一帧上分辨不出在哪个环上
+            continue
+        out.append((r0, c0, nxts.pop()))
+    return out or None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    for r0, c0, want in got:
+        if glyph(nxt, r0, c0) != want:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    out = {}
+    for r0, c0, want in got:
+        bg = prev[r0 - 1][c0]         # 槽外一圈的框色（字形上方那一行）
+        for r in range(CELL):
+            for c in range(CELL):
+                on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+                out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-07T20:10:15 · L6</span><div>这张卡上量到的具体字形环（与还没量全的弧）：光标框住的那一串里，凡是只落在<b>一条</b>已量到的</div><div>v4：第 4 关一个图例槽上，字形 x1ca7ca7 的后继不是环9 说的 x1faf63f，而是 x1f8debf——它同时落在环9 和另一条还没量全的环上。这推翻了 v2 的推理『含它的已知环都说同一个后继，所以后继由字形决定』：已量到的都同意，不等于没有没量到的。改成只要落在两条以上结构上就闭嘴，并把新量到的那段弧收进 ARCS。代价是环3/4、环5/6 重叠处那几个原本说得出口的字形也一起沉默了。v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这张卡上量到的具体字形环（与还没量全的弧）：光标框住的那一串里，凡是只落在**一条**已量到的
+结构上的格，ACTION1 让它沿那条结构前进一格，ACTION2 后退一格——与在第几关无关，
+也与那一串在答题条上还是在图例里无关；一串里的每一格各走各的，同进同退。
+
+这条取代了原先按关号分家的三条（wheel_l0 / wheel_l1 / wheel_l2）。
+**具体环是槽的属性，不是字形的属性**：同一个字形可以同时落在两条不同的具体环上，
+下表只是「已经量到的边」的集合。所以这条概念给出的是一个会被新测量不断削弱的具体预测，
+真正稳的那半句在 shape_step 里（形状相位怎么走）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;光标框住的那一串定位不到返回 NA。串里某一格的当前字形不在下表任何一条结构里，&quot;
+         &quot;或者落在**两条以上**结构里，这一格都不预测——后者是因为具体环由槽决定而不由字形决定，&quot;
+         &quot;而这一帧上看不出这个槽在哪条环上。方向上没有已量到的邻居（弧的端点）也不预测。&quot;
+         &quot;整串一格都预测不了就返回 NA。所以它在新卡上会整片沉默，不会假装还认得那里的字形。&quot;)
+NOTE = (&quot;v4：第 4 关一个图例槽上，字形 x1ca7ca7 的后继不是环9 说的 x1faf63f，而是 x1f8debf——&quot;
+        &quot;它同时落在环9 和另一条还没量全的环上。这推翻了 v2 的推理『含它的已知环都说同一个后继，&quot;
+        &quot;所以后继由字形决定』：已量到的都同意，不等于没有没量到的。改成只要落在两条以上结构上就闭嘴，&quot;
+        &quot;并把新量到的那段弧收进 ARCS。代价是环3/4、环5/6 重叠处那几个原本说得出口的字形也一起沉默了。&quot;
+        &quot;v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。&quot;
+        &quot;原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;,
+            &quot;eeffe6377ed1869b&quot;, &quot;e2b5095fdcc439b7&quot;, &quot;69bf34dd636db150&quot;,
+            &quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;29dce1d86b3fe2c8&quot;]
+
+from _lib import CELL, INK, glyph, focus_run
+
+RINGS = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1, 0x04FD6A4, 0x1FA429F],
+    [0x012FE90, 0x1F23884, 0x1B8C7F1, 0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+    [0x04FD7E4, 0x1E9C72F, 0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F],
+    [0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615, 0x0DC030D, 0x1725C37, 0x1F8923F],
+    [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B],
+    [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0],
+]
+
+# 还没量全的弧：只知道这一段的先后，不知道整环。端点的另一侧没有已量到的邻居。
+ARCS = [
+    [0x1CA7CA7, 0x1F8DEBF, 0x017A53F],
+]
+
+# 每个字形落在哪些结构上（环 + 弧一起编号）。落在两条以上 = 具体环由槽决定，这一帧上分辨不出。
+_STRUCT = [(w, True) for w in RINGS] + [(a, False) for a in ARCS]
+NEXT, PREV, HOME = {}, {}, {}
+for _k, (_s, _closed) in enumerate(_STRUCT):
+    for _i, _x in enumerate(_s):
+        HOME.setdefault(_x, set()).add(_k)
+        if _closed or _i + 1 &lt; len(_s):
+            NEXT.setdefault(_x, set()).add(_s[(_i + 1) % len(_s)])
+        if _closed or _i &gt; 0:
+            PREV.setdefault(_x, set()).add(_s[(_i - 1) % len(_s)])
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 [(行, 列, 目标位图)…]（只含说得出口的那些格）；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    run = focus_run(prev)
+    if not run:
+        return None
+    table = NEXT if action == &quot;ACTION1&quot; else PREV
+    out = []
+    for r0, c0 in run:
+        v = glyph(prev, r0, c0)
+        if len(HOME.get(v, ())) != 1:     # 没量到过，或者落在两条以上结构上
+            continue
+        cands = table.get(v)
+        if not cands or len(cands) != 1:  # 弧的端点：这个方向上没有已量到的邻居
+            continue
+        out.append((r0, c0, next(iter(cands))))
+    return out or None
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    for r0, c0, want in got:
+        if glyph(nxt, r0, c0) != want:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return None
+    out = {}
+    for r0, c0, want in got:
+        bg = prev[r0 - 1][c0]         # 槽外一圈的框色（字形上方那一行）
+        for r in range(CELL):
+            for c in range(CELL):
+                on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+                out[(r0 + r, c0 + c)] = INK if on else bg
+    return out
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-07T20:34:55 · L6</span><div>这张卡上量到的具体字形环（与还没量全的弧）：光标框住的那一串里，凡是只落在<b>一条</b>已量到的</div><div>v5：终局卡上停批一次——它对着一个正好完成本关的按键，照常预测那一格的字形怎么走，而世界把整块版面换掉了。病根不是环表认错，是 assert_ 靠 ctx 躲开了换关那一步，apply 却拿不到 ctx，于是同一条概念在「判」和「说」两种用法下 scope 不一样。改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。v4：第 4 关一个图例槽上，字形 x1ca7ca7 的后继不是环9 说的 x1faf63f，而是 x1f8debf——它同时落在环9 和另一条还没量全的环上。这推翻了 v2 的推理『含它的已知环都说同一个后继，所以后继由字形决定』：已量到的都同意，不等于没有没量到的。改成只要落在两条以上结构上就闭嘴，并把新量到的那段弧收进 ARCS。代价是环3/4、环5/6 重叠处那几个原本说得出口的字形也一起沉默了。v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这张卡上量到的具体字形环（与还没量全的弧）：光标框住的那一串里，凡是只落在**一条**已量到的
+结构上的格，ACTION1 让它沿那条结构前进一格，ACTION2 后退一格——与在第几关无关，
+也与那一串在答题条上还是在图例里无关；一串里的每一格各走各的，同进同退。
+
+这条取代了原先按关号分家的三条（wheel_l0 / wheel_l1 / wheel_l2）。
+**具体环是槽的属性，不是字形的属性**：同一个字形可以同时落在两条不同的具体环上，
+下表只是「已经量到的边」的集合。所以这条概念给出的是一个会被新测量不断削弱的具体预测，
+真正稳的那半句在 shape_step 里（形状相位怎么走）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;**这一按之后答题条就处处与目标同余**（win_rule 说那一刻这一关就结束）也返回 NA——&quot;
+         &quot;赢了之后的版面整块重画，这条概念对它没有发言权，而 apply 拿不到 ctx，只能自己算出来；&quot;
+         &quot;光标框住的那一串定位不到返回 NA。串里某一格的当前字形不在下表任何一条结构里，&quot;
+         &quot;或者落在**两条以上**结构里，这一格都不预测——后者是因为具体环由槽决定而不由字形决定，&quot;
+         &quot;而这一帧上看不出这个槽在哪条环上。方向上没有已量到的邻居（弧的端点）也不预测。&quot;
+         &quot;整串一格都预测不了就返回 NA。所以它在新卡上会整片沉默，不会假装还认得那里的字形。&quot;)
+NOTE = (&quot;v5：终局卡上停批一次——它对着一个正好完成本关的按键，照常预测那一格的字形怎么走，&quot;
+        &quot;而世界把整块版面换掉了。病根不是环表认错，是 assert_ 靠 ctx 躲开了换关那一步，&quot;
+        &quot;apply 却拿不到 ctx，于是同一条概念在「判」和「说」两种用法下 scope 不一样。&quot;
+        &quot;改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。&quot;
+        &quot;v4：第 4 关一个图例槽上，字形 x1ca7ca7 的后继不是环9 说的 x1faf63f，而是 x1f8debf——&quot;
+        &quot;它同时落在环9 和另一条还没量全的环上。这推翻了 v2 的推理『含它的已知环都说同一个后继，&quot;
+        &quot;所以后继由字形决定』：已量到的都同意，不等于没有没量到的。改成只要落在两条以上结构上就闭嘴，&quot;
+        &quot;并把新量到的那段弧收进 ARCS。代价是环3/4、环5/6 重叠处那几个原本说得出口的字形也一起沉默了。&quot;
+        &quot;v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。&quot;
+        &quot;原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;,
+            &quot;eeffe6377ed1869b&quot;, &quot;e2b5095fdcc439b7&quot;, &quot;69bf34dd636db150&quot;,
+            &quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;29dce1d86b3fe2c8&quot;, &quot;e366c18298f6bbb5&quot;]
+
+from _lib import CELL, INK, board, glyph, focus_run, shapes
+
+RINGS = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1, 0x04FD6A4, 0x1FA429F],
+    [0x012FE90, 0x1F23884, 0x1B8C7F1, 0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+    [0x04FD7E4, 0x1E9C72F, 0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F],
+    [0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615, 0x0DC030D, 0x1725C37, 0x1F8923F],
+    [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B],
+    [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0],
+]
+
+# 还没量全的弧：只知道这一段的先后，不知道整环。端点的另一侧没有已量到的邻居。
+ARCS = [
+    [0x1CA7CA7, 0x1F8DEBF, 0x017A53F],
+]
+
+# 每个字形落在哪些结构上（环 + 弧一起编号）。落在两条以上 = 具体环由槽决定，这一帧上分辨不出。
+_STRUCT = [(w, True) for w in RINGS] + [(a, False) for a in ARCS]
+NEXT, PREV, HOME = {}, {}, {}
+for _k, (_s, _closed) in enumerate(_STRUCT):
+    for _i, _x in enumerate(_s):
+        HOME.setdefault(_x, set()).add(_k)
+        if _closed or _i + 1 &lt; len(_s):
+            NEXT.setdefault(_x, set()).add(_s[(_i + 1) % len(_s)])
+        if _closed or _i &gt; 0:
+            PREV.setdefault(_x, set()).add(_s[(_i - 1) % len(_s)])
+
+
+def _cells(prev, out):
+    &quot;&quot;&quot;把 out 里那几个槽逐格画出来，返回 {(行, 列): 颜色}。&quot;&quot;&quot;
+    cells = {}
+    for r0, c0, want in out:
+        bg = prev[r0 - 1][c0]         # 槽外一圈的框色（字形上方那一行）
+        for r in range(CELL):
+            for c in range(CELL):
+                on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+                cells[(r0 + r, c0 + c)] = INK if on else bg
+    return cells
+
+
+def _wins(prev, out):
+    &quot;&quot;&quot;这一按之后答题条是不是就处处与目标同余了。是的话这一关当场结束（win_rule），
+    而结束之后整块版面重画，这条概念对它没有发言权。&quot;&quot;&quot;
+    g = [list(row) for row in prev]
+    for (r, c), v in _cells(prev, out).items():
+        g[r][c] = v
+    want, b = shapes(g), board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return False
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 [(行, 列, 目标位图)…]（只含说得出口的那些格）；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    run = focus_run(prev)
+    if not run:
+        return None
+    table = NEXT if action == &quot;ACTION1&quot; else PREV
+    out = []
+    for r0, c0 in run:
+        v = glyph(prev, r0, c0)
+        if len(HOME.get(v, ())) != 1:     # 没量到过，或者落在两条以上结构上
+            continue
+        cands = table.get(v)
+        if not cands or len(cands) != 1:  # 弧的端点：这个方向上没有已量到的邻居
+            continue
+        out.append((r0, c0, next(iter(cands))))
+    if not out or _wins(prev, out):
+        return None
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    for r0, c0, want in got:
+        if glyph(nxt, r0, c0) != want:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    return None if got is None else _cells(prev, got)
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-07T20:44:00 · L6</span><div>这张卡上量到的具体字形环（与还没量全的弧）：光标框住的那一串里，凡是**它落在的每一条已量到的</div><div>v6：终局卡上第二次停批，而这次概念本身没判错——它是被自己的沉默拖垮的。v4 那道「落在两条以上结构上就闭嘴」的闸太钝：环3/环4 重叠段上的字形，两条环对后继说的是同一个，却照样闭嘴，于是链式预测在那里停了两拍，后面每一步都拿落后两拍的帧算。改成按结构逐条问：每条结构在这个方向上都得有邻居，且说法一致。全量语料上开口从 215 条涨到 236 条、零反例。v4 那个反例仍被拦住，但拦它的理由换了个更准的：x1ca7ca7 落在环9 与一条弧上，弧的起点没有前驱——候选只有一个不是因为一致，是因为其中一条闭着嘴。d4d110e6546b04a4 正是这一格上的实测反例（真值 x07ed7a7 根本没量到过）。v5：终局卡上停批一次——它对着一个正好完成本关的按键，照常预测那一格的字形怎么走，而世界把整块版面换掉了。病根不是环表认错，是 assert_ 靠 ctx 躲开了换关那一步，apply 却拿不到 ctx，于是同一条概念在「判」和「说」两种用法下 scope 不一样。改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。v4：第 4 关一个图例槽上，字形 x1ca7ca7 的后继不是环9 说的 x1faf63f，而是 x1f8debf——它同时落在环9 和另一条还没量全的环上。这推翻了 v2 的推理『含它的已知环都说同一个后继，所以后继由字形决定』：已量到的都同意，不等于没有没量到的。v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;这张卡上量到的具体字形环（与还没量全的弧）：光标框住的那一串里，凡是**它落在的每一条已量到的
+结构都对这个方向给出同一个邻居**的格，ACTION1 让它沿那条结构前进一格，ACTION2 后退一格——
+与在第几关无关，也与那一串在答题条上还是在图例里无关；一串里的每一格各走各的，同进同退。
+
+这条取代了原先按关号分家的三条（wheel_l0 / wheel_l1 / wheel_l2）。
+**具体环是槽的属性，不是字形的属性**：同一个字形可以同时落在两条不同的具体环上，
+下表只是「已经量到的边」的集合。所以这条概念给出的是一个会被新测量不断削弱的具体预测，
+真正稳的那半句在 shape_step 里（形状相位怎么走）。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;**这一按之后答题条就处处与目标同余**（win_rule 说那一刻这一关就结束）也返回 NA——&quot;
+         &quot;赢了之后的版面整块重画，这条概念对它没有发言权，而 apply 拿不到 ctx，只能自己算出来；&quot;
+         &quot;光标框住的那一串定位不到返回 NA。串里某一格的当前字形，要它落在的**每一条**已量到的结构&quot;
+         &quot;在这个方向上都有邻居、并且这些邻居**全都是同一个**，才预测这一格；&quot;
+         &quot;字形没量到过、或者哪怕只有一条结构在这个方向上是端点（那一侧没量过）、&quot;
+         &quot;或者几条结构说法不一，这一格都不预测——因为具体环由槽决定而不由字形决定，&quot;
+         &quot;而这一帧上看不出这个槽在哪条环上。整串一格都预测不了就返回 NA。&quot;
+         &quot;所以它在新卡上会整片沉默，不会假装还认得那里的字形。&quot;)
+NOTE = (&quot;v6：终局卡上第二次停批，而这次概念本身没判错——它是被自己的沉默拖垮的。&quot;
+        &quot;v4 那道「落在两条以上结构上就闭嘴」的闸太钝：环3/环4 重叠段上的字形，两条环对后继&quot;
+        &quot;说的是同一个，却照样闭嘴，于是链式预测在那里停了两拍，后面每一步都拿落后两拍的帧算。&quot;
+        &quot;改成按结构逐条问：每条结构在这个方向上都得有邻居，且说法一致。全量语料上开口从 215 条&quot;
+        &quot;涨到 236 条、零反例。v4 那个反例仍被拦住，但拦它的理由换了个更准的：x1ca7ca7 落在环9 与&quot;
+        &quot;一条弧上，弧的起点没有前驱——候选只有一个不是因为一致，是因为其中一条闭着嘴。&quot;
+        &quot;d4d110e6546b04a4 正是这一格上的实测反例（真值 x07ed7a7 根本没量到过）。&quot;
+        &quot;v5：终局卡上停批一次——它对着一个正好完成本关的按键，照常预测那一格的字形怎么走，&quot;
+        &quot;而世界把整块版面换掉了。病根不是环表认错，是 assert_ 靠 ctx 躲开了换关那一步，&quot;
+        &quot;apply 却拿不到 ctx，于是同一条概念在「判」和「说」两种用法下 scope 不一样。&quot;
+        &quot;改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。&quot;
+        &quot;v4：第 4 关一个图例槽上，字形 x1ca7ca7 的后继不是环9 说的 x1faf63f，而是 x1f8debf——&quot;
+        &quot;它同时落在环9 和另一条还没量全的环上。这推翻了 v2 的推理『含它的已知环都说同一个后继，&quot;
+        &quot;所以后继由字形决定』：已量到的都同意，不等于没有没量到的。&quot;
+        &quot;v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。&quot;
+        &quot;原先靠 cursor（答题条上的索引）取格，在图例可编辑的关里整关沉默。改成靠 focus_run 取串。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;,
+            &quot;eeffe6377ed1869b&quot;, &quot;e2b5095fdcc439b7&quot;, &quot;69bf34dd636db150&quot;,
+            &quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;29dce1d86b3fe2c8&quot;, &quot;e366c18298f6bbb5&quot;,
+            &quot;d4d110e6546b04a4&quot;, &quot;a1b828d9bed5850b&quot;]
+
+from _lib import CELL, INK, board, glyph, focus_run, shapes
+
+RINGS = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x012FE90, 0x042389F, 0x11FC63B, 0x1F2721F, 0x11F93F1, 0x04FD6A4, 0x1FA429F],
+    [0x012FE90, 0x1F23884, 0x1B8C7F1, 0x1F09C9F, 0x11F93F1, 0x04AD7E4, 0x1F284BF],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x1F0D435, 0x0ADC411, 0x1505EBD, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+    [0x04FD7E4, 0x1E9C72F, 0x1F8C7E4, 0x0E57E3F, 0x072FE9C, 0x1F8F6BF, 0x10F4A5F],
+    [0x0A07C0A, 0x1187C31, 0x130C619, 0x1F85615, 0x0DC030D, 0x1725C37, 0x1F8923F],
+    [0x0E17C4E, 0x1F8EE31, 0x1C23887, 0x10A7E90, 0x1F90A5F, 0x1DADE31, 0x1B5395B],
+    [0x0E57D4E, 0x0FCC67E, 0x0F4E52F, 0x1CBD6FC, 0x1CA7CA7, 0x1FAF63F, 0x1F94BD0],
+]
+
+# 还没量全的弧：只知道这一段的先后，不知道整环。端点的另一侧没有已量到的邻居。
+ARCS = [
+    [0x1CA7CA7, 0x1F8DEBF, 0x017A53F],
+]
+
+# 每个字形落在哪些结构上（环 + 弧一起编号），以及每条结构在两个方向上各给出什么邻居。
+# 端点在那一侧不给邻居——所以「只有一个候选」也可能是别的结构闭着嘴，得数够条数才算一致。
+_STRUCT = [(w, True) for w in RINGS] + [(a, False) for a in ARCS]
+NEXT, PREV, HOME = {}, {}, {}
+for _k, (_s, _closed) in enumerate(_STRUCT):
+    for _i, _x in enumerate(_s):
+        HOME.setdefault(_x, set()).add(_k)
+        if _closed or _i + 1 &lt; len(_s):
+            NEXT.setdefault(_x, {})[_k] = _s[(_i + 1) % len(_s)]
+        if _closed or _i &gt; 0:
+            PREV.setdefault(_x, {})[_k] = _s[(_i - 1) % len(_s)]
+
+
+def _cells(prev, out):
+    &quot;&quot;&quot;把 out 里那几个槽逐格画出来，返回 {(行, 列): 颜色}。&quot;&quot;&quot;
+    cells = {}
+    for r0, c0, want in out:
+        bg = prev[r0 - 1][c0]         # 槽外一圈的框色（字形上方那一行）
+        for r in range(CELL):
+            for c in range(CELL):
+                on = (want &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1
+                cells[(r0 + r, c0 + c)] = INK if on else bg
+    return cells
+
+
+def _wins(prev, out):
+    &quot;&quot;&quot;这一按之后答题条是不是就处处与目标同余了。是的话这一关当场结束（win_rule），
+    而结束之后整块版面重画，这条概念对它没有发言权。&quot;&quot;&quot;
+    g = [list(row) for row in prev]
+    for (r, c), v in _cells(prev, out).items():
+        g[r][c] = v
+    want, b = shapes(g), board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return False
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 [(行, 列, 目标位图)…]（只含说得出口的那些格）；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    run = focus_run(prev)
+    if not run:
+        return None
+    table = NEXT if action == &quot;ACTION1&quot; else PREV
+    out = []
+    for r0, c0 in run:
+        v = glyph(prev, r0, c0)
+        home, says = HOME.get(v, ()), table.get(v, {})
+        if not home or len(says) != len(home):   # 没量到过，或有结构在这个方向上是端点
+            continue
+        want = set(says.values())
+        if len(want) != 1:                       # 几条结构说法不一：具体环由槽决定，这帧上分辨不出
+            continue
+        out.append((r0, c0, next(iter(want))))
+    if not out or _wins(prev, out):
+        return None
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    for r0, c0, want in got:
+        if glyph(nxt, r0, c0) != want:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    got = _step(prev, action, ctx)
+    return None if got is None else _cells(prev, got)
+</code></pre></details></div><div class="v"><span class="h">v7 · 2026-09-07T21:04:01 · L6</span><div>每个字形槽固定着一个二面体变换 t：槽里显示的就是 t 作用在「本相位的标准形状」上的样子。</div><div>v7：第二次在终局卡上被同一件事绊倒之后换了写法。v1-v6 是一张越补越大的环表，被推翻的方式每次都一样：同一个字形在一个新槽里走到了表里没有的地方。改成按二面体取向算候选之后，这件事从「表不全」变成「对称性使 t 不唯一」，而真值落在候选集里是纯几何的必然。全量语料 297 条实测边：真值 297 条全在候选集里，候选唯一的 118 条全说对；候选不唯一时按位取交，说得出 5923/7425 位、说错 0 位。顺带否掉了一个更强的猜想：同一串里的槽共用一个取向——6 条实测反例，取向是逐槽的。v6：环表的沉默判据从「落在两条以上结构上」改成「各结构说法不一或有端点」；开口从 215 涨到 236 条、零反例，但一撞上新槽（824440c24202d011）就又被推翻，这次的推翻直接催生了 v7。v5：它对着一个正好完成本关的按键照常预测，而世界把整块版面换掉了。病根是 assert_ 靠 ctx 躲开了换关那一步、apply 却拿不到 ctx，同一条概念在「判」和「说」两种用法下 scope 不一样。改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。v4：字形 x1ca7ca7 的后继不是环表说的那个——已量到的边都同意，不等于没有没量到的。v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。</div><details class="src"><summary>v7 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个字形槽固定着一个二面体变换 t：槽里显示的就是 t 作用在「本相位的标准形状」上的样子。
+光标框住的那一串里，ACTION1 让每一格的相位 +1、ACTION2 -1，而 t 一格不变——
+所以后继 = t(下一相位的标准形状)。t 不是直接看得见的，它由「哪些变换能把标准形状变成当前字形」定：
+当前字形不对称时 t 唯一，后继就整格说得出来；字形有对称性时 t 不唯一，这时只说**所有候选都一致的那些格**
+（那些格正是被对称性固定住的）。
+
+这条取代了 v1-v6 的手工环表。环表的毛病是它把「这个槽在哪条环上」当成字形的属性去查，
+而具体环是**槽**的属性——于是每换一个槽就可能撞出一条没量到的边，每撞一次就得补一次表。
+换成取向之后，同一件事有了机制：两个槽显示同一个对称字形却走向不同后继，是因为它们的 t 不同，
+而对称让这两个 t 都能画出同一个字形。可判错性没有降低，反而更硬：
+真值必须落在几何算出的候选集里（这是纯几何的预言，没有任何拟合参数）。
+
+这条概念不主张 t 是什么，只主张 t 在一步之内不变。哪天世界让同一个槽换了取向，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;**这一按之后答题条就处处与目标同余**（win_rule 说那一刻这一关就结束）也返回 NA——&quot;
+         &quot;赢了之后的版面整块重画，这条概念对它没有发言权，而 apply 拿不到 ctx，只能自己算出来；&quot;
+         &quot;光标框住的那一串定位不到返回 NA；串里只要有一格的相位读不出来（形状不在已量到的族里），&quot;
+         &quot;整串返回 NA——那一格的候选集算不出来，连「这一按会不会赢」都判不了。&quot;
+         &quot;候选唯一的格说整格，候选不唯一的格只说候选们一致的那些格；一格都说不出就返回 NA。&quot;)
+NOTE = (&quot;v7：第二次在终局卡上被同一件事绊倒之后换了写法。v1-v6 是一张越补越大的环表，&quot;
+        &quot;被推翻的方式每次都一样：同一个字形在一个新槽里走到了表里没有的地方。&quot;
+        &quot;改成按二面体取向算候选之后，这件事从「表不全」变成「对称性使 t 不唯一」，&quot;
+        &quot;而真值落在候选集里是纯几何的必然。全量语料 297 条实测边：真值 297 条全在候选集里，&quot;
+        &quot;候选唯一的 118 条全说对；候选不唯一时按位取交，说得出 5923/7425 位、说错 0 位。&quot;
+        &quot;顺带否掉了一个更强的猜想：同一串里的槽共用一个取向——6 条实测反例，取向是逐槽的。&quot;
+        &quot;v6：环表的沉默判据从「落在两条以上结构上」改成「各结构说法不一或有端点」；&quot;
+        &quot;开口从 215 涨到 236 条、零反例，但一撞上新槽（824440c24202d011）就又被推翻，&quot;
+        &quot;这次的推翻直接催生了 v7。&quot;
+        &quot;v5：它对着一个正好完成本关的按键照常预测，而世界把整块版面换掉了。病根是 assert_ 靠 ctx &quot;
+        &quot;躲开了换关那一步、apply 却拿不到 ctx，同一条概念在「判」和「说」两种用法下 scope 不一样。&quot;
+        &quot;改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。&quot;
+        &quot;v4：字形 x1ca7ca7 的后继不是环表说的那个——已量到的边都同意，不等于没有没量到的。&quot;
+        &quot;v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;,
+            &quot;eeffe6377ed1869b&quot;, &quot;e2b5095fdcc439b7&quot;, &quot;69bf34dd636db150&quot;,
+            &quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;29dce1d86b3fe2c8&quot;, &quot;e366c18298f6bbb5&quot;,
+            &quot;d4d110e6546b04a4&quot;, &quot;a1b828d9bed5850b&quot;, &quot;824440c24202d011&quot;]
+
+from _lib import (CELL, INK, SHAPE_FAMILIES, board, dihedral, focus_run,  # noqa: E402
+                  glyph, phase, shapes)
+
+RING = 7            # 形状环恰好 7 元且闭合（shape_step 背的书）
+NB = CELL * CELL
+
+
+def _cands(v, action):
+    &quot;&quot;&quot;这个字形按一下可能变成哪些字形：把标准形状变成 v 的每个变换，各自作用到下一相位上。
+    相位读不出来返回 None。&quot;&quot;&quot;
+    p = phase(v)
+    if p is None:
+        return None
+    fam, i = p
+    j = (i + 1) % RING if action == &quot;ACTION1&quot; else (i - 1) % RING
+    here = dihedral(SHAPE_FAMILIES[fam][i])
+    there = dihedral(SHAPE_FAMILIES[fam][j])
+    return {there[k] for k in here if here[k] == v}
+
+
+def _paint(prev, r0, c0, bits):
+    &quot;&quot;&quot;把一个槽里的若干位画成格子：bits 是 {位序: 0/1}。&quot;&quot;&quot;
+    bg = prev[r0 - 1][c0]                 # 槽外一圈的框色（字形上方那一行）
+    return {(r0 + i // CELL, c0 + i % CELL): (INK if b else bg) for i, b in bits.items()}
+
+
+def _wins(prev, guess):
+    &quot;&quot;&quot;这一按之后答题条是不是就处处与目标同余了。是的话这一关当场结束（win_rule），
+    而结束之后整块版面重画，这条概念对它没有发言权。
+    候选都是同一个形状的不同朝向，而这里只比形状，所以随便取一个候选都不影响判断。&quot;&quot;&quot;
+    g = [list(row) for row in prev]
+    for r0, c0, v in guess:
+        for (r, c), col in _paint(prev, r0, c0,
+                                 {i: (v &gt;&gt; (NB - 1 - i)) &amp; 1 for i in range(NB)}).items():
+            g[r][c] = col
+    want, b = shapes(g), board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return False
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 {(行, 列): 颜色}；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    run = focus_run(prev)
+    if not run:
+        return None
+    guess, cells = [], {}
+    for r0, c0 in run:
+        v = glyph(prev, r0, c0)
+        cs = _cands(v, action)
+        if not cs:
+            return None                   # 相位读不出来：连「会不会赢」都判不了，整串闭嘴
+        guess.append((r0, c0, next(iter(cs))))
+        bits = {}
+        for i in range(NB):
+            b = {(x &gt;&gt; (NB - 1 - i)) &amp; 1 for x in cs}
+            if len(b) == 1:
+                bits[i] = b.pop()
+        cells.update(_paint(prev, r0, c0, bits))
+    if not cells or _wins(prev, guess):
+        return None
+    return cells
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    for (r, c), col in got.items():
+        if nxt[r][c] != col:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    return _step(prev, action, ctx)
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个字形槽固定着一个二面体变换 t：槽里显示的就是 t 作用在「本相位的标准形状」上的样子。
+光标框住的那一串里，ACTION1 让每一格的相位 +1、ACTION2 -1，而 t 一格不变——
+所以后继 = t(下一相位的标准形状)。t 不是直接看得见的，它由「哪些变换能把标准形状变成当前字形」定：
+当前字形不对称时 t 唯一，后继就整格说得出来；字形有对称性时 t 不唯一，这时只说**所有候选都一致的那些格**
+（那些格正是被对称性固定住的）。
+
+这条取代了 v1-v6 的手工环表。环表的毛病是它把「这个槽在哪条环上」当成字形的属性去查，
+而具体环是**槽**的属性——于是每换一个槽就可能撞出一条没量到的边，每撞一次就得补一次表。
+换成取向之后，同一件事有了机制：两个槽显示同一个对称字形却走向不同后继，是因为它们的 t 不同，
+而对称让这两个 t 都能画出同一个字形。可判错性没有降低，反而更硬：
+真值必须落在几何算出的候选集里（这是纯几何的预言，没有任何拟合参数）。
+
+这条概念不主张 t 是什么，只主张 t 在一步之内不变。哪天世界让同一个槽换了取向，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION1 / ACTION2；换关那一步（level_prev != level_next）返回 NA；&quot;
+         &quot;**这一按之后答题条就处处与目标同余**（win_rule 说那一刻这一关就结束）也返回 NA——&quot;
+         &quot;赢了之后的版面整块重画，这条概念对它没有发言权，而 apply 拿不到 ctx，只能自己算出来；&quot;
+         &quot;光标框住的那一串定位不到返回 NA；串里只要有一格的相位读不出来（形状不在已量到的族里），&quot;
+         &quot;整串返回 NA——那一格的候选集算不出来，连「这一按会不会赢」都判不了。&quot;
+         &quot;候选唯一的格说整格，候选不唯一的格只说候选们一致的那些格；一格都说不出就返回 NA。&quot;)
+NOTE = (&quot;v7：第二次在终局卡上被同一件事绊倒之后换了写法。v1-v6 是一张越补越大的环表，&quot;
+        &quot;被推翻的方式每次都一样：同一个字形在一个新槽里走到了表里没有的地方。&quot;
+        &quot;改成按二面体取向算候选之后，这件事从「表不全」变成「对称性使 t 不唯一」，&quot;
+        &quot;而真值落在候选集里是纯几何的必然。全量语料 297 条实测边：真值 297 条全在候选集里，&quot;
+        &quot;候选唯一的 118 条全说对；候选不唯一时按位取交，说得出 5923/7425 位、说错 0 位。&quot;
+        &quot;顺带否掉了一个更强的猜想：同一串里的槽共用一个取向——6 条实测反例，取向是逐槽的。&quot;
+        &quot;v6：环表的沉默判据从「落在两条以上结构上」改成「各结构说法不一或有端点」；&quot;
+        &quot;开口从 215 涨到 236 条、零反例，但一撞上新槽（824440c24202d011）就又被推翻，&quot;
+        &quot;这次的推翻直接催生了 v7。&quot;
+        &quot;v5：它对着一个正好完成本关的按键照常预测，而世界把整块版面换掉了。病根是 assert_ 靠 ctx &quot;
+        &quot;躲开了换关那一步、apply 却拿不到 ctx，同一条概念在「判」和「说」两种用法下 scope 不一样。&quot;
+        &quot;改成自己把这一按的结果算出来，再拿 win_rule 那条读法问一句「这就赢了吗」，赢了就闭嘴。&quot;
+        &quot;v4：字形 x1ca7ca7 的后继不是环表说的那个——已量到的边都同意，不等于没有没量到的。&quot;
+        &quot;v3：光标框住的是一整串槽，不是一格；而且串可以在图例上，不在答题条上。&quot;)
+EVIDENCE = [&quot;159b930324806832&quot;, &quot;a071d0035fa0697e&quot;,
+            &quot;50213178202d90ba&quot;, &quot;907d478dbc412006&quot;,
+            &quot;208be4a4d04b4d3f&quot;, &quot;1d7eefe68ee96710&quot;,
+            &quot;820b623680952045&quot;,
+            &quot;eeffe6377ed1869b&quot;, &quot;e2b5095fdcc439b7&quot;, &quot;69bf34dd636db150&quot;,
+            &quot;dd40169d930aefd1&quot;, &quot;93c30c6a8cac41d1&quot;, &quot;74834dc113fab332&quot;,
+            &quot;29dce1d86b3fe2c8&quot;, &quot;e366c18298f6bbb5&quot;,
+            &quot;d4d110e6546b04a4&quot;, &quot;a1b828d9bed5850b&quot;, &quot;824440c24202d011&quot;]
+
+from _lib import (CELL, INK, SHAPE_FAMILIES, board, dihedral, focus_run,  # noqa: E402
+                  glyph, phase, shapes)
+
+RING = 7            # 形状环恰好 7 元且闭合（shape_step 背的书）
+NB = CELL * CELL
+
+
+def _cands(v, action):
+    &quot;&quot;&quot;这个字形按一下可能变成哪些字形：把标准形状变成 v 的每个变换，各自作用到下一相位上。
+    相位读不出来返回 None。&quot;&quot;&quot;
+    p = phase(v)
+    if p is None:
+        return None
+    fam, i = p
+    j = (i + 1) % RING if action == &quot;ACTION1&quot; else (i - 1) % RING
+    here = dihedral(SHAPE_FAMILIES[fam][i])
+    there = dihedral(SHAPE_FAMILIES[fam][j])
+    return {there[k] for k in here if here[k] == v}
+
+
+def _paint(prev, r0, c0, bits):
+    &quot;&quot;&quot;把一个槽里的若干位画成格子：bits 是 {位序: 0/1}。&quot;&quot;&quot;
+    bg = prev[r0 - 1][c0]                 # 槽外一圈的框色（字形上方那一行）
+    return {(r0 + i // CELL, c0 + i % CELL): (INK if b else bg) for i, b in bits.items()}
+
+
+def _wins(prev, guess):
+    &quot;&quot;&quot;这一按之后答题条是不是就处处与目标同余了。是的话这一关当场结束（win_rule），
+    而结束之后整块版面重画，这条概念对它没有发言权。
+    候选都是同一个形状的不同朝向，而这里只比形状，所以随便取一个候选都不影响判断。&quot;&quot;&quot;
+    g = [list(row) for row in prev]
+    for r0, c0, v in guess:
+        for (r, c), col in _paint(prev, r0, c0,
+                                 {i: (v &gt;&gt; (NB - 1 - i)) &amp; 1 for i in range(NB)}).items():
+            g[r][c] = col
+    want, b = shapes(g), board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return False
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def _step(prev, action, ctx):
+    &quot;&quot;&quot;返回 {(行, 列): 颜色}；条件不满足返回 None。&quot;&quot;&quot;
+    if ctx is not None and ctx.get(&quot;level_prev&quot;) != ctx.get(&quot;level_next&quot;):
+        return None
+    if action not in (&quot;ACTION1&quot;, &quot;ACTION2&quot;):
+        return None
+    run = focus_run(prev)
+    if not run:
+        return None
+    guess, cells = [], {}
+    for r0, c0 in run:
+        v = glyph(prev, r0, c0)
+        cs = _cands(v, action)
+        if not cs:
+            return None                   # 相位读不出来：连「会不会赢」都判不了，整串闭嘴
+        guess.append((r0, c0, next(iter(cs))))
+        bits = {}
+        for i in range(NB):
+            b = {(x &gt;&gt; (NB - 1 - i)) &amp; 1 for x in cs}
+            if len(b) == 1:
+                bits[i] = b.pop()
+        cells.update(_paint(prev, r0, c0, bits))
+    if not cells or _wins(prev, guess):
+        return None
+    return cells
+
+
+def assert_(prev, action, nxt, ctx=None):
+    got = _step(prev, action, ctx)
+    if got is None:
+        return &quot;NA&quot;
+    for (r, c), col in got.items():
+        if nxt[r][c] != col:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    return _step(prev, action, ctx)
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">win_prev</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">过关前一帧，只差光标框住的那一格</div></summary><div class="body"><div class="doc">过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——
+也就是说，过关是被最后那一拨凑齐的，凑齐的位置正是光标所在。
+
+「目标形状」用 <code>_lib.shapes</code>：题面按图例规则沿颜色链反复改写，每一轮切成段、每段逐格与某条规则的
+键串同余、换成该规则的值串，改到序列变成答题色且正好铺满答题条；每格只定形状不定朝向。
+这条只在换关那一步上开口，是 win_rule 那句话的另一半：
+win_rule 说「还在关里 ⇒ 还没凑齐」，这条说「过关那一下 ⇒ 差的正好是光标这一格」。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T19:12:16 · L5</span><div>过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——
+也就是说，过关是被最后那一拨凑齐的，凑齐的位置正是光标所在。
+
+「目标形状」的读法与 win_rule 同一条：题面原序展开成段，段长 = 该图例键的值个数，
+每格只定形状不定朝向。这条只在换关那一步上开口，是 win_rule 那句话的另一半：
+win_rule 说「还在关里 ⇒ 还没凑齐」，这条说「过关那一下 ⇒ 差的正好是光标这一格」。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 level_next != level_prev 的那一步；同关内、版面读不出来、题面某格匹配到的键不唯一、&quot;
+         &quot;段长合计与答题格数对不上、光标定位不到，一律返回 NA。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;1d1c8494ebecf05c&quot;]
+
+from _lib import board, dihedral
+
+
+def shapes(g):
+    &quot;&quot;&quot;答题条每一格要的形状（一组二面体等价的位图）；读不出来返回 None。
+    和 win_rule 里那份是同一条读法——两条概念各带一份，免得撤了一条另一条跟着报错。&quot;&quot;&quot;
+    b = board(g)
+    if b is None:
+        return None
+    segs = []
+    for p in b[&quot;prompt&quot;]:
+        ks = [vals for k, vals in b[&quot;legend&quot;]
+              if any(img == p for img in dihedral(k).values())]
+        if len(ks) != 1:
+            return None
+        segs.append(ks[0])
+    if sum(len(s) for s in segs) != len(b[&quot;ans_cols&quot;]):
+        return None
+    return [frozenset(dihedral(v).values()) for s in segs for v in s]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    want = shapes(prev)
+    b = board(prev)
+    if want is None or b is None or b[&quot;cursor&quot;] is None or len(want) != len(b[&quot;answer&quot;]):
+        return &quot;NA&quot;
+    i = b[&quot;cursor&quot;]
+    return &quot;TRUE&quot; if all(a in w for j, (a, w) in enumerate(zip(b[&quot;answer&quot;], want)) if j != i) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T19:16:22 · L5</span><div>过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——
+也就是说，过关是被最后那一拨凑齐的，凑齐的位置正是光标所在。
+
+「目标形状」用 `_lib.shapes`：题面切成段，每段逐格与某条图例规则的键串同余，换成该规则的值串，
+接起来铺满答题条；每格只定形状不定朝向。这条只在换关那一步上开口，是 win_rule 那句话的另一半：
+win_rule 说「还在关里 ⇒ 还没凑齐」，这条说「过关那一下 ⇒ 差的正好是光标这一格」。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 level_next != level_prev 的那一步；同关内、版面读不出来、题面切法不唯一、&quot;
+         &quot;光标定位不到，一律返回 NA。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;1d1c8494ebecf05c&quot;]
+
+from _lib import board, shapes
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    want = shapes(prev)
+    b = board(prev)
+    if want is None or b is None or b[&quot;cursor&quot;] is None or len(want) != len(b[&quot;answer&quot;]):
+        return &quot;NA&quot;
+    i = b[&quot;cursor&quot;]
+    return &quot;TRUE&quot; if all(a in w for j, (a, w) in enumerate(zip(b[&quot;answer&quot;], want)) if j != i) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T19:30:31 · L5</span><div>过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——</div><div>v3：跟着 <code>_lib</code> v3 把读法推广成沿颜色链反复改写；主张本身没变。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——
+也就是说，过关是被最后那一拨凑齐的，凑齐的位置正是光标所在。
+
+「目标形状」用 `_lib.shapes`：题面按图例规则沿颜色链反复改写，每一轮切成段、每段逐格与某条规则的
+键串同余、换成该规则的值串，改到序列变成答题色且正好铺满答题条；每格只定形状不定朝向。
+这条只在换关那一步上开口，是 win_rule 那句话的另一半：
+win_rule 说「还在关里 ⇒ 还没凑齐」，这条说「过关那一下 ⇒ 差的正好是光标这一格」。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 level_next != level_prev 的那一步；同关内、版面读不出来、题面改写路径不唯一、&quot;
+         &quot;光标定位不到，一律返回 NA。&quot;)
+NOTE = &quot;v3：跟着 `_lib` v3 把读法推广成沿颜色链反复改写；主张本身没变。&quot;
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;1d1c8494ebecf05c&quot;, &quot;48d4dc4495d18a7a&quot;]
+
+from _lib import board, shapes
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    want = shapes(prev)
+    b = board(prev)
+    if want is None or b is None or b[&quot;cursor&quot;] is None or len(want) != len(b[&quot;answer&quot;]):
+        return &quot;NA&quot;
+    i = b[&quot;cursor&quot;]
+    return &quot;TRUE&quot; if all(a in w for j, (a, w) in enumerate(zip(b[&quot;answer&quot;], want)) if j != i) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-07T19:31:36 · L5</span><div>过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——</div><div>v4：跟着 <code>_lib</code> v3 把读法推广成沿颜色链反复改写；主张本身没变。v3 里我把第三次换关那条 tid 也塞进了 EVIDENCE——那不是反例，是它预言对的一步，抄进依据只会把唯一能考它的转移变成自证，N 当场归零。撤回。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——
+也就是说，过关是被最后那一拨凑齐的，凑齐的位置正是光标所在。
+
+「目标形状」用 `_lib.shapes`：题面按图例规则沿颜色链反复改写，每一轮切成段、每段逐格与某条规则的
+键串同余、换成该规则的值串，改到序列变成答题色且正好铺满答题条；每格只定形状不定朝向。
+这条只在换关那一步上开口，是 win_rule 那句话的另一半：
+win_rule 说「还在关里 ⇒ 还没凑齐」，这条说「过关那一下 ⇒ 差的正好是光标这一格」。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 level_next != level_prev 的那一步；同关内、版面读不出来、题面改写路径不唯一、&quot;
+         &quot;光标定位不到，一律返回 NA。&quot;)
+NOTE = (&quot;v4：跟着 `_lib` v3 把读法推广成沿颜色链反复改写；主张本身没变。&quot;
+        &quot;v3 里我把第三次换关那条 tid 也塞进了 EVIDENCE——那不是反例，是它预言对的一步，&quot;
+        &quot;抄进依据只会把唯一能考它的转移变成自证，N 当场归零。撤回。&quot;)
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;1d1c8494ebecf05c&quot;]
+
+from _lib import board, shapes
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    want = shapes(prev)
+    b = board(prev)
+    if want is None or b is None or b[&quot;cursor&quot;] is None or len(want) != len(b[&quot;answer&quot;]):
+        return &quot;NA&quot;
+    i = b[&quot;cursor&quot;]
+    return &quot;TRUE&quot; if all(a in w for j, (a, w) in enumerate(zip(b[&quot;answer&quot;], want)) if j != i) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;过关那一步的前一帧，答题条除了光标框住的那一格，其余各格都已经与目标形状同余——
+也就是说，过关是被最后那一拨凑齐的，凑齐的位置正是光标所在。
+
+「目标形状」用 `_lib.shapes`：题面按图例规则沿颜色链反复改写，每一轮切成段、每段逐格与某条规则的
+键串同余、换成该规则的值串，改到序列变成答题色且正好铺满答题条；每格只定形状不定朝向。
+这条只在换关那一步上开口，是 win_rule 那句话的另一半：
+win_rule 说「还在关里 ⇒ 还没凑齐」，这条说「过关那一下 ⇒ 差的正好是光标这一格」。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 level_next != level_prev 的那一步；同关内、版面读不出来、题面改写路径不唯一、&quot;
+         &quot;光标定位不到，一律返回 NA。&quot;)
+NOTE = (&quot;v4：跟着 `_lib` v3 把读法推广成沿颜色链反复改写；主张本身没变。&quot;
+        &quot;v3 里我把第三次换关那条 tid 也塞进了 EVIDENCE——那不是反例，是它预言对的一步，&quot;
+        &quot;抄进依据只会把唯一能考它的转移变成自证，N 当场归零。撤回。&quot;)
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;1d1c8494ebecf05c&quot;]
+
+from _lib import board, shapes
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx.get(&quot;level_prev&quot;) == ctx.get(&quot;level_next&quot;):
+        return &quot;NA&quot;
+    want = shapes(prev)
+    b = board(prev)
+    if want is None or b is None or b[&quot;cursor&quot;] is None or len(want) != len(b[&quot;answer&quot;]):
+        return &quot;NA&quot;
+    i = b[&quot;cursor&quot;]
+    return &quot;TRUE&quot; if all(a in w for j, (a, w) in enumerate(zip(b[&quot;answer&quot;], want)) if j != i) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">win_rule</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">录像里永远看不到答题条处处答对的一帧</div></summary><div class="body"><div class="doc">语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。
+
+目标形状怎么读（<code>_lib.shapes</code>）：把题面行当成一串符号，按图例规则<b>反复改写</b>——
+每一轮把它切成若干段，每段逐格与某条规则的键串同余，换成那条规则的值串；
+规则的键色决定它管哪一轮（有的关是题面色直接换成答题色，有的关中间还要过一种颜色），
+改到序列变成答题色且正好铺满答题条为止。第 j 格要的形状 = 第 j 个值，<b>只定形状不定朝向</b>
+（这一格显示它的哪个二面体像，由这一格能拨出来的字形决定，不由规则决定）。
+这条概念是那句「答对就过关」的可判错影子：它说的是「还在关里 ⇒ 还没答对」，
+等价于「答对 ⇒ 一定过关」；世界哪天让我在关里看到一条处处同余的答题条，它当场变反例。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T19:12:16 · L5</span><div>语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。
+
+目标形状怎么读：题面第 i 格恰好是某一个图例键的二面体像，那个键的值序列就是第 i 段；
+段按题面原序首尾相接，长度合计等于答题格数；第 j 格要的形状 = 该段第 j 个值，**只定形状不定朝向**
+（答题格显示它的哪个二面体像，由这一格能拨出来的字形决定，不由规则决定）。
+这条概念是那句「答对就过关」的可判错影子：它说的是「还在关里 ⇒ 还没答对」，
+等价于「答对 ⇒ 一定过关」；世界哪天让我在关里看到一条处处同余的答题条，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看每条转移的 prev 与 next 两帧；版面读不出来、题面某格匹配到的图例键不是恰好一个、&quot;
+         &quot;或段长合计与答题格数对不上，返回 NA——那说明这条读法在那一帧上没给出目标形状。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;50213178202d90ba&quot;, &quot;335dd78a980589da&quot;,
+            &quot;aada9f567b025048&quot;, &quot;907d478dbc412006&quot;]
+
+from _lib import board, dihedral
+
+
+def shapes(g):
+    &quot;&quot;&quot;这一帧上，答题条每一格要的形状（一组二面体等价的位图）；读不出来返回 None。&quot;&quot;&quot;
+    b = board(g)
+    if b is None:
+        return None
+    segs = []
+    for p in b[&quot;prompt&quot;]:
+        ks = [vals for k, vals in b[&quot;legend&quot;]
+              if any(img == p for img in dihedral(k).values())]
+        if len(ks) != 1:
+            return None
+        segs.append(ks[0])
+    if sum(len(s) for s in segs) != len(b[&quot;ans_cols&quot;]):
+        return None
+    return [frozenset(dihedral(v).values()) for s in segs for v in s]
+
+
+def _all_match(g):
+    &quot;&quot;&quot;这一帧的答题条是不是处处与目标同余；读不出来返回 None。&quot;&quot;&quot;
+    want = shapes(g)
+    b = board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return None
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    seen = [x for x in (_all_match(prev), _all_match(nxt)) if x is not None]
+    if not seen:
+        return &quot;NA&quot;
+    return &quot;FALSE&quot; if any(seen) else &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T19:16:22 · L5</span><div>语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。
+
+目标形状怎么读（`_lib.shapes`）：题面行被切成若干段，每段逐格与某条图例规则的键串同余；
+每段换成那条规则的值串，接起来正好铺满答题条；第 j 格要的形状 = 第 j 个值，**只定形状不定朝向**
+（这一格显示它的哪个二面体像，由这一格能拨出来的字形决定，不由规则决定）。
+这条概念是那句「答对就过关」的可判错影子：它说的是「还在关里 ⇒ 还没答对」，
+等价于「答对 ⇒ 一定过关」；世界哪天让我在关里看到一条处处同余的答题条，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看每条转移的 prev 与 next 两帧；版面读不出来、或题面的切法不是恰好一种&quot;
+         &quot;（切不开、或有多种切法且值串不同），返回 NA——那说明这条读法在那一帧上没给出目标形状。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;50213178202d90ba&quot;, &quot;335dd78a980589da&quot;,
+            &quot;aada9f567b025048&quot;, &quot;907d478dbc412006&quot;]
+
+from _lib import board, shapes
+
+
+def _all_match(g):
+    &quot;&quot;&quot;这一帧的答题条是不是处处与目标同余；读不出来返回 None。&quot;&quot;&quot;
+    want = shapes(g)
+    b = board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return None
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    seen = [x for x in (_all_match(prev), _all_match(nxt)) if x is not None]
+    if not seen:
+        return &quot;NA&quot;
+    return &quot;FALSE&quot; if any(seen) else &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T19:30:31 · L5</span><div>语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。</div><div>v3：读法从「一轮改写」推广成「沿颜色链反复改写」（<code>_lib</code> v3）。主张本身没变，变的是它在哪些帧上开得了口——新出现的那种两级图例，以前 shapes() 返回 None、这条只能 NA。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。
+
+目标形状怎么读（`_lib.shapes`）：把题面行当成一串符号，按图例规则**反复改写**——
+每一轮把它切成若干段，每段逐格与某条规则的键串同余，换成那条规则的值串；
+规则的键色决定它管哪一轮（有的关是题面色直接换成答题色，有的关中间还要过一种颜色），
+改到序列变成答题色且正好铺满答题条为止。第 j 格要的形状 = 第 j 个值，**只定形状不定朝向**
+（这一格显示它的哪个二面体像，由这一格能拨出来的字形决定，不由规则决定）。
+这条概念是那句「答对就过关」的可判错影子：它说的是「还在关里 ⇒ 还没答对」，
+等价于「答对 ⇒ 一定过关」；世界哪天让我在关里看到一条处处同余的答题条，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看每条转移的 prev 与 next 两帧；版面读不出来、或题面的改写路径不是恰好一条&quot;
+         &quot;（改不出来、或有多条且末串不同），返回 NA——那说明这条读法在那一帧上没给出目标形状。&quot;)
+NOTE = (&quot;v3：读法从「一轮改写」推广成「沿颜色链反复改写」（`_lib` v3）。主张本身没变，&quot;
+        &quot;变的是它在哪些帧上开得了口——新出现的那种两级图例，以前 shapes() 返回 None、这条只能 NA。&quot;)
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;50213178202d90ba&quot;, &quot;335dd78a980589da&quot;,
+            &quot;aada9f567b025048&quot;, &quot;907d478dbc412006&quot;]
+
+from _lib import board, shapes
+
+
+def _all_match(g):
+    &quot;&quot;&quot;这一帧的答题条是不是处处与目标同余；读不出来返回 None。&quot;&quot;&quot;
+    want = shapes(g)
+    b = board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return None
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    seen = [x for x in (_all_match(prev), _all_match(nxt)) if x is not None]
+    if not seen:
+        return &quot;NA&quot;
+    return &quot;FALSE&quot; if any(seen) else &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;语料里的任何一帧，答题条都不会处处与目标形状同余——处处同余的那一刻这一关就结束了，所以那一帧永远看不到。
+
+目标形状怎么读（`_lib.shapes`）：把题面行当成一串符号，按图例规则**反复改写**——
+每一轮把它切成若干段，每段逐格与某条规则的键串同余，换成那条规则的值串；
+规则的键色决定它管哪一轮（有的关是题面色直接换成答题色，有的关中间还要过一种颜色），
+改到序列变成答题色且正好铺满答题条为止。第 j 格要的形状 = 第 j 个值，**只定形状不定朝向**
+（这一格显示它的哪个二面体像，由这一格能拨出来的字形决定，不由规则决定）。
+这条概念是那句「答对就过关」的可判错影子：它说的是「还在关里 ⇒ 还没答对」，
+等价于「答对 ⇒ 一定过关」；世界哪天让我在关里看到一条处处同余的答题条，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看每条转移的 prev 与 next 两帧；版面读不出来、或题面的改写路径不是恰好一条&quot;
+         &quot;（改不出来、或有多条且末串不同），返回 NA——那说明这条读法在那一帧上没给出目标形状。&quot;)
+NOTE = (&quot;v3：读法从「一轮改写」推广成「沿颜色链反复改写」（`_lib` v3）。主张本身没变，&quot;
+        &quot;变的是它在哪些帧上开得了口——新出现的那种两级图例，以前 shapes() 返回 None、这条只能 NA。&quot;)
+EVIDENCE = [&quot;e04145f02107a379&quot;, &quot;50213178202d90ba&quot;, &quot;335dd78a980589da&quot;,
+            &quot;aada9f567b025048&quot;, &quot;907d478dbc412006&quot;]
+
+from _lib import board, shapes
+
+
+def _all_match(g):
+    &quot;&quot;&quot;这一帧的答题条是不是处处与目标同余；读不出来返回 None。&quot;&quot;&quot;
+    want = shapes(g)
+    b = board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return None
+    return all(a in w for a, w in zip(b[&quot;answer&quot;], want))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    seen = [x for x in (_all_match(prev), _all_match(nxt)) if x is not None]
+    if not seen:
+        return &quot;NA&quot;
+    return &quot;FALSE&quot; if any(seen) else &quot;TRUE&quot;
+</code></pre></details></div></details></div><details class="src"><summary>本局共享词汇 _lib.py</summary><pre><code class="language-python">&quot;&quot;&quot;tr87 的本局词汇 —— 每个定义都是假设。
+
+v2：第 0 关量出来的那套绝对坐标（长条在第几行、字形位在哪几列、图例三行两列）
+在第 1 关全部失效——关与关之间版面会变。所以这一版不写坐标，只写**版面的识别规则**：
+
+  * 「字形槽」= 一块 5x5，内部只有 {框色, INK}，四周一圈（含四角）全是框色，且至少一个 INK 点亮。
+  * 槽按所在行成组。**整行同色的恰好两行**是题面行与答题行；谁是谁不看光标，看颜色在图例里
+    担什么角色：题面色当过某条规则的键色，答题色只当过值色、从没当过键色。
+  * 色 0 的角标（光标）围住某一个字形槽（`focus`）。它不一定在答题条上——有的关里它围在图例上。
+  * 剩下的行是**图例**。一行里可以摆好几条规则，靠**列距**断句：相邻槽距 GAP_RUN 是同一串，
+    距 GAP_ARROW 是「箭头」（键串到值串），再宽就是下一条规则。一条规则 = 一串同色的键
+    -&gt; 一串另一种同色的值。
+  * 第 HUD_ROW 行是一条计数条，不参与版面识别。
+
+v3：规则的值不一定就是答题色。有的关里图例分两级——题面色 -&gt; 中间色 -&gt; 答题色，
+题面要连着改写两次才落到答题条上。所以「读题」不再是一次匹配，而是**沿颜色链反复改写**，
+直到序列变成答题色且正好铺满答题条（`parses`）。第 0~2 关是这条链只有一跳的特例。
+
+v4：光标不一定停在答题条上——有的关里它围住的是**图例**里的一个字形。所以版面识别不再靠光标
+认行（那是循环论证：先用光标找答题行，再用答题行解释光标），改成先用颜色在图例里的角色定下
+题面行与答题行，光标只报它围住的是哪一个槽（`focus`）。`cursor` 仍然只在焦点落在答题条上时给索引。
+
+v5：角标框住的不是一个槽，是**一整串**——同一行里列距 GAP_RUN 相连的一组槽。`focus` 仍报串头，
+新增 `focus_cells`（整串）与 `runs_of`（帧上所有串，按阅读序）。图例里一条规则 = 一个键串 + 一个值串，
+它们各自是一个可以被光标框住的整体。
+
+尚未量的：关与关之间「识别规则」本身是否还成立；颜色链会不会超过两跳；
+字形环一共有几个形状族（已见到三族：环 {0,1,2,8} / {3,4,7} / {5,6,9} 各自共用一条形状序列，
+族与族之间不通）——族是不是由框色决定，没量过。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+INK = 5                                  # 点阵的点亮色
+CURSOR_COLOR = 0                         # 角标（光标）的颜色
+CELL = 5                                 # 字形边长
+HUD_ROW = 63                             # 最后一行：一条 64 格的计数条
+HUD_EMPTY = 1                            # 计数条还没被吃掉的格子的颜色
+HUD_FULL = 4                             # 已被吃掉的格子的颜色（从右往左长）
+GAP_RUN = 7                              # 图例里同一串内相邻槽的列距
+GAP_ARROW = 10                           # 键串与值串之间的列距（「箭头」）；更宽 = 下一条规则
+BRACKET_UP = 4                           # 角标上沿在串顶上方第几行
+BRACKET_DOWN = 8                         # 角标下沿在串顶下方第几行
+
+# 光标索引沿答题行的移动量（实测：带环绕）
+DELTA = {&quot;ACTION3&quot;: -1, &quot;ACTION4&quot;: +1}
+PHASE = None                             # 本局用不上折叠相位
+
+
+def glyph(g, top, left):
+    &quot;&quot;&quot;把 (top,left) 起的 5x5 点阵读成一个 25 位整数（行优先，点亮=1）。越界返回 None。&quot;&quot;&quot;
+    if top &lt; 0 or left &lt; 0 or top + CELL &gt; len(g) or left + CELL &gt; len(g[0]):
+        return None
+    v = 0
+    for r in range(CELL):
+        row = g[top + r]
+        for c in range(CELL):
+            v = v * 2 + (1 if row[left + c] == INK else 0)
+    return v
+
+
+def slots(g):
+    &quot;&quot;&quot;帧上所有字形槽 [(top, left, 框色, 位图)]，按 (top, left) 排序。
+
+    识别是局部的，所以会捞到「假槽」：跨在两个真槽之间的 5x5 窗口，有时也恰好
+    满足「一圈同色 + 内部只有框色与 INK」。真槽互不重叠，所以同一行里从左往右
+    贪心丢掉与已收槽重叠的——等宽区间上这个贪心就是「留得最多」的那个解。
+    &quot;&quot;&quot;
+    n, m = len(g), len(g[0])
+    out = []
+    for r in range(1, n - CELL):
+        gt, gb = g[r - 1], g[r + CELL]
+        for c in range(1, m - CELL):
+            fc = gt[c - 1]
+            if fc == INK or gt[c + CELL] != fc or gb[c - 1] != fc or gb[c + CELL] != fc:
+                continue
+            if any(gt[c + j] != fc or gb[c + j] != fc for j in range(CELL)):
+                continue
+            ok, lit = True, False
+            for i in range(CELL):
+                row = g[r + i]
+                if row[c - 1] != fc or row[c + CELL] != fc:
+                    ok = False
+                    break
+                for j in range(CELL):
+                    x = row[c + j]
+                    if x == INK:
+                        lit = True
+                    elif x != fc:
+                        ok = False
+                        break
+                if not ok:
+                    break
+            if ok and lit:
+                out.append((r, c, fc, glyph(g, r, c)))
+    kept, last = [], {}
+    for r, c, fc, v in sorted(out):
+        if r in last and c - last[r] &lt; CELL:
+            continue                   # 与同一行已收的槽重叠 —— 真槽不会重叠，这是假槽
+        last[r] = c
+        kept.append((r, c, fc, v))
+    return kept
+
+
+_CACHE = {}
+
+
+def board(g):
+    &quot;&quot;&quot;读版面。返回 dict，读不出来返回 None。
+
+    键：ans_row / ans_cols / ans_color / prompt_row / prompt_cols / key_color /
+        answer / prompt / legend（[(键位图, [值位图…])]）/ cursor（答题位索引，0 起）。
+    &quot;&quot;&quot;
+    key = tuple(map(tuple, g))
+    if key in _CACHE:
+        return _CACHE[key]
+    b = _board(g)
+    if len(_CACHE) &gt; 64:
+        _CACHE.clear()
+    _CACHE[key] = b
+    return b
+
+
+def _rules_of(rows, skip):
+    &quot;&quot;&quot;把 skip 之外的每一行切成规则 [(键色, 键串, 值色, 值串)]。&quot;&quot;&quot;
+    out = []
+    for r in sorted(rows):
+        if r in skip:
+            continue
+        chunk = []
+        for cell in rows[r] + [None]:
+            if chunk and (cell is None or cell[0] - chunk[-1][0] &gt; GAP_ARROW):
+                kc = chunk[0][1]
+                ks = [v for _, fc, v in chunk if fc == kc]
+                rest = chunk[len(ks):]
+                if rest and len({fc for _, fc, _ in rest}) == 1:
+                    out.append((kc, tuple(ks), rest[0][1], tuple(v for _, _, v in rest)))
+                chunk = []
+            if cell is not None:
+                chunk.append(cell)
+    return out
+
+
+def _board(g):
+    rows = {}
+    for r, c, fc, v in slots(g):
+        rows.setdefault(r, []).append((c, fc, v))
+    if not rows:
+        return None
+    # 整行同色的两行 = 题面行与答题行。谁是谁不看光标，看颜色在图例里担什么角色：
+    # 题面色当过某条规则的键色，答题色只当过值色、从没当过键色。
+    solid = [r for r in rows if len({fc for _, fc, _ in rows[r]}) == 1]
+    if len(solid) != 2:
+        return None
+    pick = None
+    for prompt_row, ans_row in ((solid[0], solid[1]), (solid[1], solid[0])):
+        legend = _rules_of(rows, {prompt_row, ans_row})
+        ks = {kc for kc, _, _, _ in legend}
+        vs = {vc for _, _, vc, _ in legend}
+        kc, ac = rows[prompt_row][0][1], rows[ans_row][0][1]
+        if kc in ks and ac in vs and ac not in ks:
+            if pick is not None:
+                return None                       # 两种指派都说得通 —— 读不出来
+            pick = (prompt_row, ans_row, legend, kc, ac)
+    if pick is None:
+        return None
+    prompt_row, ans_row, legend, key_color, ans_color = pick
+
+    ans_cols = [c for c, _, _ in rows[ans_row]]
+    # 光标：色 0 的角标框住的是**一整串**字形槽（可以框在图例上，不一定在答题条上）
+    cur = [(r, c) for r in range(len(g)) for c in range(len(g[0]))
+           if g[r][c] == CURSOR_COLOR and r != HUD_ROW]
+    focus, focus_cells = None, None
+    if cur:
+        r0, r1 = min(r for r, _ in cur), max(r for r, _ in cur)
+        c0, c1 = min(c for _, c in cur), max(c for _, c in cur)
+        boxed = sorted((r, c) for r in rows for c, _, _ in rows[r]
+                       if r0 &lt;= r and r + CELL - 1 &lt;= r1 and c0 &lt;= c and c + CELL - 1 &lt;= c1)
+        if boxed:
+            focus, focus_cells = boxed[0], boxed
+    return {&quot;ans_row&quot;: ans_row, &quot;ans_cols&quot;: ans_cols, &quot;ans_color&quot;: ans_color,
+            &quot;prompt_row&quot;: prompt_row, &quot;prompt_cols&quot;: [c for c, _, _ in rows[prompt_row]],
+            &quot;key_color&quot;: key_color,
+            &quot;answer&quot;: [v for _, _, v in rows[ans_row]],
+            &quot;prompt&quot;: [v for _, _, v in rows[prompt_row]],
+            &quot;rules&quot;: legend,
+            &quot;legend&quot;: [(ks, vs) for kc, ks, vc, vs in legend
+                       if kc == key_color and vc == ans_color],
+            &quot;focus&quot;: focus,
+            &quot;focus_cells&quot;: focus_cells,
+            &quot;cursor&quot;: (ans_cols.index(focus[1])
+                       if focus is not None and focus[0] == ans_row
+                       and focus[1] in ans_cols else None)}
+
+
+def cursor(g):
+    &quot;&quot;&quot;光标停在第几个答题字形位（0 起）；读不出来返回 None。&quot;&quot;&quot;
+    b = board(g)
+    return None if b is None else b[&quot;cursor&quot;]
+
+
+def cursor_cells(g):
+    &quot;&quot;&quot;光标（色 0）占的格子集合，frozenset[(行, 列)]。&quot;&quot;&quot;
+    return frozenset((r, c) for r in range(len(g)) for c in range(len(g[0]))
+                     if g[r][c] == CURSOR_COLOR and r != HUD_ROW)
+
+
+def runs_of(g):
+    &quot;&quot;&quot;帧上所有「串」：同一行里列距恰好 GAP_RUN 相连的一组槽，[[(行, 列)…]…]，按阅读序。&quot;&quot;&quot;
+    rows = {}
+    for r, c, fc, v in slots(g):
+        rows.setdefault(r, []).append(c)
+    out = []
+    for r in sorted(rows):
+        cur = []
+        for c in sorted(rows[r]):
+            if cur and c - cur[-1] != GAP_RUN:
+                out.append([(r, x) for x in cur])
+                cur = []
+            cur.append(c)
+        if cur:
+            out.append([(r, x) for x in cur])
+    return out
+
+
+def focus_run(g):
+    &quot;&quot;&quot;光标框住的那一整串槽 [(行, 列)…]；读不出来返回 None。&quot;&quot;&quot;
+    b = board(g)
+    return None if b is None else b[&quot;focus_cells&quot;]
+
+
+def bracket(run):
+    &quot;&quot;&quot;框住整串 run 的角标该占的格子 frozenset[(行, 列)]。run 是 [(行, 列)…]（槽的左上角）。&quot;&quot;&quot;
+    if not run:
+        return None
+    r0 = run[0][0]
+    c0, c1 = run[0][1], run[-1][1] + CELL - 1
+    top, bot = r0 - BRACKET_UP, r0 + BRACKET_DOWN
+    out = {(top, c) for c in range(c0, c1 + 1)}
+    out |= {(bot, c) for c in range(c0, c1 + 1)}
+    out |= {(top + 1, c0), (top + 1, c1), (bot - 1, c0), (bot - 1, c1)}
+    return frozenset(out)
+
+
+def focus_cycle(g):
+    &quot;&quot;&quot;焦点可以停的那些串，按阅读序。焦点在答题条上时是答题条的各格（各自成串），
+    否则是图例里的各个串（每条规则的键串与值串各一个）。读不出来返回 None。&quot;&quot;&quot;
+    b = board(g)
+    if b is None or b[&quot;focus&quot;] is None:
+        return None
+    if b[&quot;focus&quot;][0] == b[&quot;ans_row&quot;]:
+        return [[(b[&quot;ans_row&quot;], c)] for c in b[&quot;ans_cols&quot;]]
+    return [run for run in runs_of(g) if run[0][0] not in (b[&quot;ans_row&quot;], b[&quot;prompt_row&quot;])]
+
+
+def ans_cols(g):
+    b = board(g)
+    return None if b is None else b[&quot;ans_cols&quot;]
+
+
+def cell_box(g, i):
+    &quot;&quot;&quot;第 i 个答题字形位占的 25 格 frozenset[(行, 列)]；读不出来返回 None。&quot;&quot;&quot;
+    b = board(g)
+    if b is None or not (0 &lt;= i &lt; len(b[&quot;ans_cols&quot;])):
+        return None
+    r0, c0 = b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][i]
+    return frozenset((r0 + r, c0 + c) for r in range(CELL) for c in range(CELL))
+
+
+def word_ans(g):
+    &quot;&quot;&quot;答题行上每个字形位的位图列表。&quot;&quot;&quot;
+    b = board(g)
+    return None if b is None else b[&quot;answer&quot;]
+
+
+def word_prompt(g):
+    &quot;&quot;&quot;题面行上每个字形位的位图列表。&quot;&quot;&quot;
+    b = board(g)
+    return None if b is None else b[&quot;prompt&quot;]
+
+
+def legend(g):
+    &quot;&quot;&quot;图例的全部规则 [(键色, (键位图…), 值色, (值位图…)), …]，顺序 = 从上到下、从左到右。&quot;&quot;&quot;
+    b = board(g)
+    return None if b is None else b[&quot;rules&quot;]
+
+
+def me(g):
+    &quot;&quot;&quot;『我』= 光标框住的那个答题字形位的左上角 (行, 列)。定位不到返回 None。&quot;&quot;&quot;
+    b = board(g)
+    if b is None or b[&quot;cursor&quot;] is None:
+        return None
+    return (b[&quot;ans_row&quot;], b[&quot;ans_cols&quot;][b[&quot;cursor&quot;]])
+
+
+def walls(g):
+    &quot;&quot;&quot;本局没量到「阻挡」这种东西；留 None，别让概念引用它。&quot;&quot;&quot;
+    return None
+
+
+def hud_filled(g):
+    &quot;&quot;&quot;计数条上已变成 HUD_FULL 的格数。&quot;&quot;&quot;
+    return sum(1 for c in range(len(g[0])) if g[HUD_ROW][c] == HUD_FULL)
+
+
+def _to_grid(v):
+    return [[(v &gt;&gt; (CELL * CELL - 1 - (r * CELL + c))) &amp; 1 for c in range(CELL)] for r in range(CELL)]
+
+
+def _to_bits(m):
+    v = 0
+    for row in m:
+        for x in row:
+            v = v * 2 + x
+    return v
+
+
+def dihedral(v):
+    &quot;&quot;&quot;位图 -&gt; {变换名: 位图}，8 个二面体变换（rot0..rot3，各再配一个左右翻）。&quot;&quot;&quot;
+    out, cur = {}, _to_grid(v)
+    for k in range(4):
+        out[f&quot;rot{k}&quot;] = _to_bits(cur)
+        out[f&quot;rot{k}+flip&quot;] = _to_bits([[cur[r][CELL - 1 - c] for c in range(CELL)] for r in range(CELL)])
+        cur = [[cur[CELL - 1 - c][r] for c in range(CELL)] for r in range(CELL)]
+    return out
+
+
+def congruent(v):
+    &quot;&quot;&quot;v 的二面体等价类（8 个像去重后的 frozenset）——「形状相同、朝向不论」。&quot;&quot;&quot;
+    return frozenset(dihedral(v).values())
+
+
+# 字形环上的**形状**只有几条固定序列，一条叫一个「形状族」。已量到三族，每族 7 个形状、循环。
+# 每族只记一个代表位图，相位就是它在族里的下标；同一个形状可以有好几个具体环（朝向不同的实例），
+# 所以「相位」比「具体环」弱，也比它稳：具体环是**槽**的属性，形状族与相位是**字形**的属性。
+SHAPE_FAMILIES = [
+    [0x012FCA1, 0x1F4A13F, 0x118F6B7, 0x1B5395B, 0x0E47D0E, 0x118EE3F, 0x1C23887],
+    [0x04A92A4, 0x172109D, 0x1D80037, 0x158561F, 0x110476A, 0x17AF415, 0x1B8D63B],
+    [0x04FC63F, 0x1F8FD4E, 0x072FE9C, 0x1FADE3F, 0x1F4A5E1, 0x04FD7E4, 0x1E9C72F],
+]
+
+_PHASE = {}
+for _f, _seq in enumerate(SHAPE_FAMILIES):
+    for _i, _v in enumerate(_seq):
+        _PHASE[congruent(_v)] = (_f, _i)
+
+
+def phase(v):
+    &quot;&quot;&quot;字形的 (形状族, 相位)；不在已量到的三族里返回 None。&quot;&quot;&quot;
+    return None if v is None else _PHASE.get(congruent(v))
+
+
+def _rewrite(seq, rules, cap):
+    &quot;&quot;&quot;把序列 seq 按 rules（同一个键色、同一个值色的一组 (键串, 值串)）切段改写一次。
+    返回所有结果（长度不超过 cap）。&quot;&quot;&quot;
+    out = set()
+
+    def walk(i, acc):
+        if len(acc) &gt; cap:
+            return
+        if i == len(seq):
+            out.add(tuple(acc))
+            return
+        for ks, vs in rules:
+            m = len(ks)
+            if i + m &gt; len(seq):
+                continue
+            if all(seq[i + t] in congruent(ks[t]) for t in range(m)):
+                walk(i + m, acc + list(vs))
+
+    walk(0, [])
+    return out
+
+
+def parses(g):
+    &quot;&quot;&quot;题面沿颜色链反复改写，直到变成答题色且正好铺满答题条；返回所有可能的值串
+    set[tuple[位图]]。每一步的匹配都是**逐格二面体同余**，不看朝向。&quot;&quot;&quot;
+    b = board(g)
+    if b is None:
+        return None
+    n = len(b[&quot;ans_cols&quot;])
+    byk = {}
+    for kc, ks, vc, vs in b[&quot;rules&quot;]:
+        if ks and vs:
+            byk.setdefault((kc, vc), []).append((ks, vs))
+    out, frontier, seen = set(), {(b[&quot;key_color&quot;], tuple(b[&quot;prompt&quot;]))}, set()
+    for _ in range(4):                       # 颜色链最多走 4 跳
+        nxt = set()
+        for col, seq in frontier:
+            if (col, seq) in seen:
+                continue
+            seen.add((col, seq))
+            if col == b[&quot;ans_color&quot;]:
+                if len(seq) == n:
+                    out.add(seq)
+                continue
+            for (kc, vc), rules in byk.items():
+                if kc != col:
+                    continue
+                for res in _rewrite(seq, rules, 2 * n):
+                    nxt.add((vc, res))
+        frontier = nxt
+        if not frontier:
+            break
+    return out
+
+
+def shapes(g):
+    &quot;&quot;&quot;答题条每一格要的形状（一个二面体等价类）；切法不唯一或读不出来返回 None。
+
+    这是 win_rule / win_prev 共用的判据：题面被切成段，每段换成规则的值串，
+    首尾接起来正好铺满答题条；每一格只被规定形状，不规定朝向。
+    &quot;&quot;&quot;
+    ps = parses(g)
+    if not ps or len(ps) != 1:
+        return None
+    return [congruent(v) for v in next(iter(ps))]
+
+
+def _gaps(g):
+    &quot;&quot;&quot;答题条每一格离目标形状还差几下 ACTION1（0..6）；读不出来那一格给 None。
+    整块读不出来（图例关的切法不唯一等）返回 None。&quot;&quot;&quot;
+    want, b = shapes(g), board(g)
+    if want is None or b is None or len(want) != len(b[&quot;answer&quot;]):
+        return None
+    out = []
+    for v, w in zip(b[&quot;answer&quot;], want):
+        p = phase(v)
+        if p is None:
+            out.append(None)
+            continue
+        fam, i = p
+        tgt = [k for k, s in enumerate(SHAPE_FAMILIES[fam]) if congruent(s) == w]
+        out.append(None if len(tgt) != 1 else (tgt[0] - i) % len(SHAPE_FAMILIES[fam]))
+    return out
+
+
+def focus_gap_0(g):
+    &quot;&quot;&quot;光标框住的那一串里第 1 格离目标还差几下 ACTION1；不在答题条上或读不出来返回 None。&quot;&quot;&quot;
+    return _focus_gap(g, 0)
+
+
+def focus_gap_1(g):
+    &quot;&quot;&quot;同上，第 2 格；串里没有第 2 格返回 None。&quot;&quot;&quot;
+    return _focus_gap(g, 1)
+
+
+def _focus_gap(g, k):
+    gaps, b = _gaps(g), board(g)
+    if gaps is None or b is None or not b[&quot;focus_cells&quot;]:
+        return None
+    cells = [c for r, c in b[&quot;focus_cells&quot;] if r == b[&quot;ans_row&quot;] and c in b[&quot;ans_cols&quot;]]
+    if len(cells) &lt;= k:
+        return None
+    return gaps[b[&quot;ans_cols&quot;].index(cells[k])]
+
+
+def _focus_phase(g, k, part):
+    b = board(g)
+    if b is None or not b[&quot;focus_cells&quot;] or len(b[&quot;focus_cells&quot;]) &lt;= k:
+        return None
+    r0, c0 = b[&quot;focus_cells&quot;][k]
+    p = phase(glyph(g, r0, c0))
+    return None if p is None else p[part]
+
+
+def focus_fam_0(g):
+    &quot;&quot;&quot;光标框住的那一串里第 1 格是哪个形状族；读不出来返回 None。&quot;&quot;&quot;
+    return _focus_phase(g, 0, 0)
+
+
+def focus_fam_1(g):
+    &quot;&quot;&quot;同上，第 2 格。&quot;&quot;&quot;
+    return _focus_phase(g, 1, 0)
+
+
+def focus_phase_0(g):
+    &quot;&quot;&quot;光标框住的那一串里第 1 格的形状相位（0..6）；读不出来返回 None。
+
+    图例关上「这一按会不会过关」全看图例各串的相位，而别的读数一格都不反映它。
+    &quot;&quot;&quot;
+    return _focus_phase(g, 0, 1)
+
+
+def focus_phase_1(g):
+    &quot;&quot;&quot;同上，第 2 格。&quot;&quot;&quot;
+    return _focus_phase(g, 1, 1)
+
+
+def rest_wrong_n(g):
+    &quot;&quot;&quot;答题条上**不在光标里**、且还没与目标同余的格数；读不出来返回 None。
+
+    win_rule 说这一关在答题条处处同余那一刻结束，所以「这一按会不会过关」= 这个数是 0
+    且焦点那几格按完之后差为 0。差 1 下和差 2 下的版面在别的读数上可以一模一样，所以要单独读出来。
+    &quot;&quot;&quot;
+    gaps, b = _gaps(g), board(g)
+    if gaps is None or b is None:
+        return None
+    boxed = {c for r, c in (b[&quot;focus_cells&quot;] or []) if r == b[&quot;ans_row&quot;]}
+    return sum(1 for c, d in zip(b[&quot;ans_cols&quot;], gaps) if c not in boxed and d != 0)
+</code></pre></details></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/40e1eb19-3bc9-4223-acf8-095f5ce6cc21" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

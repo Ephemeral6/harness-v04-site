@@ -1,0 +1,208 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · 转动.legend_rotates_chain</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>转动.legend_rotates_chain</h1>
+<p><b>读数</b>：开口 105 行（去重 70）· 判对 <span class=ok>105</span> · 判错 <span class="mut">0</span>
+ · 读不清 0 · 闭嘴 2513</p>
+<p><b>它说什么</b>：点 K 色图例：K 色那根条（或 K 色枢纽上挂着的几根）连同整条下游，绕关节逆时针转 90°。关节 = K 色条身体第 1 条的正中那一格（枢纽则是枢纽中心）。转到的那一档要是压着别的条、墙或框，就接着转 180°、270°，停在第一档压不着的。</p><p><b>什么时候不管</b>：只管点在图例框里、模型预测真的转成了的步。转不成的归 作废/rotation_blocked_refuses；K 色条不止一根又没有枢纽的，模型不说话（语料 0 次）。</p>
+<p><b>明确不主张</b>：不主张顺时针；不主张转的时候扫过的格子要空（只看落点那一档）；不主张长度会变（那是 推论/rotation_keeps_length，由表示法推出）。</p>
+<details><summary>闭嘴的理由与条数</summary><ul><li>2440 · 不是点图例</li><li>63 · 不是关内步</li><li>7 · 模型预测转不成</li><li>3 · 要动的条自由端在盘外(长度只知下界)</li></ul></details>
+<details><summary>改版史</summary><ul><li>v1 起点册子 legend_rotates_bar_about_joint + legend_click_rotates_chain_ccw 合一。</li><li>v1 关节的位置按帧实测定：不是「帽那排的正中」，是帽往外一格（身体第 1 条的正中）——</li><li>   seq 2490：色 14 帽在第 24 行，转后帽落在第 48 列第 24..26 行，只有绕 (25,49) 转才对得上。</li></ul></details>
+<details><summary>专门弄坏它的突变体</summary><ul><li>M4 关节放到帽正中（册子原来的说法）：红</li><li>M5 顺时针转：红</li></ul></details>
+<details open><summary>它的 Lean（定义：Rule/Turn/LegendRotatesChain.lean）</summary><pre>/-
+# Rule/Turn/LegendRotatesChain —— 定义（对应 `rule/转动/legend_rotates_chain.py`）
+
+点 K 色图例：K 色那根条（或 K 色枢纽上挂着的几根）连同整条下游，绕关节逆时针转 90°；
+关节 = K 色条身体第 1 条的正中那一格（枢纽则是枢纽中心）。转到的那一档压着别的东西就接着转，
+逐档的结论交给 `Rule/Refuse/RotationBlocked` 的 `verdict`。
+-/
+
+import Obj.Derive.Attach
+import Rule.Refuse.RotationBlocked
+
+namespace Game
+
+/-- 一根条绕 `(pr, pc)` 逆时针转一档：帽那块长方形转过去，方向跟着转。 -/
+def turnBar1 (pr pc : Nat) (b : Bar) : Bar :=
+  let cap := b.cap.rot pr pc
+  { b with r := cap.r0, c := cap.c0, dir := b.dir.ccw }
+
+def turnBar (pr pc : Nat) : Nat → Bar → Bar
+  | 0, b =&gt; b
+  | k + 1, b =&gt; turnBar pr pc k (turnBar1 pr pc b)
+
+/-- 在下游里的转 `k` 档，不在的原样。 -/
+def turnAll (pr pc k : Nat) : List (Bar × Bool) → List Bar
+  | [] =&gt; []
+  | (b, m) :: rest =&gt; (if m then turnBar pr pc k b else b) :: turnAll pr pc k rest
+
+/-- K 色恰好一根条时的关节：身体第 1 条的正中。 -/
+def jointOf (b : Bar) : Nat × Nat :=
+  match b.dir with
+  | .U =&gt; (b.r - 1, b.c + 1)
+  | .D =&gt; (b.r + 1, b.c + 1)
+  | .L =&gt; (b.r + 1, b.c - 1)
+  | .R =&gt; (b.r + 1, b.c + 1)
+
+/-- 关节与根：有 K 色枢纽就绕枢纽中心、根是帽贴着枢纽的条；否则 K 色要恰好一根条。 -/
+def pivotRoots (w : World) (K : Nat) : Option (Nat × Nat × List Bool) :=
+  match w.board.hubs.find? (·.color == K) with
+  | some h =&gt; some (h.r + 1, h.c + 1, w.bars.map (fun b =&gt; meetsAny b.cap h.ring))
+  | none =&gt;
+    match w.bars.filter (·.color == K) with
+    | [b] =&gt; some ((jointOf b).1, (jointOf b).2, w.bars.map (·.color == K))
+    | _ =&gt; none
+
+/-- 第 `k` 档的四个读数。 -/
+def turnInfo (w : World) (pr pc k : Nat) (chain : List (Bar × Bool)) : Bool × Bool × Bool × Bool :=
+  let moved := (chain.filter (·.2)).map (fun p =&gt; turnBar pr pc k p.1)
+  let others := (chain.filter (fun p =&gt; !p.2)).map (fun p =&gt; p.1.whole)
+              ++ w.board.hubs.map Hub.rect ++ w.walls.map (·.rect) ++ w.board.boxes
+  (moved.any (fun b =&gt; meetsAny b.whole w.board.fixed),
+   moved.any (fun b =&gt; meetsAny b.whole others),
+   moved.any (fun b =&gt; !b.whole.onBoard),
+   moved.any (fun b =&gt; !b.cap.onBoard))
+
+/-- 逐档试，最多 `n` 档。 -/
+def tryTurn (w : World) (pr pc : Nat) (chain : List (Bar × Bool)) : Nat → Nat → Res
+  | _, 0 =&gt; .refused
+  | k, n + 1 =&gt;
+    match turnInfo w pr pc k chain with
+    | (fx, bl, off, co) =&gt;
+      match verdict k fx bl off co with
+      | .refuse =&gt; .refused
+      | .next =&gt; tryTurn w pr pc chain (k + 1) n
+      | .accept =&gt; .ok { w with bars := turnAll pr pc k chain }
+
+def rotate (w : World) (K : Nat) : Res :=
+  match pivotRoots w K with
+  | none =&gt; .silent
+  | some (pr, pc, roots) =&gt; tryTurn w pr pc (w.bars.zip (downstream w.bars roots)) 1 3
+
+end Game
+</pre></details><details><summary>Python 源码</summary><pre>&quot;&quot;&quot;点图例：那一色的条连同它的整条下游，绕关节逆时针转 90°；转到的那一档压着别的东西就接着转，停在第一档放得下的。&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import replace
+
+from derive.attach import downstream, on_hub
+from derive.click import decode
+from derive.shape import bar_cells, box_cells, hub_cells, wall_cells
+from derive.step import Outcome, predict_cached, unreadable_input
+from objects.geometry.grid import CCW, inside, rot_pt, strip
+from rule._common import find_bar, in_level, same_bar
+
+CLAIM = (&quot;点 K 色图例：K 色那根条（或 K 色枢纽上挂着的几根）连同整条下游，绕关节逆时针转 90°。&quot;
+         &quot;关节 = K 色条身体第 1 条的正中那一格（枢纽则是枢纽中心）。&quot;
+         &quot;转到的那一档要是压着别的条、墙或框，就接着转 180°、270°，停在第一档压不着的。&quot;)
+SCOPE_NOTE = (&quot;只管点在图例框里、模型预测真的转成了的步。转不成的归 作废/rotation_blocked_refuses；&quot;
+              &quot;K 色条不止一根又没有枢纽的，模型不说话（语料 0 次）。&quot;)
+NOT_CLAIMED = (&quot;不主张顺时针；不主张转的时候扫过的格子要空（只看落点那一档）；&quot;
+               &quot;不主张长度会变（那是 推论/rotation_keeps_length，由表示法推出）。&quot;)
+HISTORY = [
+    &quot;v1 起点册子 legend_rotates_bar_about_joint + legend_click_rotates_chain_ccw 合一。&quot;,
+    &quot;v1 关节的位置按帧实测定：不是「帽那排的正中」，是帽往外一格（身体第 1 条的正中）——&quot;,
+    &quot;   seq 2490：色 14 帽在第 24 行，转后帽落在第 48 列第 24..26 行，只有绕 (25,49) 转才对得上。&quot;,
+]
+EVIDENCE = [2437, 2490, 2491, 2580]
+
+
+def pivot_and_roots(w, K):
+    hubs = [h for h in w.board.hubs if h.color == K]
+    if hubs:
+        h = hubs[0]
+        return (h.r + 1, h.c + 1), on_hub(w.bars, h)
+    roots = [i for i, b in enumerate(w.bars) if b.color == K]
+    if len(roots) != 1:
+        return None, roots
+    b = w.bars[roots[0]]
+    return strip(b.r, b.c, b.dir, 1)[1], roots
+
+
+def turn(b, piv, k: int):
+    &quot;&quot;&quot;一根条绕 piv 逆时针转 k 档：帽的三格各自转，方向跟着转。&quot;&quot;&quot;
+    cp = strip(b.r, b.c, b.dir, 0)
+    d = b.dir
+    for _ in range(k):
+        cp = [rot_pt(p, piv) for p in cp]
+        d = CCW[d]
+    return replace(b, r=min(p[0] for p in cp), c=min(p[1] for p in cp), dir=d)
+
+
+def rotate(w, K) -&gt; Outcome:
+    &quot;&quot;&quot;effect：逐档试。每一档先问 作废/rotation_blocked_refuses 要不要整步作废。&quot;&quot;&quot;
+    refuse = __import__(&quot;rule.作废.rotation_blocked_refuses&quot;, fromlist=[&quot;verdict&quot;]).verdict
+    piv, roots = pivot_and_roots(w, K)
+    if piv is None:
+        return Outcome(&quot;silent&quot;, None, by=&quot;同色条不止一根又没有枢纽&quot;)
+    chain = downstream(w.bars, roots)
+    others: set = set()
+    for j, b in enumerate(w.bars):
+        if j not in chain:
+            others |= bar_cells(b)
+    for h in w.board.hubs:
+        others |= hub_cells(h)
+    walls: set = set()
+    for x in w.walls:
+        walls |= wall_cells(x)
+    boxes = box_cells(w.board)
+    tried = []
+    for k in (1, 2, 3):
+        nb = list(w.bars)
+        for j in chain:
+            nb[j] = turn(w.bars[j], piv, k)
+        occ: set = set()
+        caps_off = False
+        for j in chain:
+            occ |= bar_cells(nb[j])
+            caps_off |= any(not inside(*p) for p in strip(nb[j].r, nb[j].c, nb[j].dir, 0))
+        info = {&quot;k&quot;: k, &quot;fixed&quot;: bool(occ &amp; w.board.fixed),
+                &quot;blocked&quot;: bool(occ &amp; others or occ &amp; walls or occ &amp; boxes),
+                &quot;off&quot;: any(not inside(*p) for p in occ), &quot;cap_off&quot;: caps_off}
+        tried.append(info)
+        v = refuse(info)
+        rot = {&quot;chain&quot;: chain, &quot;pivot&quot;: piv, &quot;tried&quot;: tried}
+        if v == &quot;refuse&quot;:
+            return Outcome(&quot;refused&quot;, w, by=&quot;作废.rotation_blocked_refuses&quot;, rot=rot)
+        if v == &quot;next&quot;:
+            continue
+        return Outcome(&quot;rotated&quot;, replace(w, bars=tuple(nb)), rot=rot)
+    return Outcome(&quot;refused&quot;, w, by=&quot;作废.rotation_blocked_refuses&quot;,
+                   rot={&quot;chain&quot;: chain, &quot;pivot&quot;: piv, &quot;tried&quot;: tried})
+
+
+def scope_(w, action, ctx=None):
+    if not in_level(ctx):
+        return &quot;不是关内步&quot;
+    k, _ = decode(w.board, action)
+    if k != &quot;rot&quot;:
+        return &quot;不是点图例&quot;
+    out = predict_cached(w, action)
+    if out.kind != &quot;rotated&quot;:
+        return &quot;模型预测转不成&quot; if out.kind == &quot;refused&quot; else &quot;模型不说话&quot;
+    why = unreadable_input(w, out)
+    if why:
+        return why
+    return None
+
+
+def assert_(w, action, nw, ctx=None) -&gt; bool:
+    out = predict_cached(w, action)
+    for j in out.rot[&quot;chain&quot;]:
+        o = find_bar(nw, out.world.bars[j])
+        if o is None or not same_bar(out.world.bars[j], o):
+            return False
+    return True
+</pre></details></div></main></body></html>

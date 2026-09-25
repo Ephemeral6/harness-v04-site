@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obs/Replay.lean · lp85</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     这一局：瓷砖的颜色是不透明的 id，前端按 ARC 的 16 色调色板配色（配色表在 render.js 里）；
+     下面只有场地、按钮、插槽框、变了的格的描边这几样。 */
+  --field: #2b2f3a;  --outer: #151820;
+  --button: #8a93a6; --button-hit: #ffd84d;
+  --changed: #ffffff;
+  --bar-fill: #59b0ff; --bar-empty: #232834;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+  --link: #7ab8ff; --fg: #e8eaf0;
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Obs/Replay.lean</h1>
+  <div class="sub">角色：观测</div>
+  <nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav>
+</header>
+<div class="card"><label class="picker"><span>这 18 份 Lean</span><select onchange="if(this.value)location.href=this.value"><optgroup label="对象"><option value="Obj-Board-Button.html">Obj/Board/Button.lean</option><option value="Obj-Board-Cells.html">Obj/Board/Cells.lean</option><option value="Obj-Board-Grid.html">Obj/Board/Grid.lean</option><option value="Obj-Board-Slot.html">Obj/Board/Slot.lean</option><option value="Obj-State-Colors.html">Obj/State/Colors.lean</option><option value="Obj-World.html">Obj/World.lean</option></optgroup><optgroup label="规则"><option value="Rule-Click-DeadClick.html">Rule/Click/DeadClick.lean</option><option value="Rule-Click-PressPermutes.html">Rule/Click/PressPermutes.lean</option><option value="Rule-Win-WinIffSlots.html">Rule/Win/WinIffSlots.lean</option></optgroup><optgroup label="推论"><option value="Derived-BoardStatic.html">Derived/BoardStatic.lean</option><option value="Derived-ColorsConserved.html">Derived/ColorsConserved.lean</option></optgroup><optgroup label="观测"><option value="Obs-Check.html">Obs/Check.lean</option><option value="Obs-Corpus.html">Obs/Corpus.lean</option><option value="Obs-Replay.html" selected>Obs/Replay.lean</option></optgroup><optgroup label="证明"><option value="Proof-Levels.html">Proof/Levels.lean</option><option value="Proof-Reachable.html">Proof/Reachable.lean</option></optgroup><optgroup label="没归类（根上装配 Step.lean）"><option value="Step.html">Step.lean</option></optgroup><optgroup label="破坏测试"><option value="Broken.html">Broken.lean</option></optgroup></select></label>　<a href="index.html">回形式化首页</a></div><div class="card"><h2>定理与公理表</h2><p class="note">这一份没有定理（定义 / 读数 / 装配）。</p></div><div class="card"><h2>源码</h2><pre class="lean">/-
+# Obs/Replay —— 整条轨迹，**只存这一份**（自动生成，不要手改；生成器 `lean2/export_replay.py`）
+
+逐条那一层（`Obs/Corpus.lean`）和每关那一层（`Proof/Levels.lean`）都从这里切。
+
+    boards       这一帧真正读到的那张盘（去重）—— 逐条判用它
+    levelBoard   每一关那一张 —— 每关判用它。这一局两者相等（版面关内不变、没有遮挡），
+                 相等由导出器逐帧核过，并由 `Proof/Levels.lean` 的 `frames_read_level_board` 再核一遍
+    steps        全部 200 行转移，**一行不少**：RESET 那一行 `act = none`（不进模型，带标记）
+
+按 `seq` 切，不按下标切，也不按 `step` 切（`step` 有重号：[120]）。
+每一步的盘面按下标引用 `boards`。
+-/
+
+import Obj.World
+import Obs.Check
+
+namespace Replay
+
+/-- 轨迹上的一步。**只装看得见的东西**：动作前的颜色、动作、动作后的颜色（换关写 `none`）。
+    `cert` = 这一步属于成绩单认证的那一段（每关那一层只许用 `cert = true` 的步当见证）。 -/
+structure Step where
+  seq : Nat
+  lvl : Nat
+  board : Nat
+  act : Option Act
+  prev : Colors
+  next : Option Colors
+  cert : Bool
+deriving Repr
+
+/-- 这一帧真正读到的盘，去重之后共 8 张。 -/
+def boards : List Board := [
+  { grid := { tile := 4, rows := [19, 25, 31, 37, 43], cols := [12, 18, 24, 30, 36, 42, 48] },
+    cells := [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 0), (1, 6), (2, 0), (2, 6), (3, 0), (3, 6), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6)],
+    buttons := [
+      { r0 := 29, r1 := 36, c0 := 2, c1 := 7, dr := 0, dc := -1, perm := [1, 2, 3, 4, 5, 6, 8, 0, 10, 7, 12, 9, 19, 11, 13, 14, 15, 16, 17, 18] },
+      { r0 := 29, r1 := 36, c0 := 56, c1 := 61, dr := 0, dc := 1, perm := [7, 0, 1, 2, 3, 4, 5, 9, 6, 11, 8, 13, 10, 14, 15, 16, 17, 18, 19, 12] }],
+    slots := [{ cell := 0, mark := 11 }] },
+  { grid := { tile := 2, rows := [17, 20, 23, 26, 29, 32, 35, 38, 41, 44], cols := [17, 20, 23, 26, 29, 32, 35, 38, 41, 44] },
+    cells := [(0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (1, 6), (2, 2), (2, 6), (3, 0), (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (4, 2), (4, 6), (5, 2), (5, 6), (6, 0), (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (6, 8), (6, 9), (7, 2), (7, 6), (8, 2), (8, 6), (9, 2), (9, 3), (9, 4), (9, 5), (9, 6)],
+    buttons := [
+      { r0 := 16, r1 := 19, c0 := 19, c1 := 21, dr := 0, dc := -1, perm := [1, 2, 3, 4, 6, 0, 8, 5, 15, 9, 10, 7, 12, 13, 14, 20, 16, 17, 18, 11, 22, 19, 29, 23, 24, 21, 26, 27, 28, 34, 30, 31, 32, 25, 36, 33, 41, 35, 37, 38, 39, 40] },
+      { r0 := 16, r1 := 19, c0 := 38, c1 := 40, dr := 0, dc := 1, perm := [5, 0, 1, 2, 3, 7, 4, 11, 6, 9, 10, 19, 12, 13, 14, 8, 16, 17, 18, 21, 15, 25, 20, 23, 24, 33, 26, 27, 28, 22, 30, 31, 32, 35, 29, 37, 34, 38, 39, 40, 41, 36] },
+      { r0 := 25, r1 := 28, c0 := 13, c1 := 15, dr := 0, dc := -1, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 9, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41] },
+      { r0 := 25, r1 := 28, c0 := 47, c1 := 49, dr := 0, dc := 1, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41] },
+      { r0 := 34, r1 := 37, c0 := 13, c1 := 15, dr := 0, dc := -1, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 23, 33, 34, 35, 36, 37, 38, 39, 40, 41] },
+      { r0 := 34, r1 := 37, c0 := 47, c1 := 49, dr := 0, dc := 1, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 32, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41] }],
+    slots := [{ cell := 15, mark := 11 }, { cell := 29, mark := 11 }] },
+  { grid := { tile := 2, rows := [19, 22, 25, 28, 31, 34, 37], cols := [15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45] },
+    cells := [(0, 2), (0, 3), (0, 4), (0, 6), (0, 7), (0, 8), (1, 1), (1, 5), (1, 9), (2, 0), (2, 4), (2, 6), (2, 10), (3, 0), (3, 4), (3, 6), (3, 10), (4, 0), (4, 4), (4, 6), (4, 10), (5, 1), (5, 5), (5, 9), (6, 2), (6, 3), (6, 4), (6, 6), (6, 7), (6, 8)],
+    buttons := [
+      { r0 := 40, r1 := 43, c0 := 22, c1 := 24, dr := 0, dc := -1, perm := [1, 2, 7, 3, 4, 5, 0, 11, 8, 6, 10, 15, 12, 9, 14, 19, 16, 13, 18, 22, 20, 17, 26, 23, 21, 24, 25, 27, 28, 29] },
+      { r0 := 40, r1 := 43, c0 := 25, c1 := 27, dr := 0, dc := 1, perm := [6, 0, 1, 3, 4, 5, 9, 2, 8, 13, 10, 7, 12, 17, 14, 11, 16, 21, 18, 15, 20, 24, 19, 23, 25, 26, 22, 27, 28, 29] },
+      { r0 := 40, r1 := 43, c0 := 34, c1 := 36, dr := 0, dc := -1, perm := [0, 1, 2, 4, 5, 8, 6, 3, 12, 9, 7, 11, 16, 13, 10, 15, 20, 17, 14, 19, 23, 21, 18, 29, 24, 25, 26, 22, 27, 28] },
+      { r0 := 40, r1 := 43, c0 := 37, c1 := 39, dr := 0, dc := 1, perm := [0, 1, 2, 7, 3, 4, 6, 10, 5, 9, 14, 11, 8, 13, 18, 15, 12, 17, 22, 19, 16, 21, 27, 20, 24, 25, 26, 28, 29, 23] }],
+    slots := [{ cell := 13, mark := 11 }, { cell := 16, mark := 12 }] },
+  { grid := { tile := 2, rows := [9, 12, 15, 18, 21, 39, 42, 45, 48, 51], cols := [9, 12, 15, 18, 21, 39, 42, 45, 48, 51] },
+    cells := [(0, 2), (0, 7), (1, 2), (1, 7), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (3, 2), (3, 7), (4, 2), (4, 7), (5, 2), (5, 7), (6, 2), (6, 7), (7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5), (7, 6), (7, 7), (7, 8), (7, 9), (8, 2), (8, 7), (9, 2), (9, 7)],
+    buttons := [
+      { r0 := 5, r1 := 7, c0 := 14, c1 := 17, dr := -1, dc := 0, perm := [2, 3, 6, 11, 4, 5, 14, 7, 8, 9, 10, 15, 12, 13, 16, 17, 18, 19, 20, 21, 24, 29, 22, 23, 32, 25, 26, 27, 28, 33, 30, 31, 34, 35, 1, 0] },
+      { r0 := 5, r1 := 7, c0 := 44, c1 := 47, dr := -1, dc := 0, perm := [2, 3, 6, 11, 4, 5, 14, 7, 8, 9, 10, 15, 12, 13, 16, 17, 18, 19, 20, 21, 24, 29, 22, 23, 32, 25, 26, 27, 28, 33, 30, 31, 34, 35, 1, 0] },
+      { r0 := 14, r1 := 17, c0 := 5, c1 := 7, dr := 0, dc := -1, perm := [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 22, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 4, 32, 33, 34, 35] },
+      { r0 := 14, r1 := 17, c0 := 24, c1 := 26, dr := 0, dc := 1, perm := [0, 1, 2, 3, 31, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 13, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 35] },
+      { r0 := 14, r1 := 17, c0 := 35, c1 := 37, dr := 0, dc := -1, perm := [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 22, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 4, 32, 33, 34, 35] },
+      { r0 := 14, r1 := 17, c0 := 54, c1 := 56, dr := 0, dc := 1, perm := [0, 1, 2, 3, 31, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 13, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 35] },
+      { r0 := 24, r1 := 26, c0 := 14, c1 := 17, dr := 1, dc := 0, perm := [35, 34, 0, 1, 4, 5, 2, 7, 8, 9, 10, 3, 12, 13, 6, 11, 14, 15, 16, 17, 18, 19, 22, 23, 20, 25, 26, 27, 28, 21, 30, 31, 24, 29, 32, 33] },
+      { r0 := 24, r1 := 26, c0 := 44, c1 := 47, dr := 1, dc := 0, perm := [35, 34, 0, 1, 4, 5, 2, 7, 8, 9, 10, 3, 12, 13, 6, 11, 14, 15, 16, 17, 18, 19, 22, 23, 20, 25, 26, 27, 28, 21, 30, 31, 24, 29, 32, 33] },
+      { r0 := 35, r1 := 37, c0 := 14, c1 := 17, dr := -1, dc := 0, perm := [2, 3, 6, 11, 4, 5, 14, 7, 8, 9, 10, 15, 12, 13, 16, 17, 18, 19, 20, 21, 24, 29, 22, 23, 32, 25, 26, 27, 28, 33, 30, 31, 34, 35, 1, 0] },
+      { r0 := 35, r1 := 37, c0 := 44, c1 := 47, dr := -1, dc := 0, perm := [2, 3, 6, 11, 4, 5, 14, 7, 8, 9, 10, 15, 12, 13, 16, 17, 18, 19, 20, 21, 24, 29, 22, 23, 32, 25, 26, 27, 28, 33, 30, 31, 34, 35, 1, 0] },
+      { r0 := 44, r1 := 47, c0 := 5, c1 := 7, dr := 0, dc := -1, perm := [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 22, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 4, 32, 33, 34, 35] },
+      { r0 := 44, r1 := 47, c0 := 24, c1 := 26, dr := 0, dc := 1, perm := [0, 1, 2, 3, 31, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 13, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 35] },
+      { r0 := 44, r1 := 47, c0 := 35, c1 := 37, dr := 0, dc := -1, perm := [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 22, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30, 31, 4, 32, 33, 34, 35] },
+      { r0 := 44, r1 := 47, c0 := 54, c1 := 56, dr := 0, dc := 1, perm := [0, 1, 2, 3, 31, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 13, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34, 35] },
+      { r0 := 54, r1 := 56, c0 := 14, c1 := 17, dr := 1, dc := 0, perm := [35, 34, 0, 1, 4, 5, 2, 7, 8, 9, 10, 3, 12, 13, 6, 11, 14, 15, 16, 17, 18, 19, 22, 23, 20, 25, 26, 27, 28, 21, 30, 31, 24, 29, 32, 33] },
+      { r0 := 54, r1 := 56, c0 := 44, c1 := 47, dr := 1, dc := 0, perm := [35, 34, 0, 1, 4, 5, 2, 7, 8, 9, 10, 3, 12, 13, 6, 11, 14, 15, 16, 17, 18, 19, 22, 23, 20, 25, 26, 27, 28, 21, 30, 31, 24, 29, 32, 33] }],
+    slots := [{ cell := 29, mark := 11 }, { cell := 31, mark := 12 }] },
+  { grid := { tile := 4, rows := [6, 12, 18, 24, 30, 36, 42, 48, 54], cols := [17, 23, 29, 35, 41] },
+    cells := [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 0), (2, 0), (2, 1), (2, 2), (3, 2), (4, 0), (4, 1), (4, 2), (5, 0), (6, 0), (6, 1), (6, 2), (7, 2), (8, 0), (8, 1), (8, 2)],
+    buttons := [
+      { r0 := 4, r1 := 11, c0 := 7, c1 := 12, dr := 0, dc := -1, perm := [1, 2, 3, 4, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
+      { r0 := 4, r1 := 11, c0 := 49, c1 := 54, dr := 0, dc := 1, perm := [4, 0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
+      { r0 := 34, r1 := 41, c0 := 9, c1 := 14, dr := 0, dc := -1, perm := [1, 2, 3, 4, 18, 0, 5, 6, 7, 8, 11, 12, 9, 10, 13, 14, 15, 16, 19, 20, 17] },
+      { r0 := 34, r1 := 41, c0 := 35, c1 := 40, dr := 0, dc := 1, perm := [5, 0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15, 16, 17, 20, 4, 18, 19] }],
+    slots := [{ cell := 0, mark := 11 }, { cell := 4, mark := 11 }] },
+  { grid := { tile := 2, rows := [6, 9, 12, 15, 18, 21, 24, 27, 33, 36, 39, 42, 45, 48, 51, 54], cols := [5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47, 50, 53] },
+    cells := [(0, 0), (0, 3), (0, 6), (0, 10), (0, 13), (0, 16), (1, 1), (1, 3), (1, 5), (1, 11), (1, 13), (1, 15), (2, 2), (2, 3), (2, 4), (2, 12), (2, 13), (2, 14), (3, 0), (3, 1), (3, 2), (3, 4), (3, 5), (3, 6), (3, 10), (3, 11), (3, 12), (3, 14), (3, 15), (3, 16), (4, 2), (4, 3), (4, 4), (4, 12), (4, 13), (4, 14), (5, 1), (5, 3), (5, 5), (5, 11), (5, 13), (5, 15), (6, 0), (6, 3), (6, 6), (6, 10), (6, 13), (6, 16), (7, 7), (7, 9), (8, 8), (9, 5), (9, 8), (9, 11), (10, 6), (10, 8), (10, 10), (11, 7), (11, 8), (11, 9), (12, 5), (12, 6), (12, 7), (12, 9), (12, 10), (12, 11), (13, 7), (13, 8), (13, 9), (14, 6), (14, 8), (14, 10), (15, 5), (15, 8), (15, 11)],
+    buttons := [
+      { r0 := 14, r1 := 17, c0 := 26, c1 := 28, dr := 0, dc := 1, perm := [6, 7, 8, 3, 4, 5, 12, 13, 14, 9, 10, 11, 0, 1, 2, 15, 16, 17, 19, 20, 18, 23, 21, 22, 24, 25, 26, 27, 28, 29, 42, 43, 44, 33, 34, 35, 30, 31, 32, 39, 40, 41, 36, 37, 38, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] },
+      { r0 := 14, r1 := 17, c0 := 56, c1 := 58, dr := 0, dc := 1, perm := [0, 1, 2, 9, 10, 11, 6, 7, 8, 15, 16, 17, 12, 13, 14, 3, 4, 5, 18, 19, 20, 21, 22, 23, 25, 26, 24, 29, 27, 28, 30, 31, 32, 45, 46, 47, 36, 37, 38, 33, 34, 35, 42, 43, 44, 39, 40, 41, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] },
+      { r0 := 27, r1 := 30, c0 := 14, c1 := 16, dr := 0, dc := 1, perm := [1, 2, 23, 3, 4, 5, 7, 8, 22, 9, 10, 11, 13, 14, 21, 15, 16, 17, 0, 6, 12, 32, 38, 44, 24, 25, 26, 27, 28, 29, 20, 30, 31, 33, 34, 35, 19, 36, 37, 39, 40, 41, 18, 42, 43, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] },
+      { r0 := 27, r1 := 30, c0 := 44, c1 := 46, dr := 0, dc := 1, perm := [0, 1, 2, 4, 5, 29, 6, 7, 8, 10, 11, 28, 12, 13, 14, 16, 17, 27, 18, 19, 20, 21, 22, 23, 3, 9, 15, 35, 41, 47, 30, 31, 32, 26, 33, 34, 36, 37, 38, 25, 39, 40, 42, 43, 44, 24, 45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] },
+      { r0 := 44, r1 := 47, c0 := 41, c1 := 43, dr := 0, dc := 1, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 54, 55, 56, 57, 58, 59, 51, 52, 53, 61, 62, 60, 65, 63, 64, 72, 73, 74, 66, 67, 68, 69, 70, 71] },
+      { r0 := 54, r1 := 56, c0 := 52, c1 := 55, dr := -1, dc := 0, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 48, 49, 46, 47, 44, 45, 52, 51, 50, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74] },
+      { r0 := 57, r1 := 60, c0 := 29, c1 := 31, dr := 0, dc := 1, perm := [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 52, 53, 65, 55, 56, 64, 58, 59, 63, 51, 54, 57, 68, 71, 74, 62, 66, 67, 61, 69, 70, 60, 72, 73] }],
+    slots := [{ cell := 48, mark := 11 }, { cell := 49, mark := 11 }, { cell := 50, mark := 11 }] },
+  { grid := { tile := 2, rows := [23, 26, 29, 35, 38], cols := [20, 23, 26, 29, 32, 35, 38, 41] },
+    cells := [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 0), (2, 0), (3, 3), (3, 4), (4, 3), (4, 4)],
+    buttons := [
+      { r0 := 19, r1 := 21, c0 := 19, c1 := 22, dr := -1, dc := 0, perm := [8, 1, 2, 3, 4, 5, 6, 7, 9, 0, 10, 11, 12, 13] },
+      { r0 := 32, r1 := 34, c0 := 19, c1 := 22, dr := 1, dc := 0, perm := [9, 1, 2, 3, 4, 5, 6, 7, 0, 8, 10, 11, 12, 13] },
+      { r0 := 41, r1 := 44, c0 := 28, c1 := 30, dr := 0, dc := -1, perm := [1, 2, 3, 4, 5, 6, 7, 0, 8, 9, 11, 13, 10, 12] },
+      { r0 := 41, r1 := 44, c0 := 32, c1 := 34, dr := 0, dc := 1, perm := [7, 0, 1, 2, 3, 4, 5, 6, 8, 9, 12, 10, 13, 11] }],
+    slots := [{ cell := 7, mark := 11 }, { cell := 11, mark := 11 }] },
+  { grid := { tile := 2, rows := [6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51], cols := [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42] },
+    cells := [(0, 1), (0, 7), (1, 2), (1, 5), (1, 7), (1, 11), (2, 0), (2, 3), (2, 6), (2, 9), (2, 11), (2, 13), (3, 1), (3, 4), (3, 7), (3, 9), (3, 11), (3, 13), (4, 2), (4, 5), (4, 8), (4, 11), (4, 13), (5, 3), (5, 6), (5, 9), (5, 11), (5, 13), (6, 4), (6, 7), (6, 10), (6, 13), (7, 5), (7, 8), (7, 11), (7, 13), (8, 6), (8, 9), (8, 11), (8, 13), (9, 7), (9, 9), (9, 11), (9, 13), (10, 7), (10, 9), (10, 11), (10, 13), (11, 7), (11, 9), (11, 11), (11, 13), (12, 7), (12, 9), (12, 11), (12, 13), (13, 7), (13, 9), (13, 11), (13, 13), (14, 7), (14, 9), (14, 11), (14, 12), (14, 13), (15, 7), (15, 9), (15, 11), (15, 13)],
+    buttons := [
+      { r0 := 23, r1 := 26, c0 := 48, c1 := 50, dr := 0, dc := -1, perm := [0, 1, 2, 8, 4, 5, 6, 7, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68] },
+      { r0 := 23, r1 := 26, c0 := 52, c1 := 54, dr := 0, dc := 1, perm := [0, 1, 2, 8, 4, 5, 6, 7, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68] },
+      { r0 := 28, r1 := 31, c0 := 48, c1 := 50, dr := 0, dc := -1, perm := [2, 1, 7, 3, 4, 5, 6, 13, 8, 9, 10, 11, 12, 19, 14, 15, 16, 17, 18, 24, 20, 21, 22, 23, 0, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68] },
+      { r0 := 28, r1 := 31, c0 := 52, c1 := 54, dr := 0, dc := 1, perm := [24, 1, 0, 3, 4, 5, 6, 2, 8, 9, 10, 11, 12, 7, 14, 15, 16, 17, 18, 13, 20, 21, 22, 23, 19, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68] },
+      { r0 := 33, r1 := 36, c0 := 48, c1 := 50, dr := 0, dc := -1, perm := [0, 1, 2, 3, 4, 5, 12, 7, 8, 9, 10, 11, 18, 13, 14, 15, 16, 17, 23, 19, 20, 21, 22, 28, 24, 25, 26, 27, 32, 29, 30, 31, 36, 33, 34, 35, 6, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68] },
+      { r0 := 33, r1 := 36, c0 := 52, c1 := 54, dr := 0, dc := 1, perm := [0, 1, 2, 3, 4, 5, 36, 7, 8, 9, 10, 11, 6, 13, 14, 15, 16, 17, 12, 19, 20, 21, 22, 18, 24, 25, 26, 27, 23, 29, 30, 31, 28, 33, 34, 35, 32, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68] },
+      { r0 := 56, r1 := 59, c0 := 30, c1 := 32, dr := 0, dc := -1, perm := [2, 1, 7, 8, 4, 5, 12, 13, 14, 9, 10, 11, 18, 19, 20, 15, 16, 17, 23, 24, 25, 21, 22, 28, 29, 30, 26, 27, 32, 33, 34, 31, 36, 37, 38, 35, 40, 41, 42, 39, 44, 45, 46, 43, 48, 49, 50, 47, 52, 53, 54, 51, 56, 57, 58, 55, 60, 61, 62, 59, 65, 66, 67, 63, 64, 6, 0, 3, 68] },
+      { r0 := 56, r1 := 59, c0 := 35, c1 := 37, dr := 0, dc := 1, perm := [66, 1, 0, 67, 4, 5, 65, 2, 3, 9, 10, 11, 6, 7, 8, 15, 16, 17, 12, 13, 14, 21, 22, 18, 19, 20, 26, 27, 23, 24, 25, 31, 28, 29, 30, 35, 32, 33, 34, 39, 36, 37, 38, 43, 40, 41, 42, 47, 44, 45, 46, 51, 48, 49, 50, 55, 52, 53, 54, 59, 56, 57, 58, 63, 64, 60, 61, 62, 68] }],
+    slots := [{ cell := 65, mark := 11 }, { cell := 66, mark := 11 }, { cell := 67, mark := 11 }] }]
+
+def emptyBoard : Board := { grid := { tile := 0, rows := [], cols := [] }, cells := [], buttons := [], slots := [] }
+def boardAt (i : Nat) : Board := (boards[i]?).getD emptyBoard
+
+/-- 整条轨迹，共 200 行（RESET 1 行，`act = none`）。 -/
+def steps : List Step := [
+  { seq := 1, lvl := 0, board := 0, act := some (.click 5 32), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [2, 10, 9, 15, 11, 2, 15, 1, 9, 10, 10, 15, 2, 2, 1, 1, 9, 9, 10, 15], cert := false },
+  { seq := 2, lvl := 0, board := 0, act := some (.click 58 32), prev := [2, 10, 9, 15, 11, 2, 15, 1, 9, 10, 10, 15, 2, 2, 1, 1, 9, 9, 10, 15], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 3, lvl := 0, board := 0, act := some (.click 13 20), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 4, lvl := 0, board := 0, act := some (.click 19 26), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 5, lvl := 0, board := 0, act := some (.click 31 20), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 6, lvl := 0, board := 0, act := some (.click 10 17), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 7, lvl := 0, board := 0, act := some (.click 11 1), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 8, lvl := 0, board := 0, act := some (.click 0 20), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 9, lvl := 0, board := 0, act := some (.click 30 5), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 10, lvl := 0, board := 0, act := some (.click 25 30), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], cert := false },
+  { seq := 11, lvl := 0, board := 0, act := some (.click 5 32), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [2, 10, 9, 15, 11, 2, 15, 1, 9, 10, 10, 15, 2, 2, 1, 1, 9, 9, 10, 15], cert := false },
+  { seq := 12, lvl := 0, board := 0, act := some (.click 5 32), prev := [2, 10, 9, 15, 11, 2, 15, 1, 9, 10, 10, 15, 2, 2, 1, 1, 9, 9, 10, 15], next := some [10, 9, 15, 11, 2, 15, 9, 2, 10, 1, 2, 10, 15, 15, 2, 1, 1, 9, 9, 10], cert := false },
+  { seq := 13, lvl := 0, board := 0, act := some (.click 5 32), prev := [10, 9, 15, 11, 2, 15, 9, 2, 10, 1, 2, 10, 15, 15, 2, 1, 1, 9, 9, 10], next := some [9, 15, 11, 2, 15, 9, 10, 10, 2, 2, 15, 1, 10, 10, 15, 2, 1, 1, 9, 9], cert := false },
+  { seq := 14, lvl := 0, board := 0, act := some (.click 5 32), prev := [9, 15, 11, 2, 15, 9, 10, 10, 2, 2, 15, 1, 10, 10, 15, 2, 1, 1, 9, 9], next := some [15, 11, 2, 15, 9, 10, 2, 9, 15, 10, 10, 2, 9, 1, 10, 15, 2, 1, 1, 9], cert := false },
+  { seq := 15, lvl := 0, board := 0, act := some (.click 5 32), prev := [15, 11, 2, 15, 9, 10, 2, 9, 15, 10, 10, 2, 9, 1, 10, 15, 2, 1, 1, 9], next := none, cert := false },
+  { seq := 16, lvl := 1, board := 1, act := some (.click 39 17), prev := [10, 9, 15, 11, 15, 15, 9, 2, 10, 1, 9, 9, 1, 10, 15, 2, 10, 2, 2, 1, 1, 1, 2, 1, 10, 9, 1, 9, 10, 15, 9, 2, 10, 11, 1, 2, 9, 10, 10, 15, 15, 2], next := some [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 1, 10, 11, 1, 9, 10, 2, 9, 2, 10, 2, 15, 10, 1, 10, 15, 15, 2, 9], cert := false },
+  { seq := 17, lvl := 1, board := 1, act := some (.click 48 35), prev := [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 1, 10, 11, 1, 9, 10, 2, 9, 2, 10, 2, 15, 10, 1, 10, 15, 15, 2, 9], next := some [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 2, 15, 10, 1, 10, 15, 15, 2, 9], cert := false },
+  { seq := 18, lvl := 1, board := 1, act := some (.click 39 17), prev := [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 2, 15, 10, 1, 10, 15, 15, 2, 9], next := some [2, 15, 10, 9, 15, 9, 11, 1, 15, 1, 9, 1, 1, 10, 15, 9, 10, 2, 2, 9, 10, 10, 2, 10, 1, 2, 11, 1, 9, 1, 2, 9, 2, 10, 10, 10, 15, 15, 15, 2, 9, 1], cert := false },
+  { seq := 19, lvl := 1, board := 1, act := some (.click 39 17), prev := [2, 15, 10, 9, 15, 9, 11, 1, 15, 1, 9, 1, 1, 10, 15, 9, 10, 2, 2, 9, 10, 10, 2, 10, 1, 2, 11, 1, 9, 1, 2, 9, 2, 10, 10, 10, 15, 15, 15, 2, 9, 1], next := some [9, 2, 15, 10, 9, 1, 15, 1, 11, 1, 9, 9, 1, 10, 15, 15, 10, 2, 2, 10, 9, 2, 10, 10, 1, 10, 11, 1, 9, 2, 2, 9, 2, 10, 1, 15, 10, 15, 2, 9, 1, 15], cert := false },
+  { seq := 20, lvl := 1, board := 1, act := some (.click 39 17), prev := [9, 2, 15, 10, 9, 1, 15, 1, 11, 1, 9, 9, 1, 10, 15, 15, 10, 2, 2, 10, 9, 2, 10, 10, 1, 10, 11, 1, 9, 2, 2, 9, 2, 10, 1, 15, 10, 15, 2, 9, 1, 15], next := some [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], cert := false },
+  { seq := 21, lvl := 1, board := 1, act := some (.click 48 35), prev := [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], next := some [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 9, 15, 2, 15, 1, 2, 9, 1, 15, 10], cert := false },
+  { seq := 22, lvl := 1, board := 1, act := some (.click 48 35), prev := [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 9, 15, 2, 15, 1, 2, 9, 1, 15, 10], next := some [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], cert := false },
+  { seq := 23, lvl := 1, board := 1, act := some (.click 48 35), prev := [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], next := none, cert := false },
+  { seq := 24, lvl := 2, board := 2, act := some (.click 35 41), prev := [9, 15, 2, 10, 15, 9, 9, 9, 11, 1, 15, 1, 2, 9, 1, 15, 9, 10, 2, 9, 15, 12, 2, 1, 1, 9, 10, 1, 2, 10], next := some [9, 15, 2, 15, 9, 11, 9, 10, 2, 1, 9, 1, 9, 9, 15, 15, 15, 10, 1, 9, 1, 12, 2, 10, 1, 9, 10, 2, 1, 2], cert := false },
+  { seq := 25, lvl := 2, board := 2, act := some (.click 35 41), prev := [9, 15, 2, 15, 9, 11, 9, 10, 2, 1, 9, 1, 9, 9, 15, 15, 15, 10, 1, 9, 1, 12, 2, 10, 1, 9, 10, 2, 1, 2], next := some [9, 15, 2, 9, 11, 2, 9, 15, 9, 1, 10, 1, 15, 9, 9, 15, 1, 10, 15, 9, 10, 12, 1, 2, 1, 9, 10, 2, 2, 1], cert := false },
+  { seq := 26, lvl := 2, board := 2, act := some (.click 35 41), prev := [9, 15, 2, 9, 11, 2, 9, 15, 9, 1, 10, 1, 15, 9, 9, 15, 1, 10, 15, 9, 10, 12, 1, 2, 1, 9, 10, 2, 2, 1], next := some [9, 15, 2, 11, 2, 9, 9, 9, 15, 1, 15, 1, 1, 9, 10, 15, 10, 10, 9, 9, 2, 12, 15, 1, 1, 9, 10, 1, 2, 2], cert := false },
+  { seq := 27, lvl := 2, board := 2, act := some (.click 35 41), prev := [9, 15, 2, 11, 2, 9, 9, 9, 15, 1, 15, 1, 1, 9, 10, 15, 10, 10, 9, 9, 2, 12, 15, 1, 1, 9, 10, 1, 2, 2], next := some [9, 15, 2, 2, 9, 15, 9, 11, 1, 1, 9, 1, 10, 9, 15, 15, 2, 10, 10, 9, 1, 12, 9, 2, 1, 9, 10, 15, 1, 2], cert := false },
+  { seq := 28, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 15, 2, 2, 9, 15, 9, 11, 1, 1, 9, 1, 10, 9, 15, 15, 2, 10, 10, 9, 1, 12, 9, 2, 1, 9, 10, 15, 1, 2], next := some [15, 2, 11, 2, 9, 15, 9, 1, 1, 9, 9, 15, 10, 1, 15, 9, 2, 9, 10, 9, 1, 10, 10, 2, 12, 1, 9, 15, 1, 2], cert := false },
+  { seq := 29, lvl := 2, board := 2, act := some (.click 23 41), prev := [15, 2, 11, 2, 9, 15, 9, 1, 1, 9, 9, 15, 10, 1, 15, 9, 2, 9, 10, 9, 1, 10, 10, 2, 12, 1, 9, 15, 1, 2], next := some [2, 11, 1, 2, 9, 15, 15, 15, 1, 9, 9, 9, 10, 9, 15, 9, 2, 1, 10, 10, 1, 9, 9, 2, 10, 12, 1, 15, 1, 2], cert := false },
+  { seq := 30, lvl := 2, board := 2, act := some (.click 23 41), prev := [2, 11, 1, 2, 9, 15, 15, 15, 1, 9, 9, 9, 10, 9, 15, 9, 2, 1, 10, 10, 1, 9, 9, 2, 10, 12, 1, 15, 1, 2], next := some [11, 1, 15, 2, 9, 15, 2, 9, 1, 15, 9, 9, 10, 9, 15, 10, 2, 9, 10, 9, 1, 1, 1, 2, 9, 10, 12, 15, 1, 2], cert := false },
+  { seq := 31, lvl := 2, board := 2, act := some (.click 23 41), prev := [11, 1, 15, 2, 9, 15, 2, 9, 1, 15, 9, 9, 10, 9, 15, 10, 2, 9, 10, 9, 1, 1, 1, 2, 9, 10, 12, 15, 1, 2], next := some [1, 15, 9, 2, 9, 15, 11, 9, 1, 2, 9, 10, 10, 15, 15, 9, 2, 9, 10, 1, 1, 9, 12, 2, 1, 9, 10, 15, 1, 2], cert := false },
+  { seq := 32, lvl := 2, board := 2, act := some (.click 23 41), prev := [1, 15, 9, 2, 9, 15, 11, 9, 1, 2, 9, 10, 10, 15, 15, 9, 2, 9, 10, 1, 1, 9, 12, 2, 1, 9, 10, 15, 1, 2], next := some [15, 9, 9, 2, 9, 15, 1, 10, 1, 11, 9, 9, 10, 2, 15, 1, 2, 15, 10, 12, 1, 9, 10, 2, 9, 1, 9, 15, 1, 2], cert := false },
+  { seq := 33, lvl := 2, board := 2, act := some (.click 23 41), prev := [15, 9, 9, 2, 9, 15, 1, 10, 1, 11, 9, 9, 10, 2, 15, 1, 2, 15, 10, 12, 1, 9, 10, 2, 9, 1, 9, 15, 1, 2], next := some [9, 9, 10, 2, 9, 15, 15, 9, 1, 1, 9, 1, 10, 11, 15, 12, 2, 2, 10, 10, 1, 15, 9, 2, 9, 9, 1, 15, 1, 2], cert := false },
+  { seq := 34, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 9, 10, 2, 9, 15, 15, 9, 1, 1, 9, 1, 10, 11, 15, 12, 2, 2, 10, 10, 1, 15, 9, 2, 9, 9, 1, 15, 1, 2], next := some [9, 10, 9, 2, 9, 15, 9, 1, 1, 15, 9, 12, 10, 1, 15, 10, 2, 11, 10, 9, 1, 2, 1, 2, 15, 9, 9, 15, 1, 2], cert := false },
+  { seq := 35, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 10, 9, 2, 9, 15, 9, 1, 1, 15, 9, 12, 10, 1, 15, 10, 2, 11, 10, 9, 1, 2, 1, 2, 15, 9, 9, 15, 1, 2], next := some [10, 9, 1, 2, 9, 15, 9, 12, 1, 9, 9, 10, 10, 15, 15, 9, 2, 1, 10, 1, 1, 11, 9, 2, 2, 15, 9, 15, 1, 2], cert := false },
+  { seq := 36, lvl := 2, board := 2, act := some (.click 38 41), prev := [10, 9, 1, 2, 9, 15, 9, 12, 1, 9, 9, 10, 10, 15, 15, 9, 2, 1, 10, 1, 1, 11, 9, 2, 2, 15, 9, 15, 1, 2], next := some [10, 9, 1, 12, 2, 9, 9, 9, 15, 9, 15, 10, 1, 15, 10, 9, 10, 1, 9, 1, 2, 11, 15, 1, 2, 15, 9, 1, 2, 2], cert := false },
+  { seq := 37, lvl := 2, board := 2, act := some (.click 26 41), prev := [10, 9, 1, 12, 2, 9, 9, 9, 15, 9, 15, 10, 1, 15, 10, 9, 10, 1, 9, 1, 2, 11, 15, 1, 2, 15, 9, 1, 2, 2], next := some [9, 10, 9, 12, 2, 9, 9, 1, 15, 15, 15, 9, 1, 1, 10, 10, 10, 11, 9, 9, 2, 2, 1, 1, 15, 9, 15, 1, 2, 2], cert := false },
+  { seq := 38, lvl := 2, board := 2, act := some (.click 26 41), prev := [9, 10, 9, 12, 2, 9, 9, 1, 15, 15, 15, 9, 1, 1, 10, 10, 10, 11, 9, 9, 2, 2, 1, 1, 15, 9, 15, 1, 2, 2], next := some [9, 9, 10, 12, 2, 9, 15, 9, 15, 1, 15, 1, 1, 11, 10, 9, 10, 2, 9, 10, 2, 15, 9, 1, 9, 15, 1, 1, 2, 2], cert := false },
+  { seq := 39, lvl := 2, board := 2, act := some (.click 38 41), prev := [9, 9, 10, 12, 2, 9, 15, 9, 15, 1, 15, 1, 1, 11, 10, 9, 10, 2, 9, 10, 2, 15, 9, 1, 9, 15, 1, 1, 2, 2], next := some [9, 9, 10, 9, 12, 2, 15, 15, 9, 1, 10, 1, 15, 11, 9, 9, 1, 2, 9, 10, 10, 15, 1, 2, 9, 15, 1, 2, 2, 1], cert := false },
+  { seq := 40, lvl := 2, board := 2, act := some (.click 38 41), prev := [9, 9, 10, 9, 12, 2, 15, 15, 9, 1, 10, 1, 15, 11, 9, 9, 1, 2, 9, 10, 10, 15, 1, 2, 9, 15, 1, 2, 2, 1], next := some [9, 9, 10, 15, 9, 12, 15, 10, 2, 1, 9, 1, 9, 11, 9, 9, 15, 2, 1, 10, 1, 15, 2, 10, 9, 15, 1, 2, 1, 2], cert := false },
+  { seq := 41, lvl := 2, board := 2, act := some (.click 38 41), prev := [9, 9, 10, 15, 9, 12, 15, 10, 2, 1, 9, 1, 9, 11, 9, 9, 15, 2, 1, 10, 1, 15, 2, 10, 9, 15, 1, 2, 1, 2], next := some [9, 9, 10, 10, 15, 9, 15, 9, 12, 1, 9, 1, 2, 11, 1, 9, 9, 2, 2, 10, 15, 15, 2, 1, 9, 15, 1, 1, 2, 10], cert := false },
+  { seq := 42, lvl := 2, board := 2, act := some (.click 38 41), prev := [9, 9, 10, 10, 15, 9, 15, 9, 12, 1, 9, 1, 2, 11, 1, 9, 9, 2, 2, 10, 15, 15, 2, 1, 9, 15, 1, 1, 2, 10], next := some [9, 9, 10, 9, 10, 15, 15, 9, 9, 1, 1, 1, 12, 11, 2, 9, 2, 2, 2, 10, 9, 15, 1, 15, 9, 15, 1, 2, 10, 1], cert := false },
+  { seq := 43, lvl := 2, board := 2, act := some (.click 38 41), prev := [9, 9, 10, 9, 10, 15, 15, 9, 9, 1, 1, 1, 12, 11, 2, 9, 2, 2, 2, 10, 9, 15, 1, 15, 9, 15, 1, 2, 10, 1], next := none, cert := false },
+  { seq := 44, lvl := 3, board := 3, act := some (.click 25 15), prev := [10, 9, 9, 2, 1, 2, 1, 15, 10, 11, 9, 1, 2, 15, 2, 1, 15, 10, 2, 15, 15, 2, 1, 9, 2, 10, 1, 9, 9, 15, 10, 1, 12, 10, 10, 2], next := some [10, 9, 9, 2, 1, 1, 2, 1, 15, 10, 11, 9, 1, 2, 2, 1, 15, 10, 2, 15, 15, 2, 15, 1, 9, 2, 10, 1, 9, 9, 15, 10, 12, 10, 10, 2], cert := false },
+  { seq := 45, lvl := 3, board := 3, act := some (.click 15 25), prev := [10, 9, 9, 2, 1, 1, 2, 1, 15, 10, 11, 9, 1, 2, 2, 1, 15, 10, 2, 15, 15, 2, 15, 1, 9, 2, 10, 1, 9, 9, 15, 10, 12, 10, 10, 2], next := some [2, 10, 10, 9, 1, 1, 9, 1, 15, 10, 11, 2, 1, 2, 2, 9, 2, 1, 15, 10, 2, 15, 15, 1, 15, 2, 10, 1, 9, 2, 15, 10, 9, 9, 12, 10], cert := false },
+  { seq := 46, lvl := 3, board := 3, act := some (.click 6 15), prev := [2, 10, 10, 9, 1, 1, 9, 1, 15, 10, 11, 2, 1, 2, 2, 9, 2, 1, 15, 10, 2, 15, 15, 1, 15, 2, 10, 1, 9, 2, 15, 10, 9, 9, 12, 10], next := some [2, 10, 10, 9, 1, 9, 1, 15, 10, 11, 2, 1, 2, 15, 2, 9, 2, 1, 15, 10, 2, 15, 1, 15, 2, 10, 1, 9, 2, 15, 10, 1, 9, 9, 12, 10], cert := false },
+  { seq := 47, lvl := 3, board := 3, act := some (.click 15 25), prev := [2, 10, 10, 9, 1, 9, 1, 15, 10, 11, 2, 1, 2, 15, 2, 9, 2, 1, 15, 10, 2, 15, 1, 15, 2, 10, 1, 9, 2, 15, 10, 1, 9, 9, 12, 10], next := some [10, 12, 2, 10, 1, 9, 10, 15, 10, 11, 2, 9, 2, 15, 1, 1, 2, 9, 2, 1, 15, 10, 1, 15, 2, 10, 1, 9, 2, 15, 10, 1, 2, 15, 9, 9], cert := false },
+  { seq := 48, lvl := 3, board := 3, act := some (.click 15 25), prev := [10, 12, 2, 10, 1, 9, 10, 15, 10, 11, 2, 9, 2, 15, 1, 1, 2, 9, 2, 1, 15, 10, 1, 15, 2, 10, 1, 9, 2, 15, 10, 1, 2, 15, 9, 9], next := some [9, 9, 10, 12, 1, 9, 2, 15, 10, 11, 2, 10, 2, 15, 10, 9, 1, 1, 2, 9, 2, 1, 1, 15, 15, 10, 1, 9, 2, 10, 10, 1, 2, 15, 2, 15], cert := false },
+  { seq := 49, lvl := 3, board := 3, act := some (.click 15 25), prev := [9, 9, 10, 12, 1, 9, 2, 15, 10, 11, 2, 10, 2, 15, 10, 9, 1, 1, 2, 9, 2, 1, 1, 15, 15, 10, 1, 9, 2, 10, 10, 1, 2, 15, 2, 15], next := some [15, 2, 9, 9, 1, 9, 10, 15, 10, 11, 2, 12, 2, 15, 2, 10, 10, 9, 1, 1, 2, 9, 1, 15, 2, 10, 1, 9, 2, 1, 10, 1, 15, 10, 2, 15], cert := false },
+  { seq := 50, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 1, 9, 10, 15, 10, 11, 2, 12, 2, 15, 2, 10, 10, 9, 1, 1, 2, 9, 1, 15, 2, 10, 1, 9, 2, 1, 10, 1, 15, 10, 2, 15], next := some [15, 2, 9, 9, 9, 10, 15, 10, 11, 2, 12, 2, 15, 1, 2, 10, 10, 9, 1, 1, 2, 9, 15, 2, 10, 1, 9, 2, 1, 10, 1, 1, 15, 10, 2, 15], cert := false },
+  { seq := 51, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 9, 10, 15, 10, 11, 2, 12, 2, 15, 1, 2, 10, 10, 9, 1, 1, 2, 9, 15, 2, 10, 1, 9, 2, 1, 10, 1, 1, 15, 10, 2, 15], next := some [15, 2, 9, 9, 10, 15, 10, 11, 2, 12, 2, 15, 1, 15, 2, 10, 10, 9, 1, 1, 2, 9, 2, 10, 1, 9, 2, 1, 10, 1, 1, 9, 15, 10, 2, 15], cert := false },
+  { seq := 52, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 10, 15, 10, 11, 2, 12, 2, 15, 1, 15, 2, 10, 10, 9, 1, 1, 2, 9, 2, 10, 1, 9, 2, 1, 10, 1, 1, 9, 15, 10, 2, 15], next := some [15, 2, 9, 9, 15, 10, 11, 2, 12, 2, 15, 1, 15, 2, 2, 10, 10, 9, 1, 1, 2, 9, 10, 1, 9, 2, 1, 10, 1, 1, 9, 10, 15, 10, 2, 15], cert := false },
+  { seq := 53, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 15, 10, 11, 2, 12, 2, 15, 1, 15, 2, 2, 10, 10, 9, 1, 1, 2, 9, 10, 1, 9, 2, 1, 10, 1, 1, 9, 10, 15, 10, 2, 15], next := some [15, 2, 9, 9, 10, 11, 2, 12, 2, 15, 1, 15, 2, 10, 2, 10, 10, 9, 1, 1, 2, 9, 1, 9, 2, 1, 10, 1, 1, 9, 10, 15, 15, 10, 2, 15], cert := false },
+  { seq := 54, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 10, 11, 2, 12, 2, 15, 1, 15, 2, 10, 2, 10, 10, 9, 1, 1, 2, 9, 1, 9, 2, 1, 10, 1, 1, 9, 10, 15, 15, 10, 2, 15], next := some [15, 2, 9, 9, 11, 2, 12, 2, 15, 1, 15, 2, 10, 1, 2, 10, 10, 9, 1, 1, 2, 9, 9, 2, 1, 10, 1, 1, 9, 10, 15, 10, 15, 10, 2, 15], cert := false },
+  { seq := 55, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 11, 2, 12, 2, 15, 1, 15, 2, 10, 1, 2, 10, 10, 9, 1, 1, 2, 9, 9, 2, 1, 10, 1, 1, 9, 10, 15, 10, 15, 10, 2, 15], next := some [15, 2, 9, 9, 2, 12, 2, 15, 1, 15, 2, 10, 1, 9, 2, 10, 10, 9, 1, 1, 2, 9, 2, 1, 10, 1, 1, 9, 10, 15, 10, 11, 15, 10, 2, 15], cert := false },
+  { seq := 56, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 2, 12, 2, 15, 1, 15, 2, 10, 1, 9, 2, 10, 10, 9, 1, 1, 2, 9, 2, 1, 10, 1, 1, 9, 10, 15, 10, 11, 15, 10, 2, 15], next := some [15, 2, 9, 9, 12, 2, 15, 1, 15, 2, 10, 1, 9, 2, 2, 10, 10, 9, 1, 1, 2, 9, 1, 10, 1, 1, 9, 10, 15, 10, 11, 2, 15, 10, 2, 15], cert := false },
+  { seq := 57, lvl := 3, board := 3, act := some (.click 6 15), prev := [15, 2, 9, 9, 12, 2, 15, 1, 15, 2, 10, 1, 9, 2, 2, 10, 10, 9, 1, 1, 2, 9, 1, 10, 1, 1, 9, 10, 15, 10, 11, 2, 15, 10, 2, 15], next := none, cert := false },
+  { seq := 58, lvl := 4, board := 4, act := some (.click 9 7), prev := [10, 9, 2, 15, 1, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], next := some [9, 2, 15, 1, 10, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], cert := false },
+  { seq := 59, lvl := 4, board := 4, act := some (.click 9 7), prev := [9, 2, 15, 1, 10, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], next := some [2, 15, 1, 10, 9, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], cert := false },
+  { seq := 60, lvl := 4, board := 4, act := some (.click 11 37), prev := [2, 15, 1, 10, 9, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], next := some [15, 1, 10, 9, 1, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 1, 11, 9], cert := false },
+  { seq := 61, lvl := 4, board := 4, act := some (.click 11 37), prev := [15, 1, 10, 9, 1, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 1, 11, 9], next := some [1, 10, 9, 1, 1, 15, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 11, 9, 10], cert := false },
+  { seq := 62, lvl := 4, board := 4, act := some (.click 11 37), prev := [1, 10, 9, 1, 1, 15, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 11, 9, 10], next := some [10, 9, 1, 1, 11, 1, 15, 2, 15, 11, 1, 9, 2, 9, 1, 1, 10, 15, 9, 10, 1], cert := false },
+  { seq := 63, lvl := 4, board := 4, act := some (.click 9 7), prev := [10, 9, 1, 1, 11, 1, 15, 2, 15, 11, 1, 9, 2, 9, 1, 1, 10, 15, 9, 10, 1], next := some [9, 1, 1, 11, 10, 1, 15, 2, 15, 11, 1, 9, 2, 9, 1, 1, 10, 15, 9, 10, 1], cert := false },
+  { seq := 64, lvl := 4, board := 4, act := some (.click 37 37), prev := [9, 1, 1, 11, 10, 1, 15, 2, 15, 11, 1, 9, 2, 9, 1, 1, 10, 15, 9, 10, 1], next := some [1, 9, 1, 1, 11, 15, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 9, 10], cert := false },
+  { seq := 65, lvl := 4, board := 4, act := some (.click 51 7), prev := [1, 9, 1, 1, 11, 15, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 9, 10], next := some [11, 1, 9, 1, 1, 15, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 9, 10], cert := false },
+  { seq := 66, lvl := 4, board := 4, act := some (.click 37 37), prev := [11, 1, 9, 1, 1, 15, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 9, 10], next := some [15, 11, 1, 9, 1, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 1, 10, 9], cert := false },
+  { seq := 67, lvl := 4, board := 4, act := some (.click 37 37), prev := [15, 11, 1, 9, 1, 2, 15, 11, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 1, 10, 9], next := some [2, 15, 11, 1, 9, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 10], cert := false },
+  { seq := 68, lvl := 4, board := 4, act := some (.click 37 37), prev := [2, 15, 11, 1, 9, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 10], next := some [15, 2, 15, 11, 1, 11, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 10, 9, 1, 1], cert := false },
+  { seq := 69, lvl := 4, board := 4, act := some (.click 37 37), prev := [15, 2, 15, 11, 1, 11, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 10, 9, 1, 1], next := none, cert := false },
+  { seq := 70, lvl := 5, board := 5, act := some (.click 15 28), prev := [1, 15, 15, 10, 15, 1, 10, 2, 2, 2, 15, 9, 1, 9, 1, 10, 2, 11, 15, 10, 9, 9, 10, 15, 10, 2, 2, 9, 2, 2, 11, 1, 9, 10, 15, 1, 10, 10, 10, 15, 15, 10, 15, 9, 15, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [15, 15, 15, 10, 15, 1, 2, 2, 10, 2, 15, 9, 9, 1, 9, 10, 2, 11, 1, 10, 1, 9, 10, 15, 10, 2, 2, 9, 2, 2, 9, 11, 1, 10, 15, 1, 10, 10, 10, 15, 15, 10, 15, 15, 9, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], cert := false },
+  { seq := 71, lvl := 5, board := 5, act := some (.click 27 15), prev := [15, 15, 15, 10, 15, 1, 2, 2, 10, 2, 15, 9, 9, 1, 9, 10, 2, 11, 1, 10, 1, 9, 10, 15, 10, 2, 2, 9, 2, 2, 9, 11, 1, 10, 15, 1, 10, 10, 10, 15, 15, 10, 15, 15, 9, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], cert := false },
+  { seq := 72, lvl := 5, board := 5, act := some (.click 42 45), prev := [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 2, 9, 10, 2, 10, 1, 1, 10, 1, 9, 11, 1, 10, 2, 1, 9, 15, 1, 10, 10, 2, 10, 2, 1], cert := false },
+  { seq := 73, lvl := 5, board := 5, act := some (.click 30 58), prev := [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 2, 9, 10, 2, 10, 1, 1, 10, 1, 9, 11, 1, 10, 2, 1, 9, 15, 1, 10, 10, 2, 10, 2, 1], next := some [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 9, 10, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 74, lvl := 5, board := 5, act := some (.click 53 55), prev := [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 9, 10, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 2, 10, 2, 9, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 75, lvl := 5, board := 5, act := some (.click 27 15), prev := [2, 2, 10, 10, 15, 1, 9, 1, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 10, 1, 1, 15, 9, 10, 10, 2, 2, 9, 2, 2, 15, 15, 9, 10, 15, 1, 9, 11, 1, 15, 15, 10, 10, 10, 2, 10, 2, 9, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [9, 1, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 2, 10, 10, 2, 11, 1, 1, 10, 10, 15, 9, 10, 2, 2, 9, 2, 2, 10, 10, 2, 10, 15, 1, 15, 15, 9, 15, 15, 10, 9, 11, 1, 10, 2, 9, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 76, lvl := 5, board := 5, act := some (.click 15 28), prev := [9, 1, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 2, 10, 10, 2, 11, 1, 1, 10, 10, 15, 9, 10, 2, 2, 9, 2, 2, 10, 10, 2, 10, 15, 1, 15, 15, 9, 15, 15, 10, 9, 11, 1, 10, 2, 9, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 2, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 10, 2, 9, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 77, lvl := 5, board := 5, act := some (.click 57 15), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 2, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 10, 2, 9, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 2, 10, 10, 10, 15, 1, 9, 15, 2, 2, 9, 1, 2, 2, 10, 2, 9, 2, 10, 10, 10, 10, 2, 9, 1, 15, 15, 10, 15, 1, 1, 9, 11, 15, 15, 10, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 78, lvl := 5, board := 5, act := some (.click 57 15), prev := [1, 9, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 2, 10, 10, 10, 15, 1, 9, 15, 2, 2, 9, 1, 2, 2, 10, 2, 9, 2, 10, 10, 10, 10, 2, 9, 1, 15, 15, 10, 15, 1, 1, 9, 11, 15, 15, 10, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 10, 2, 11, 15, 15, 15, 10, 15, 1, 2, 10, 10, 2, 15, 9, 9, 15, 2, 2, 9, 1, 2, 10, 2, 2, 2, 9, 10, 10, 10, 15, 15, 10, 1, 15, 15, 10, 2, 9, 1, 9, 11, 10, 15, 1, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 79, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 10, 2, 11, 15, 15, 15, 10, 15, 1, 2, 10, 10, 2, 15, 9, 9, 15, 2, 2, 9, 1, 2, 10, 2, 2, 2, 9, 10, 10, 10, 15, 15, 10, 1, 15, 15, 10, 2, 9, 1, 9, 11, 10, 15, 1, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 2, 11, 9, 15, 15, 15, 15, 1, 2, 2, 10, 10, 15, 9, 2, 9, 15, 2, 2, 9, 1, 10, 10, 2, 10, 9, 1, 10, 10, 10, 2, 15, 15, 1, 15, 15, 10, 10, 2, 1, 9, 11, 2, 10, 15, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 80, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 2, 11, 9, 15, 15, 15, 15, 1, 2, 2, 10, 10, 15, 9, 2, 9, 15, 2, 2, 9, 1, 10, 10, 2, 10, 9, 1, 10, 10, 10, 2, 15, 15, 1, 15, 15, 10, 10, 2, 1, 9, 11, 2, 10, 15, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 11, 9, 1, 15, 15, 15, 1, 2, 9, 2, 10, 10, 9, 2, 10, 9, 15, 2, 2, 9, 1, 2, 15, 15, 15, 2, 15, 10, 10, 10, 2, 2, 15, 1, 15, 15, 10, 10, 10, 1, 9, 11, 10, 2, 10, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 81, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 11, 9, 1, 15, 15, 15, 1, 2, 9, 2, 10, 10, 9, 2, 10, 9, 15, 2, 2, 9, 1, 2, 15, 15, 15, 2, 15, 10, 10, 10, 2, 2, 15, 1, 15, 15, 10, 10, 10, 1, 9, 11, 10, 2, 10, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 9, 1, 15, 15, 15, 15, 2, 9, 2, 2, 10, 10, 2, 10, 15, 9, 15, 2, 2, 9, 1, 11, 1, 9, 15, 10, 10, 10, 10, 10, 15, 2, 2, 1, 15, 15, 15, 10, 10, 1, 9, 11, 2, 10, 2, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 82, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 9, 1, 15, 15, 15, 15, 2, 9, 2, 2, 10, 10, 2, 10, 15, 9, 15, 2, 2, 9, 1, 11, 1, 9, 15, 10, 10, 10, 10, 10, 15, 2, 2, 1, 15, 15, 15, 10, 10, 1, 9, 11, 2, 10, 2, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], cert := false },
+  { seq := 83, lvl := 5, board := 5, act := some (.click 42 45), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 9, 15, 1, 10, 1, 2, 10, 1, 10, 2, 2, 1, 1, 2, 1, 1, 9, 15, 11, 10, 10, 9, 10, 2], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 10, 1, 2, 10, 1, 10, 9, 15, 1, 2, 1, 2, 1, 1, 2, 9, 10, 2, 1, 9, 15, 11, 10, 10], cert := false },
+  { seq := 84, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 10, 1, 2, 10, 1, 10, 9, 15, 1, 2, 1, 2, 1, 1, 2, 9, 10, 2, 1, 9, 15, 11, 10, 10], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 1, 2, 2, 1, 10, 1, 15, 1, 1, 10, 10, 9, 2, 15, 10, 2, 9, 10, 1, 1, 9, 2, 11, 10], cert := false },
+  { seq := 85, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 1, 2, 2, 1, 10, 1, 15, 1, 1, 10, 10, 9, 2, 15, 10, 2, 9, 10, 1, 1, 9, 2, 11, 10], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 2, 2, 10, 10, 1, 15, 1, 1, 2, 1, 1, 15, 10, 9, 10, 9, 2, 9, 10, 1, 1, 10, 2, 11], cert := false },
+  { seq := 86, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 2, 2, 10, 10, 1, 15, 1, 1, 2, 1, 1, 15, 10, 9, 10, 9, 2, 9, 10, 1, 1, 10, 2, 11], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 2, 10, 10, 1, 15, 9, 1, 2, 10, 2, 10, 1, 9, 1, 11, 15, 9, 2, 1, 10, 1, 1, 10, 2], cert := false },
+  { seq := 87, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 2, 10, 10, 1, 15, 9, 1, 2, 10, 2, 10, 1, 9, 1, 11, 15, 9, 2, 1, 10, 1, 1, 10, 2], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 10, 10, 11, 15, 9, 1, 2, 10, 9, 2, 1, 1, 2, 1, 2, 1, 15, 9, 10, 1, 10, 2, 1, 10], cert := false },
+  { seq := 88, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 10, 10, 11, 15, 9, 1, 2, 10, 9, 2, 1, 1, 2, 1, 2, 1, 15, 9, 10, 1, 10, 2, 1, 10], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 15, 1, 10, 1, 2, 2, 1], cert := false },
+  { seq := 89, lvl := 5, board := 5, act := some (.click 53 55), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 10, 2, 10, 10, 10, 15, 15, 9, 15, 2, 2, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 10, 15, 10, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 15, 1, 10, 1, 2, 2, 1], next := none, cert := false },
+  { seq := 90, lvl := 6, board := 6, act := some (.click 20 20), prev := [15, 10, 1, 15, 2, 1, 9, 11, 2, 15, 1, 15, 9, 11], next := some [2, 10, 1, 15, 2, 1, 9, 11, 15, 15, 1, 15, 9, 11], cert := false },
+  { seq := 91, lvl := 6, board := 6, act := some (.click 20 33), prev := [2, 10, 1, 15, 2, 1, 9, 11, 15, 15, 1, 15, 9, 11], next := some [15, 10, 1, 15, 2, 1, 9, 11, 2, 15, 1, 15, 9, 11], cert := false },
+  { seq := 92, lvl := 6, board := 6, act := some (.click 29 42), prev := [15, 10, 1, 15, 2, 1, 9, 11, 2, 15, 1, 15, 9, 11], next := some [10, 1, 15, 2, 1, 9, 11, 15, 2, 15, 15, 11, 1, 9], cert := false },
+  { seq := 93, lvl := 6, board := 6, act := some (.click 33 42), prev := [10, 1, 15, 2, 1, 9, 11, 15, 2, 15, 15, 11, 1, 9], next := some [15, 10, 1, 15, 2, 1, 9, 11, 2, 15, 1, 15, 9, 11], cert := false },
+  { seq := 94, lvl := 6, board := 6, act := some (.click 33 42), prev := [15, 10, 1, 15, 2, 1, 9, 11, 2, 15, 1, 15, 9, 11], next := some [11, 15, 10, 1, 15, 2, 1, 9, 2, 15, 9, 1, 11, 15], cert := false },
+  { seq := 95, lvl := 6, board := 6, act := some (.click 20 20), prev := [11, 15, 10, 1, 15, 2, 1, 9, 2, 15, 9, 1, 11, 15], next := some [2, 15, 10, 1, 15, 2, 1, 9, 15, 11, 9, 1, 11, 15], cert := false },
+  { seq := 96, lvl := 6, board := 6, act := some (.click 29 42), prev := [2, 15, 10, 1, 15, 2, 1, 9, 15, 11, 9, 1, 11, 15], next := some [15, 10, 1, 15, 2, 1, 9, 2, 15, 11, 1, 15, 9, 11], cert := false },
+  { seq := 97, lvl := 6, board := 6, act := some (.click 20 33), prev := [15, 10, 1, 15, 2, 1, 9, 2, 15, 11, 1, 15, 9, 11], next := some [11, 10, 1, 15, 2, 1, 9, 2, 15, 15, 1, 15, 9, 11], cert := false },
+  { seq := 98, lvl := 6, board := 6, act := some (.click 29 42), prev := [11, 10, 1, 15, 2, 1, 9, 2, 15, 15, 1, 15, 9, 11], next := none, cert := false },
+  { seq := 99, lvl := 7, board := 7, act := some (.click 53 24), prev := [9, 9, 1, 11, 9, 10, 10, 9, 15, 1, 9, 15, 2, 1, 2, 15, 10, 9, 9, 11, 2, 10, 1, 15, 1, 2, 2, 9, 9, 15, 2, 2, 11, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [9, 9, 1, 15, 9, 10, 10, 9, 11, 1, 9, 15, 2, 1, 2, 15, 10, 9, 9, 11, 2, 10, 1, 15, 1, 2, 2, 9, 9, 15, 2, 2, 11, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 100, lvl := 7, board := 7, act := some (.click 53 34), prev := [9, 9, 1, 15, 9, 10, 10, 9, 11, 1, 9, 15, 2, 1, 2, 15, 10, 9, 9, 11, 2, 10, 1, 15, 1, 2, 2, 9, 9, 15, 2, 2, 11, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [9, 9, 1, 15, 9, 10, 2, 9, 11, 1, 9, 15, 10, 1, 2, 15, 10, 9, 2, 11, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 101, lvl := 7, board := 7, act := some (.click 36 57), prev := [9, 9, 1, 15, 9, 10, 2, 9, 11, 1, 9, 15, 10, 1, 2, 15, 10, 9, 2, 11, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [9, 9, 9, 15, 9, 10, 2, 1, 15, 1, 9, 15, 2, 9, 11, 15, 10, 9, 10, 1, 2, 10, 1, 2, 11, 2, 2, 9, 9, 1, 2, 2, 15, 15, 2, 10, 9, 10, 10, 15, 11, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], cert := false },
+  { seq := 102, lvl := 7, board := 7, act := some (.click 49 29), prev := [9, 9, 9, 15, 9, 10, 2, 1, 15, 1, 9, 15, 2, 9, 11, 15, 10, 9, 10, 1, 2, 10, 1, 2, 11, 2, 2, 9, 9, 1, 2, 2, 15, 15, 2, 10, 9, 10, 10, 15, 11, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], next := some [9, 9, 1, 15, 9, 10, 2, 9, 15, 1, 9, 15, 2, 1, 11, 15, 10, 9, 10, 11, 2, 10, 1, 2, 9, 2, 2, 9, 9, 1, 2, 2, 15, 15, 2, 10, 9, 10, 10, 15, 11, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], cert := false },
+  { seq := 103, lvl := 7, board := 7, act := some (.click 31 57), prev := [9, 9, 1, 15, 9, 10, 2, 9, 15, 1, 9, 15, 2, 1, 11, 15, 10, 9, 10, 11, 2, 10, 1, 2, 9, 2, 2, 9, 9, 1, 2, 2, 15, 15, 2, 10, 9, 10, 10, 15, 11, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], next := some [1, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 10, 11, 2, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 104, lvl := 7, board := 7, act := some (.click 53 24), prev := [1, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 10, 11, 2, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [1, 9, 9, 11, 9, 10, 2, 1, 15, 1, 9, 15, 10, 11, 2, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 105, lvl := 7, board := 7, act := some (.click 53 24), prev := [1, 9, 9, 11, 9, 10, 2, 1, 15, 1, 9, 15, 10, 11, 2, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [1, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 10, 11, 2, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 106, lvl := 7, board := 7, act := some (.click 49 34), prev := [1, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 10, 11, 2, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 15, 2, 2, 9, 10, 10, 10, 11, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [1, 9, 9, 15, 9, 10, 10, 1, 11, 1, 9, 15, 2, 11, 2, 15, 10, 9, 9, 9, 2, 10, 1, 15, 1, 2, 2, 9, 9, 15, 2, 2, 11, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 107, lvl := 7, board := 7, act := some (.click 49 34), prev := [1, 9, 9, 15, 9, 10, 10, 1, 11, 1, 9, 15, 2, 11, 2, 15, 10, 9, 9, 9, 2, 10, 1, 15, 1, 2, 2, 9, 9, 15, 2, 2, 11, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [1, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 9, 11, 2, 15, 10, 9, 15, 9, 2, 10, 1, 9, 1, 2, 2, 9, 11, 15, 2, 2, 2, 10, 10, 10, 10, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 108, lvl := 7, board := 7, act := some (.click 49 34), prev := [1, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 9, 11, 2, 15, 10, 9, 15, 9, 2, 10, 1, 9, 1, 2, 2, 9, 11, 15, 2, 2, 2, 10, 10, 10, 10, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [1, 9, 9, 15, 9, 10, 9, 1, 11, 1, 9, 15, 15, 11, 2, 15, 10, 9, 9, 9, 2, 10, 1, 11, 1, 2, 2, 9, 2, 15, 2, 2, 10, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], cert := false },
+  { seq := 109, lvl := 7, board := 7, act := some (.click 31 57), prev := [1, 9, 9, 15, 9, 10, 9, 1, 11, 1, 9, 15, 15, 11, 2, 15, 10, 9, 9, 9, 2, 10, 1, 11, 1, 2, 2, 9, 2, 15, 2, 2, 10, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [9, 9, 1, 11, 9, 10, 15, 11, 2, 1, 9, 15, 9, 9, 2, 15, 10, 9, 11, 1, 2, 10, 1, 2, 15, 2, 2, 9, 10, 10, 10, 2, 2, 9, 10, 10, 9, 15, 15, 15, 10, 10, 15, 10, 1, 10, 10, 9, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 2, 15, 9, 1, 15, 9], cert := false },
+  { seq := 110, lvl := 7, board := 7, act := some (.click 31 57), prev := [9, 9, 1, 11, 9, 10, 15, 11, 2, 1, 9, 15, 9, 9, 2, 15, 10, 9, 11, 1, 2, 10, 1, 2, 15, 2, 2, 9, 10, 10, 10, 2, 2, 9, 10, 10, 9, 15, 15, 15, 10, 10, 15, 10, 1, 10, 10, 9, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 2, 15, 9, 1, 15, 9], next := some [1, 9, 11, 2, 9, 10, 9, 9, 2, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 10, 2, 9, 2, 9, 10, 2, 9, 15, 15, 10, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], cert := false },
+  { seq := 111, lvl := 7, board := 7, act := some (.click 31 57), prev := [1, 9, 11, 2, 9, 10, 9, 9, 2, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 10, 2, 9, 2, 9, 10, 2, 9, 15, 15, 10, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], next := some [11, 9, 9, 2, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 10, 10, 1, 2, 9, 10, 2, 9, 9, 15, 15, 2, 10, 10, 15, 10, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 15, 2, 9, 15, 10, 9, 1, 15, 9, 15, 9, 11, 2, 15, 9, 1, 2, 9], cert := false },
+  { seq := 112, lvl := 7, board := 7, act := some (.click 31 57), prev := [11, 9, 9, 2, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 10, 10, 1, 2, 9, 10, 2, 9, 9, 15, 15, 2, 10, 10, 15, 10, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 15, 2, 9, 15, 10, 9, 1, 15, 9, 15, 9, 11, 2, 15, 9, 1, 2, 9], next := some [9, 9, 1, 2, 9, 10, 2, 15, 2, 1, 9, 15, 10, 10, 10, 15, 10, 9, 2, 9, 10, 10, 1, 9, 15, 15, 2, 9, 10, 10, 15, 2, 1, 10, 10, 10, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 15, 9, 1, 15, 10, 15, 9, 11, 9, 9, 1, 2, 2, 15, 11, 11, 2, 9], cert := false },
+  { seq := 113, lvl := 7, board := 7, act := some (.click 36 57), prev := [9, 9, 1, 2, 9, 10, 2, 15, 2, 1, 9, 15, 10, 10, 10, 15, 10, 9, 2, 9, 10, 10, 1, 9, 15, 15, 2, 9, 10, 10, 15, 2, 1, 10, 10, 10, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 15, 9, 1, 15, 10, 15, 9, 11, 9, 9, 1, 2, 2, 15, 11, 11, 2, 9], next := some [11, 9, 9, 2, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 10, 10, 1, 2, 9, 10, 2, 9, 9, 15, 15, 2, 10, 10, 15, 10, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 15, 2, 9, 15, 10, 9, 1, 15, 9, 15, 9, 11, 2, 15, 9, 1, 2, 9], cert := false },
+  { seq := 114, lvl := 7, board := 7, act := some (.click 36 57), prev := [11, 9, 9, 2, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 10, 10, 1, 2, 9, 10, 2, 9, 9, 15, 15, 2, 10, 10, 15, 10, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 15, 2, 9, 15, 10, 9, 1, 15, 9, 15, 9, 11, 2, 15, 9, 1, 2, 9], next := some [1, 9, 11, 2, 9, 10, 9, 9, 2, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 10, 2, 9, 2, 9, 10, 2, 9, 15, 15, 10, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], cert := false },
+  { seq := 115, lvl := 7, board := 7, act := some (.click 49 29), prev := [1, 9, 11, 2, 9, 10, 9, 9, 2, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 10, 2, 9, 2, 9, 10, 2, 9, 15, 15, 10, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], next := some [11, 9, 9, 2, 9, 10, 9, 1, 2, 1, 9, 15, 11, 15, 2, 15, 10, 9, 2, 10, 2, 10, 1, 10, 1, 10, 2, 9, 2, 9, 10, 2, 9, 15, 15, 10, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], cert := false },
+  { seq := 116, lvl := 7, board := 7, act := some (.click 49 34), prev := [11, 9, 9, 2, 9, 10, 9, 1, 2, 1, 9, 15, 11, 15, 2, 15, 10, 9, 2, 10, 2, 10, 1, 10, 1, 10, 2, 9, 2, 9, 10, 2, 9, 15, 15, 10, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], next := some [11, 9, 9, 2, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 2, 10, 1, 2, 1, 10, 2, 9, 9, 9, 10, 2, 10, 15, 15, 10, 9, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], cert := false },
+  { seq := 117, lvl := 7, board := 7, act := some (.click 36 57), prev := [11, 9, 9, 2, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 2, 10, 1, 2, 1, 10, 2, 9, 9, 9, 10, 2, 10, 15, 15, 10, 9, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 11, 9], next := some [9, 9, 11, 11, 9, 10, 15, 9, 2, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 2, 2, 9, 2, 1, 10, 2, 9, 9, 10, 10, 10, 15, 15, 15, 9, 10, 15, 10, 1, 10, 10, 9, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 2, 15, 9, 1, 15, 9], cert := false },
+  { seq := 118, lvl := 7, board := 7, act := some (.click 49 24), prev := [9, 9, 11, 11, 9, 10, 15, 9, 2, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 2, 2, 9, 2, 1, 10, 2, 9, 9, 10, 10, 10, 15, 15, 15, 9, 10, 15, 10, 1, 10, 10, 9, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 2, 15, 9, 1, 15, 9], next := some [9, 9, 11, 2, 9, 10, 15, 9, 11, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 2, 2, 9, 2, 1, 10, 2, 9, 9, 10, 10, 10, 15, 15, 15, 9, 10, 15, 10, 1, 10, 10, 9, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 2, 15, 9, 1, 15, 9], cert := false },
+  { seq := 119, lvl := 7, board := 7, act := some (.click 31 57), prev := [9, 9, 11, 2, 9, 10, 15, 9, 11, 1, 9, 15, 11, 1, 2, 15, 10, 9, 2, 15, 2, 10, 1, 10, 10, 2, 2, 9, 2, 1, 10, 2, 9, 9, 10, 10, 10, 15, 15, 15, 9, 10, 15, 10, 1, 10, 10, 9, 10, 2, 15, 15, 10, 9, 15, 10, 2, 2, 9, 9, 2, 9, 15, 2, 15, 9, 1, 15, 9], next := some [11, 9, 9, 11, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 2, 10, 1, 2, 1, 10, 2, 9, 9, 9, 10, 2, 10, 15, 15, 10, 9, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 2, 9], cert := false },
+  { seq := 120, lvl := 7, board := 7, act := some (.click 31 57), prev := [11, 9, 9, 11, 9, 10, 11, 1, 2, 1, 9, 15, 2, 15, 2, 15, 10, 9, 10, 10, 2, 10, 1, 2, 1, 10, 2, 9, 9, 9, 10, 2, 10, 15, 15, 10, 9, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 15, 2, 2, 9, 10, 2, 9, 15, 9, 9, 1, 15, 2, 15, 15, 9, 2, 9], next := none, cert := false },
+  { seq := 121, lvl := 8, board := 7, act := none, prev := [9, 9, 1, 2, 9, 10, 2, 15, 2, 1, 9, 15, 10, 10, 2, 15, 10, 9, 2, 1, 10, 10, 1, 9, 9, 10, 2, 9, 10, 15, 15, 2, 9, 10, 15, 10, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 15, 2, 9, 15, 10, 9, 1, 15, 9, 15, 9, 2, 2, 15, 11, 11, 11, 9], next := none, cert := false },
+  { seq := 122, lvl := 0, board := 0, act := some (.click 4 32), prev := [1, 2, 10, 9, 15, 11, 2, 10, 15, 15, 9, 2, 10, 1, 1, 9, 9, 10, 15, 2], next := some [2, 10, 9, 15, 11, 2, 15, 1, 9, 10, 10, 15, 2, 2, 1, 1, 9, 9, 10, 15], cert := true },
+  { seq := 123, lvl := 0, board := 0, act := some (.click 4 32), prev := [2, 10, 9, 15, 11, 2, 15, 1, 9, 10, 10, 15, 2, 2, 1, 1, 9, 9, 10, 15], next := some [10, 9, 15, 11, 2, 15, 9, 2, 10, 1, 2, 10, 15, 15, 2, 1, 1, 9, 9, 10], cert := true },
+  { seq := 124, lvl := 0, board := 0, act := some (.click 4 32), prev := [10, 9, 15, 11, 2, 15, 9, 2, 10, 1, 2, 10, 15, 15, 2, 1, 1, 9, 9, 10], next := some [9, 15, 11, 2, 15, 9, 10, 10, 2, 2, 15, 1, 10, 10, 15, 2, 1, 1, 9, 9], cert := true },
+  { seq := 125, lvl := 0, board := 0, act := some (.click 4 32), prev := [9, 15, 11, 2, 15, 9, 10, 10, 2, 2, 15, 1, 10, 10, 15, 2, 1, 1, 9, 9], next := some [15, 11, 2, 15, 9, 10, 2, 9, 15, 10, 10, 2, 9, 1, 10, 15, 2, 1, 1, 9], cert := true },
+  { seq := 126, lvl := 0, board := 0, act := some (.click 4 32), prev := [15, 11, 2, 15, 9, 10, 2, 9, 15, 10, 10, 2, 9, 1, 10, 15, 2, 1, 1, 9], next := none, cert := true },
+  { seq := 127, lvl := 1, board := 1, act := some (.click 39 17), prev := [10, 9, 15, 11, 15, 15, 9, 2, 10, 1, 9, 9, 1, 10, 15, 2, 10, 2, 2, 1, 1, 1, 2, 1, 10, 9, 1, 9, 10, 15, 9, 2, 10, 11, 1, 2, 9, 10, 10, 15, 15, 2], next := some [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 1, 10, 11, 1, 9, 10, 2, 9, 2, 10, 2, 15, 10, 1, 10, 15, 15, 2, 9], cert := true },
+  { seq := 128, lvl := 1, board := 1, act := some (.click 48 35), prev := [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 1, 10, 11, 1, 9, 10, 2, 9, 2, 10, 2, 15, 10, 1, 10, 15, 15, 2, 9], next := some [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 2, 15, 10, 1, 10, 15, 15, 2, 9], cert := true },
+  { seq := 129, lvl := 1, board := 1, act := some (.click 39 17), prev := [15, 10, 9, 15, 11, 2, 15, 9, 9, 1, 9, 1, 1, 10, 15, 10, 10, 2, 2, 1, 2, 9, 1, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 2, 15, 10, 1, 10, 15, 15, 2, 9], next := some [2, 15, 10, 9, 15, 9, 11, 1, 15, 1, 9, 1, 1, 10, 15, 9, 10, 2, 2, 9, 10, 10, 2, 10, 1, 2, 11, 1, 9, 1, 2, 9, 2, 10, 10, 10, 15, 15, 15, 2, 9, 1], cert := true },
+  { seq := 130, lvl := 1, board := 1, act := some (.click 39 17), prev := [2, 15, 10, 9, 15, 9, 11, 1, 15, 1, 9, 1, 1, 10, 15, 9, 10, 2, 2, 9, 10, 10, 2, 10, 1, 2, 11, 1, 9, 1, 2, 9, 2, 10, 10, 10, 15, 15, 15, 2, 9, 1], next := some [9, 2, 15, 10, 9, 1, 15, 1, 11, 1, 9, 9, 1, 10, 15, 15, 10, 2, 2, 10, 9, 2, 10, 10, 1, 10, 11, 1, 9, 2, 2, 9, 2, 10, 1, 15, 10, 15, 2, 9, 1, 15], cert := true },
+  { seq := 131, lvl := 1, board := 1, act := some (.click 39 17), prev := [9, 2, 15, 10, 9, 1, 15, 1, 11, 1, 9, 9, 1, 10, 15, 15, 10, 2, 2, 10, 9, 2, 10, 10, 1, 10, 11, 1, 9, 2, 2, 9, 2, 10, 1, 15, 10, 15, 2, 9, 1, 15], next := some [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], cert := true },
+  { seq := 132, lvl := 1, board := 1, act := some (.click 48 35), prev := [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 10, 1, 10, 11, 1, 9, 10, 2, 9, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], next := some [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 9, 15, 2, 15, 1, 2, 9, 1, 15, 10], cert := true },
+  { seq := 133, lvl := 1, board := 1, act := some (.click 48 35), prev := [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 9, 15, 2, 15, 1, 2, 9, 1, 15, 10], next := some [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], cert := true },
+  { seq := 134, lvl := 1, board := 1, act := some (.click 48 35), prev := [1, 9, 2, 15, 10, 1, 9, 9, 15, 1, 9, 10, 1, 10, 15, 11, 10, 2, 2, 2, 15, 10, 9, 9, 2, 10, 1, 10, 11, 1, 9, 10, 2, 15, 2, 15, 1, 2, 9, 1, 15, 10], next := none, cert := true },
+  { seq := 135, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 15, 2, 10, 15, 9, 9, 9, 11, 1, 15, 1, 2, 9, 1, 15, 9, 10, 2, 9, 15, 12, 2, 1, 1, 9, 10, 1, 2, 10], next := some [15, 2, 9, 10, 15, 9, 9, 1, 11, 9, 15, 15, 2, 1, 1, 9, 9, 9, 2, 2, 15, 10, 10, 1, 12, 1, 9, 1, 2, 10], cert := true },
+  { seq := 136, lvl := 2, board := 2, act := some (.click 23 41), prev := [15, 2, 9, 10, 15, 9, 9, 1, 11, 9, 15, 15, 2, 1, 1, 9, 9, 9, 2, 2, 15, 10, 10, 1, 12, 1, 9, 1, 2, 10], next := some [2, 9, 1, 10, 15, 9, 15, 15, 11, 9, 15, 9, 2, 9, 1, 2, 9, 1, 2, 10, 15, 9, 9, 1, 10, 12, 1, 1, 2, 10], cert := true },
+  { seq := 137, lvl := 2, board := 2, act := some (.click 23 41), prev := [2, 9, 1, 10, 15, 9, 15, 15, 11, 9, 15, 9, 2, 9, 1, 2, 9, 1, 2, 10, 15, 9, 9, 1, 10, 12, 1, 1, 2, 10], next := some [9, 1, 15, 10, 15, 9, 2, 9, 11, 15, 15, 2, 2, 9, 1, 10, 9, 9, 2, 9, 15, 1, 1, 1, 9, 10, 12, 1, 2, 10], cert := true },
+  { seq := 138, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 1, 15, 10, 15, 9, 2, 9, 11, 15, 15, 2, 2, 9, 1, 10, 9, 9, 2, 9, 15, 1, 1, 1, 9, 10, 12, 1, 2, 10], next := some [1, 15, 9, 10, 15, 9, 9, 2, 11, 2, 15, 10, 2, 15, 1, 9, 9, 9, 2, 1, 15, 9, 12, 1, 1, 9, 10, 1, 2, 10], cert := true },
+  { seq := 139, lvl := 2, board := 2, act := some (.click 35 41), prev := [1, 15, 9, 10, 15, 9, 9, 2, 11, 2, 15, 10, 2, 15, 1, 9, 9, 9, 2, 1, 15, 9, 12, 1, 1, 9, 10, 1, 2, 10], next := some [1, 15, 9, 15, 9, 11, 9, 10, 2, 2, 2, 10, 9, 15, 15, 9, 15, 9, 1, 1, 1, 9, 2, 10, 1, 9, 10, 12, 1, 2], cert := true },
+  { seq := 140, lvl := 2, board := 2, act := some (.click 35 41), prev := [1, 15, 9, 15, 9, 11, 9, 10, 2, 2, 2, 10, 9, 15, 15, 9, 15, 9, 1, 1, 1, 9, 2, 10, 1, 9, 10, 12, 1, 2], next := some [1, 15, 9, 9, 11, 2, 9, 15, 9, 2, 10, 10, 15, 15, 2, 9, 1, 9, 15, 1, 10, 9, 1, 2, 1, 9, 10, 2, 12, 1], cert := true },
+  { seq := 141, lvl := 2, board := 2, act := some (.click 35 41), prev := [1, 15, 9, 9, 11, 2, 9, 15, 9, 2, 10, 10, 15, 15, 2, 9, 1, 9, 15, 1, 10, 9, 1, 2, 1, 9, 10, 2, 12, 1], next := some [1, 15, 9, 11, 2, 9, 9, 9, 15, 2, 15, 10, 1, 15, 10, 9, 10, 9, 2, 1, 2, 9, 15, 1, 1, 9, 10, 1, 2, 12], cert := true },
+  { seq := 142, lvl := 2, board := 2, act := some (.click 35 41), prev := [1, 15, 9, 11, 2, 9, 9, 9, 15, 2, 15, 10, 1, 15, 10, 9, 10, 9, 2, 1, 2, 9, 15, 1, 1, 9, 10, 1, 2, 12], next := some [1, 15, 9, 2, 9, 15, 9, 11, 1, 2, 9, 10, 10, 15, 15, 9, 2, 9, 10, 1, 1, 9, 2, 12, 1, 9, 10, 15, 1, 2], cert := true },
+  { seq := 143, lvl := 2, board := 2, act := some (.click 23 41), prev := [1, 15, 9, 2, 9, 15, 9, 11, 1, 2, 9, 10, 10, 15, 15, 9, 2, 9, 10, 1, 1, 9, 2, 12, 1, 9, 10, 15, 1, 2], next := some [15, 9, 11, 2, 9, 15, 1, 10, 1, 9, 9, 9, 10, 2, 15, 1, 2, 15, 10, 2, 1, 9, 10, 12, 9, 1, 9, 15, 1, 2], cert := true },
+  { seq := 144, lvl := 2, board := 2, act := some (.click 23 41), prev := [15, 9, 11, 2, 9, 15, 1, 10, 1, 9, 9, 9, 10, 2, 15, 1, 2, 15, 10, 2, 1, 9, 10, 12, 9, 1, 9, 15, 1, 2], next := some [9, 11, 10, 2, 9, 15, 15, 9, 1, 1, 9, 1, 10, 9, 15, 2, 2, 2, 10, 10, 1, 15, 9, 12, 9, 9, 1, 15, 1, 2], cert := true },
+  { seq := 145, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 11, 10, 2, 9, 15, 15, 9, 1, 1, 9, 1, 10, 9, 15, 2, 2, 2, 10, 10, 1, 15, 9, 12, 9, 9, 1, 15, 1, 2], next := some [11, 10, 9, 2, 9, 15, 9, 1, 1, 15, 9, 2, 10, 1, 15, 10, 2, 9, 10, 9, 1, 2, 1, 12, 15, 9, 9, 15, 1, 2], cert := true },
+  { seq := 146, lvl := 2, board := 2, act := some (.click 23 41), prev := [11, 10, 9, 2, 9, 15, 9, 1, 1, 15, 9, 2, 10, 1, 15, 10, 2, 9, 10, 9, 1, 2, 1, 12, 15, 9, 9, 15, 1, 2], next := some [10, 9, 1, 2, 9, 15, 11, 2, 1, 9, 9, 10, 10, 15, 15, 9, 2, 1, 10, 1, 1, 9, 9, 12, 2, 15, 9, 15, 1, 2], cert := true },
+  { seq := 147, lvl := 2, board := 2, act := some (.click 23 41), prev := [10, 9, 1, 2, 9, 15, 11, 2, 1, 9, 9, 10, 10, 15, 15, 9, 2, 1, 10, 1, 1, 9, 9, 12, 2, 15, 9, 15, 1, 2], next := some [9, 1, 2, 2, 9, 15, 10, 10, 1, 11, 9, 9, 10, 9, 15, 1, 2, 15, 10, 9, 1, 1, 9, 12, 9, 2, 15, 15, 1, 2], cert := true },
+  { seq := 148, lvl := 2, board := 2, act := some (.click 23 41), prev := [9, 1, 2, 2, 9, 15, 10, 10, 1, 11, 9, 9, 10, 9, 15, 1, 2, 15, 10, 9, 1, 1, 9, 12, 9, 2, 15, 15, 1, 2], next := some [1, 2, 10, 2, 9, 15, 9, 9, 1, 10, 9, 1, 10, 11, 15, 9, 2, 9, 10, 9, 1, 15, 15, 12, 1, 9, 2, 15, 1, 2], cert := true },
+  { seq := 149, lvl := 2, board := 2, act := some (.click 35 41), prev := [1, 2, 10, 2, 9, 15, 9, 9, 1, 10, 9, 1, 10, 11, 15, 9, 2, 9, 10, 9, 1, 15, 15, 12, 1, 9, 2, 15, 1, 2], next := some [1, 2, 10, 9, 15, 1, 9, 2, 10, 10, 9, 1, 2, 11, 9, 9, 1, 9, 15, 9, 12, 15, 10, 2, 1, 9, 2, 15, 15, 1], cert := true },
+  { seq := 150, lvl := 2, board := 2, act := some (.click 35 41), prev := [1, 2, 10, 9, 15, 1, 9, 2, 10, 10, 9, 1, 2, 11, 9, 9, 1, 9, 15, 9, 12, 15, 10, 2, 1, 9, 2, 15, 15, 1], next := none, cert := true },
+  { seq := 151, lvl := 3, board := 3, act := some (.click 15 25), prev := [10, 9, 9, 2, 1, 2, 1, 15, 10, 11, 9, 1, 2, 15, 2, 1, 15, 10, 2, 15, 15, 2, 1, 9, 2, 10, 1, 9, 9, 15, 10, 1, 12, 10, 10, 2], next := some [2, 10, 10, 9, 1, 2, 9, 15, 10, 11, 9, 2, 2, 15, 1, 1, 2, 1, 15, 10, 2, 15, 1, 9, 15, 10, 1, 9, 9, 2, 10, 1, 2, 15, 12, 10], cert := true },
+  { seq := 152, lvl := 3, board := 3, act := some (.click 15 25), prev := [2, 10, 10, 9, 1, 2, 9, 15, 10, 11, 9, 2, 2, 15, 1, 1, 2, 1, 15, 10, 2, 15, 1, 9, 15, 10, 1, 9, 9, 2, 10, 1, 2, 15, 12, 10], next := some [10, 12, 2, 10, 1, 2, 10, 15, 10, 11, 9, 9, 2, 15, 9, 2, 1, 1, 2, 1, 15, 10, 1, 9, 2, 10, 1, 9, 9, 15, 10, 1, 15, 2, 2, 15], cert := true },
+  { seq := 153, lvl := 3, board := 3, act := some (.click 15 25), prev := [10, 12, 2, 10, 1, 2, 10, 15, 10, 11, 9, 9, 2, 15, 9, 2, 1, 1, 2, 1, 15, 10, 1, 9, 2, 10, 1, 9, 9, 15, 10, 1, 15, 2, 2, 15], next := some [15, 2, 10, 12, 1, 2, 2, 15, 10, 11, 9, 10, 2, 15, 10, 9, 9, 2, 1, 1, 2, 1, 1, 9, 15, 10, 1, 9, 9, 10, 10, 1, 2, 15, 15, 2], cert := true },
+  { seq := 154, lvl := 3, board := 3, act := some (.click 15 25), prev := [15, 2, 10, 12, 1, 2, 2, 15, 10, 11, 9, 10, 2, 15, 10, 9, 9, 2, 1, 1, 2, 1, 1, 9, 15, 10, 1, 9, 9, 10, 10, 1, 2, 15, 15, 2], next := some [2, 15, 15, 2, 1, 2, 10, 15, 10, 11, 9, 12, 2, 15, 2, 10, 10, 9, 9, 2, 1, 1, 1, 9, 2, 10, 1, 9, 9, 1, 10, 1, 15, 10, 2, 15], cert := true },
+  { seq := 155, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 1, 2, 10, 15, 10, 11, 9, 12, 2, 15, 2, 10, 10, 9, 9, 2, 1, 1, 1, 9, 2, 10, 1, 9, 9, 1, 10, 1, 15, 10, 2, 15], next := some [2, 15, 15, 2, 2, 10, 15, 10, 11, 9, 12, 2, 15, 1, 2, 10, 10, 9, 9, 2, 1, 1, 9, 2, 10, 1, 9, 9, 1, 10, 1, 1, 15, 10, 2, 15], cert := true },
+  { seq := 156, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 2, 10, 15, 10, 11, 9, 12, 2, 15, 1, 2, 10, 10, 9, 9, 2, 1, 1, 9, 2, 10, 1, 9, 9, 1, 10, 1, 1, 15, 10, 2, 15], next := some [2, 15, 15, 2, 10, 15, 10, 11, 9, 12, 2, 15, 1, 9, 2, 10, 10, 9, 9, 2, 1, 1, 2, 10, 1, 9, 9, 1, 10, 1, 1, 2, 15, 10, 2, 15], cert := true },
+  { seq := 157, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 10, 15, 10, 11, 9, 12, 2, 15, 1, 9, 2, 10, 10, 9, 9, 2, 1, 1, 2, 10, 1, 9, 9, 1, 10, 1, 1, 2, 15, 10, 2, 15], next := some [2, 15, 15, 2, 15, 10, 11, 9, 12, 2, 15, 1, 9, 2, 2, 10, 10, 9, 9, 2, 1, 1, 10, 1, 9, 9, 1, 10, 1, 1, 2, 10, 15, 10, 2, 15], cert := true },
+  { seq := 158, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 15, 10, 11, 9, 12, 2, 15, 1, 9, 2, 2, 10, 10, 9, 9, 2, 1, 1, 10, 1, 9, 9, 1, 10, 1, 1, 2, 10, 15, 10, 2, 15], next := some [2, 15, 15, 2, 10, 11, 9, 12, 2, 15, 1, 9, 2, 10, 2, 10, 10, 9, 9, 2, 1, 1, 1, 9, 9, 1, 10, 1, 1, 2, 10, 15, 15, 10, 2, 15], cert := true },
+  { seq := 159, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 10, 11, 9, 12, 2, 15, 1, 9, 2, 10, 2, 10, 10, 9, 9, 2, 1, 1, 1, 9, 9, 1, 10, 1, 1, 2, 10, 15, 15, 10, 2, 15], next := some [2, 15, 15, 2, 11, 9, 12, 2, 15, 1, 9, 2, 10, 1, 2, 10, 10, 9, 9, 2, 1, 1, 9, 9, 1, 10, 1, 1, 2, 10, 15, 10, 15, 10, 2, 15], cert := true },
+  { seq := 160, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 11, 9, 12, 2, 15, 1, 9, 2, 10, 1, 2, 10, 10, 9, 9, 2, 1, 1, 9, 9, 1, 10, 1, 1, 2, 10, 15, 10, 15, 10, 2, 15], next := some [2, 15, 15, 2, 9, 12, 2, 15, 1, 9, 2, 10, 1, 9, 2, 10, 10, 9, 9, 2, 1, 1, 9, 1, 10, 1, 1, 2, 10, 15, 10, 11, 15, 10, 2, 15], cert := true },
+  { seq := 161, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 9, 12, 2, 15, 1, 9, 2, 10, 1, 9, 2, 10, 10, 9, 9, 2, 1, 1, 9, 1, 10, 1, 1, 2, 10, 15, 10, 11, 15, 10, 2, 15], next := some [2, 15, 15, 2, 12, 2, 15, 1, 9, 2, 10, 1, 9, 9, 2, 10, 10, 9, 9, 2, 1, 1, 1, 10, 1, 1, 2, 10, 15, 10, 11, 9, 15, 10, 2, 15], cert := true },
+  { seq := 162, lvl := 3, board := 3, act := some (.click 36 15), prev := [2, 15, 15, 2, 12, 2, 15, 1, 9, 2, 10, 1, 9, 9, 2, 10, 10, 9, 9, 2, 1, 1, 1, 10, 1, 1, 2, 10, 15, 10, 11, 9, 15, 10, 2, 15], next := none, cert := true },
+  { seq := 163, lvl := 4, board := 4, act := some (.click 37 37), prev := [10, 9, 2, 15, 1, 15, 11, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], next := some [15, 10, 9, 2, 15, 11, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 11, 1, 1, 1], cert := true },
+  { seq := 164, lvl := 4, board := 4, act := some (.click 37 37), prev := [15, 10, 9, 2, 15, 11, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 11, 1, 1, 1], next := some [11, 15, 10, 9, 2, 2, 9, 1, 9, 1, 15, 10, 1, 1, 10, 9, 11, 1, 15, 1, 1], cert := true },
+  { seq := 165, lvl := 4, board := 4, act := some (.click 51 7), prev := [11, 15, 10, 9, 2, 2, 9, 1, 9, 1, 15, 10, 1, 1, 10, 9, 11, 1, 15, 1, 1], next := some [2, 11, 15, 10, 9, 2, 9, 1, 9, 1, 15, 10, 1, 1, 10, 9, 11, 1, 15, 1, 1], cert := true },
+  { seq := 166, lvl := 4, board := 4, act := some (.click 11 37), prev := [2, 11, 15, 10, 9, 2, 9, 1, 9, 1, 15, 10, 1, 1, 10, 9, 11, 1, 15, 1, 1], next := some [11, 15, 10, 9, 15, 2, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 11, 1, 1, 1], cert := true },
+  { seq := 167, lvl := 4, board := 4, act := some (.click 9 7), prev := [11, 15, 10, 9, 15, 2, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 11, 1, 1, 1], next := some [15, 10, 9, 15, 11, 2, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 11, 1, 1, 1], cert := true },
+  { seq := 168, lvl := 4, board := 4, act := some (.click 11 37), prev := [15, 10, 9, 15, 11, 2, 2, 9, 1, 9, 10, 1, 1, 15, 1, 10, 9, 11, 1, 1, 1], next := some [10, 9, 15, 11, 1, 15, 2, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], cert := true },
+  { seq := 169, lvl := 4, board := 4, act := some (.click 11 37), prev := [10, 9, 15, 11, 1, 15, 2, 2, 9, 1, 1, 1, 9, 10, 15, 1, 10, 9, 1, 1, 11], next := some [9, 15, 11, 1, 1, 10, 15, 2, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 1, 11, 9], cert := true },
+  { seq := 170, lvl := 4, board := 4, act := some (.click 11 37), prev := [9, 15, 11, 1, 1, 10, 15, 2, 2, 9, 1, 9, 1, 1, 10, 15, 1, 10, 1, 11, 9], next := some [15, 11, 1, 1, 1, 9, 10, 15, 2, 2, 9, 1, 9, 1, 1, 10, 15, 1, 11, 9, 10], cert := true },
+  { seq := 171, lvl := 4, board := 4, act := some (.click 11 37), prev := [15, 11, 1, 1, 1, 9, 10, 15, 2, 2, 9, 1, 9, 1, 1, 10, 15, 1, 11, 9, 10], next := none, cert := true },
+  { seq := 172, lvl := 5, board := 5, act := some (.click 15 28), prev := [1, 15, 15, 10, 15, 1, 10, 2, 2, 2, 15, 9, 1, 9, 1, 10, 2, 11, 15, 10, 9, 9, 10, 15, 10, 2, 2, 9, 2, 2, 11, 1, 9, 10, 15, 1, 10, 10, 10, 15, 15, 10, 15, 9, 15, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [15, 15, 15, 10, 15, 1, 2, 2, 10, 2, 15, 9, 9, 1, 9, 10, 2, 11, 1, 10, 1, 9, 10, 15, 10, 2, 2, 9, 2, 2, 9, 11, 1, 10, 15, 1, 10, 10, 10, 15, 15, 10, 15, 15, 9, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], cert := true },
+  { seq := 173, lvl := 5, board := 5, act := some (.click 15 28), prev := [15, 15, 15, 10, 15, 1, 2, 2, 10, 2, 15, 9, 9, 1, 9, 10, 2, 11, 1, 10, 1, 9, 10, 15, 10, 2, 2, 9, 2, 2, 9, 11, 1, 10, 15, 1, 10, 10, 10, 15, 15, 10, 15, 15, 9, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [15, 15, 15, 10, 15, 1, 2, 10, 10, 2, 15, 9, 1, 9, 9, 10, 2, 11, 15, 2, 9, 1, 10, 9, 10, 2, 2, 9, 2, 2, 1, 9, 11, 10, 15, 1, 10, 10, 10, 15, 15, 10, 1, 15, 15, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], cert := true },
+  { seq := 174, lvl := 5, board := 5, act := some (.click 27 15), prev := [15, 15, 15, 10, 15, 1, 2, 10, 10, 2, 15, 9, 1, 9, 9, 10, 2, 11, 15, 2, 9, 1, 10, 9, 10, 2, 2, 9, 2, 2, 1, 9, 11, 10, 15, 1, 10, 10, 10, 15, 15, 10, 1, 15, 15, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [2, 10, 10, 10, 15, 1, 1, 9, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 2, 9, 15, 9, 1, 10, 10, 2, 2, 9, 2, 2, 1, 15, 15, 10, 15, 1, 1, 9, 11, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], cert := true },
+  { seq := 175, lvl := 5, board := 5, act := some (.click 27 15), prev := [2, 10, 10, 10, 15, 1, 1, 9, 9, 2, 15, 9, 15, 15, 15, 10, 2, 11, 2, 9, 15, 9, 1, 10, 10, 2, 2, 9, 2, 2, 1, 15, 15, 10, 15, 1, 1, 9, 11, 15, 15, 10, 10, 10, 10, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], cert := true },
+  { seq := 176, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 1, 10, 1, 2, 9, 10, 2, 10, 1, 1, 9, 11, 2, 1, 10, 10, 10, 2, 10, 2, 1, 9, 15, 1], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 1, 10, 9, 10, 1, 10, 1, 2, 1, 2, 2, 2, 1, 1, 11, 10, 10, 9, 10, 2, 1, 9, 15], cert := true },
+  { seq := 177, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 1, 10, 9, 10, 1, 10, 1, 2, 1, 2, 2, 2, 1, 1, 11, 10, 10, 9, 10, 2, 1, 9, 15], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 1, 10, 1, 10, 1, 1, 1, 2, 2, 10, 9, 10, 10, 2, 15, 2, 11, 10, 2, 9, 10, 1, 1, 9], cert := true },
+  { seq := 178, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 1, 10, 1, 10, 1, 1, 1, 2, 2, 10, 9, 10, 10, 2, 15, 2, 11, 10, 2, 9, 10, 1, 1, 9], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 1, 15, 1, 1, 2, 2, 2, 10, 1, 10, 1, 10, 10, 9, 10, 2, 11, 9, 2, 9, 10, 1, 1], cert := true },
+  { seq := 179, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 1, 15, 1, 1, 2, 2, 2, 10, 1, 10, 1, 10, 10, 9, 10, 2, 11, 9, 2, 9, 10, 1, 1], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 1, 15, 9, 1, 2, 10, 2, 10, 10, 10, 1, 2, 11, 9, 1, 1, 10, 2, 10, 9, 2, 1, 10, 1], cert := true },
+  { seq := 180, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 1, 15, 9, 1, 2, 10, 2, 10, 10, 10, 1, 2, 11, 9, 1, 1, 10, 2, 10, 9, 2, 1, 10, 1], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 15, 9, 1, 2, 10, 9, 10, 10, 11, 1, 1, 2, 2, 2, 1, 2, 1, 10, 1, 10, 9, 10, 1, 10], cert := true },
+  { seq := 181, lvl := 5, board := 5, act := some (.click 30 58), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 15, 9, 1, 2, 10, 9, 10, 10, 11, 1, 1, 2, 2, 2, 1, 2, 1, 10, 1, 10, 9, 10, 1, 10], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 9, 1, 1, 10, 9, 2, 10, 11, 2, 15, 2, 10, 10, 9, 10, 2, 2, 1, 1, 1, 10, 1, 10, 1], cert := true },
+  { seq := 182, lvl := 5, board := 5, act := some (.click 42 45), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 9, 1, 1, 10, 9, 2, 10, 11, 2, 15, 2, 10, 10, 9, 10, 2, 2, 1, 1, 1, 10, 1, 10, 1], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 9, 2, 10, 11, 2, 9, 1, 1, 2, 10, 15, 10, 10, 9, 1, 10, 1, 2, 2, 1, 1, 1, 10], cert := true },
+  { seq := 183, lvl := 5, board := 5, act := some (.click 42 45), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 9, 2, 10, 11, 2, 9, 1, 1, 2, 10, 15, 10, 10, 9, 1, 10, 1, 2, 2, 1, 1, 1, 10], next := some [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 184, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 10, 15, 1, 15, 15, 15, 2, 15, 9, 2, 10, 10, 10, 2, 11, 9, 15, 2, 10, 9, 1, 10, 2, 2, 9, 2, 2, 10, 10, 10, 10, 15, 1, 1, 15, 15, 15, 15, 10, 1, 9, 11, 15, 2, 9, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := some [1, 9, 9, 15, 1, 2, 15, 15, 15, 15, 9, 2, 2, 10, 10, 2, 11, 9, 9, 15, 2, 10, 9, 1, 10, 2, 10, 1, 10, 9, 10, 10, 10, 2, 10, 15, 1, 15, 15, 2, 15, 15, 1, 9, 11, 10, 15, 2, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 185, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 15, 1, 2, 15, 15, 15, 15, 9, 2, 2, 10, 10, 2, 11, 9, 9, 15, 2, 10, 9, 1, 10, 2, 10, 1, 10, 9, 10, 10, 10, 2, 10, 15, 1, 15, 15, 2, 15, 15, 1, 9, 11, 10, 15, 2, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := some [1, 9, 9, 1, 2, 9, 15, 15, 15, 9, 2, 10, 2, 10, 10, 11, 9, 1, 9, 15, 2, 10, 9, 1, 15, 15, 2, 15, 15, 2, 10, 10, 10, 10, 2, 10, 1, 15, 15, 2, 2, 15, 1, 9, 11, 10, 10, 15, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 186, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 1, 2, 9, 15, 15, 15, 9, 2, 10, 2, 10, 10, 11, 9, 1, 9, 15, 2, 10, 9, 1, 15, 15, 2, 15, 15, 2, 10, 10, 10, 10, 2, 10, 1, 15, 15, 2, 2, 15, 1, 9, 11, 10, 10, 15, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := some [1, 9, 9, 2, 9, 2, 15, 15, 15, 2, 10, 15, 2, 10, 10, 9, 1, 15, 9, 15, 2, 10, 9, 1, 1, 9, 11, 10, 15, 15, 10, 10, 10, 2, 10, 2, 1, 15, 15, 15, 2, 2, 1, 9, 11, 15, 10, 10, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 187, lvl := 5, board := 5, act := some (.click 45 28), prev := [1, 9, 9, 2, 9, 2, 15, 15, 15, 2, 10, 15, 2, 10, 10, 9, 1, 15, 9, 15, 2, 10, 9, 1, 1, 9, 11, 10, 15, 15, 10, 10, 10, 2, 10, 2, 1, 15, 15, 15, 2, 2, 1, 9, 11, 15, 10, 10, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := some [1, 9, 9, 9, 2, 15, 15, 15, 15, 10, 15, 15, 2, 10, 10, 1, 15, 10, 9, 15, 2, 10, 9, 1, 2, 2, 9, 2, 2, 10, 10, 10, 10, 11, 2, 10, 1, 15, 15, 9, 15, 2, 1, 9, 11, 1, 15, 10, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 188, lvl := 5, board := 5, act := some (.click 57 15), prev := [1, 9, 9, 9, 2, 15, 15, 15, 15, 10, 15, 15, 2, 10, 10, 1, 15, 10, 9, 15, 2, 10, 9, 1, 2, 2, 9, 2, 2, 10, 10, 10, 10, 11, 2, 10, 1, 15, 15, 9, 15, 2, 1, 9, 11, 1, 15, 10, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := some [1, 9, 9, 10, 15, 15, 15, 15, 15, 1, 15, 10, 2, 10, 10, 9, 2, 15, 9, 15, 2, 10, 9, 1, 2, 9, 2, 10, 2, 2, 10, 10, 10, 1, 15, 10, 1, 15, 15, 11, 2, 10, 1, 9, 11, 9, 15, 2, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 189, lvl := 5, board := 5, act := some (.click 57 15), prev := [1, 9, 9, 10, 15, 15, 15, 15, 15, 1, 15, 10, 2, 10, 10, 9, 2, 15, 9, 15, 2, 10, 9, 1, 2, 9, 2, 10, 2, 2, 10, 10, 10, 1, 15, 10, 1, 15, 15, 11, 2, 10, 1, 9, 11, 9, 15, 2, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := some [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 15, 2, 10, 10, 10, 15, 15, 9, 15, 2, 10, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], cert := true },
+  { seq := 190, lvl := 5, board := 5, act := some (.click 53 55), prev := [1, 9, 9, 1, 15, 10, 15, 15, 15, 9, 2, 15, 2, 10, 10, 10, 15, 15, 9, 15, 2, 10, 9, 1, 9, 2, 2, 2, 10, 2, 10, 10, 10, 9, 15, 2, 1, 15, 15, 1, 15, 10, 1, 9, 11, 11, 2, 10, 2, 10, 15, 10, 11, 2, 9, 1, 1, 10, 9, 2, 10, 15, 2, 9, 10, 10, 1, 1, 10, 1, 10, 1, 2, 2, 1], next := none, cert := true },
+  { seq := 191, lvl := 6, board := 6, act := some (.click 33 42), prev := [15, 10, 1, 15, 2, 1, 9, 11, 2, 15, 1, 15, 9, 11], next := some [11, 15, 10, 1, 15, 2, 1, 9, 2, 15, 9, 1, 11, 15], cert := true },
+  { seq := 192, lvl := 6, board := 6, act := some (.click 20 20), prev := [11, 15, 10, 1, 15, 2, 1, 9, 2, 15, 9, 1, 11, 15], next := some [2, 15, 10, 1, 15, 2, 1, 9, 15, 11, 9, 1, 11, 15], cert := true },
+  { seq := 193, lvl := 6, board := 6, act := some (.click 29 42), prev := [2, 15, 10, 1, 15, 2, 1, 9, 15, 11, 9, 1, 11, 15], next := some [15, 10, 1, 15, 2, 1, 9, 2, 15, 11, 1, 15, 9, 11], cert := true },
+  { seq := 194, lvl := 6, board := 6, act := some (.click 20 33), prev := [15, 10, 1, 15, 2, 1, 9, 2, 15, 11, 1, 15, 9, 11], next := some [11, 10, 1, 15, 2, 1, 9, 2, 15, 15, 1, 15, 9, 11], cert := true },
+  { seq := 195, lvl := 6, board := 6, act := some (.click 29 42), prev := [11, 10, 1, 15, 2, 1, 9, 2, 15, 15, 1, 15, 9, 11], next := none, cert := true },
+  { seq := 196, lvl := 7, board := 7, act := some (.click 36 57), prev := [9, 9, 1, 11, 9, 10, 10, 9, 15, 1, 9, 15, 2, 1, 2, 15, 10, 9, 9, 11, 2, 10, 1, 15, 1, 2, 2, 9, 9, 15, 2, 2, 11, 10, 10, 10, 2, 9, 10, 15, 9, 15, 15, 10, 10, 10, 15, 9, 1, 10, 10, 15, 10, 2, 15, 10, 10, 9, 15, 9, 2, 2, 9, 2, 15, 2, 9, 15, 9], next := some [9, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 10, 9, 15, 15, 10, 9, 2, 1, 2, 10, 1, 9, 11, 2, 2, 9, 15, 1, 2, 2, 9, 15, 2, 10, 11, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], cert := true },
+  { seq := 197, lvl := 7, board := 7, act := some (.click 49 24), prev := [9, 9, 9, 15, 9, 10, 2, 1, 11, 1, 9, 15, 10, 9, 15, 15, 10, 9, 2, 1, 2, 10, 1, 9, 11, 2, 2, 9, 15, 1, 2, 2, 9, 15, 2, 10, 11, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], next := some [9, 9, 9, 11, 9, 10, 2, 1, 15, 1, 9, 15, 10, 9, 15, 15, 10, 9, 2, 1, 2, 10, 1, 9, 11, 2, 2, 9, 15, 1, 2, 2, 9, 15, 2, 10, 11, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], cert := true },
+  { seq := 198, lvl := 7, board := 7, act := some (.click 53 29), prev := [9, 9, 9, 11, 9, 10, 2, 1, 15, 1, 9, 15, 10, 9, 15, 15, 10, 9, 2, 1, 2, 10, 1, 9, 11, 2, 2, 9, 15, 1, 2, 2, 9, 15, 2, 10, 11, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], next := some [11, 9, 9, 11, 9, 10, 2, 9, 15, 1, 9, 15, 10, 1, 15, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 1, 2, 2, 9, 15, 2, 10, 11, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], cert := true },
+  { seq := 199, lvl := 7, board := 7, act := some (.click 53 34), prev := [11, 9, 9, 11, 9, 10, 2, 9, 15, 1, 9, 15, 10, 1, 15, 15, 10, 9, 2, 9, 2, 10, 1, 9, 1, 2, 2, 9, 15, 1, 2, 2, 9, 15, 2, 10, 11, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], next := some [11, 9, 9, 11, 9, 10, 11, 9, 15, 1, 9, 15, 2, 1, 15, 15, 10, 9, 10, 9, 2, 10, 1, 2, 1, 2, 2, 9, 9, 1, 2, 2, 15, 15, 2, 10, 9, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], cert := true },
+  { seq := 200, lvl := 7, board := 7, act := some (.click 31 57), prev := [11, 9, 9, 11, 9, 10, 11, 9, 15, 1, 9, 15, 2, 1, 15, 15, 10, 9, 10, 9, 2, 10, 1, 2, 1, 2, 2, 9, 9, 1, 2, 2, 15, 15, 2, 10, 9, 10, 10, 15, 2, 9, 10, 10, 9, 15, 15, 9, 10, 10, 15, 15, 1, 10, 10, 10, 10, 2, 15, 9, 10, 9, 15, 2, 15, 2, 2, 9, 9], next := none, cert := true }]
+
+def dummy : Step := { seq := 0, lvl := 0, board := 0, act := none, prev := [], next := none, cert := false }
+
+/-- 按 **seq** 取。越界给空步——空步在任何判据下都会立刻露馅。 -/
+def bySeq (n : Nat) : Step := (steps.find? (fun s =&gt; s.seq == n)).getD dummy
+
+/-- 从 seq `want` 那一行起连着取 `len` 行，变成 (动作, 看到的下一帧颜色)。
+    取不到就给空表——所以每一段都另配一条长度定理钉住它到底有几步。 -/
+def playFrom (want len : Nat) : List (Act × Colors) :=
+  ((steps.dropWhile (fun s =&gt; s.seq != want)).take len).filterMap
+    (fun s =&gt; match s.act, s.next with
+      | some a, some o =&gt; some (a, o)
+      | _, _ =&gt; none)
+
+/-- 从 seq `want` 起连着取 `len` 行的动作。 -/
+def actsFrom (want len : Nat) : List Act :=
+  ((steps.dropWhile (fun s =&gt; s.seq != want)).take len).filterMap (fun s =&gt; s.act)
+
+/-- 这一行动作之前的世界：这一帧读到的盘 + 这一帧的颜色。 -/
+def worldOf (s : Step) : World := { board := boardAt s.board, colors := s.prev }
+
+end Replay
+</pre></div>
+</div>
+
+</body>
+</html>

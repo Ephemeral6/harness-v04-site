@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · hud_cursor_cycle</title>
+<style>
+/* 只有尺寸与配色（从 ledger/templates/web/style.css 起手）。 */
+/* 按钮 / 门按世界色号上色：--btnN / --doorN 由 web/export.py 从官方 arc_agi.rendering.COLOR_MAP 生成（只有这一个来源） */
+/* 生成的文件，别手改：web/export.py 从 arc_agi.rendering.COLOR_MAP 按色号取色 */
+:root {
+  --btn8: #F93C31;
+  --btn11: #FFDC00;
+  --btn15: #A356D6;
+  --door8: #F93C31;
+  --door11: #FFDC00;
+  --door15: #A356D6;
+}
+
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;
+  /* ↓ 本局专属：世界的配色（前端配的，不是世界里的色号） */
+  --wall: #0b0d12; --floor: #2a2f3b; --goal: #e8e8e8; --hidden: #3d3340;
+  --me: #59b0ff; --ghost: #e5544b; --walker: #b36bff;
+  --spring: #c9a227; --latch: #3fb6a8;
+  --ok: #4caf7d; --bad: #e5544b; --na: #4a5163;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+       font: 14px/1.6 "Segoe UI", system-ui, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; color: var(--dim); letter-spacing: .8px; }
+.gaps { border-color: #7a5a20; }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin-top: 22px; font-weight: 600; font-size: 15px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--line); }
+.mono, code, pre { font-family: ui-monospace, Consolas, monospace; }
+pre.src { white-space: pre-wrap; font-size: 12px; background: #0f1116; padding: 10px; border-radius: 6px; overflow-x: auto; }
+.prose { white-space: pre-wrap; }
+.boards { display: flex; gap: 18px; flex-wrap: wrap; }
+figure.board { margin: 0; }
+figure.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.cells .row { display: flex; }
+.c { display: inline-block; width: 22px; height: 22px; border: 1px solid #0003; }
+.legend .c { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+.c.wall { background: var(--wall); } .c.floor { background: var(--floor); } .c.goal { background: var(--goal); }
+.c.hidden { background: var(--hidden); } .c.me { background: var(--me); } .c.ghost { background: var(--ghost); }
+.c.walker { background: var(--walker); } .c.spring { background: var(--spring); } .c.latch { background: var(--latch); }
+.c.cart { background: #888; }
+.c.btn8 { background: var(--btn8); } .c.btn11 { background: var(--btn11); } .c.btn15 { background: var(--btn15); }
+.c.door8 { background: var(--door8); } .c.door11 { background: var(--door11); } .c.door15 { background: var(--door15); }
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+input[type=range] { flex: 1; min-width: 180px; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+.v-TRUE { color: var(--ok); } .v-FALSE { color: var(--bad); font-weight: 700; } .v-NA { color: var(--na); }
+@media (max-width: 600px) { .c { width: 14px; height: 14px; } }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · hud_cursor_cycle</h1><div class="sub">游标：ACTION5 → (k+1) mod n；方向键不动它。槽的个数 n 一关之内不变。</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+
+<div class="card"><h2>读数（全部语料 811 行）</h2>
+<p class="mono">|scope| 792　判对 792　判错 0　闭嘴 16　读不成 3　跑崩 0</p>
+<p>判错的那几条：</p><ul><li>没有</li></ul>
+<p>转移变异：拒掉 50 个，独家 0 个（共 120 个错的转移）</p>
+<details><summary>闭嘴的理由（按条数）</summary><table><tr><td>换关那一步</td><td>12</td></tr><tr><td>RESET（归 reset_restores_start）</td><td>4</td></tr><tr><td>读不成世界</td><td>3</td></tr></table></details></div>
+<div class="card"><h2>它说什么</h2><p><b>游标：ACTION5 → (k+1) mod n；方向键不动它。槽的个数 n 一关之内不变。</b></p><p class="note">论域：看全部动作。换关那一步不管（n 会换）；RESET 归 reset_restores_start（它把游标放回 0）。</p></div>
+<div class="card"><h2>它明确不主张什么</h2><p>槽画成什么样不是这一条的事：槽的样子由游标决定，parse 里有良构检查（objects/panel/hud.py）。</p></div>
+<div class="card"><h2>改版史</h2><ul><li>起点册子 hud_cursor_cycle v2 同时断言游标和每个槽的状态。卡 03 把槽的状态从 World 里删掉了（全语料每一帧都由游标推得出），这一条只剩游标与槽数——同一件事少说一遍。</li></ul>
+<p class="note">EVIDENCE 4 条，在这批语料里命中 4 条（tid 是内容哈希：命中只说明内容重叠）。</p></div>
+<div class="card"><h2>故意弄坏它（代码突变体，每个另起进程）</h2><table><tr><td>hud_no_wrap</td><td>游标不绕回</td><td>红</td><td>2</td></tr></table></div>
+<div class="card"><h2>它的 Lean</h2><p>身份：<b>定义</b>，Rule/Switch/HudCursorCycle.lean</p><pre class="src">/-
+# hud_cursor_cycle（`rule/换一盘/hud_cursor_cycle.py`）—— **定义**
+
+ACTION5：游标进一格，到头绕回 0。方向键不动游标（`Step` 里直接不碰它）。
+-/
+import Obj.Panel.Hud
+
+namespace G50t
+
+def hudCursorCycle (h : Hud) : Hud :=
+  { h with cursor := (h.cursor + 1) % h.n }
+
+end G50t
+</pre></div>
+<div class="card"><details><summary>Python 源码（rule/换一盘/hud_cursor_cycle.py）</summary><pre class="src">&quot;&quot;&quot;HUD 游标：ACTION5 把它推到下一个槽（到头就绕回第 0 槽），方向键不动它。&quot;&quot;&quot;
+from __future__ import annotations
+
+from rule._common import common_skip
+
+CLAIM = &quot;游标：ACTION5 → (k+1) mod n；方向键不动它。槽的个数 n 一关之内不变。&quot;
+
+SCOPE_NOTE = &quot;看全部动作。换关那一步不管（n 会换）；RESET 归 reset_restores_start（它把游标放回 0）。&quot;
+
+NOT_CLAIMED = &quot;槽画成什么样不是这一条的事：槽的样子由游标决定，parse 里有良构检查（objects/panel/hud.py）。&quot;
+
+HISTORY = [
+    &quot;起点册子 hud_cursor_cycle v2 同时断言游标和每个槽的状态。卡 03 把槽的状态从 World 里删掉了&quot;
+    &quot;（全语料每一帧都由游标推得出），这一条只剩游标与槽数——同一件事少说一遍。&quot;,
+]
+
+EVIDENCE = [&quot;0da82ced88c614e6&quot;, &quot;b59c529599b0ddd1&quot;, &quot;29a43bd35dbe6b35&quot;, &quot;694451c614edcf16&quot;]
+
+
+def scope_(prev, action, nxt, ctx):
+    s = common_skip(prev, nxt, ctx)
+    if s:
+        return s
+    if action == &quot;RESET&quot;:
+        return &quot;RESET（归 reset_restores_start）&quot;
+    return None
+
+
+def assert_(prev, action, nxt, ctx):
+    n, k = prev.hud.n, prev.hud.cursor
+    if nxt.hud.n != n:
+        return False
+    if action == &quot;ACTION5&quot;:
+        return nxt.hud.cursor == (k + 1) % n
+    return nxt.hud.cursor == k
+</pre></details></div>
+
+</div></body></html>

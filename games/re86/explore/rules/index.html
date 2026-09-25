@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>这一局 · 规则</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>这一局 · 规则</h1><div class="sub">分组读目录。数字都来自 analysis/readings.json。</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><div class="grouphead">board/</div><p class="note">**不动的那一半**：一关之内环、色块、挡块一格不挪；图层次序一步之内不翻。</p><table><tr><th>规则</th><th class="num">开口</th><th class="num">判对</th><th class="num">判错</th><th class="num">读不出</th><th>身份（Lean）</th><th>它说什么</th></tr><tr><td><a href="board__layers.html">board/layers</a></td><td class="num">2115</td><td class="num">520</td><td class="num">0</td><td class="num">1595</td><td>推论</td><td>关内每一步：前一帧读到 i 压 j、后一帧读到同一对，方向一样（推、变色、换人都不改图层）。</td></tr><tr><td><a href="board__static.html">board/static</a></td><td class="num">2115</td><td class="num">2115</td><td class="num">0</td><td class="num">0</td><td>不进模型</td><td>关内每一步前后：环心位置集合相同、两边都读得出的归属色相同、色块相同、挡块格子相同。</td></tr></table><div class="grouphead">goal/</div><p class="note">**什么算过关**：每个环心都被一件**同色**的东西盖住。</p><table><tr><th>规则</th><th class="num">开口</th><th class="num">判对</th><th class="num">判错</th><th class="num">读不出</th><th>身份（Lean）</th><th>它说什么</th></tr><tr><td><a href="goal__level_up.html">goal/level_up</a></td><td class="num">2149</td><td class="num">1482</td><td class="num">0</td><td class="num">667</td><td>定义</td><td>走完这一步后，每个环心都被一件与该环归属色同色的东西盖住，当且仅当这一步过关。</td></tr></table><div class="grouphead">hud/</div><p class="note">**底行的预算条**：每一步「已花掉」只涨 0 或 1 格，换关归零。</p><table><tr><th>规则</th><th class="num">开口</th><th class="num">判对</th><th class="num">判错</th><th class="num">读不出</th><th>身份（Lean）</th><th>它说什么</th></tr><tr><td><a href="hud__tick.html">hud/tick</a></td><td class="num">2147</td><td class="num">2147</td><td class="num">0</td><td class="num">0</td><td>不进模型</td><td>关内每一步 spent 只增 0 或 1、从不减少；换到下一关那一步 spent 归 0。</td></tr></table><div class="grouphead">move/</div><p class="note">**推一下（ACTION1–4）**：被选中的那一件怎么挪、怎么被挡块压变形、怎么变色；别的东西一格不动。</p><table><tr><th>规则</th><th class="num">开口</th><th class="num">判对</th><th class="num">判错</th><th class="num">读不出</th><th>身份（Lean）</th><th>它说什么</th></tr><tr><td><a href="move__blocked_box.html">move/blocked_box</a></td><td class="num">153</td><td class="num">75</td><td class="num">0</td><td class="num">78</td><td>定义</td><td>box 撞挡块时：迎面边不动、背面边推进 3、垂直方向长 3（加在让新中心离旧中心最近的那一头）；换完短边 &lt; 4 则整件不动。</td></tr><tr><td><a href="move__blocked_cross.html">move/blocked_cross</a></td><td class="num">113</td><td class="num">40</td><td class="num">0</td><td class="num">73</td><td>定义</td><td>十字撞挡块时两条杠各自判：会压到挡块的那条不动，另一条平移 3；两条都会压到就整件不动。</td></tr><tr><td><a href="move__others_stay.html">move/others_stay</a></td><td class="num">2022</td><td class="num">1949</td><td class="num">0</td><td class="num">73</td><td>推论</td><td>推一下时，除了被选中的那一件，别的东西几何和颜色都不变。</td></tr><tr><td><a href="move__recolor.html">move/recolor</a></td><td class="num">2022</td><td class="num">1853</td><td class="num">0</td><td class="num">169</td><td>定义</td><td>推完之后，被选中那件碰到色块就整件染成那个色块的颜色（碰到几个取最上面那个），没碰到保持原色。</td></tr><tr><td><a href="move__translate.html">move/translate</a></td><td class="num">1902</td><td class="num">1805</td><td class="num">0</td><td class="num">97</td><td>定义</td><td>推一下而没撞上挡块时，被选中的那一件整件平移 3 格（上下左右），几何一格不变。</td></tr></table><div class="grouphead">notmodel/</div><p class="note">**说了、也跑语料，但不进 Lean 模型**。每一条都写明为什么不进，并固定打两个数：</p><table><tr><th>规则</th><th class="num">开口</th><th class="num">判对</th><th class="num">判错</th><th class="num">读不出</th><th>身份（Lean）</th><th>它说什么</th></tr><tr><td><a href="notmodel__budget_curve.html">notmodel/budget_curve</a></td><td class="num">2115</td><td class="num">2115</td><td class="num">0</td><td class="num">0</td><td>不进模型</td><td>关内第 n 步走完时 spent = ⌊64·n/B + 1/2⌋，B 是这一关的预算常数。</td></tr><tr><td><a href="notmodel__reset_restarts.html">notmodel/reset_restarts</a></td><td class="num">4</td><td class="num">4</td><td class="num">0</td><td class="num">0</td><td>不进模型</td><td>RESET 之后的那一帧与整条语料第一帧（第 0 关开局）读成同一个世界。</td></tr></table><div class="grouphead">switch/</div><p class="note">**换人（ACTION5）**：光标换到下一件；东西一件都不挪。</p><table><tr><th>规则</th><th class="num">开口</th><th class="num">判对</th><th class="num">判错</th><th class="num">读不出</th><th>身份（Lean）</th><th>它说什么</th></tr><tr><td><a href="switch__cycle.html">switch/cycle</a></td><td class="num">93</td><td class="num">58</td><td class="num">0</td><td class="num">35</td><td>定义</td><td>ACTION5 不改任何东西（几何、颜色、hub 那一格画不画本色），只把选中换到图层次序里上面一层那件（到顶绕回最底；中心在盘外的跳过）。</td></tr></table></div><div class="card"><h2>反向测试：故意弄坏，看红不红</h2><p class="note">每个突变体另起进程跑；M00_seed 是必红的种子。</p><table><tr><td class='mono'>M00_seed</td><td>种子：上移量从 3 改成 2——必红，不红说明变异机制自己坏了</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;goal/level_up&quot;: 3, &quot;move/blocked_cross&quot;: 15, &quot;move/translate&quot;: 595}</td></tr><tr><td class='mono'>M01_left_right</td><td>左右推反</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;goal/level_up&quot;: 8, &quot;move/translate&quot;: 837}</td></tr><tr><td class='mono'>M02_bar_ignores_block</td><td>被挡的横杠照样平移</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/blocked_cross&quot;: 17}</td></tr><tr><td class='mono'>M03_trade_far_side</td><td>换形状时补的 3 格加在离旧中心远的那一头</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/blocked_box&quot;: 42}</td></tr><tr><td class='mono'>M04_no_room_gate</td><td>拿掉「换完短边 &lt; 4 就不动」这道门</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/blocked_box&quot;: 1}</td></tr><tr><td class='mono'>M05_bottom_swatch</td><td>碰到两个色块时取下面那个</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/recolor&quot;: 5}</td></tr><tr><td class='mono'>M06_never_recolor</td><td>从不变色</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/recolor&quot;: 56}</td></tr><tr><td class='mono'>M07_cycle_down</td><td>ACTION5 往下一层轮</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;switch/cycle&quot;: 37}</td></tr><tr><td class='mono'>M08_goal_colorblind</td><td>过关不看颜色</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;goal/level_up&quot;: 4}</td></tr><tr><td class='mono'>M09_rings_strict</td><td>归属色读不出的那一边也拿来比</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;board/static&quot;: 520}</td></tr><tr><td class='mono'>M10_tick_zero</td><td>HUD 一步都不许涨</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;hud/tick&quot;: 636}</td></tr><tr><td class='mono'>M11_budget_floor</td><td>预算曲线取整从 round 换成 floor</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;notmodel/budget_curve&quot;: 1036}</td></tr><tr><td class='mono'>M12_all_known</td><td>解析把读不到底的边一律说成读到底了</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;board/static&quot;: 4, &quot;goal/level_up&quot;: 9, &quot;move/blocked_cross&quot;: 2, &quot;move/others_stay&quot;: 17, &quot;move/translate&quot;: 39}</td></tr><tr><td class='mono'>M13_hub_flip</td><td>hub 画着本色读成空着</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{}</td></tr><tr><td class='mono'>M14_others_include_active</td><td>连被推的那件也要求不动</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/others_stay&quot;: 1931}</td></tr><tr><td class='mono'>M15_layers_flip</td><td>图层一步之内必翻</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;board/layers&quot;: 520}</td></tr><tr><td class='mono'>M16_reset_elsewhere</td><td>RESET 不回开局</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;notmodel/reset_restarts&quot;: 4}</td></tr><tr><td class='mono'>M17_hollow_blind</td><td>hub 空不空比反</td><td><span class='chip TRUE'>红</span></td><td class='mono'>{&quot;move/blocked_cross&quot;: 40, &quot;move/others_stay&quot;: 1904, &quot;move/translate&quot;: 745, &quot;switch/cycle&quot;: 77}</td></tr></table><details><summary>装置的两个实验（字段消融 / 造错转移）</summary><ul><li>  **字段消融**（判据 1 / 2，分母 320 条：真实转移抽样 + 变异；语料共 2153 条）：7 个字段，**0 个抹掉之后判决一个字没变**</li><li>     rings                   2 处判决变了           </li><li>     spent                   2 处判决变了           </li><li>     blockers                35 处判决变了          </li><li>     over                    57 处判决变了          </li><li>     cursor                  1007 处判决变了        </li><li>     pieces                  1014 处判决变了        </li><li>     swatches                1014 处判决变了        </li><li>  **变异测试**（拒绝集）：造了 120 个错的 next，册子拒掉 **119**（其中对象层读不出来 27 个）</li><li>     **独家拒绝 0 个的规则 7 条**：board__layers、goal__level_up、move__others_stay、move__recolor、notmodel__budget_curve、notmodel__reset_restarts …</li><li>     它们拒掉的别人也都拒掉了——按拒绝集判据是**写法不是概念**。</li><li>     逐条的账写进了 analysis/：**装置写读数，你补为什么**。</li></ul></details></div>
+</div></body></html>

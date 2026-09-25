@@ -1,0 +1,32 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Obs/Corpus/C13.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Obs/Corpus/C13.lean</h1><p></p><details><summary>公理表（1 条）</summary><ul><li><code>Game.Corpus.chunk13_agrees_with_python</code>：propext</li></ul></details><pre>/-
+# Obs/Corpus/C13 —— 逐条第 13 块，50 条（**自动生成**）。右边是 Python 那一侧（`lean2/corpus_verdicts.py`）的判决。
+-/
+
+import Obs.Corpus.Verdict
+
+namespace Game
+namespace Corpus
+
+/-- 第 13 块逐行对账：模型（Lean 的 `step`）对这 50 条真实转移的判决，与 Python 那一份逐行相同。 -/
+theorem chunk13_agrees_with_python :
+    judge [1392, 1393, 1394, 1395, 1396, 1397, 1398, 1399, 1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1416, 1417, 1418, 1419, 1420, 1421, 1422, 1423, 1424, 1657, 1658, 1659, 1660, 1661, 1662, 1663, 1664, 1665, 1666, 1667, 1668, 1669, 1670, 1671, 1672, 1673] = [(1392, 1), (1393, 1), (1394, 1), (1395, 1), (1396, 1), (1397, 1), (1398, 1), (1399, 1), (1400, 1), (1401, 1), (1402, 1), (1403, 1), (1404, 1), (1405, 1), (1406, 1), (1407, 1), (1408, 1), (1409, 1), (1410, 1), (1411, 1), (1412, 1), (1413, 1), (1414, 1), (1415, 1), (1416, 1), (1417, 1), (1418, 1), (1419, 1), (1420, 1), (1421, 1), (1422, 1), (1423, 2), (1424, 0), (1657, 1), (1658, 1), (1659, 1), (1660, 1), (1661, 1), (1662, 1), (1663, 1), (1664, 1), (1665, 1), (1666, 1), (1667, 1), (1668, 1), (1669, 1), (1670, 1), (1671, 1), (1672, 1), (1673, 1)] := by
+  decide +kernel
+
+end Corpus
+end Game
+</pre></div></main></body></html>

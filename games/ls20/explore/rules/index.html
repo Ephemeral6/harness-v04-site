@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  --floor: #2b303c;  --floor-line: #353c4b;
+  --wall: #0b0d12;
+  --unknown: #3a3f4c;
+  --me: #59b0ff;
+  --door: #6b5a2a;
+  --rotator: #d9d9d9;  --shaper: #9aa4b8;  --painter: #c47bd6;  --refill: #58c48a;
+  --spring: #e0c341;
+  --changed: #ff5c7a;
+  /* 墨色（色号）不在这里配：由 web/export.py 从官方色表写进 DATA.palette，site.js 读它。 */
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>规则</h1>
+  <div class="sub">全部动力学，按它管什么分组（分组读 rule/ 的子文件夹）。</div>
+  <nav>
+    <a href="../index.html">这是个什么游戏</a>
+    <a href="../replay.html">回放</a>
+    <a href="../objects/index.html">对象</a>
+    <a href="../rules/index.html">规则</a>
+    <a href="../lean/index.html">形式化</a>
+    <a href="../reverse.html">反向测试</a>
+    <a href="../share.html">怎么给别人看</a>
+  </nav>
+</header>
+
+<div class="card"><h2>读数（结论）</h2><p style="margin:0">这套规则在这 <b>1467</b> 条转移上：判错 <b>0</b>、无人区 <b>0</b>、|scope|=0 的 0 条。<span class="note">只许这么说——「这套规则完整描述了这个游戏」核不动。</span></p></div><div class="rulelist"><div class="grouphead">key</div><p class="note" style="margin:0 0 10px">**这一组管：钥匙怎么变。**</p>
+<a class="row" href="key_holds.html"><span class="nm">key_holds</span><span class="cl">这一步没踩到任何装置（包括撞墙、撞锁那一步）时，钥匙的图样与墨色都不变。</span><span><span class="chip NA">推论</span> <span class="chip TRUE">开口 1257 · 判错 0</span></span></a>
+<a class="row" href="key_recolors.html"><span class="nm">key_recolors</span><span class="cl">这一步踩到染色物件时，钥匙墨色按 12→9→14→8→12 换下一档，图样不变。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 46 · 判错 0</span></span></a>
+<a class="row" href="key_reshapes.html"><span class="nm">key_reshapes</span><span class="cl">这一步踩到非十字开关时，钥匙换成六环上的下一种形状（朝向保持），墨色不变。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 50 · 判错 0</span></span></a>
+<a class="row" href="key_rotates.html"><span class="nm">key_rotates</span><span class="cl">这一步踩到十字开关（静止的走进去，或巡逻的撞上来）时，钥匙图样顺时针转 90°，墨色不变。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 70 · 判错 0</span></span></a>
+<div class="grouphead">move</div><p class="note" style="margin:0 0 10px">**这一组管：按一个方向键，玩家最后停在哪一格。**</p>
+<a class="row" href="blocked.html"><span class="nm">blocked</span><span class="cl">按方向键，目标格是墙、或是钥匙对不上的门时，玩家原地不动。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 41 · 判错 0</span></span></a>
+<a class="row" href="slide.html"><span class="nm">slide</span><span class="cl">按方向键，目标格贴着弹簧线时，玩家先进去，再沿线推的方向一格格滑，下一格不是地板、或是门心时停下（不拐弯、不滑进门）。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 71 · 判错 0</span></span></a>
+<a class="row" href="walk.html"><span class="nm">walk</span><span class="cl">按方向键，目标格是普通地板（不是门、不贴弹簧线）时，玩家恰好走进那一格。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 1312 · 判错 0</span></span></a>
+<div class="grouphead">outcome</div><p class="note" style="margin:0 0 10px">**这一组管：什么算赢、什么算砸。**</p>
+<a class="row" href="door_consumed.html"><span class="nm">door_consumed</span><span class="cl">钥匙对上、走进的门不是最后一道时：玩家站进门心，这道门从盘上消失，别的门一道不少。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 5 · 判错 0</span></span></a>
+<a class="row" href="last_door_wins.html"><span class="nm">last_door_wins</span><span class="cl">按方向键之后关卡号加一，当且仅当目标格是门心、钥匙（形状与颜色）对上、而且它是盘上最后一道门。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 1448 · 判错 0</span></span></a>
+<a class="row" href="out_of_energy.html"><span class="nm">out_of_energy</span><span class="cl">能量为 0 时再按方向键：目标格是补给 ⇒ 照常走进去、能量回满、不掉命；否则 ⇒ 命恰好少一条、能量回满、关卡号不变。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 12 · 判错 0</span></span></a>
+<div class="grouphead">unmodeled</div><p class="note" style="margin:0 0 10px">**这一组：说了，但明说不进模型。**</p>
+<a class="row" href="reset_restarts_game.html"><span class="nm">reset_restarts_game</span><span class="cl">按 RESET 之后，下一帧就是整局第一帧（第 0 关开局）的样子，关卡号回到 0。</span><span><span class="chip NA">不进模型</span> <span class="chip TRUE">开口 2 · 判错 0</span></span></a>
+<a class="row" href="restart_to_start.html"><span class="nm">restart_to_start</span><span class="cl">能量为 0 再按方向键而掉了命之后，下一帧就是这一关开局那一帧的样子（玩家、钥匙、装置、补给、门、能量都一样），只有命少一条。</span><span><span class="chip NA">不进模型</span> <span class="chip TRUE">开口 10 · 判错 0</span></span></a>
+<div class="grouphead">world</div><p class="note" style="margin:0 0 10px">**这一组管：世界自己怎么回应一步棋。**</p>
+<a class="row" href="board_holds.html"><span class="nm">board_holds</span><span class="cl">普通的一步前后，两帧都看得见的格，是不是地板一格不变；两帧都看得见的弹簧线一根不变。</span><span><span class="chip NA">不进模型</span> <span class="chip TRUE">开口 1434 · 判错 0</span></span></a>
+<a class="row" href="devices_stay.html"><span class="nm">devices_stay</span><span class="cl">普通的一步里，不在巡逻线 / 绕圈上的十字开关、非十字开关、染色物件、补给：前一帧看得见而下一帧看不见的，只能是被玩家盖住了或进了雾；下一帧新看见的，只能是前一帧玩家盖着的那一格（补给除外——补给被盖住就是被吃了）或前一帧在雾里的格。</span><span><span class="chip NA">推论</span> <span class="chip TRUE">开口 1434 · 判错 0</span></span></a>
+<a class="row" href="energy_cost.html"><span class="nm">energy_cost</span><span class="cl">普通的一步之后能量 = 能量 − 这一关的单价（撞墙也扣）；撞到锁着的门不扣；登记为「踩开关免费」的那一关，踩到十字开关那一步不扣；减到 0 为止。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 1390 · 判错 0</span></span></a>
+<a class="row" href="fog.html"><span class="nm">fog</span><span class="cl">同一关之内的一步，前后两帧有没有迷雾，恰好由关卡号决定（登记在 level_table.FOG 的关有，其余没有）。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 1446 · 判错 0</span></span></a>
+<a class="row" href="goals_hold.html"><span class="nm">goals_hold</span><span class="cl">普通的一步如果不是开门，两帧都看得见的门完全一样（位置和要的钥匙）。</span><span><span class="chip NA">推论</span> <span class="chip TRUE">开口 1424 · 判错 0</span></span></a>
+<a class="row" href="lives_hold.html"><span class="nm">lives_hold</span><span class="cl">能量不为 0 时的一步，命数不变。</span><span><span class="chip NA">推论</span> <span class="chip TRUE">开口 1434 · 判错 0</span></span></a>
+<a class="row" href="orbit.html"><span class="nm">orbit</span><span class="cl">有绕圈染色物件的关里，玩家这一步动了，它就沿登记的圈走恰好一格；玩家没动，它不动。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 490 · 判错 0</span></span></a>
+<a class="row" href="patrol.html"><span class="nm">patrol</span><span class="cl">有巡逻线的关里，玩家这一步动了，线上的装置就沿线走恰好一格（到端点掉头）；玩家没动（撞墙、撞锁），它一格不动。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 919 · 判错 0</span></span></a>
+<a class="row" href="refill.html"><span class="nm">refill</span><span class="cl">普通的一步落脚在补给上时，能量回到满格（42）。</span><span><span class="chip NA">定义</span> <span class="chip TRUE">开口 39 · 判错 0</span></span></a></div>
+</div>
+<script>window.DATA={};</script>
+<script>
+// 这一局的前端脚本：**只画、只摆**。
+//
+// 每一个数、每一格是什么、这一步哪些格变了、每条规则说了什么——
+// 全是 web/export.py 在 Python 那边算好导出来的（window.DATA）。
+// 这一份新增的只有两样：**尺寸**和**配色**。check_no_logic.py 会来这里搜世界那一侧的动词。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  const S = 22;                       // 一格画多大（尺寸）
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // 类别字 → 配色
+  const FILL = { "#": "var(--wall)", ".": "var(--floor)", "?": "var(--unknown)", "@": "var(--floor)",
+                 "G": "var(--door)", "R": "var(--floor)", "S": "var(--floor)", "P": "var(--floor)",
+                 "F": "var(--floor)" };
+  const MARK = { "R": "var(--rotator)", "S": "var(--shaper)", "P": "var(--painter)", "F": "var(--refill)" };
+  // 墨色是色号：显示色读 web/export.py 从 ARC-AGI-3 官方色表取好的 DATA.palette，这里不另抄。
+  function inkColor(i) { return (D.palette && D.palette[i]) || "#aaa"; }
+
+  function keyCells(shape, ink, x, y, u) {
+    let o = "";
+    for (let k = 0; k < 9; k++) {
+      if (!shape[k]) continue;
+      o += `<rect x="${x + (k % 3) * u}" y="${y + Math.floor(k / 3) * u}" width="${u - 0.6}" height="${u - 0.6}" fill="${inkColor(ink)}"/>`;
+    }
+    return o;
+  }
+
+  function boardSVG(fi, changed) {
+    const f = D.frames[fi];
+    let o = `<svg class="grid" width="${12 * S}" height="${12 * S}" viewBox="0 0 ${12 * S} ${12 * S}">`;
+    for (let j = 0; j < 144; j++) {
+      const ch = f.b[j], x = (j % 12) * S, y = Math.floor(j / 12) * S;
+      o += `<rect x="${x}" y="${y}" width="${S}" height="${S}" fill="${FILL[ch] || "#f0f"}" stroke="var(--floor-line)" stroke-width="0.5"/>`;
+      if (MARK[ch]) o += `<rect x="${x + 5}" y="${y + 5}" width="${S - 10}" height="${S - 10}" rx="${ch === "F" ? 6 : 1}" fill="none" stroke="${MARK[ch]}" stroke-width="2.4"/>`;
+      if (ch === "R") o += `<path d="M${x + S / 2} ${y + 6}V${y + S - 6}M${x + 6} ${y + S / 2}H${x + S - 6}" stroke="var(--rotator)" stroke-width="2"/>`;
+      if (ch === "@") o += `<rect x="${x + 2}" y="${y + 2}" width="${S - 4}" height="${S - 4}" rx="3" fill="var(--me)"/>`;
+    }
+    for (const g of f.goals) o += keyCells(g.shape, g.ink, g.c * S + 4, g.r * S + 4, (S - 8) / 3);
+    for (const l of f.lines) {
+      // 线画在被推那一格「推向」的反面那条边上
+      const x = l.c * S, y = l.r * S;
+      const e = l.dr === 1 ? [x, y, x + S, y] : l.dr === -1 ? [x, y + S, x + S, y + S]
+              : l.dc === 1 ? [x, y, x, y + S] : [x + S, y, x + S, y + S];
+      o += `<line x1="${e[0]}" y1="${e[1]}" x2="${e[2]}" y2="${e[3]}" stroke="var(--spring)" stroke-width="3"/>`;
+    }
+    for (const j of changed || []) {
+      o += `<rect x="${(j % 12) * S + 1}" y="${Math.floor(j / 12) * S + 1}" width="${S - 2}" height="${S - 2}" fill="none" stroke="var(--changed)" stroke-width="1.6"/>`;
+    }
+    return o + "</svg>";
+  }
+
+  function hudHTML(fi, hud) {
+    const f = D.frames[fi];
+    const mark = (n) => (hud && hud.indexOf(n) >= 0 ? ' style="color:var(--changed)"' : "");
+    const k = `<svg width="36" height="36">${keyCells(f.key.shape, f.key.ink, 0, 0, 12)}</svg>`;
+    return `<div class="note" style="display:flex;gap:14px;align-items:center;margin-top:6px">`
+      + `<span${mark("key")}>钥匙 ${k} 墨 ${f.key.ink}</span>`
+      + `<span${mark("energy")}>能量 <b>${f.energy}</b>/42</span>`
+      + `<span${mark("lives")}>命 <b>${f.lives}</b></span></div>`;
+  }
+
+  function figure(fi, caption, changed, hud) {
+    return `<figure class="board" style="margin:0"><figcaption>${caption}</figcaption>${boardSVG(fi, changed)}${hudHTML(fi, hud)}</figure>`;
+  }
+
+  // ---------------------------------------------------------------- 首页
+
+  function home() {
+    const box = $("picks");
+    if (!box) return;
+    box.innerHTML = D.home.map((h) =>
+      `<div class="card"><div class="boards">${figure(h.frame, "第 " + h.seq + " 步的" + (h.which === "prev" ? "前一帧" : "后一帧"))}` +
+      `<p class="scene-words">${esc(h.text)}</p></div></div>`).join("");
+  }
+
+  // ---------------------------------------------------------------- 回放
+
+  const CODE = { T: ["TRUE", "判对"], F: ["FALSE", "判错"], N: ["NA", "闭嘴"], U: ["NA", "读不成"], E: ["FALSE", "ERROR"] };
+
+  function replay() {
+    const sl = $("slider");
+    if (!sl) return;
+    sl.max = D.steps.length - 1;
+    const names = Object.keys(D.steps[0].v);
+    function show(i) {
+      const s = D.steps[i];
+      $("label").textContent = `第 ${i + 1} / ${D.steps.length} 条  seq ${s.seq}  第 ${s.lvl} 关  ${s.act}  段 ${s.guid}`;
+      $("boards").innerHTML = figure(s.p, "按之前") + figure(s.n, "按之后（红框 = 变了的格）", s.changed, s.hud);
+      let rows = "";
+      for (const n of names) {
+        const v = s.v[n];
+        const [cls, word] = typeof v === "number" ? ["NA", "闭嘴"] : CODE[v];
+        const why = typeof v === "number" ? D.reasons[v] : "";
+        rows += `<tr><td><a href="rules/${n}.html" class="mono">${n}</a></td><td><span class="chip ${cls}">${word}</span></td><td class="why">${esc(why)}</td></tr>`;
+      }
+      $("verdicts").innerHTML = `<table><tr><th>规则</th><th>这一步</th><th>闭嘴的理由</th></tr>${rows}</table>`;
+      sl.value = i;
+    }
+    sl.addEventListener("input", () => show(+sl.value));
+    $("prev").addEventListener("click", () => show(Math.max(0, +sl.value - 1)));
+    $("next").addEventListener("click", () => show(Math.min(D.steps.length - 1, +sl.value + 1)));
+    $("jump").addEventListener("change", (e) => {
+      const want = +e.target.value;
+      const i = D.steps.findIndex((s) => s.seq === want);
+      if (i >= 0) show(i);
+    });
+    const q = new URLSearchParams(location.search).get("seq");
+    const i0 = q ? D.steps.findIndex((s) => s.seq === +q) : 0;
+    show(i0 >= 0 ? i0 : 0);
+  }
+
+  // ---------------------------------------------------------------- Lean 源码上色（**这是渲染**，只认注释、字符串和几十个词）
+
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|open|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using|set_option").split("|");
+  const TAC = ("simp|simp_all|omega|decide|rfl|exact|intro|cases|rcases|obtain|refine|constructor|" +
+    "induction|split|rw|apply|unfold|absurd|first|injection|subst|rename_i").split("|");
+
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/"[^"\n]*"/g, (m) => `\u0003${m}\u0004`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0003/g, '<i class="s">').replace(/\u0004/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+
+  function leanBlocks() {
+    for (const el of document.querySelectorAll("pre.lean[data-src]")) {
+      el.innerHTML = paint(el.textContent);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { home(); replay(); leanBlocks(); });
+})();
+
+</script>
+</body>
+</html>

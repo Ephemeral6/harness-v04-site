@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>objects/world.py · tu93</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属** ↓↓↓
+     世界的配色（落点 / 桥 / 目标 / 玩家 / 哨兵 / 巡逻 / 追兵 / 预算带）按它们在帧里的色号画，
+     色号 → 颜色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette，
+     render.js 读它。这里只留高亮色，和页面上一个标签用的 --hud。 */
+  --changed: #ffd84d;
+  --hud: #6fb3c8;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+  /* 模板下半截用了 --fg / --link 却没在这里定义（选择框、段横条会退回浏览器默认色）——补上。 */
+  --fg: var(--ink);  --link: #7ab8ff;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* ── 本局追加：判决的几种颜色、首页的几张图（只有尺寸与配色）── */
+.chip.exact { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.fiber { background: rgba(111,179,200,.16); color: var(--hud); }
+.chip.bad, .chip.ERROR { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.skip, .chip.U { background: #222732; color: var(--faint); }
+.shots { display: flex; flex-wrap: wrap; gap: 16px; }
+.shot { flex: 0 0 auto; }
+.shot .cap { color: var(--dim); font-size: 12px; margin-top: 4px; max-width: 300px; }
+.gaps { border-color: #6b4a1c; background: #221b12; }
+.gaps li { margin: 3px 0; }
+.big { font-size: 22px; font-weight: 600; }
+.pair { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>objects/world.py</h1><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav></header>
+
+<div class="card"><h2>objects/world.py（组：.）</h2><pre class="doc"><code>World</code> —— 这一局的<b>全部状态</b>。字段就是这一局的对象。
+
+每个字段为什么删不掉，写在 <code>analysis/&lt;字段&gt;.txt</code>（区分检验的见证 + 消融读数）。
+
+    bridges   桥：哪两格之间走得通                   （版面，一关内不变）
+    target    目标：踩上就过关。被巡逻压住的那几帧读不出来（None），最后一关过完之后也没有
+    player    玩家站在哪一格
+    facing    玩家的记号朝哪
+    sentries  哨兵：原地不动，盯着正前方那一格
+    patrols   巡逻：玩家每真走一步，它沿桥走一步，尽头掉头
+    chasers   追兵：醒之前不动；醒了之后每步沿最短路扑向玩家刚才站的那格
+    hud       预算带上还剩几格（0..64）
+
+<b>第一版还有一个 <code>nodes</code>（落点集合），卡 03 那一遍删了</b>：全部 1126 个读得出的世界里，
+落点集合都<b>恰好等于</b>桥的端点集合——它一位信息都没带（见 <code>analysis/record.txt</code>）。
+代价写在明处：一个<b>孤零零、不连任何桥的落点</b>现在表示不出来，
+所以 <code>parse</code> 碰到它就抛，不许悄悄丢掉。
+
+<b>上游已给的不进来</b>：第几关、GAME_OVER / WIN 这些状态字符串是 API 给的，
+规则要用就从 <code>ctx</code> 读。</pre></div>
+<div class="card"><h2>它的 Lean（身份：定义）</h2><p class="note">Obj/World.lean</p><pre class="lean">/-
+# 世界（对应 `objects/world.py`）
+
+Python 的 `World` 是**一帧**读出来的全部东西；这边拆成两半：
+
+    Board   这一关里一步都不会变的：桥、目标、预算步数 B
+    St      会变的：玩家在哪 / 朝哪、三种守卫、已经走了几步
+
+`Board` **不是 `St` 的字段**，`step` 连碰都碰不到它——于是「走一步版面不会变」这件事
+不用证，它表示不出来（规则 `observe/board_static` 的身份就是这个，见 `Derived/BoardStatic.lean`）。
+
+`Board.target` 是 `Option`：逐条那一层用**这一帧读到的**版面，目标被巡逻压住的那几帧读不出来；
+每关那一层用**整关的**版面，目标总在。两个口径见 `Obs/Replay.lean` 文件头。
+
+`St.used`（走了几步）对应 Python 的 `World.hud`（帧上剩几格）：`hud = hudAt B used`。
+-/
+
+import Obj.Board.Bridge
+import Obj.Pieces.Guard
+
+namespace Game
+
+structure Board where
+  bridges : List Bridge
+  target  : Option Cell
+  budget  : Nat
+  deriving DecidableEq, Repr
+
+structure St where
+  player   : Cell
+  facing   : Dir
+  sentries : List Guard
+  patrols  : List Guard
+  chasers  : List Guard
+  used     : Nat
+  deriving DecidableEq, Repr
+
+end Game
+</pre></div>
+<details class="card"><summary>源码</summary><pre class="doc small">&quot;&quot;&quot;`World` —— 这一局的**全部状态**。字段就是这一局的对象。
+
+每个字段为什么删不掉，写在 `analysis/&lt;字段&gt;.txt`（区分检验的见证 + 消融读数）。
+
+    bridges   桥：哪两格之间走得通                   （版面，一关内不变）
+    target    目标：踩上就过关。被巡逻压住的那几帧读不出来（None），最后一关过完之后也没有
+    player    玩家站在哪一格
+    facing    玩家的记号朝哪
+    sentries  哨兵：原地不动，盯着正前方那一格
+    patrols   巡逻：玩家每真走一步，它沿桥走一步，尽头掉头
+    chasers   追兵：醒之前不动；醒了之后每步沿最短路扑向玩家刚才站的那格
+    hud       预算带上还剩几格（0..64）
+
+**第一版还有一个 `nodes`（落点集合），卡 03 那一遍删了**：全部 1126 个读得出的世界里，
+落点集合都**恰好等于**桥的端点集合——它一位信息都没带（见 `analysis/record.txt`）。
+代价写在明处：一个**孤零零、不连任何桥的落点**现在表示不出来，
+所以 `parse` 碰到它就抛，不许悄悄丢掉。
+
+**上游已给的不进来**：第几关、GAME_OVER / WIN 这些状态字符串是 API 给的，
+规则要用就从 `ctx` 读。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .board.bridge import Bridge
+from .geometry.cell import Cell
+from .geometry.dir import Dir
+from .pieces.guard import Guard
+
+
+@dataclass(frozen=True)
+class World:
+    bridges: frozenset[Bridge]
+    target: Cell | None
+    player: Cell
+    facing: Dir
+    sentries: tuple[Guard, ...]
+    patrols: tuple[Guard, ...]
+    chasers: tuple[Guard, ...]
+    hud: int
+</pre></details>
+</div>
+<script>window.PAGE={"kind": "object", "seqs": []};</script>
+<script>window.DATA={"palette":["#ffffff","#cccccc","#999999","#666666","#333333","#000000","#e53aa3","#ff7bcc","#f93c31","#1e93ff","#88d8f1","#ffdc00","#ff851b","#921231","#4fcc30","#a356d6"],"colors":{"node":0,"bridge":2,"target":14,"player":9,"player_mark":4,"sentries":8,"patrols":12,"chasers":13,"mark_calm":15,"mark_alert":11,"hud_on":6,"hud_off":0},"boards":[],"frames":[],"steps":[]};</script>
+<script>
+// **画一帧。** 这一份只有尺寸与配色：每一样东西画在哪、画成什么颜色。
+//
+// 画的是 `web/export.py` 导出来的世界字段（字段名与 objects/world.py 逐字相同）：
+// 落点（导出时已从桥算好）、桥、目标、玩家、哨兵 / 巡逻 / 追兵、预算带。
+// **它不判任何一件事**：哪几格这一步变了，也是导出侧比好了传进来的（step.changed）。
+
+(function () {
+  const U = 14;          // 一个落点的边长（像素）
+  const G = 2 * U;       // 相邻落点的间距
+  const PAD = 10;
+  const DIRS = { UP: [0.5, 0.12], DOWN: [0.5, 0.88], LEFT: [0.12, 0.5], RIGHT: [0.88, 0.5] };
+  // 配色只有一个来源：export.py 从官方 arc_agi.rendering.COLOR_MAP 取出写进 DATA.palette（下标 = 色号）；
+  // 每样东西在帧里是哪个色号（DATA.colors）也是 export.py 取对象层读帧的常量。这里只查表，不抄。
+  const pal = (key) => { const D = window.DATA || {}; return (D.palette || [])[(D.colors || {})[key]] || "#888"; };
+  const KIND = { sentries: "sentries", patrols: "patrols", chasers: "chasers" };
+
+  function box(nodes) {
+    let r0 = 1e9, c0 = 1e9, r1 = -1, c1 = -1;
+    for (const [r, c] of nodes) {
+      r0 = Math.min(r0, r); c0 = Math.min(c0, c); r1 = Math.max(r1, r); c1 = Math.max(c1, c);
+    }
+    return { r0, c0, r1, c1 };
+  }
+
+  function piece(x, y, fill, facing, markFill) {
+    const [fx, fy] = DIRS[facing];
+    return `<rect x="${x}" y="${y}" width="${U}" height="${U}" rx="3" fill="${fill}"/>` +
+      `<circle cx="${x + fx * U}" cy="${y + fy * U}" r="${U * 0.16}" fill="${markFill}"/>`;
+  }
+
+  function frame(fi, changed) {
+    const D = window.DATA;
+    const f = D.frames[fi];
+    const b = D.boards[f.board];
+    const bb = box(b.nodes);
+    const W = (bb.c1 - bb.c0) * G + U + 2 * PAD, H = (bb.r1 - bb.r0) * G + U + 2 * PAD + 14;
+    const X = (c) => PAD + (c - bb.c0) * G, Y = (r) => PAD + (r - bb.r0) * G;
+    const out = [`<svg class="grid" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`];
+    for (const [[r1, c1], [r2, c2]] of b.bridges) {
+      const x = Math.min(X(c1), X(c2)) + U * 0.3, y = Math.min(Y(r1), Y(r2)) + U * 0.3;
+      const w = r1 === r2 ? G : U * 0.4, h = r1 === r2 ? U * 0.4 : G;
+      out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${pal("bridge")}"/>`);
+    }
+    for (const [r, c] of b.nodes)
+      out.push(`<rect x="${X(c)}" y="${Y(r)}" width="${U}" height="${U}" rx="2" fill="${pal("node")}"/>`);
+    if (f.target)
+      out.push(`<rect x="${X(f.target[1])}" y="${Y(f.target[0])}" width="${U}" height="${U}" rx="2" fill="${pal("target")}"/>`);
+    for (const k of ["sentries", "patrols", "chasers"])
+      for (const g of f[k])
+        out.push(piece(X(g.cell[1]), Y(g.cell[0]), pal(KIND[k]), g.facing, g.alert ? pal("mark_alert") : pal("mark_calm")));
+    out.push(piece(X(f.player[1]), Y(f.player[0]), pal("player"), f.facing, pal("player_mark")));
+    for (const [r, c] of changed || [])
+      out.push(`<rect x="${X(c) - 2}" y="${Y(r) - 2}" width="${U + 4}" height="${U + 4}" rx="3" fill="none" stroke="var(--changed)" stroke-width="1.5"/>`);
+    const hw = (W - 2 * PAD) * f.hud / 64;
+    out.push(`<rect x="${PAD}" y="${H - 10}" width="${W - 2 * PAD}" height="5" fill="${pal("hud_off")}"/>`);
+    out.push(`<rect x="${PAD}" y="${H - 10}" width="${hw}" height="5" fill="${pal("hud_on")}"/>`);
+    out.push("</svg>");
+    return out.join("");
+  }
+
+  window.Render = { frame };
+})();
+
+</script>
+<script>
+// 页面上会动的那几样：首页 / 对象页 / 规则页上的截图、回放页的步进、Lean 源码上色。
+//
+// **这里没有一行世界逻辑。** 每一个数、每一个判决、每一步「哪几格变了」都是
+// `web/export.py` 算好导出来的；这一份只摆数据、只画图形（画在 render.js 里）。
+// `check_no_logic.py` 会来这里搜世界那一侧的函数名，搜到就算破了。
+
+(function () {
+  const D = window.DATA;
+  const bySeq = {};
+  for (const s of D.steps) bySeq[s.seq] = s;
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  const ACT = { ACTION1: "上", ACTION2: "下", ACTION3: "左", ACTION4: "右", RESET: "RESET" };
+
+  function shot(s, side) {
+    const fi = side === "next" ? s.next : s.prev;
+    if (fi === null || fi === undefined)
+      return `<div class="note" style="width:220px">这一帧读不成世界：${esc((side === "next" ? s.next_err : s.prev_err) || "")}</div>`;
+    return window.Render.frame(fi, side === "next" ? s.changed : null);
+  }
+
+  function fillShots() {
+    document.querySelectorAll("[data-shot]").forEach((el) => {
+      const s = bySeq[+el.dataset.seq];
+      if (s) el.innerHTML = shot(s, el.dataset.side || "prev");
+    });
+  }
+
+  // ---------------------------------------------------------------- 回放
+  function replay() {
+    const root = document.getElementById("replay");
+    if (!root) return;
+    const n = D.steps.length;
+    const slider = document.getElementById("slider");
+    slider.max = n - 1;
+    const names = D.rules.rules.map((r) => r.name);
+    function show(i) {
+      const s = D.steps[i];
+      document.getElementById("label").textContent =
+        `第 ${i + 1} / ${n} 行　seq ${s.seq}　step ${s.step}　第 ${s.lvl} 关　动作 ${ACT[s.act] || s.act}` +
+        `　上游：${s.state}${s.lvl_next !== s.lvl ? "（换关 → " + s.lvl_next + "）" : ""}` +
+        `${s.certified ? "　［成绩单认证段］" : ""}`;
+      document.getElementById("before").innerHTML = shot(s, "prev");
+      document.getElementById("after").innerHTML = shot(s, "next");
+      const rows = names.map((k) => {
+        const v = s.verdicts[k];
+        return `<tr><td><a href="rules/${k}.html">${k}</a></td><td><span class="chip ${v}">${v}</span></td></tr>`;
+      });
+      rows.push(`<tr><td><b>Lean 逐条那一层</b></td><td><span class="chip ${s.lean}">${s.lean}</span></td></tr>`);
+      document.getElementById("verdicts").innerHTML = rows.join("");
+      slider.value = i;
+    }
+    slider.addEventListener("input", () => show(+slider.value));
+    document.getElementById("prevBtn").onclick = () => show(Math.max(0, +slider.value - 1));
+    document.getElementById("nextBtn").onclick = () => show(Math.min(n - 1, +slider.value + 1));
+    document.querySelectorAll("[data-jump]").forEach((b) => {
+      b.onclick = () => show(D.steps.findIndex((s) => s.seq === +b.dataset.jump));
+    });
+    show(0);
+  }
+
+  // ---------------------------------------------------------------- Lean 源码上色（只认注释、字符串和几十个词）
+  const KEY = ("theorem|def|abbrev|structure|inductive|instance|namespace|end|import|deriving|" +
+    "by|fun|match|with|let|have|show|if|then|else|do|where|from|at|using|open").split("|");
+  const TAC = ("simp|omega|decide|rfl|exact|intro|intros|cases|rcases|obtain|refine|constructor|" +
+    "rintro|induction|split|rw|apply|unfold|absurd|first|next|subst|simpa|injection").split("|");
+  function paint(src) {
+    let h = esc(src);
+    h = h.replace(/\/-[\s\S]*?-\//g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
+    h = h.replace(/(^|[^\w'])(#print|#eval)\b/g, (m, a, b) => `${a}\u0005${b}\u0006`);
+    const kw = new RegExp("(^|[^\\w'.])(" + KEY.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(kw, (m, a, b) => `${a}\u0007${b}\u0008`);
+    const tc = new RegExp("(^|[^\\w'.])(" + TAC.join("|") + ")(?![\\w'])", "g");
+    h = h.replace(tc, (m, a, b) => `${a}\u000b${b}\u000c`);
+    return h
+      .replace(/\u0001/g, '<i class="c">').replace(/\u0002/g, "</i>")
+      .replace(/\u0005/g, '<i class="p">').replace(/\u0006/g, "</i>")
+      .replace(/\u0007/g, '<i class="k">').replace(/\u0008/g, "</i>")
+      .replace(/\u000b/g, '<i class="t">').replace(/\u000c/g, "</i>");
+  }
+  function paintAll() {
+    document.querySelectorAll("pre.lean").forEach((el) => { el.innerHTML = paint(el.textContent); });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { fillShots(); replay(); paintAll(); });
+})();
+
+</script>
+</body>
+</html>

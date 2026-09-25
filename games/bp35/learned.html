@@ -1,0 +1,3060 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>bp35 是怎么学出来的 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← bp35 的世界模型</a></div><h1>它是怎么学出来的</h1><p class="lede">agent 边玩边把看到的规律写成可检验的代码：每条都对接下来的每一步自动判对错。它在更早的一遍边摸索边打的通关里一共写过 26 条，其中 4 条当场就被后来的画面推翻、撤掉。统一整理时，其余的说法拿官方认证那一遍的录像逐条重判：计步条走满就输、被带到头顶住空处就死这类说法被这份录像驳倒；剩下的按「一步怎么走、点击怎么回应、什么算赢、怎么计数」合并成首页的规则。下文提到的步数，是摸索那一遍里的步数。</p><h2>每条规则的来历</h2><ul class="origin"><li><b>按左或右，能进就挪一格，并转向那一边</b><div class="from">由这些早期说法合并而来：<code>a3_left</code>、<code>a4_right</code>、<code>move_needs_floor</code></div></li><li><b>每一步之后，玩家顺着重力被带到头</b><div class="from">由这些早期说法合并而来：<code>rise_scrolls</code>、<code>rests_against_solid</code>、<code>walk_keeps_upper_board</code>、<code>player_row6</code></div></li><li><b>点中开关，重力翻转</b><div class="from">由这些早期说法合并而来：<code>a6_block8_flips_pull</code>、<code>phase_tracks_pull</code></div></li><li><b>点开圆角块，那一格变成液体</b><div class="from">由这些早期说法合并而来：<code>a6_opens_tile</code>、<code>a6_block8_flips_pull</code>、<code>a6_block8_redraws</code></div></li><li><b>空槽和橙色块来回互换</b><div class="from">由这些早期说法合并而来：<code>a6_places_block</code>、<code>a6_opens_block12</code></div></li><li><b>点开泡沫，四周的液体也变成泡沫</b><div class="from">由这些早期说法合并而来：—</div></li><li><b>过关，当且仅当玩家走进或被带进十字</b><div class="from">由这些早期说法合并而来：<code>goal_cross_wins</code>、<code>goal_reached_vertically</code></div></li><li><b>每一个操作，计步条加一格</b><div class="from">由这些早期说法合并而来：<code>hud_tick</code></div></li><li><b>没被点到的地形一格不变</b><div class="from">由这些早期说法合并而来：<code>walk_keeps_upper_board</code>、<code>a6_inert_elsewhere</code></div></li><li><b>上浮时不点开关、十字全在下方，这一步过不了关</b><div class="from">由这些早期说法合并而来：<code>blocked_up_no_block8</code></div></li><li><b>撤销，回到上一个操作之前的样子</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>a7_undo_no_levelup</code></div></li></ul><h2>被推翻的说法</h2><div class="stories"><article class="story"><h3>玩家不总是往上浮</h3><div class="sub"><code>ceiling_above_player</code></div><ol class="tl"><li><b>原来以为</b><p>前几关里，玩家每一步之后都一路往上浮，直到头顶碰到东西。agent 写下：每个操作之后，玩家正上方那一格都不是液体——它像个气泡。</p></li><li class="hit"><b>画面打脸</b><p>第 4 关出现了红色的块。点开它，玩家整个往下掉，停下来时头顶就是液体。摸索那一遍的第 153 步，这条撤掉。</p></li><li class="fix"><b>后来改成</b><p>改成不挑方向：玩家总是贴着什么东西停住，不会悬在液体中间。再往后才弄清楚，红色块是开关，点它把重力翻过来；「往哪边带」成了模型里的一位状态。</p></li></ol></article><article class="story"><h3>「第 6 关打不通」</h3><div class="sub"><code>blocked_up_no_block8</code></div><ol class="tl"><li><b>原来以为</b><p>摸索那一遍卡在第 6 关。agent 按当时写下的全部规则，把这一关整关画成状态图穷举，结论是没有赢法，并把它写成一条可判错的阻断说法：窗口里没有开关、玩家正在上浮、十字在玩家下方时，这一步不可能过关。</p></li><li class="hit"><b>画面打脸</b><p>官方认证的那一遍里，这一关用 41 步打通了。</p></li><li class="fix"><b>后来改成</b><p>这句话本身没错，错在把它读成了「这一关做不了」。它现在是模型里一条关于一步的推论：不点开关就够不着下方的十字；下一步点了开关，十字照样够得着。</p></li></ol></article></div><h2 id="appendix">附录</h2><p class="intro">附录保留仓库里的原始叫法，关号从 0 开始（L0 = 正文第 1 关）。</p><details class="apx"><summary>另外 2 个改写的故事</summary><div class="apxb stories"><article class="story"><h3>计步条走满，游戏并没有结束</h3><div class="sub"><code>hud_full_kills</code></div><ol class="tl"><li><b>原来以为</b><p>底部计步条每步多填一格。摸索时 agent 以为它是每关的步数上限：填满的那一步就输。</p></li><li class="hit"><b>画面打脸</b><p>认证那一遍的第 9 关，计步条填满一整行之后，换了一种颜色从头再填，游戏照常继续。</p></li><li class="fix"><b>后来改成</b><p>撤掉。计步条只记步数：每个操作加一格，填满一圈换色接着记。它是不是某种上限，这份录像说不了。</p></li></ol></article><article class="story"><h3>「棋盘除了玩家都不变」缩了三次</h3><div class="sub"><code>board_static</code></div><ol class="tl"><li><b>原来以为</b><p>一开始写的是：一步之内，除了底部计步条和玩家所在的格，整个棋盘逐格不变。</p></li><li class="hit"><b>画面打脸</b><p>先是点开绿色块改了棋盘；缩到只管左右走，又碰上玩家右移一格、底下一大片跟着变；再缩到只管玩家那一行以上，又被一次上浮时的整屏滚动打破。</p></li><li class="fix"><b>后来改成</b><p>拆成两件事：画面整体滚动是镜头跟着玩家走，地形本身不变。统一整理时把两帧对齐、量出镜头挪了几行，「地形不变」才成了一条每步都能核的规则。</p></li></ol></article></div></details><details class="apx"><summary>全部 26 条早期说法的每一版与源码</summary><div class="apxb"><div class="list"><details class="item"><summary><div class="top"><span class="name">a3_left</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">按左，能进就左移一格</div></summary><div class="body"><div class="doc">ACTION3 要么让玩家格左移一格（行不变、列 -1），要么玩家格原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:39:29 · L1</span><div>ACTION3 要么让玩家格左移一格（行不变、列 -1），要么玩家格原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让玩家格左移一格（行不变、列 -1），要么玩家格原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;apply 额外借用了另外两条主张（左移生效的条件是目标格主色为 10、走完之后鼻子朝左），&quot;
+         &quot;它们各自另有概念走闸；assert_ 本身只断言「格坐标要么左移一格要么不动」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;3d1be259a9f752ae&quot;]
+
+from _lib import me, kind, origin, SIDE, SPRITE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION3&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (b[0] - a[0], b[1] - a[1]) in ((0, -1), (0, 0)) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION3&quot;):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    tgt = (a[0], a[1] - 1)
+    if tgt[1] &lt; 0 or kind(prev, *tgt) != FLOOR:
+        return None                      # 挡住了：这一格由 blocked 那条概念去说
+    out = {}
+    r0, c0 = origin(*a)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            out[(r0 + dr, c0 + dc)] = FLOOR
+    r1, c1 = origin(*tgt)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            v = SPRITE[&#x27;L&#x27;][dr][dc]
+            if v is not None:
+                out[(r1 + dr, c1 + dc)] = v
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L1</span><div>ACTION3 要么让玩家格左移一格（行不变、列 -1），要么玩家格原地不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让玩家格左移一格（行不变、列 -1），要么玩家格原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;apply 额外借用了另外两条主张（左移生效的条件是目标格主色为 10、走完之后鼻子朝左），&quot;
+         &quot;它们各自另有概念走闸；assert_ 本身只断言「格坐标要么左移一格要么不动」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;3d1be259a9f752ae&quot;]
+
+from _lib import me, kind, origin, SIDE, SPRITE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION3&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (b[0] - a[0], b[1] - a[1]) in ((0, -1), (0, 0)) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION3&quot;):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    tgt = (a[0], a[1] - 1)
+    if tgt[1] &lt; 0 or kind(prev, *tgt) != FLOOR:
+        return None                      # 挡住了：这一格由 blocked 那条概念去说
+    out = {}
+    r0, c0 = origin(*a, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            out[(r0 + dr, c0 + dc)] = FLOOR
+    r1, c1 = origin(*tgt, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            v = SPRITE[&#x27;L&#x27;][dr][dc]
+            if v is not None:
+                out[(r1 + dr, c1 + dc)] = v
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION3 要么让玩家格左移一格（行不变、列 -1），要么玩家格原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION3；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;apply 额外借用了另外两条主张（左移生效的条件是目标格主色为 10、走完之后鼻子朝左），&quot;
+         &quot;它们各自另有概念走闸；assert_ 本身只断言「格坐标要么左移一格要么不动」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;3d1be259a9f752ae&quot;]
+
+from _lib import me, kind, origin, SIDE, SPRITE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION3&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (b[0] - a[0], b[1] - a[1]) in ((0, -1), (0, 0)) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION3&quot;):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    tgt = (a[0], a[1] - 1)
+    if tgt[1] &lt; 0 or kind(prev, *tgt) != FLOOR:
+        return None                      # 挡住了：这一格由 blocked 那条概念去说
+    out = {}
+    r0, c0 = origin(*a, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            out[(r0 + dr, c0 + dc)] = FLOOR
+    r1, c1 = origin(*tgt, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            v = SPRITE[&#x27;L&#x27;][dr][dc]
+            if v is not None:
+                out[(r1 + dr, c1 + dc)] = v
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a4_right</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">按右，能进就右移一格</div></summary><div class="body"><div class="doc">ACTION4 要么让玩家格右移一格（行不变、列 +1），要么玩家格原地不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:39:29 · L1</span><div>ACTION4 要么让玩家格右移一格（行不变、列 +1），要么玩家格原地不动。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让玩家格右移一格（行不变、列 +1），要么玩家格原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION4；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;apply 额外借用了另外两条主张（右移生效的条件是目标格主色为 10、走完之后鼻子朝右），&quot;
+         &quot;它们各自另有概念走闸；assert_ 本身只断言「格坐标要么右移一格要么不动」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;f295fbff611939e4&quot;, &quot;dcee3c620d74b86d&quot;]
+
+from _lib import me, kind, origin, SIDE, SPRITE, FLOOR, NC
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION4&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (b[0] - a[0], b[1] - a[1]) in ((0, 1), (0, 0)) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION4&quot;):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    tgt = (a[0], a[1] + 1)
+    if tgt[1] &gt;= NC or kind(prev, *tgt) != FLOOR:
+        return None
+    out = {}
+    r0, c0 = origin(*a)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            out[(r0 + dr, c0 + dc)] = FLOOR
+    r1, c1 = origin(*tgt)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            v = SPRITE[&#x27;R&#x27;][dr][dc]
+            if v is not None:
+                out[(r1 + dr, c1 + dc)] = v
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L1</span><div>ACTION4 要么让玩家格右移一格（行不变、列 +1），要么玩家格原地不动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让玩家格右移一格（行不变、列 +1），要么玩家格原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION4；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;apply 额外借用了另外两条主张（右移生效的条件是目标格主色为 10、走完之后鼻子朝右），&quot;
+         &quot;它们各自另有概念走闸；assert_ 本身只断言「格坐标要么右移一格要么不动」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;f295fbff611939e4&quot;, &quot;dcee3c620d74b86d&quot;]
+
+from _lib import me, kind, origin, SIDE, SPRITE, FLOOR, NC
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION4&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (b[0] - a[0], b[1] - a[1]) in ((0, 1), (0, 0)) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION4&quot;):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    tgt = (a[0], a[1] + 1)
+    if tgt[1] &gt;= NC or kind(prev, *tgt) != FLOOR:
+        return None
+    out = {}
+    r0, c0 = origin(*a, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            out[(r0 + dr, c0 + dc)] = FLOOR
+    r1, c1 = origin(*tgt, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            v = SPRITE[&#x27;R&#x27;][dr][dc]
+            if v is not None:
+                out[(r1 + dr, c1 + dc)] = v
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION4 要么让玩家格右移一格（行不变、列 +1），要么玩家格原地不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看 ACTION4；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;apply 额外借用了另外两条主张（右移生效的条件是目标格主色为 10、走完之后鼻子朝右），&quot;
+         &quot;它们各自另有概念走闸；assert_ 本身只断言「格坐标要么右移一格要么不动」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;f295fbff611939e4&quot;, &quot;dcee3c620d74b86d&quot;]
+
+from _lib import me, kind, origin, SIDE, SPRITE, FLOOR, NC
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION4&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (b[0] - a[0], b[1] - a[1]) in ((0, 1), (0, 0)) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION4&quot;):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    tgt = (a[0], a[1] + 1)
+    if tgt[1] &gt;= NC or kind(prev, *tgt) != FLOOR:
+        return None
+    out = {}
+    r0, c0 = origin(*a, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            out[(r0 + dr, c0 + dc)] = FLOOR
+    r1, c1 = origin(*tgt, g=prev)
+    for dr in range(SIDE):
+        for dc in range(SIDE):
+            v = SPRITE[&#x27;R&#x27;][dr][dc]
+            if v is not None:
+                out[(r1 + dr, c1 + dc)] = v
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a6_block8_flips_pull</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">点红色块，重力翻转</div></summary><div class="body"><div class="doc">点色8 的块会把玩家被拉的方向翻到反面：prev 里读出来是 up，nxt 里就是 down，反之亦然。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:46:45 · L6</span><div>点色8 的块会把玩家被拉的方向翻到反面：prev 里读出来是 up，nxt 里就是 down，反之亦然。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;点色8 的块会把玩家被拉的方向翻到反面：prev 里读出来是 up，nxt 里就是 down，反之亦然。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 8；别的情况返回 NA；换关返回 NA。&quot;
+         &quot;方向用 _lib.pull 读（玩家贴着的那一侧）；prev 或 nxt 里读不出来就返回 NA。&quot;
+         &quot;只断言方向翻了，不断言玩家被带到哪去——落点由当时那一列决定，另说。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;4eb491820db0294b&quot;]
+
+from _lib import click_cell, kind, pull, BLOCK8
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK8:
+        return &quot;NA&quot;
+    a, b = pull(prev), pull(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if a != b else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;点色8 的块会把玩家被拉的方向翻到反面：prev 里读出来是 up，nxt 里就是 down，反之亦然。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 8；别的情况返回 NA；换关返回 NA。&quot;
+         &quot;方向用 _lib.pull 读（玩家贴着的那一侧）；prev 或 nxt 里读不出来就返回 NA。&quot;
+         &quot;只断言方向翻了，不断言玩家被带到哪去——落点由当时那一列决定，另说。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;4eb491820db0294b&quot;]
+
+from _lib import click_cell, kind, pull, BLOCK8
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK8:
+        return &quot;NA&quot;
+    a, b = pull(prev), pull(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if a != b else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a6_block8_redraws</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">点红色块，整屏重画</div></summary><div class="body"><div class="doc">ACTION6 点在主色为 8 的圆角块上，会整屏重画：玩家格行以上至少变掉 200 格。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:38:59 · L6</span><div>ACTION6 点在主色为 8 的圆角块上，会整屏重画：玩家格行以上至少变掉 200 格。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 8 的圆角块上，会整屏重画：玩家格行以上至少变掉 200 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 8；别的情况返回 NA；换关返回 NA。&quot;
+         &quot;只断言「会整屏重画」，**不**断言玩家掉到哪去——第 152 步那一次玩家从世界的第 1 行掉到第 8 行、&quot;
+         &quot;而且落点还偏离格点 2 个像素，落点规律只有一条样本，不敢写。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;]
+
+from _lib import click_cell, kind, BLOCK8, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is None or kind(prev, *cell) != BLOCK8:
+        return &quot;NA&quot;
+    n = sum(1 for r in range(len(prev)) if r != HUD_ROW
+            for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 200 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L6</span><div>ACTION6 点在主色为 8 的圆角块上，会整屏重画：玩家格行以上至少变掉 200 格。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 8 的圆角块上，会整屏重画：玩家格行以上至少变掉 200 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 8；别的情况返回 NA；换关返回 NA。&quot;
+         &quot;只断言「会整屏重画」，**不**断言玩家掉到哪去——第 152 步那一次玩家从世界的第 1 行掉到第 8 行、&quot;
+         &quot;而且落点还偏离格点 2 个像素，落点规律只有一条样本，不敢写。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;]
+
+from _lib import click_cell, kind, BLOCK8, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK8:
+        return &quot;NA&quot;
+    n = sum(1 for r in range(len(prev)) if r != HUD_ROW
+            for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 200 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 8 的圆角块上，会整屏重画：玩家格行以上至少变掉 200 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 8；别的情况返回 NA；换关返回 NA。&quot;
+         &quot;只断言「会整屏重画」，**不**断言玩家掉到哪去——第 152 步那一次玩家从世界的第 1 行掉到第 8 行、&quot;
+         &quot;而且落点还偏离格点 2 个像素，落点规律只有一条样本，不敢写。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;]
+
+from _lib import click_cell, kind, BLOCK8, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK8:
+        return &quot;NA&quot;
+    n = sum(1 for r in range(len(prev)) if r != HUD_ROW
+            for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 200 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a6_inert_elsewhere</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">5 版</span></div><div class="one">点在可点的东西以外，画面不变</div></summary><div class="body"><div class="doc">ACTION6 点在主色既不是 14 / 12 / 8、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:41:49 · L1</span><div>ACTION6 点在主色不是 14 的地方（含缝隙、含玩家自己那格），除 HUD 行外整帧一格不变。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色不是 14 的地方（含缝隙、含玩家自己那格），除 HUD 行外整帧一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作；点中的格在 prev 里主色是 14 时返回 NA（那由 a6_opens_tile 管）；&quot;
+         &quot;点在缝隙上（cell_at 取不到格）也归这条管——它同样应当什么都不改。换关返回 NA。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;7da5d5abd4ddc298&quot;, &quot;2c38a6fb128686a7&quot;, &quot;a0c6611b3ab17dbb&quot;]
+
+from _lib import click_cell, kind, TILE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is not None and kind(prev, *cell) == TILE:
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r != HUD_ROW and prev[r] != nxt[r]:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return None
+    cell = click_cell(action)
+    if cell is not None and kind(prev, *cell) == TILE:
+        return None
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row)}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:17:52 · L1</span><div>ACTION6 点在主色既不是 14 也不是 12 的地方（含缝隙、含玩家自己那格），除 HUD 行外整帧一格不变。</div><div>v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色既不是 14 也不是 12 的地方（含缝隙、含玩家自己那格），除 HUD 行外整帧一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作；点中的格在 prev 里主色是 14 或 12 时返回 NA（那由 a6_opens_block 管）；&quot;
+         &quot;点在缝隙上（cell_at 取不到格）也归这条管——它同样应当什么都不改。换关返回 NA。&quot;)
+NOTE = &quot;v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。&quot;
+EVIDENCE = [&quot;7da5d5abd4ddc298&quot;, &quot;2c38a6fb128686a7&quot;, &quot;a0c6611b3ab17dbb&quot;, &quot;94ab7d5e6ce26367&quot;]
+
+from _lib import click_cell, kind, OPENABLE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is not None and kind(prev, *cell) in OPENABLE:
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r != HUD_ROW and prev[r] != nxt[r]:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return None
+    cell = click_cell(action)
+    if cell is not None and kind(prev, *cell) in OPENABLE:
+        return None
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row)}
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:27:34 · L1</span><div>ACTION6 点在主色既不是 14 也不是 12、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。</div><div>v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：主色是 10、但格里嵌着色12 记号的那种液体，点一下会<b>变成色12 的块</b>——这一局第一次出现「放」而不是「开」。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色既不是 14 也不是 12、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作；点中的格在 prev 里主色是 14 或 12、或者是带色12 记号的液体时返回 NA（分别由 a6_opens_tile / a6_opens_block12 / a6_places_block 管）；&quot;
+         &quot;点在缝隙上（cell_at 取不到格）也归这条管——它同样应当什么都不改。换关返回 NA。&quot;)
+NOTE = (&quot;v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。&quot;
+        &quot;v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：&quot;
+        &quot;主色是 10、但格里嵌着色12 记号的那种液体，点一下会**变成色12 的块**——这一局第一次出现「放」而不是「开」。&quot;)
+EVIDENCE = [&quot;7da5d5abd4ddc298&quot;, &quot;2c38a6fb128686a7&quot;, &quot;a0c6611b3ab17dbb&quot;, &quot;94ab7d5e6ce26367&quot;,
+            &quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, OPENABLE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or marked(prev, *cell)):
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r != HUD_ROW and prev[r] != nxt[r]:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return None
+    cell = click_cell(action)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or marked(prev, *cell)):
+        return None
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row)}
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-15T21:38:59 · L1</span><div>ACTION6 点在主色既不是 14 / 12 / 8、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。</div><div>v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：主色是 10、但格里嵌着色12 记号的那种液体，点一下会<b>变成色12 的块</b>——这一局第一次出现「放」而不是「开」。v3 又被 91e0cd2e1f5924b4 打掉：第 3 关的色8 圆角块点一下会整屏重画、玩家往下掉。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色既不是 14 / 12 / 8、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作；点中的格在 prev 里主色是 14 或 12、或者是带色12 记号的液体时返回 NA（分别由 a6_opens_tile / a6_opens_block12 / a6_places_block 管）；&quot;
+         &quot;点在缝隙上（cell_at 取不到格）也归这条管——它同样应当什么都不改。换关返回 NA。&quot;)
+NOTE = (&quot;v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。&quot;
+        &quot;v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：&quot;
+        &quot;主色是 10、但格里嵌着色12 记号的那种液体，点一下会**变成色12 的块**——这一局第一次出现「放」而不是「开」。&quot;
+        &quot;v3 又被 91e0cd2e1f5924b4 打掉：第 3 关的色8 圆角块点一下会整屏重画、玩家往下掉。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;7da5d5abd4ddc298&quot;, &quot;2c38a6fb128686a7&quot;, &quot;a0c6611b3ab17dbb&quot;, &quot;94ab7d5e6ce26367&quot;,
+            &quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, OPENABLE, BLOCK8, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or kind(prev, *cell) == BLOCK8 or marked(prev, *cell)):
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r != HUD_ROW and prev[r] != nxt[r]:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return None
+    cell = click_cell(action)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or kind(prev, *cell) == BLOCK8 or marked(prev, *cell)):
+        return None
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row)}
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-15T21:41:12 · L1</span><div>ACTION6 点在主色既不是 14 / 12 / 8、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。</div><div>v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：主色是 10、但格里嵌着色12 记号的那种液体，点一下会<b>变成色12 的块</b>——这一局第一次出现「放」而不是「开」。v3 又被 91e0cd2e1f5924b4 打掉：第 3 关的色8 圆角块点一下会整屏重画、玩家往下掉。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色既不是 14 / 12 / 8、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作；点中的格在 prev 里主色是 14 或 12、或者是带色12 记号的液体时返回 NA（分别由 a6_opens_tile / a6_opens_block12 / a6_places_block 管）；&quot;
+         &quot;点在缝隙上（cell_at 取不到格）也归这条管——它同样应当什么都不改。换关返回 NA。&quot;)
+NOTE = (&quot;v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。&quot;
+        &quot;v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：&quot;
+        &quot;主色是 10、但格里嵌着色12 记号的那种液体，点一下会**变成色12 的块**——这一局第一次出现「放」而不是「开」。&quot;
+        &quot;v3 又被 91e0cd2e1f5924b4 打掉：第 3 关的色8 圆角块点一下会整屏重画、玩家往下掉。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;7da5d5abd4ddc298&quot;, &quot;2c38a6fb128686a7&quot;, &quot;a0c6611b3ab17dbb&quot;, &quot;94ab7d5e6ce26367&quot;,
+            &quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, OPENABLE, BLOCK8, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or kind(prev, *cell) == BLOCK8 or marked(prev, *cell)):
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r != HUD_ROW and prev[r] != nxt[r]:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return None
+    cell = click_cell(action, prev)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or kind(prev, *cell) == BLOCK8 or marked(prev, *cell)):
+        return None
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row)}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色既不是 14 / 12 / 8、也不是「带色12 记号的液体」的地方，除 HUD 行外整帧一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作；点中的格在 prev 里主色是 14 或 12、或者是带色12 记号的液体时返回 NA（分别由 a6_opens_tile / a6_opens_block12 / a6_places_block 管）；&quot;
+         &quot;点在缝隙上（cell_at 取不到格）也归这条管——它同样应当什么都不改。换关返回 NA。&quot;)
+NOTE = (&quot;v1 只把色14 排除在外，被 94ab7d5e6ce26367 打掉：色12 的圆角块点一下也会变成液体。&quot;
+        &quot;v2 又被 1aa57c83360798ea / 40905d286691f0ac / e070cb59a35d35de 三条打掉：&quot;
+        &quot;主色是 10、但格里嵌着色12 记号的那种液体，点一下会**变成色12 的块**——这一局第一次出现「放」而不是「开」。&quot;
+        &quot;v3 又被 91e0cd2e1f5924b4 打掉：第 3 关的色8 圆角块点一下会整屏重画、玩家往下掉。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;7da5d5abd4ddc298&quot;, &quot;2c38a6fb128686a7&quot;, &quot;a0c6611b3ab17dbb&quot;, &quot;94ab7d5e6ce26367&quot;,
+            &quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, OPENABLE, BLOCK8, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or kind(prev, *cell) == BLOCK8 or marked(prev, *cell)):
+        return &quot;NA&quot;
+    for r in range(len(prev)):
+        if r != HUD_ROW and prev[r] != nxt[r]:
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if not action.upper().startswith(&quot;ACTION6:&quot;):
+        return None
+    cell = click_cell(action, prev)
+    if cell is not None and (kind(prev, *cell) in OPENABLE or kind(prev, *cell) == BLOCK8 or marked(prev, *cell)):
+        return None
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row)}
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a6_opens_block12</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">点橙色块，它被取走</div></summary><div class="body"><div class="doc">ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:17:52 · L1</span><div>ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 12；点在缝隙上返回 NA；换关返回 NA。&quot;
+         &quot;只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管液体总量怎么算——&quot;
+         &quot;色12 与色14 在**代价**上可能不同（第 95 步点开色12 之后走了一步，窗口内液体没少），那另说。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;94ab7d5e6ce26367&quot;]
+
+from _lib import click_cell, kind, BLOCK12, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is None or kind(prev, *cell) != BLOCK12:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L1</span><div>ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 12；点在缝隙上返回 NA；换关返回 NA。&quot;
+         &quot;只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管液体总量怎么算——&quot;
+         &quot;色12 与色14 在**代价**上可能不同（第 95 步点开色12 之后走了一步，窗口内液体没少），那另说。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;94ab7d5e6ce26367&quot;]
+
+from _lib import click_cell, kind, BLOCK12, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK12:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:53:42 · L1</span><div>ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。</div><div>点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA：那一下会当场把玩家带走并整屏滚动，格坐标在 nxt 里已经不是同一个世界位置了（001a3e2f08289aab）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 12；点在缝隙上返回 NA；换关返回 NA。&quot;
+         &quot;只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管液体总量怎么算——&quot;
+         &quot;色12 与色14 在**代价**上可能不同（第 95 步点开色12 之后走了一步，窗口内液体没少），那另说。&quot;)
+NOTE = &quot;点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA：那一下会当场把玩家带走并整屏滚动，格坐标在 nxt 里已经不是同一个世界位置了（001a3e2f08289aab）。&quot;
+EVIDENCE = [&quot;94ab7d5e6ce26367&quot;]
+
+from _lib import click_cell, kind, me, pull, ahead, BLOCK12, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK12:
+        return &quot;NA&quot;
+    m, p = me(prev), pull(prev)
+    if m is not None and p is not None and cell == ahead(m, p):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 12 的圆角块上，那一格在下一帧的主色变成 10——和色14 一个样。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 12；点在缝隙上返回 NA；换关返回 NA。&quot;
+         &quot;只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管液体总量怎么算——&quot;
+         &quot;色12 与色14 在**代价**上可能不同（第 95 步点开色12 之后走了一步，窗口内液体没少），那另说。&quot;)
+NOTE = &quot;点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA：那一下会当场把玩家带走并整屏滚动，格坐标在 nxt 里已经不是同一个世界位置了（001a3e2f08289aab）。&quot;
+EVIDENCE = [&quot;94ab7d5e6ce26367&quot;]
+
+from _lib import click_cell, kind, me, pull, ahead, BLOCK12, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK12:
+        return &quot;NA&quot;
+    m, p = me(prev), pull(prev)
+    if m is not None and p is not None and cell == ahead(m, p):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a6_opens_tile</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">点绿色块，它变成液体</div></summary><div class="body"><div class="doc">ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:41:49 · L1</span><div>ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 14；点在缝隙上（cell_at 取不到格）返回 NA；&quot;
+         &quot;换关返回 NA。只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管别处。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;]
+
+from _lib import click_cell, kind, TILE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is None:
+        return &quot;NA&quot;
+    if kind(prev, *cell) != TILE:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L1</span><div>ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 14；点在缝隙上（cell_at 取不到格）返回 NA；&quot;
+         &quot;换关返回 NA。只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管别处。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;]
+
+from _lib import click_cell, kind, TILE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None:
+        return &quot;NA&quot;
+    if kind(prev, *cell) != TILE:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:54:02 · L1</span><div>ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。</div><div>v2 被 001a3e2f08289aab 打掉：点开玩家脚底下那块色14，玩家当场下沉、画面滚了一格，于是那格在 nxt 里读出来的不是它自己。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 14；点在缝隙上（cell_at 取不到格）返回 NA；&quot;
+         &quot;换关返回 NA。只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管别处。&quot;
+         &quot;**点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA**：那一下会当场把玩家带走并整屏滚动，&quot;
+         &quot;同一个格坐标在 nxt 里已经不是同一个世界位置了。&quot;)
+NOTE = &quot;v2 被 001a3e2f08289aab 打掉：点开玩家脚底下那块色14，玩家当场下沉、画面滚了一格，于是那格在 nxt 里读出来的不是它自己。&quot;
+EVIDENCE = [&quot;001a3e2f08289aab&quot;, &quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;]
+
+from _lib import click_cell, kind, me, pull, ahead, TILE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != TILE:
+        return &quot;NA&quot;
+    m, p = me(prev), pull(prev)
+    if m is not None and p is not None and cell == ahead(m, p):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在主色为 14 的格上，那一格在下一帧的主色变成 10。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里主色是 14；点在缝隙上（cell_at 取不到格）返回 NA；&quot;
+         &quot;换关返回 NA。只断言被点中的那一格自己变成 10，不管周围缝隙怎么补、也不管别处。&quot;
+         &quot;**点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA**：那一下会当场把玩家带走并整屏滚动，&quot;
+         &quot;同一个格坐标在 nxt 里已经不是同一个世界位置了。&quot;)
+NOTE = &quot;v2 被 001a3e2f08289aab 打掉：点开玩家脚底下那块色14，玩家当场下沉、画面滚了一格，于是那格在 nxt 里读出来的不是它自己。&quot;
+EVIDENCE = [&quot;001a3e2f08289aab&quot;, &quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;]
+
+from _lib import click_cell, kind, me, pull, ahead, TILE, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != TILE:
+        return &quot;NA&quot;
+    m, p = me(prev), pull(prev)
+    if m is not None and p is not None and cell == ahead(m, p):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == FLOOR else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a6_places_block</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">点带记号的液体，放进一块橙色块</div></summary><div class="body"><div class="doc">ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里<b>放</b>东西，不是开。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:27:34 · L1</span><div>ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里<b>放</b>东西，不是开。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里**放**东西，不是开。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里是带记号的液体（主色 10、格内嵌着色 12 的点）；&quot;
+         &quot;别的情况返回 NA；换关返回 NA。只断言那一格自己变成主色 12。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, BLOCK12
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action)
+    if cell is None or not marked(prev, *cell):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == BLOCK12 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L1</span><div>ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里<b>放</b>东西，不是开。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里**放**东西，不是开。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里是带记号的液体（主色 10、格内嵌着色 12 的点）；&quot;
+         &quot;别的情况返回 NA；换关返回 NA。只断言那一格自己变成主色 12。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, BLOCK12
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or not marked(prev, *cell):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == BLOCK12 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:53:42 · L1</span><div>ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里<b>放</b>东西，不是开。</div><div>点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA：那一下会当场把玩家带走并整屏滚动，格坐标在 nxt 里已经不是同一个世界位置了（001a3e2f08289aab）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里**放**东西，不是开。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里是带记号的液体（主色 10、格内嵌着色 12 的点）；&quot;
+         &quot;别的情况返回 NA；换关返回 NA。只断言那一格自己变成主色 12。&quot;)
+NOTE = &quot;点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA：那一下会当场把玩家带走并整屏滚动，格坐标在 nxt 里已经不是同一个世界位置了（001a3e2f08289aab）。&quot;
+EVIDENCE = [&quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, me, pull, ahead, BLOCK12
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or not marked(prev, *cell):
+        return &quot;NA&quot;
+    m, p = me(prev), pull(prev)
+    if m is not None and p is not None and cell == ahead(m, p):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == BLOCK12 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在「带色12 记号的液体」格上，那一格变成主色 12 的块——这是往世界里**放**东西，不是开。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看形如 ACTION6:列,行 的动作，且点中的格在 prev 里是带记号的液体（主色 10、格内嵌着色 12 的点）；&quot;
+         &quot;别的情况返回 NA；换关返回 NA。只断言那一格自己变成主色 12。&quot;)
+NOTE = &quot;点中的格正是玩家在被拉方向上紧贴着的那一格时返回 NA：那一下会当场把玩家带走并整屏滚动，格坐标在 nxt 里已经不是同一个世界位置了（001a3e2f08289aab）。&quot;
+EVIDENCE = [&quot;1aa57c83360798ea&quot;, &quot;40905d286691f0ac&quot;, &quot;e070cb59a35d35de&quot;]
+
+from _lib import click_cell, kind, marked, me, pull, ahead, BLOCK12
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    cell = click_cell(action, prev)
+    if cell is None or not marked(prev, *cell):
+        return &quot;NA&quot;
+    m, p = me(prev), pull(prev)
+    if m is not None and p is not None and cell == ahead(m, p):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if kind(nxt, *cell) == BLOCK12 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">a7_undo_no_levelup</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">撤销那一步不会过关</div></summary><div class="body"><div class="doc">ACTION7（撤销）这一步不可能过关：它把棋盘放回上一个动作之前的样子，只有 HUD 照常往前走。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-16T00:54:42 · L5</span><div>ACTION7（撤销）这一步不可能过关：它把棋盘放回上一个动作之前的样子，只有 HUD 照常往前走。</div><div>立这一条是为了给第 5 关的阻断主张补一个窟窿：做穷举搜索时我把 ACTION7 整个排除在外，当时的理由「整帧回退、深度 1，净效果为零」是一句没走过闸的假设。回头把语料里全部 5 次 ACTION7 摊开看（runs/bp35-0915-2032/a7audit3.py），5 次全部一致：撤销之后棋盘（行 0..62）与「上一个动作之前那一帧」<b>一格不差</b>——包括第 252 步那次把重力从 down 翻成 up、重画了 1754 格的色 8 点击，也被完整回退；唯一的差别是 HUD 第 63 行多出 2 格色 15：被撤销的那一步扣的预算、撤销自己扣的预算，都不退还。所以撤销在可达性上只会更差（花两格预算把棋盘放回原处），排除它是保守的，不是偷懒。第 4 步那次是「撤销的撤销」（重做），说明它只有深度 1——不能靠连点往回翻更多步。棋盘被精确回退这件事写不成概念：assert_ 只收一条 (prev, action, nxt)，要判它得看上上一帧。这是装置的边界，不是我懒得写——所以这里只把可判错的那一半立成主张。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION7（撤销）这一步不可能过关：它把棋盘放回上一个动作之前的样子，只有 HUD 照常往前走。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION7；别的动作返回 NA。ctx 取不到（没有 level_prev / level_next）也返回 NA。&quot;
+         &quot;只断言「这一步 level 不加一」这一件事——「棋盘被精确回退」那一半断言不了，&quot;
+         &quot;因为 assert_ 只看得见一条转移，看不见上上一帧。&quot;)
+NOTE = (&quot;立这一条是为了给第 5 关的阻断主张补一个窟窿：做穷举搜索时我把 ACTION7 整个排除在外，&quot;
+        &quot;当时的理由「整帧回退、深度 1，净效果为零」是一句没走过闸的假设。&quot;
+        &quot;回头把语料里全部 5 次 ACTION7 摊开看（runs/bp35-0915-2032/a7audit3.py），5 次全部一致：&quot;
+        &quot;撤销之后棋盘（行 0..62）与「上一个动作之前那一帧」**一格不差**——&quot;
+        &quot;包括第 252 步那次把重力从 down 翻成 up、重画了 1754 格的色 8 点击，也被完整回退；&quot;
+        &quot;唯一的差别是 HUD 第 63 行多出 2 格色 15：被撤销的那一步扣的预算、撤销自己扣的预算，都不退还。&quot;
+        &quot;所以撤销在可达性上只会更差（花两格预算把棋盘放回原处），排除它是保守的，不是偷懒。&quot;
+        &quot;第 4 步那次是「撤销的撤销」（重做），说明它只有深度 1——不能靠连点往回翻更多步。&quot;
+        &quot;棋盘被精确回退这件事写不成概念：assert_ 只收一条 (prev, action, nxt)，&quot;
+        &quot;要判它得看上上一帧。这是装置的边界，不是我懒得写——所以这里只把可判错的那一半立成主张。&quot;)
+EVIDENCE = [&quot;a83d67e9998a489a&quot;, &quot;58fe41a7eaebf7dc&quot;, &quot;9f3627e087550d3d&quot;,
+            &quot;e85c26eaed9c08ff&quot;, &quot;e53d556fa3010899&quot;]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if not action.startswith(&quot;ACTION7&quot;):
+        return &quot;NA&quot;
+    if not ctx:
+        return &quot;NA&quot;
+    a, b = ctx.get(&quot;level_prev&quot;), ctx.get(&quot;level_next&quot;)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b == a else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION7（撤销）这一步不可能过关：它把棋盘放回上一个动作之前的样子，只有 HUD 照常往前走。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION7；别的动作返回 NA。ctx 取不到（没有 level_prev / level_next）也返回 NA。&quot;
+         &quot;只断言「这一步 level 不加一」这一件事——「棋盘被精确回退」那一半断言不了，&quot;
+         &quot;因为 assert_ 只看得见一条转移，看不见上上一帧。&quot;)
+NOTE = (&quot;立这一条是为了给第 5 关的阻断主张补一个窟窿：做穷举搜索时我把 ACTION7 整个排除在外，&quot;
+        &quot;当时的理由「整帧回退、深度 1，净效果为零」是一句没走过闸的假设。&quot;
+        &quot;回头把语料里全部 5 次 ACTION7 摊开看（runs/bp35-0915-2032/a7audit3.py），5 次全部一致：&quot;
+        &quot;撤销之后棋盘（行 0..62）与「上一个动作之前那一帧」**一格不差**——&quot;
+        &quot;包括第 252 步那次把重力从 down 翻成 up、重画了 1754 格的色 8 点击，也被完整回退；&quot;
+        &quot;唯一的差别是 HUD 第 63 行多出 2 格色 15：被撤销的那一步扣的预算、撤销自己扣的预算，都不退还。&quot;
+        &quot;所以撤销在可达性上只会更差（花两格预算把棋盘放回原处），排除它是保守的，不是偷懒。&quot;
+        &quot;第 4 步那次是「撤销的撤销」（重做），说明它只有深度 1——不能靠连点往回翻更多步。&quot;
+        &quot;棋盘被精确回退这件事写不成概念：assert_ 只收一条 (prev, action, nxt)，&quot;
+        &quot;要判它得看上上一帧。这是装置的边界，不是我懒得写——所以这里只把可判错的那一半立成主张。&quot;)
+EVIDENCE = [&quot;a83d67e9998a489a&quot;, &quot;58fe41a7eaebf7dc&quot;, &quot;9f3627e087550d3d&quot;,
+            &quot;e85c26eaed9c08ff&quot;, &quot;e53d556fa3010899&quot;]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if not action.startswith(&quot;ACTION7&quot;):
+        return &quot;NA&quot;
+    if not ctx:
+        return &quot;NA&quot;
+    a, b = ctx.get(&quot;level_prev&quot;), ctx.get(&quot;level_next&quot;)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b == a else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">blocked_up_no_block8</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">没有开关、正在上浮、十字在下方：这一步过不了关</div></summary><div class="body"><div class="doc">阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。
+
+第 5 关把这条逼了出来。那一关的结构是：开局 pull=up，玩家被锁在一行里（头顶整行是墙，只有一块色8），
+所以第一块色8 非点不可 → 变 down；沿唯一一条竖井沉到底层；十字在底层最左边那间小屋里，
+而小屋唯一的门就是第二块色8，点开它又把重力翻回 up。要横着走进十字必须在 down 下站到十字旁边那一格，
+于是需要第三次翻转——可整关逐帧数下来只有两块色8（每一帧窗口里色8 像素最多 21，也就是一块）。
+奇偶对不上：翻两次一定停在 up，而十字只在 down 下够得着。
+
+依据的每条前提都在册子里：
+  · 移动只有左右两个方向（a3_left / a4_right），竖直位移只由「被液体带走」产生（rise_scrolls）；
+  · 被带走的方向由 pull 决定，而 pull 只被点色8 翻转（a6_block8_flips_pull）；
+  · 走不进主色不是 10 的格（move_needs_floor）——所以关着的门过不去；
+  · 被空气顶住会死（pop_at_surface）——所以绕远的那几列都是死路。
+这条概念的用处在闸外：往后每一条转移都复核它。世界哪天在这个条件下让 level 加了一，它当场变反例。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T22:21:44 · L5</span><div>阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。
+
+第 5 关把这条逼了出来。那一关的结构是：开局 pull=up，玩家被锁在一行里（头顶整行是墙，只有一块色8），
+所以第一块色8 非点不可 → 变 down；沿唯一一条竖井沉到底层；十字在底层最左边那间小屋里，
+而小屋唯一的门就是第二块色8，点开它又把重力翻回 up。要横着走进十字必须在 down 下站到十字旁边那一格，
+于是需要第三次翻转——可整关逐帧数下来只有两块色8（每一帧窗口里色8 像素最多 21，也就是一块）。
+奇偶对不上：翻两次一定停在 up，而十字只在 down 下够得着。
+
+依据的每条前提都在册子里：
+  · 移动只有左右两个方向（a3_left / a4_right），竖直位移只由「被液体带走」产生（rise_scrolls）；
+  · 被带走的方向由 pull 决定，而 pull 只被点色8 翻转（a6_block8_flips_pull）；
+  · 走不进主色不是 10 的格（move_needs_floor）——所以关着的门过不去；
+  · 被空气顶住会死（pop_at_surface）——所以绕远的那几列都是死路。
+这条概念的用处在闸外：往后每一条转移都复核它。世界哪天在这个条件下让 level 加了一，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+BLOCKING = True
+SCOPE = (&quot;只在这几件事同时成立时开口：帧里看得见色7 十字、_lib.pull(prev) 读出来是 &#x27;up&#x27;、&quot;
+         &quot;prev 里一块主色为 8 的格都没有、且十字所在格的行号 &gt; 玩家所在格的行号（十字在下面）。&quot;
+         &quot;任何一条不成立就返回 NA。ctx 缺席返回 NA。&quot;
+         &quot;**不加「换关返回 NA」的护栏**——换关正是它断言不会发生的事。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;bb1a68a1c2a86ce9&quot;]
+
+from _lib import me, goal, pull, kind, NR, NC, BLOCK8
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    m, gl = me(prev), goal(prev)
+    if m is None or gl is None:
+        return &quot;NA&quot;
+    if pull(prev) != &#x27;up&#x27;:
+        return &quot;NA&quot;
+    if gl[0] &lt;= m[0]:
+        return &quot;NA&quot;
+    for i in range(NR):
+        for j in range(NC):
+            if kind(prev, i, j) == BLOCK8:
+                return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T23:21:53 · L5</span><div>阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。</div><div>立案之后又把它机械地验了一遍：按这本册子的规则，把第 5 关整关（世界行 C(-15)..C21，11 列，地图逐像素从实测帧读出、并用同一条命的三帧复核过）建成状态图做穷举搜索——状态 35584、边 208048、预算 64 步——<b>没有赢法</b>。随后逐条放松单一规则，只有三条放松之后才有解：(1) 玩家能走进块；(2) 点击不受窗口限制；(3) 点开过的色8 能再点回来。这三条各自都被直接实验推翻过：连撞关着的色8 门两次都被挡；点击只作用于帧上显示的格；点开之后那一格是普通液体（扫过全帧，没有非色12 的记号）。所以这条阻断主张不是「我没想到」，而是「按册子里这 21 条推不出赢法」——它错的话，错的是册子里某一条，而不是这条推理。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。
+
+第 5 关把这条逼了出来。那一关的结构是：开局 pull=up，玩家被锁在一行里（头顶整行是墙，只有一块色8），
+所以第一块色8 非点不可 → 变 down；沿唯一一条竖井沉到底层；十字在底层最左边那间小屋里，
+而小屋唯一的门就是第二块色8，点开它又把重力翻回 up。要横着走进十字必须在 down 下站到十字旁边那一格，
+于是需要第三次翻转——可整关逐帧数下来只有两块色8（每一帧窗口里色8 像素最多 21，也就是一块）。
+奇偶对不上：翻两次一定停在 up，而十字只在 down 下够得着。
+
+依据的每条前提都在册子里：
+  · 移动只有左右两个方向（a3_left / a4_right），竖直位移只由「被液体带走」产生（rise_scrolls）；
+  · 被带走的方向由 pull 决定，而 pull 只被点色8 翻转（a6_block8_flips_pull）；
+  · 走不进主色不是 10 的格（move_needs_floor）——所以关着的门过不去；
+  · 被空气顶住会死（pop_at_surface）——所以绕远的那几列都是死路。
+这条概念的用处在闸外：往后每一条转移都复核它。世界哪天在这个条件下让 level 加了一，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+BLOCKING = True
+SCOPE = (&quot;只在这几件事同时成立时开口：帧里看得见色7 十字、_lib.pull(prev) 读出来是 &#x27;up&#x27;、&quot;
+         &quot;prev 里一块主色为 8 的格都没有、且十字所在格的行号 &gt; 玩家所在格的行号（十字在下面）。&quot;
+         &quot;任何一条不成立就返回 NA。ctx 缺席返回 NA。&quot;
+         &quot;**不加「换关返回 NA」的护栏**——换关正是它断言不会发生的事。&quot;)
+NOTE = (&quot;立案之后又把它机械地验了一遍：按这本册子的规则，把第 5 关整关（世界行 C(-15)..C21，11 列，&quot;
+        &quot;地图逐像素从实测帧读出、并用同一条命的三帧复核过）建成状态图做穷举搜索——状态 35584、边 208048、&quot;
+        &quot;预算 64 步——**没有赢法**。随后逐条放松单一规则，只有三条放松之后才有解：&quot;
+        &quot;(1) 玩家能走进块；(2) 点击不受窗口限制；(3) 点开过的色8 能再点回来。&quot;
+        &quot;这三条各自都被直接实验推翻过：连撞关着的色8 门两次都被挡；点击只作用于帧上显示的格；&quot;
+        &quot;点开之后那一格是普通液体（扫过全帧，没有非色12 的记号）。&quot;
+        &quot;所以这条阻断主张不是「我没想到」，而是「按册子里这 21 条推不出赢法」——&quot;
+        &quot;它错的话，错的是册子里某一条，而不是这条推理。&quot;)
+EVIDENCE = [&quot;bb1a68a1c2a86ce9&quot;]
+
+from _lib import me, goal, pull, kind, NR, NC, BLOCK8
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    m, gl = me(prev), goal(prev)
+    if m is None or gl is None:
+        return &quot;NA&quot;
+    if pull(prev) != &#x27;up&#x27;:
+        return &quot;NA&quot;
+    if gl[0] &lt;= m[0]:
+        return &quot;NA&quot;
+    for i in range(NR):
+        for j in range(NC):
+            if kind(prev, i, j) == BLOCK8:
+                return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-16T00:54:55 · L5</span><div>阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。</div><div>立案之后又把它机械地验了一遍：按这本册子的规则，把第 5 关整关（世界行 C(-15)..C21，11 列，地图逐像素从实测帧读出、并用同一条命的三帧复核过）建成状态图做穷举搜索——状态 35584、边 208048、预算 64 步——<b>没有赢法</b>。随后逐条放松单一规则，只有三条放松之后才有解：(1) 玩家能走进块；(2) 点击不受窗口限制；(3) 点开过的色8 能再点回来。这三条各自都被直接实验推翻过：连撞关着的色8 门两次都被挡；点击只作用于帧上显示的格；点开之后那一格是普通液体（扫过全帧，没有非色12 的记号）。所以这条阻断主张不是「我没想到」，而是「按册子里这 21 条推不出赢法」——它错的话，错的是册子里某一条，而不是这条推理。补：做那次穷举时我把 ACTION7 整个排除在外，理由是一句没走过闸的假设「净效果为零」。事后把语料里全部 5 次 ACTION7 摊开复核过：撤销之后棋盘一格不差地回到上一个动作之前，连翻重力那一下也被完整回退，而 HUD 上两格预算都不退还——所以它在可达性上只会更差，排除它是保守的。这一半已经立成概念 a7_undo_no_levelup 走闸；「棋盘被精确回退」那一半断言不了，assert_ 看不见上上一帧。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。
+
+第 5 关把这条逼了出来。那一关的结构是：开局 pull=up，玩家被锁在一行里（头顶整行是墙，只有一块色8），
+所以第一块色8 非点不可 → 变 down；沿唯一一条竖井沉到底层；十字在底层最左边那间小屋里，
+而小屋唯一的门就是第二块色8，点开它又把重力翻回 up。要横着走进十字必须在 down 下站到十字旁边那一格，
+于是需要第三次翻转——可整关逐帧数下来只有两块色8（每一帧窗口里色8 像素最多 21，也就是一块）。
+奇偶对不上：翻两次一定停在 up，而十字只在 down 下够得着。
+
+依据的每条前提都在册子里：
+  · 移动只有左右两个方向（a3_left / a4_right），竖直位移只由「被液体带走」产生（rise_scrolls）；
+  · 被带走的方向由 pull 决定，而 pull 只被点色8 翻转（a6_block8_flips_pull）；
+  · 走不进主色不是 10 的格（move_needs_floor）——所以关着的门过不去；
+  · 被空气顶住会死（pop_at_surface）——所以绕远的那几列都是死路。
+这条概念的用处在闸外：往后每一条转移都复核它。世界哪天在这个条件下让 level 加了一，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+BLOCKING = True
+SCOPE = (&quot;只在这几件事同时成立时开口：帧里看得见色7 十字、_lib.pull(prev) 读出来是 &#x27;up&#x27;、&quot;
+         &quot;prev 里一块主色为 8 的格都没有、且十字所在格的行号 &gt; 玩家所在格的行号（十字在下面）。&quot;
+         &quot;任何一条不成立就返回 NA。ctx 缺席返回 NA。&quot;
+         &quot;**不加「换关返回 NA」的护栏**——换关正是它断言不会发生的事。&quot;)
+NOTE = (&quot;立案之后又把它机械地验了一遍：按这本册子的规则，把第 5 关整关（世界行 C(-15)..C21，11 列，&quot;
+        &quot;地图逐像素从实测帧读出、并用同一条命的三帧复核过）建成状态图做穷举搜索——状态 35584、边 208048、&quot;
+        &quot;预算 64 步——**没有赢法**。随后逐条放松单一规则，只有三条放松之后才有解：&quot;
+        &quot;(1) 玩家能走进块；(2) 点击不受窗口限制；(3) 点开过的色8 能再点回来。&quot;
+        &quot;这三条各自都被直接实验推翻过：连撞关着的色8 门两次都被挡；点击只作用于帧上显示的格；&quot;
+        &quot;点开之后那一格是普通液体（扫过全帧，没有非色12 的记号）。&quot;
+        &quot;所以这条阻断主张不是「我没想到」，而是「按册子里这 21 条推不出赢法」——&quot;
+        &quot;它错的话，错的是册子里某一条，而不是这条推理。&quot;
+        &quot;补：做那次穷举时我把 ACTION7 整个排除在外，理由是一句没走过闸的假设「净效果为零」。&quot;
+        &quot;事后把语料里全部 5 次 ACTION7 摊开复核过：撤销之后棋盘一格不差地回到上一个动作之前，&quot;
+        &quot;连翻重力那一下也被完整回退，而 HUD 上两格预算都不退还——所以它在可达性上只会更差，&quot;
+        &quot;排除它是保守的。这一半已经立成概念 a7_undo_no_levelup 走闸；&quot;
+        &quot;「棋盘被精确回退」那一半断言不了，assert_ 看不见上上一帧。&quot;)
+EVIDENCE = [&quot;bb1a68a1c2a86ce9&quot;]
+
+from _lib import me, goal, pull, kind, NR, NC, BLOCK8
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    m, gl = me(prev), goal(prev)
+    if m is None or gl is None:
+        return &quot;NA&quot;
+    if pull(prev) != &#x27;up&#x27;:
+        return &quot;NA&quot;
+    if gl[0] &lt;= m[0]:
+        return &quot;NA&quot;
+    for i in range(NR):
+        for j in range(NC):
+            if kind(prev, i, j) == BLOCK8:
+                return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;阻断主张：窗口里一块色8 都没有、玩家被往上拉、而十字在玩家格行的下方时，这一步不可能过关。
+
+第 5 关把这条逼了出来。那一关的结构是：开局 pull=up，玩家被锁在一行里（头顶整行是墙，只有一块色8），
+所以第一块色8 非点不可 → 变 down；沿唯一一条竖井沉到底层；十字在底层最左边那间小屋里，
+而小屋唯一的门就是第二块色8，点开它又把重力翻回 up。要横着走进十字必须在 down 下站到十字旁边那一格，
+于是需要第三次翻转——可整关逐帧数下来只有两块色8（每一帧窗口里色8 像素最多 21，也就是一块）。
+奇偶对不上：翻两次一定停在 up，而十字只在 down 下够得着。
+
+依据的每条前提都在册子里：
+  · 移动只有左右两个方向（a3_left / a4_right），竖直位移只由「被液体带走」产生（rise_scrolls）；
+  · 被带走的方向由 pull 决定，而 pull 只被点色8 翻转（a6_block8_flips_pull）；
+  · 走不进主色不是 10 的格（move_needs_floor）——所以关着的门过不去；
+  · 被空气顶住会死（pop_at_surface）——所以绕远的那几列都是死路。
+这条概念的用处在闸外：往后每一条转移都复核它。世界哪天在这个条件下让 level 加了一，它当场变反例。
+&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+BLOCKING = True
+SCOPE = (&quot;只在这几件事同时成立时开口：帧里看得见色7 十字、_lib.pull(prev) 读出来是 &#x27;up&#x27;、&quot;
+         &quot;prev 里一块主色为 8 的格都没有、且十字所在格的行号 &gt; 玩家所在格的行号（十字在下面）。&quot;
+         &quot;任何一条不成立就返回 NA。ctx 缺席返回 NA。&quot;
+         &quot;**不加「换关返回 NA」的护栏**——换关正是它断言不会发生的事。&quot;)
+NOTE = (&quot;立案之后又把它机械地验了一遍：按这本册子的规则，把第 5 关整关（世界行 C(-15)..C21，11 列，&quot;
+        &quot;地图逐像素从实测帧读出、并用同一条命的三帧复核过）建成状态图做穷举搜索——状态 35584、边 208048、&quot;
+        &quot;预算 64 步——**没有赢法**。随后逐条放松单一规则，只有三条放松之后才有解：&quot;
+        &quot;(1) 玩家能走进块；(2) 点击不受窗口限制；(3) 点开过的色8 能再点回来。&quot;
+        &quot;这三条各自都被直接实验推翻过：连撞关着的色8 门两次都被挡；点击只作用于帧上显示的格；&quot;
+        &quot;点开之后那一格是普通液体（扫过全帧，没有非色12 的记号）。&quot;
+        &quot;所以这条阻断主张不是「我没想到」，而是「按册子里这 21 条推不出赢法」——&quot;
+        &quot;它错的话，错的是册子里某一条，而不是这条推理。&quot;
+        &quot;补：做那次穷举时我把 ACTION7 整个排除在外，理由是一句没走过闸的假设「净效果为零」。&quot;
+        &quot;事后把语料里全部 5 次 ACTION7 摊开复核过：撤销之后棋盘一格不差地回到上一个动作之前，&quot;
+        &quot;连翻重力那一下也被完整回退，而 HUD 上两格预算都不退还——所以它在可达性上只会更差，&quot;
+        &quot;排除它是保守的。这一半已经立成概念 a7_undo_no_levelup 走闸；&quot;
+        &quot;「棋盘被精确回退」那一半断言不了，assert_ 看不见上上一帧。&quot;)
+EVIDENCE = [&quot;bb1a68a1c2a86ce9&quot;]
+
+from _lib import me, goal, pull, kind, NR, NC, BLOCK8
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    m, gl = me(prev), goal(prev)
+    if m is None or gl is None:
+        return &quot;NA&quot;
+    if pull(prev) != &#x27;up&#x27;:
+        return &quot;NA&quot;
+    if gl[0] &lt;= m[0]:
+        return &quot;NA&quot;
+    for i in range(NR):
+        for j in range(NC):
+            if kind(prev, i, j) == BLOCK8:
+                return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">board_static</span><span class="chip c-lv">L0 · 清点</span><span class="chip c-dead">撤册</span><span class="chip c-mute">4 版</span></div><div class="one">一步之内，除了玩家和计步条，棋盘逐格不变</div></summary><div class="body"><div class="doc">左右走这一步里，玩家所在格行<b>及其以上</b>的所有像素，除玩家在 prev/nxt 占的那两格外，逐格不变。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:39:29 · L0</span><div>一步之内，除了 HUD 行和玩家在 prev/nxt 各自所在的那两格 5x5，棋盘逐格不变。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，除了 HUD 行和玩家在 prev/nxt 各自所在的那两格 5x5，棋盘逐格不变。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条非 RESET 转移；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;「那两格」按 _lib 的格点取 5x5 整块；格与格之间的缝隙行列不在豁免之内，所以缝隙变了就是反例。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;]
+
+from _lib import me, origin, SIDE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        pr, nr = prev[r], nxt[r]
+        if pr == nr:
+            continue
+        for c, (x, y) in enumerate(zip(pr, nr)):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T20:41:49 · L0</span><div>左右走这一步里，除了 HUD 行和玩家在 prev/nxt 各自所在的那两格 5x5，棋盘逐格不变。</div><div>v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉：点色 14 块会改棋盘。v2 把 scope 缩到左右走。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走这一步里，除了 HUD 行和玩家在 prev/nxt 各自所在的那两格 5x5，棋盘逐格不变。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;**只看 ACTION3 / ACTION4**；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;「那两格」按 _lib 的格点取 5x5 整块；格与格之间的缝隙行列不在豁免之内，所以缝隙变了就是反例。&quot;
+         &quot;不再声称管 ACTION6 和 ACTION7：ACTION6 点在色 14 块上会把那一格连同周围缝隙改成色 10，&quot;
+         &quot;ACTION7 会把整帧退回上一步，两者都能把棋盘改掉。&quot;)
+NOTE = (&quot;v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉：&quot;
+        &quot;点色 14 块会改棋盘。v2 把 scope 缩到左右走。&quot;)
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;]
+
+from _lib import me, origin, SIDE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        pr, nr = prev[r], nxt[r]
+        if pr == nr:
+            continue
+        for c, (x, y) in enumerate(zip(pr, nr)):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T20:42:01 · L0</span><div>左右走这一步里，除了 HUD 行和玩家在 prev/nxt 各自所在的那两格 5x5，棋盘逐格不变。</div><div>v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉：点色 14 块会改棋盘。v2 把 scope 缩到左右走。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走这一步里，除了 HUD 行和玩家在 prev/nxt 各自所在的那两格 5x5，棋盘逐格不变。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;**只看 ACTION3 / ACTION4**；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;「那两格」按 _lib 的格点取 5x5 整块；格与格之间的缝隙行列不在豁免之内，所以缝隙变了就是反例。&quot;
+         &quot;不再声称管 ACTION6 和 ACTION7：ACTION6 点在色 14 块上会把那一格连同周围缝隙改成色 10，&quot;
+         &quot;ACTION7 会把整帧退回上一步，两者都能把棋盘改掉。&quot;)
+NOTE = (&quot;v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉：&quot;
+        &quot;点色 14 块会改棋盘。v2 把 scope 缩到左右走。&quot;)
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;]
+
+from _lib import me, origin, SIDE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    for r in range(len(prev)):
+        if r == HUD_ROW:
+            continue
+        pr, nr = prev[r], nxt[r]
+        if pr == nr:
+            continue
+        for c, (x, y) in enumerate(zip(pr, nr)):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;左右走时，除 HUD 行、玩家那格、以及它左右相邻两格之外，逐格照抄 prev。
+
+    比 assert_ 保守一格：assert_ 只豁免 prev/nxt 两格，这里连没走成的那一侧也一起让开，
+    因为 apply 只看得到 prev，不知道这一步到底走没走成。
+    &quot;&quot;&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    skip = set()
+    for j in (a[1] - 1, a[1], a[1] + 1):
+        r0, c0 = origin(a[0], j)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                skip.add((r0 + dr, c0 + dc))
+    return {(r, c): v for r, row in enumerate(prev) if r != HUD_ROW
+            for c, v in enumerate(row) if (r, c) not in skip}
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-15T20:47:32 · L0</span><div>左右走这一步里，玩家所在格行<b>及其以上</b>的所有像素，除玩家在 prev/nxt 占的那两格外，逐格不变。</div><div>v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉。v2/v3 缩到左右走，又被 76f4a053cf393504 打掉：第 22 步整个棋盘底部（行 57 及以下）由色 10 变成色 5 / 色 15，玩家却只是右移了一格。v4 因此只声称玩家格行及其以上——侵蚀是从底下上来的，这条概念不再假装管得住底下。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走这一步里，玩家所在格行**及其以上**的所有像素，除玩家在 prev/nxt 占的那两格外，逐格不变。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;只断言行号 ≤ 玩家格的底行（两帧里较靠下的那个格行的 origin 行 + SIDE - 1）的那一片；&quot;
+         &quot;玩家格行以下、以及 HUD 行，一律不声称。&quot;
+         &quot;不管 ACTION6（点色 14 块会把那格连同缝隙改成色 10）和 ACTION7（整帧退回上一步）。&quot;)
+NOTE = (&quot;v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉。&quot;
+        &quot;v2/v3 缩到左右走，又被 76f4a053cf393504 打掉：第 22 步整个棋盘底部（行 57 及以下）&quot;
+        &quot;由色 10 变成色 5 / 色 15，玩家却只是右移了一格。v4 因此只声称玩家格行及其以上——&quot;
+        &quot;侵蚀是从底下上来的，这条概念不再假装管得住底下。&quot;)
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;, &quot;76f4a053cf393504&quot;]
+
+from _lib import me, origin, SIDE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    lim = max(origin(*a)[0], origin(*b)[0]) + SIDE - 1
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW or prev[r] == nxt[r]:
+            continue
+        for c, (x, y) in enumerate(zip(prev[r], nxt[r])):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;玩家格行及其以上、且不在玩家那格与左右相邻两格里的像素，照抄 prev。
+
+    比 assert_ 保守一格：apply 只看得到 prev，不知道这一步走没走成，所以两侧都让开。
+    &quot;&quot;&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    skip = set()
+    for j in (a[1] - 1, a[1], a[1] + 1):
+        r0, c0 = origin(a[0], j)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                skip.add((r0 + dr, c0 + dc))
+    lim = origin(*a)[0] + SIDE - 1
+    return {(r, c): v for r in range(min(lim + 1, len(prev))) if r != HUD_ROW
+            for c, v in enumerate(prev[r]) if (r, c) not in skip}
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走这一步里，玩家所在格行**及其以上**的所有像素，除玩家在 prev/nxt 占的那两格外，逐格不变。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关返回 NA；me() 在 prev 或 nxt 里定位不到返回 NA。&quot;
+         &quot;只断言行号 ≤ 玩家格的底行（两帧里较靠下的那个格行的 origin 行 + SIDE - 1）的那一片；&quot;
+         &quot;玩家格行以下、以及 HUD 行，一律不声称。&quot;
+         &quot;不管 ACTION6（点色 14 块会把那格连同缝隙改成色 10）和 ACTION7（整帧退回上一步）。&quot;)
+NOTE = (&quot;v1 声称管所有非 RESET 动作，被 da145af05522b1cc / 92b5600476bed61a 两条 ACTION6 打掉。&quot;
+        &quot;v2/v3 缩到左右走，又被 76f4a053cf393504 打掉：第 22 步整个棋盘底部（行 57 及以下）&quot;
+        &quot;由色 10 变成色 5 / 色 15，玩家却只是右移了一格。v4 因此只声称玩家格行及其以上——&quot;
+        &quot;侵蚀是从底下上来的，这条概念不再假装管得住底下。&quot;)
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;da145af05522b1cc&quot;, &quot;92b5600476bed61a&quot;, &quot;76f4a053cf393504&quot;]
+
+from _lib import me, origin, SIDE, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    lim = max(origin(*a)[0], origin(*b)[0]) + SIDE - 1
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW or prev[r] == nxt[r]:
+            continue
+        for c, (x, y) in enumerate(zip(prev[r], nxt[r])):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    &quot;&quot;&quot;玩家格行及其以上、且不在玩家那格与左右相邻两格里的像素，照抄 prev。
+
+    比 assert_ 保守一格：apply 只看得到 prev，不知道这一步走没走成，所以两侧都让开。
+    &quot;&quot;&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    skip = set()
+    for j in (a[1] - 1, a[1], a[1] + 1):
+        r0, c0 = origin(a[0], j)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                skip.add((r0 + dr, c0 + dc))
+    lim = origin(*a)[0] + SIDE - 1
+    return {(r, c): v for r in range(min(lim + 1, len(prev))) if r != HUD_ROW
+            for c, v in enumerate(prev[r]) if (r, c) not in skip}
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">ceiling_above_player</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">玩家正上方永远不是液体</div></summary><div class="body"><div class="doc">每个动作之后，玩家正上方那一格都不是液体——玩家是个气泡，一路上浮到顶住为止。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:57:07 · L6</span><div>每个动作之后，玩家正上方那一格都不是液体——玩家是个气泡，一路上浮到顶住为止。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作之后，玩家正上方那一格都不是液体——玩家是个气泡，一路上浮到顶住为止。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA；me() 定位不到、或玩家已经在窗口第 0 格行（上方读不到）返回 NA。&quot;
+         &quot;「液体」= 主色 10。这条不说它浮了多少格，只说它停下来的地方头顶不是液体。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, above, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    a = above(nxt, m)
+    if a is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if a != FLOOR else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:38:59 · L6</span><div>每个动作之后，玩家正上方那一格都不是液体——玩家是个气泡，一路上浮到顶住为止。</div><div>v2：scope 缩到只看左右走——点色8 之后玩家头顶就是液体（91e0cd2e1f5924b4）。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作之后，玩家正上方那一格都不是液体——玩家是个气泡，一路上浮到顶住为止。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA；me() 定位不到、或玩家已经在窗口第 0 格行（上方读不到）返回 NA。&quot;
+         &quot;「液体」= 主色 10。这条不说它浮了多少格，只说它停下来的地方头顶不是液体。&quot;)
+NOTE = &quot;v2：scope 缩到只看左右走——点色8 之后玩家头顶就是液体（91e0cd2e1f5924b4）。&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, above, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    a = above(nxt, m)
+    if a is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if a != FLOOR else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作之后，玩家正上方那一格都不是液体——玩家是个气泡，一路上浮到顶住为止。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA；me() 定位不到、或玩家已经在窗口第 0 格行（上方读不到）返回 NA。&quot;
+         &quot;「液体」= 主色 10。这条不说它浮了多少格，只说它停下来的地方头顶不是液体。&quot;)
+NOTE = &quot;v2：scope 缩到只看左右走——点色8 之后玩家头顶就是液体（91e0cd2e1f5924b4）。&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, above, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    a = above(nxt, m)
+    if a is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if a != FLOOR else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">goal_cross_wins</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">横着走进十字就过关</div></summary><div class="body"><div class="doc">朝色7 十字所在的那一格走一步，就过关：上游给的 level 会加一。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:03:00 · L5</span><div>朝色7 十字所在的那一格走一步，就过关：上游给的 level 会加一。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;朝色7 十字所在的那一格走一步，就过关：上游给的 level 会加一。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里色7 十字所在的格恰好是玩家这一步的目标格（同一格行、列差 1）；&quot;
+         &quot;别的情况返回 NA。十字不在窗口里、me() 定位不到、ctx 缺席也返回 NA。&quot;
+         &quot;**这条不加「换关返回 NA」的护栏**——换关正是它要断言的事。&quot;
+         &quot;它不声称目标格能不能走进去（那格主色是 5，move_needs_floor 会说挡住），只声称「朝它走 = 过关」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;f00070472d183608&quot;]
+
+from _lib import me, goal
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = action.upper()
+    if act.startswith(&quot;ACTION3&quot;):
+        dj = -1
+    elif act.startswith(&quot;ACTION4&quot;):
+        dj = 1
+    else:
+        return &quot;NA&quot;
+    m, g = me(prev), goal(prev)
+    if m is None or g is None or ctx is None:
+        return &quot;NA&quot;
+    if g != (m[0], m[1] + dj):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;朝色7 十字所在的那一格走一步，就过关：上游给的 level 会加一。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里色7 十字所在的格恰好是玩家这一步的目标格（同一格行、列差 1）；&quot;
+         &quot;别的情况返回 NA。十字不在窗口里、me() 定位不到、ctx 缺席也返回 NA。&quot;
+         &quot;**这条不加「换关返回 NA」的护栏**——换关正是它要断言的事。&quot;
+         &quot;它不声称目标格能不能走进去（那格主色是 5，move_needs_floor 会说挡住），只声称「朝它走 = 过关」。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;f00070472d183608&quot;]
+
+from _lib import me, goal
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = action.upper()
+    if act.startswith(&quot;ACTION3&quot;):
+        dj = -1
+    elif act.startswith(&quot;ACTION4&quot;):
+        dj = 1
+    else:
+        return &quot;NA&quot;
+    m, g = me(prev), goal(prev)
+    if m is None or g is None or ctx is None:
+        return &quot;NA&quot;
+    if g != (m[0], m[1] + dj):
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">goal_reached_vertically</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">被液体带进十字也过关</div></summary><div class="body"><div class="doc">被液体带着走的那一列上，如果连续液体之后紧接着的那一格是色7 十字，这一步就过关。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:55:40 · L5</span><div>被液体带着走的那一列上，如果连续液体之后紧接着的那一格是色7 十字，这一步就过关。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;被液体带着走的那一列上，如果连续液体之后紧接着的那一格是色7 十字，这一步就过关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看点色8（翻重力）那一步；方向取 nxt 里的 pull（翻完之后的方向），起点取 prev 里玩家所在的格。&quot;
+         &quot;沿那一列往那个方向数连续液体，第一个非液体的格若正是色7 十字所在的格，就断言 level 加一；&quot;
+         &quot;数到窗口边缘还没遇到非液体、十字不在窗口里、pull 读不出来，都返回 NA。&quot;
+         &quot;**这条不加「换关返回 NA」的护栏**——换关正是它要断言的事。&quot;
+         &quot;它补的是 goal_cross_wins 管不到的那一半：第 3 关是竖着撞进十字赢的，不是横着走进去的。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;85b9695644dcfa39&quot;]
+
+from _lib import me, goal, pull, click_cell, kind, BLOCK8, NR, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK8 or ctx is None:
+        return &quot;NA&quot;
+    m, gl, p = me(prev), goal(prev), pull(nxt)
+    if m is None or gl is None or p is None:
+        return &quot;NA&quot;
+    step = -1 if p == &#x27;up&#x27; else 1
+    i, j = m
+    r = i
+    while 0 &lt;= r + step &lt; NR and kind(prev, r + step, j) == FLOOR:
+        r += step
+    if not (0 &lt;= r + step &lt; NR):
+        return &quot;NA&quot;
+    if (r + step, j) != gl:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;被液体带着走的那一列上，如果连续液体之后紧接着的那一格是色7 十字，这一步就过关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看点色8（翻重力）那一步；方向取 nxt 里的 pull（翻完之后的方向），起点取 prev 里玩家所在的格。&quot;
+         &quot;沿那一列往那个方向数连续液体，第一个非液体的格若正是色7 十字所在的格，就断言 level 加一；&quot;
+         &quot;数到窗口边缘还没遇到非液体、十字不在窗口里、pull 读不出来，都返回 NA。&quot;
+         &quot;**这条不加「换关返回 NA」的护栏**——换关正是它要断言的事。&quot;
+         &quot;它补的是 goal_cross_wins 管不到的那一半：第 3 关是竖着撞进十字赢的，不是横着走进去的。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;85b9695644dcfa39&quot;]
+
+from _lib import me, goal, pull, click_cell, kind, BLOCK8, NR, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    cell = click_cell(action, prev)
+    if cell is None or kind(prev, *cell) != BLOCK8 or ctx is None:
+        return &quot;NA&quot;
+    m, gl, p = me(prev), goal(prev), pull(nxt)
+    if m is None or gl is None or p is None:
+        return &quot;NA&quot;
+    step = -1 if p == &#x27;up&#x27; else 1
+    i, j = m
+    r = i
+    while 0 &lt;= r + step &lt; NR and kind(prev, r + step, j) == FLOOR:
+        r += step
+    if not (0 &lt;= r + step &lt; NR):
+        return &quot;NA&quot;
+    if (r + step, j) != gl:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">hud_full_kills</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">计步条走满就输</div></summary><div class="body"><div class="doc">HUD 那一行 64 格全填成色15 的那一步，state 变成 GAME_OVER——它是每关的步数预算，不是计数器。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T22:53:11 · L5</span><div>HUD 那一行 64 格全填成色15 的那一步，state 变成 GAME_OVER——它是每关的步数预算，不是计数器。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;HUD 那一行 64 格全填成色15 的那一步，state 变成 GAME_OVER——它是每关的步数预算，不是计数器。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看非 RESET 动作，且 prev 里 HUD 行恰好还剩 1 格是色 0（也就是这一步会把它填满）；&quot;
+         &quot;别的情况返回 NA。ctx 缺席、或 ctx 里没有 state_next 返回 NA。&quot;
+         &quot;**不加「换关返回 NA」的护栏**——万一填满反而是过关，这条要能判错。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;427fd2f576336df8&quot;]
+
+from _lib import HUD_ROW, HUD_EMPTY
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    if sum(1 for v in prev[HUD_ROW] if v == HUD_EMPTY) != 1:
+        return &quot;NA&quot;
+    st = ctx.get(&quot;state_next&quot;)
+    if st is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if st == &quot;GAME_OVER&quot; else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;HUD 那一行 64 格全填成色15 的那一步，state 变成 GAME_OVER——它是每关的步数预算，不是计数器。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看非 RESET 动作，且 prev 里 HUD 行恰好还剩 1 格是色 0（也就是这一步会把它填满）；&quot;
+         &quot;别的情况返回 NA。ctx 缺席、或 ctx 里没有 state_next 返回 NA。&quot;
+         &quot;**不加「换关返回 NA」的护栏**——万一填满反而是过关，这条要能判错。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;427fd2f576336df8&quot;]
+
+from _lib import HUD_ROW, HUD_EMPTY
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    if sum(1 for v in prev[HUD_ROW] if v == HUD_EMPTY) != 1:
+        return &quot;NA&quot;
+    st = ctx.get(&quot;state_next&quot;)
+    if st is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if st == &quot;GAME_OVER&quot; else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">hud_tick</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">每个操作，计步条多填一格</div></summary><div class="body"><div class="doc">每发一个动作，HUD（行 63）最左边那个还是色 0 的格变成色 15，别的格不变——受理就扣，生效与否无关。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:39:29 · L4</span><div>每发一个动作，HUD（行 63）最左边那个还是色 0 的格变成色 15，别的格不变——受理就扣，生效与否无关。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每发一个动作，HUD（行 63）最左边那个还是色 0 的格变成色 15，别的格不变——受理就扣，生效与否无关。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看非 RESET 动作；换关返回 NA；HUD 行已经被填满（64 格全是色 15）时返回 NA（没见过，别瞎断）。&quot;
+         &quot;「最左边那个还是色 0 的格」= prev 里行 63 从左数第一个不是色 15 的位置。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;3d1be259a9f752ae&quot;]
+
+from _lib import HUD_ROW, HUD_EMPTY, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    p, n = prev[HUD_ROW], nxt[HUD_ROW]
+    k = next((x for x, v in enumerate(p) if v != HUD_FILL), None)
+    if k is None:
+        return &quot;NA&quot;
+    if p[k] != HUD_EMPTY:
+        return &quot;NA&quot;
+    want = list(p)
+    want[k] = HUD_FILL
+    return &quot;TRUE&quot; if list(n) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action.upper().startswith(&quot;RESET&quot;):
+        return None
+    p = prev[HUD_ROW]
+    k = next((x for x, v in enumerate(p) if v != HUD_FILL), None)
+    if k is None or p[k] != HUD_EMPTY:
+        return None
+    return {(HUD_ROW, x): (HUD_FILL if x == k else p[x]) for x in range(len(p))}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;每发一个动作，HUD（行 63）最左边那个还是色 0 的格变成色 15，别的格不变——受理就扣，生效与否无关。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看非 RESET 动作；换关返回 NA；HUD 行已经被填满（64 格全是色 15）时返回 NA（没见过，别瞎断）。&quot;
+         &quot;「最左边那个还是色 0 的格」= prev 里行 63 从左数第一个不是色 15 的位置。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;3d1be259a9f752ae&quot;]
+
+from _lib import HUD_ROW, HUD_EMPTY, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    p, n = prev[HUD_ROW], nxt[HUD_ROW]
+    k = next((x for x, v in enumerate(p) if v != HUD_FILL), None)
+    if k is None:
+        return &quot;NA&quot;
+    if p[k] != HUD_EMPTY:
+        return &quot;NA&quot;
+    want = list(p)
+    want[k] = HUD_FILL
+    return &quot;TRUE&quot; if list(n) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if action.upper().startswith(&quot;RESET&quot;):
+        return None
+    p = prev[HUD_ROW]
+    k = next((x for x, v in enumerate(p) if v != HUD_FILL), None)
+    if k is None or p[k] != HUD_EMPTY:
+        return None
+    return {(HUD_ROW, x): (HUD_FILL if x == k else p[x]) for x in range(len(p))}
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">liquid_fills_top_58</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-dead">撤册</span><span class="chip c-mute">1 版</span></div><div class="one">液体总在容器顶部，数量固定</div></summary><div class="body"><div class="doc">玩家真的挪了一格之后：容器格（主色 10 或 15 的格，外加玩家那一格）按行优先排序，前 58 个是液体、其余是色 15。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:48:39 · L4</span><div>玩家真的挪了一格之后：容器格（主色 10 或 15 的格，外加玩家那一格）按行优先排序，前 58 个是液体、其余是色 15。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家真的挪了一格之后：容器格（主色 10 或 15 的格，外加玩家那一格）按行优先排序，前 58 个是液体、其余是色 15。
+
+「液体」= 主色 10 的格，或玩家占的那一格。容器总数会因为点开色 14 而变大，液体总量不变（58），
+多出来的容量从**最底下**空出来，显示为色 15。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只在「玩家格坐标真的变了」的那一步之后断言（me(prev) != me(nxt)）——点色 14 的那一步会让液体&quot;
+         &quot;暂时多出来，要等下一次真的走成才结算；换关返回 NA；me() 定位不到返回 NA。&quot;
+         &quot;容器 = nxt 里主色为 10 或 15 的格，加上玩家那一格（玩家格会被 kind 读成 5，所以要单补）。&quot;
+         &quot;常数 58 是这一关量出来的，换关不继承——换关这条直接 NA。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;76f4a053cf393504&quot;]
+
+VOLUME = 58
+
+from _lib import me, kind, NR, NC, FLOOR, HUD_FILL
+
+
+def _container(g, m):
+    out = []
+    for i in range(NR):
+        for j in range(NC):
+            k = kind(g, i, j)
+            if k in (FLOOR, HUD_FILL) or (i, j) == m:
+                out.append((i, j))
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    cont = _container(nxt, b)
+    if len(cont) &lt; VOLUME:
+        return &quot;FALSE&quot;
+    for n, (i, j) in enumerate(cont):
+        wet = (kind(nxt, i, j) == FLOOR) or ((i, j) == b)
+        if wet != (n &lt; VOLUME):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家真的挪了一格之后：容器格（主色 10 或 15 的格，外加玩家那一格）按行优先排序，前 58 个是液体、其余是色 15。
+
+「液体」= 主色 10 的格，或玩家占的那一格。容器总数会因为点开色 14 而变大，液体总量不变（58），
+多出来的容量从**最底下**空出来，显示为色 15。
+&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只在「玩家格坐标真的变了」的那一步之后断言（me(prev) != me(nxt)）——点色 14 的那一步会让液体&quot;
+         &quot;暂时多出来，要等下一次真的走成才结算；换关返回 NA；me() 定位不到返回 NA。&quot;
+         &quot;容器 = nxt 里主色为 10 或 15 的格，加上玩家那一格（玩家格会被 kind 读成 5，所以要单补）。&quot;
+         &quot;常数 58 是这一关量出来的，换关不继承——换关这条直接 NA。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;76f4a053cf393504&quot;]
+
+VOLUME = 58
+
+from _lib import me, kind, NR, NC, FLOOR, HUD_FILL
+
+
+def _container(g, m):
+    out = []
+    for i in range(NR):
+        for j in range(NC):
+            k = kind(g, i, j)
+            if k in (FLOOR, HUD_FILL) or (i, j) == m:
+                out.append((i, j))
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None or a == b:
+        return &quot;NA&quot;
+    cont = _container(nxt, b)
+    if len(cont) &lt; VOLUME:
+        return &quot;FALSE&quot;
+    for n, (i, j) in enumerate(cont):
+        wet = (kind(nxt, i, j) == FLOOR) or ((i, j) == b)
+        if wet != (n &lt; VOLUME):
+            return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">liquid_top_packed</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-dead">撤册</span><span class="chip c-mute">1 版</span></div><div class="one">液体总在前、空位总在后</div></summary><div class="body"><div class="doc">任何一帧里，容器格按行优先排序后，液体（主色 10 或玩家那格）总是排在前面、色 15 总是排在后面——不会交错。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:52:50 · L4</span><div>任何一帧里，容器格按行优先排序后，液体（主色 10 或玩家那格）总是排在前面、色 15 总是排在后面——不会交错。</div><div>接替 liquid_fills_top_58：那条把「总量恒 58」和「顶部堆满」捆在一起，前半截被第 26 步打掉。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，容器格按行优先排序后，液体（主色 10 或玩家那格）总是排在前面、色 15 总是排在后面——不会交错。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA；me() 定位不到返回 NA。&quot;
+         &quot;容器格 = 主色为 10 或 15 的格，加上玩家那一格（玩家格被 kind 读成 5，要单补）。&quot;
+         &quot;只断言排序后「液体在前、空在后」这一条，**不**断言液体有多少格——总量不是常数，&quot;
+         &quot;它会在没有点开任何色 14 的情况下自己少一行（第 26 步）。&quot;)
+NOTE = (&quot;接替 liquid_fills_top_58：那条把「总量恒 58」和「顶部堆满」捆在一起，前半截被第 26 步打掉。&quot;)
+EVIDENCE = [&quot;3c51d1eaabfc73d2&quot;, &quot;eceac69c171d708e&quot;, &quot;cc69bce608399792&quot;]
+
+from _lib import me, kind, NR, NC, FLOOR, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    seen_empty = False
+    for i in range(NR):
+        for j in range(NC):
+            k = kind(nxt, i, j)
+            if (i, j) == m or k == FLOOR:
+                if seen_empty:
+                    return &quot;FALSE&quot;
+            elif k == HUD_FILL:
+                seen_empty = True
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;任何一帧里，容器格按行优先排序后，液体（主色 10 或玩家那格）总是排在前面、色 15 总是排在后面——不会交错。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA；me() 定位不到返回 NA。&quot;
+         &quot;容器格 = 主色为 10 或 15 的格，加上玩家那一格（玩家格被 kind 读成 5，要单补）。&quot;
+         &quot;只断言排序后「液体在前、空在后」这一条，**不**断言液体有多少格——总量不是常数，&quot;
+         &quot;它会在没有点开任何色 14 的情况下自己少一行（第 26 步）。&quot;)
+NOTE = (&quot;接替 liquid_fills_top_58：那条把「总量恒 58」和「顶部堆满」捆在一起，前半截被第 26 步打掉。&quot;)
+EVIDENCE = [&quot;3c51d1eaabfc73d2&quot;, &quot;eceac69c171d708e&quot;, &quot;cc69bce608399792&quot;]
+
+from _lib import me, kind, NR, NC, FLOOR, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    seen_empty = False
+    for i in range(NR):
+        for j in range(NC):
+            k = kind(nxt, i, j)
+            if (i, j) == m or k == FLOOR:
+                if seen_empty:
+                    return &quot;FALSE&quot;
+            elif k == HUD_FILL:
+                seen_empty = True
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">move_needs_floor</span><span class="chip c-lv">L2 · 什么时候没效果</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">左右走，只有旁边是液体才走得进</div></summary><div class="body"><div class="doc">左右走生效（玩家格真的变了）当且仅当目标格在 prev 里的主色是 10。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:39:29 · L2</span><div>左右走生效（玩家格真的变了）当且仅当目标格在 prev 里的主色是 10。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走生效（玩家格真的变了）当且仅当目标格在 prev 里的主色是 10。&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关返回 NA；me() 定位不到返回 NA；&quot;
+         &quot;目标格越出 0..10 的格点范围时按「主色不是 10」处理（即断言它挡住）。&quot;
+         &quot;主色 = 该格 5x5 里出现最多的色号（_lib.kind），玩家自己那一格会读成 5，但目标格不是玩家那一格。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;3d1be259a9f752ae&quot;, &quot;dcee3c620d74b86d&quot;]
+
+from _lib import me, kind, FLOOR, NC
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if act.startswith(&quot;ACTION3&quot;):
+        dj = -1
+    elif act.startswith(&quot;ACTION4&quot;):
+        dj = 1
+    else:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    tj = a[1] + dj
+    walkable = 0 &lt;= tj &lt; NC and kind(prev, a[0], tj) == FLOOR
+    moved = (b != a)
+    return &quot;TRUE&quot; if moved == walkable else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走生效（玩家格真的变了）当且仅当目标格在 prev 里的主色是 10。&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关返回 NA；me() 定位不到返回 NA；&quot;
+         &quot;目标格越出 0..10 的格点范围时按「主色不是 10」处理（即断言它挡住）。&quot;
+         &quot;主色 = 该格 5x5 里出现最多的色号（_lib.kind），玩家自己那一格会读成 5，但目标格不是玩家那一格。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;3d1be259a9f752ae&quot;, &quot;dcee3c620d74b86d&quot;]
+
+from _lib import me, kind, FLOOR, NC
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if act.startswith(&quot;ACTION3&quot;):
+        dj = -1
+    elif act.startswith(&quot;ACTION4&quot;):
+        dj = 1
+    else:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    tj = a[1] + dj
+    walkable = 0 &lt;= tj &lt; NC and kind(prev, a[0], tj) == FLOOR
+    moved = (b != a)
+    return &quot;TRUE&quot; if moved == walkable else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">phase_tracks_pull</span><span class="chip c-lv">L7 · 看得见什么</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">镜头的相位跟着重力走</div></summary><div class="body"><div class="doc">格点相位跟着重力走：玩家被往上拉时行相位是 1，被往下拉时是 3；列相位一直是 1。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T22:24:45 · L7</span><div>格点相位跟着重力走：玩家被往上拉时行相位是 1，被往下拉时是 3；列相位一直是 1。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;格点相位跟着重力走：玩家被往上拉时行相位是 1，被往下拉时是 3；列相位一直是 1。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；_lib.pull(nxt) 读不出来返回 NA；帧里一个色 3 的点都没有（相位无从测）也返回 NA。&quot;
+         &quot;行相位由色 3 点阵实测（phase_of），被拉方向由玩家贴着哪一侧实测（pull）——两种互不相干的读法，&quot;
+         &quot;所以这条不是循环论证。它把一件本来藏在词汇表里的世界事实拿出来走闸：&quot;
+         &quot;第 152 步点色8 翻重力之后，整块棋盘相对帧下移了 2 行，而 kind/patch/me 当时全按相位 1 读，&quot;
+         &quot;地图静默地错了一整批——把它写成概念，以后再变就会当场响。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;a096d65c539c023c&quot;]
+
+from _lib import pull, phase_of, DOT, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    p = pull(nxt)
+    if p is None:
+        return &quot;NA&quot;
+    if not any(v == DOT for r in range(HUD_ROW) for v in nxt[r]):
+        return &quot;NA&quot;
+    pr, pc = phase_of(nxt)
+    want = 1 if p == &#x27;up&#x27; else 3
+    return &quot;TRUE&quot; if (pr, pc) == (want, 1) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;格点相位跟着重力走：玩家被往上拉时行相位是 1，被往下拉时是 3；列相位一直是 1。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；_lib.pull(nxt) 读不出来返回 NA；帧里一个色 3 的点都没有（相位无从测）也返回 NA。&quot;
+         &quot;行相位由色 3 点阵实测（phase_of），被拉方向由玩家贴着哪一侧实测（pull）——两种互不相干的读法，&quot;
+         &quot;所以这条不是循环论证。它把一件本来藏在词汇表里的世界事实拿出来走闸：&quot;
+         &quot;第 152 步点色8 翻重力之后，整块棋盘相对帧下移了 2 行，而 kind/patch/me 当时全按相位 1 读，&quot;
+         &quot;地图静默地错了一整批——把它写成概念，以后再变就会当场响。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;a096d65c539c023c&quot;]
+
+from _lib import pull, phase_of, DOT, HUD_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    p = pull(nxt)
+    if p is None:
+        return &quot;NA&quot;
+    if not any(v == DOT for r in range(HUD_ROW) for v in nxt[r]):
+        return &quot;NA&quot;
+    pr, pc = phase_of(nxt)
+    want = 1 if p == &#x27;up&#x27; else 3
+    return &quot;TRUE&quot; if (pr, pc) == (want, 1) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">player_row6</span><span class="chip c-lv">L0 · 清点</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">玩家总被镜头摆回同一行</div></summary><div class="body"><div class="doc">一步之内，玩家的格行要么不变，要么变成 6——上浮会滚屏，滚完把玩家重新对中到第 6 格行。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:57:07 · L0</span><div>玩家永远落在第 6 格行（行 37-41）——上浮之后画面整体滚动，把玩家摆回同一行。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远落在第 6 格行（行 37-41）——上浮之后画面整体滚动，把玩家摆回同一行。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = &quot;看每一条转移的 nxt 帧；换关返回 NA；me() 定位不到返回 NA。只管行号，不管列。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, PLAYER_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if m[0] == PLAYER_ROW else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:01:09 · L0</span><div>一步之内，玩家的格行要么不变，要么变成 6——上浮会滚屏，滚完把玩家重新对中到第 6 格行。</div><div>v1 写成「玩家永远在格行 6」，那是只看了第 0 关的窗口；第 45 步进第 1 关时玩家出现在格行 1。v2 改成「要么不变、要么变成 6」，把「滚屏之后重新对中」这件事单独说清楚。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，玩家的格行要么不变，要么变成 6——上浮会滚屏，滚完把玩家重新对中到第 6 格行。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条非 RESET 转移；换关返回 NA（新关开局会把玩家摆在别的行，第 45 步实测在格行 1）；&quot;
+         &quot;me() 在 prev 或 nxt 里定位不到返回 NA。只管行号，不管列。&quot;)
+NOTE = (&quot;v1 写成「玩家永远在格行 6」，那是只看了第 0 关的窗口；第 45 步进第 1 关时玩家出现在格行 1。&quot;
+        &quot;v2 改成「要么不变、要么变成 6」，把「滚屏之后重新对中」这件事单独说清楚。&quot;)
+EVIDENCE = [&quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, PLAYER_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[0] in (a[0], PLAYER_ROW) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:38:59 · L0</span><div>一步之内，玩家的格行要么不变，要么变成 6——上浮会滚屏，滚完把玩家重新对中到第 6 格行。</div><div>v3：scope 缩到只看左右走——点色8 的块会让玩家整个掉下去，格行既不留在原处也不是 6（91e0cd2e1f5924b4）。v1 写成「玩家永远在格行 6」，那是只看了第 0 关的窗口；第 45 步进第 1 关时玩家出现在格行 1。v2 改成「要么不变、要么变成 6」，把「滚屏之后重新对中」这件事单独说清楚。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，玩家的格行要么不变，要么变成 6——上浮会滚屏，滚完把玩家重新对中到第 6 格行。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条非 RESET 转移；换关返回 NA（新关开局会把玩家摆在别的行，第 45 步实测在格行 1）；&quot;
+         &quot;me() 在 prev 或 nxt 里定位不到返回 NA。只管行号，不管列。&quot;)
+NOTE = (&quot;v3：scope 缩到只看左右走——点色8 的块会让玩家整个掉下去，格行既不留在原处也不是 6（91e0cd2e1f5924b4）。&quot;
+        &quot;v1 写成「玩家永远在格行 6」，那是只看了第 0 关的窗口；第 45 步进第 1 关时玩家出现在格行 1。&quot;
+        &quot;v2 改成「要么不变、要么变成 6」，把「滚屏之后重新对中」这件事单独说清楚。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, PLAYER_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[0] in (a[0], PLAYER_ROW) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，玩家的格行要么不变，要么变成 6——上浮会滚屏，滚完把玩家重新对中到第 6 格行。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条非 RESET 转移；换关返回 NA（新关开局会把玩家摆在别的行，第 45 步实测在格行 1）；&quot;
+         &quot;me() 在 prev 或 nxt 里定位不到返回 NA。只管行号，不管列。&quot;)
+NOTE = (&quot;v3：scope 缩到只看左右走——点色8 的块会让玩家整个掉下去，格行既不留在原处也不是 6（91e0cd2e1f5924b4）。&quot;
+        &quot;v1 写成「玩家永远在格行 6」，那是只看了第 0 关的窗口；第 45 步进第 1 关时玩家出现在格行 1。&quot;
+        &quot;v2 改成「要么不变、要么变成 6」，把「滚屏之后重新对中」这件事单独说清楚。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, PLAYER_ROW
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b[0] in (a[0], PLAYER_ROW) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">pop_at_surface</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">被带到头、顶住空处就死</div></summary><div class="body"><div class="doc">被液体带到头时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或块则不会。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:05:50 · L5</span><div>上浮到顶时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或色14 则不会。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;上浮到顶时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或色14 则不会。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格正上方是液体（也就是这一步会上浮）；不上浮返回 NA。&quot;
+         &quot;沿落脚列从落脚格往上数连续的液体，第一个不是液体的格就是「顶住玩家的那一格」；&quot;
+         &quot;如果一直数到窗口第 0 格行还全是液体（顶住的东西在窗口外），返回 NA——窗口外的看不见。&quot;
+         &quot;ctx 缺席返回 NA。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;ee4d258e78331df6&quot;, &quot;3c39b2504a11a1d8&quot;]
+
+from _lib import me, dest, kind, FLOOR, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx is None or me(prev) is None:
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    if d is None:
+        return &quot;NA&quot;
+    i, j = d
+    if i - 1 &lt; 0 or kind(prev, i - 1, j) != FLOOR:
+        return &quot;NA&quot;
+    r = i - 1
+    while r - 1 &gt;= 0 and kind(prev, r - 1, j) == FLOOR:
+        r -= 1
+    if r - 1 &lt; 0:
+        return &quot;NA&quot;
+    stopper = kind(prev, r - 1, j)
+    dead = (ctx.get(&quot;state&quot;) == &quot;GAME_OVER&quot;)
+    return &quot;TRUE&quot; if dead == (stopper == HUD_FILL) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:06:08 · L5</span><div>上浮到顶时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或色14 则不会。</div><div>v1 写成 ctx[&#x27;state&#x27;]，settle 给的键叫 state_next，于是在自己的 EVIDENCE 上判 FALSE。键名写错，不是主张错。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;上浮到顶时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或色14 则不会。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格正上方是液体（也就是这一步会上浮）；不上浮返回 NA。&quot;
+         &quot;沿落脚列从落脚格往上数连续的液体，第一个不是液体的格就是「顶住玩家的那一格」；&quot;
+         &quot;如果一直数到窗口第 0 格行还全是液体（顶住的东西在窗口外），返回 NA——窗口外的看不见。&quot;
+         &quot;ctx 缺席、或 ctx 里没有 state_next（预测口径下它是 None）返回 NA。&quot;)
+NOTE = &quot;v1 写成 ctx[&#x27;state&#x27;]，settle 给的键叫 state_next，于是在自己的 EVIDENCE 上判 FALSE。键名写错，不是主张错。&quot;
+EVIDENCE = [&quot;ee4d258e78331df6&quot;, &quot;3c39b2504a11a1d8&quot;]
+
+from _lib import me, dest, kind, FLOOR, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx is None or me(prev) is None:
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    if d is None:
+        return &quot;NA&quot;
+    i, j = d
+    if i - 1 &lt; 0 or kind(prev, i - 1, j) != FLOOR:
+        return &quot;NA&quot;
+    r = i - 1
+    while r - 1 &gt;= 0 and kind(prev, r - 1, j) == FLOOR:
+        r -= 1
+    if r - 1 &lt; 0:
+        return &quot;NA&quot;
+    stopper = kind(prev, r - 1, j)
+    st = ctx.get(&quot;state_next&quot;)
+    if st is None:
+        return &quot;NA&quot;
+    dead = (st == &quot;GAME_OVER&quot;)
+    return &quot;TRUE&quot; if dead == (stopper == HUD_FILL) else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:42:48 · L5</span><div>被液体带到头时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或块则不会。</div><div>v1 写成 ctx[&#x27;state&#x27;]，settle 给的键叫 state_next，于是在自己的 EVIDENCE 上判 FALSE。键名写错，不是主张错。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;被液体带到头时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或块则不会。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格在 _lib.pull(prev) 那一侧是液体（这一步会被带走）；否则返回 NA。&quot;
+         &quot;沿落脚列往那个方向数连续的液体，第一个不是液体的格就是「顶住玩家的那一格」；&quot;
+         &quot;如果一直数到窗口边缘还全是液体（顶住的东西在窗口外），返回 NA——窗口外的看不见。&quot;
+         &quot;**方向逐帧读**：第 3 关点色8 之后玩家是往下沉的，这条也跟着翻。&quot;
+         &quot;ctx 缺席、或 ctx 里没有 state_next（预测口径下它是 None）返回 NA。&quot;)
+NOTE = &quot;v1 写成 ctx[&#x27;state&#x27;]，settle 给的键叫 state_next，于是在自己的 EVIDENCE 上判 FALSE。键名写错，不是主张错。&quot;
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;ee4d258e78331df6&quot;, &quot;3c39b2504a11a1d8&quot;]
+
+from _lib import me, dest, pull, ahead, kind, NR, FLOOR, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx is None or me(prev) is None:
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    if d is None:
+        return &quot;NA&quot;
+    p = pull(prev)
+    if p is None:
+        return &quot;NA&quot;
+    step = -1 if p == &#x27;up&#x27; else 1
+    i, j = d
+    if not (0 &lt;= i + step &lt; NR) or kind(prev, i + step, j) != FLOOR:
+        return &quot;NA&quot;
+    r = i + step
+    while 0 &lt;= r + step &lt; NR and kind(prev, r + step, j) == FLOOR:
+        r += step
+    if not (0 &lt;= r + step &lt; NR):
+        return &quot;NA&quot;
+    stopper = kind(prev, r + step, j)
+    if stopper is None:
+        return &quot;NA&quot;
+    st = ctx.get(&quot;state_next&quot;)
+    if st is None:
+        return &quot;NA&quot;
+    dead = (st == &quot;GAME_OVER&quot;)
+    return &quot;TRUE&quot; if dead == (stopper == HUD_FILL) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;被液体带到头时，如果顶住玩家的那一格是色15（空），玩家就没了——这一步进 GAME_OVER；顶住的是墙或块则不会。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格在 _lib.pull(prev) 那一侧是液体（这一步会被带走）；否则返回 NA。&quot;
+         &quot;沿落脚列往那个方向数连续的液体，第一个不是液体的格就是「顶住玩家的那一格」；&quot;
+         &quot;如果一直数到窗口边缘还全是液体（顶住的东西在窗口外），返回 NA——窗口外的看不见。&quot;
+         &quot;**方向逐帧读**：第 3 关点色8 之后玩家是往下沉的，这条也跟着翻。&quot;
+         &quot;ctx 缺席、或 ctx 里没有 state_next（预测口径下它是 None）返回 NA。&quot;)
+NOTE = &quot;v1 写成 ctx[&#x27;state&#x27;]，settle 给的键叫 state_next，于是在自己的 EVIDENCE 上判 FALSE。键名写错，不是主张错。&quot;
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;ee4d258e78331df6&quot;, &quot;3c39b2504a11a1d8&quot;]
+
+from _lib import me, dest, pull, ahead, kind, NR, FLOOR, HUD_FILL
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx is None or me(prev) is None:
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    if d is None:
+        return &quot;NA&quot;
+    p = pull(prev)
+    if p is None:
+        return &quot;NA&quot;
+    step = -1 if p == &#x27;up&#x27; else 1
+    i, j = d
+    if not (0 &lt;= i + step &lt; NR) or kind(prev, i + step, j) != FLOOR:
+        return &quot;NA&quot;
+    r = i + step
+    while 0 &lt;= r + step &lt; NR and kind(prev, r + step, j) == FLOOR:
+        r += step
+    if not (0 &lt;= r + step &lt; NR):
+        return &quot;NA&quot;
+    stopper = kind(prev, r + step, j)
+    if stopper is None:
+        return &quot;NA&quot;
+    st = ctx.get(&quot;state_next&quot;)
+    if st is None:
+        return &quot;NA&quot;
+    dead = (st == &quot;GAME_OVER&quot;)
+    return &quot;TRUE&quot; if dead == (stopper == HUD_FILL) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">rests_against_solid</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">玩家总是贴着什么停住</div></summary><div class="body"><div class="doc">每个动作之后，玩家的正上方和正下方至少有一个不是液体——它总是贴着什么停住，不会悬在液体中间。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T21:42:48 · L6</span><div>每个动作之后，玩家的正上方和正下方至少有一个不是液体——它总是贴着什么停住，不会悬在液体中间。</div><div>接替 ceiling_above_player：那条写死了「浮」这一个方向，被 a096d65c539c023c 打掉。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作之后，玩家的正上方和正下方至少有一个不是液体——它总是贴着什么停住，不会悬在液体中间。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;看每一条非 RESET 转移的 nxt 帧；换关返回 NA；me() 定位不到返回 NA；&quot;
+         &quot;玩家在窗口最上或最下一格行（有一侧读不到）也返回 NA。&quot;
+         &quot;这条比 ceiling_above_player 弱一档，但它**不挑方向**：第 3 关点色8 把玩家从浮的变成沉的之后，&quot;
+         &quot;「头顶不是液体」不再成立，而「总贴着点什么」还成立。&quot;)
+NOTE = &quot;接替 ceiling_above_player：那条写死了「浮」这一个方向，被 a096d65c539c023c 打掉。&quot;
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, kind, NR, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    i, j = m
+    if i - 1 &lt; 0 or i + 1 &gt;= NR:
+        return &quot;NA&quot;
+    up, dn = kind(nxt, i - 1, j), kind(nxt, i + 1, j)
+    if up is None or dn is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (up != FLOOR or dn != FLOOR) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作之后，玩家的正上方和正下方至少有一个不是液体——它总是贴着什么停住，不会悬在液体中间。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;看每一条非 RESET 转移的 nxt 帧；换关返回 NA；me() 定位不到返回 NA；&quot;
+         &quot;玩家在窗口最上或最下一格行（有一侧读不到）也返回 NA。&quot;
+         &quot;这条比 ceiling_above_player 弱一档，但它**不挑方向**：第 3 关点色8 把玩家从浮的变成沉的之后，&quot;
+         &quot;「头顶不是液体」不再成立，而「总贴着点什么」还成立。&quot;)
+NOTE = &quot;接替 ceiling_above_player：那条写死了「浮」这一个方向，被 a096d65c539c023c 打掉。&quot;
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, kind, NR, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if action.upper().startswith(&quot;RESET&quot;):
+        return &quot;NA&quot;
+    m = me(nxt)
+    if m is None:
+        return &quot;NA&quot;
+    i, j = m
+    if i - 1 &lt; 0 or i + 1 &gt;= NR:
+        return &quot;NA&quot;
+    up, dn = kind(nxt, i - 1, j), kind(nxt, i + 1, j)
+    if up is None or dn is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if (up != FLOOR or dn != FLOOR) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">rise_scrolls</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">被液体带走时整屏滚动</div></summary><div class="body"><div class="doc">左右走时，落脚格在「被拉的那一侧」若是液体，玩家就被带走：整屏重画，玩家格行那一片至少变掉 100 格。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:57:07 · L6</span><div>左右走时，落脚格正上方若是液体，玩家就上浮：整屏重画，玩家格行以上的棋盘至少变掉 100 格。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，落脚格正上方若是液体，玩家就上浮：整屏重画，玩家格行以上的棋盘至少变掉 100 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格（目标格主色是 10 就走过去，否则原地）的正上方是液体；&quot;
+         &quot;别的情况返回 NA。落脚格在窗口第 0 格行返回 NA。只说「会重画」，不说浮了几格——&quot;
+         &quot;浮的高度可能超出窗口，窗口里数不出来。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, above, origin, SIDE, HUD_ROW, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    if d is None:
+        return &quot;NA&quot;
+    a = above(prev, d)
+    if a is None or a != FLOOR:
+        return &quot;NA&quot;
+    lim = origin(*d)[0] + SIDE - 1
+    n = 0
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW:
+            continue
+        n += sum(1 for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 100 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L6</span><div>左右走时，落脚格正上方若是液体，玩家就上浮：整屏重画，玩家格行以上的棋盘至少变掉 100 格。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，落脚格正上方若是液体，玩家就上浮：整屏重画，玩家格行以上的棋盘至少变掉 100 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格（目标格主色是 10 就走过去，否则原地）的正上方是液体；&quot;
+         &quot;别的情况返回 NA。落脚格在窗口第 0 格行返回 NA。只说「会重画」，不说浮了几格——&quot;
+         &quot;浮的高度可能超出窗口，窗口里数不出来。&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, above, origin, SIDE, HUD_ROW, FLOOR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    if d is None:
+        return &quot;NA&quot;
+    a = above(prev, d)
+    if a is None or a != FLOOR:
+        return &quot;NA&quot;
+    lim = origin(*d, g=prev)[0] + SIDE - 1
+    n = 0
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW:
+            continue
+        n += sum(1 for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 100 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:42:48 · L6</span><div>左右走时，落脚格在「被拉的那一侧」若是液体，玩家就被带走：整屏重画，玩家格行那一片至少变掉 100 格。</div><div>v1/v2 写的是「正上方是液体就上浮」，被 a096d65c539c023c 打掉：那一步玩家正上方是液体，却只是平移了一格，因为它已经变成往下沉的了。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，落脚格在「被拉的那一侧」若是液体，玩家就被带走：整屏重画，玩家格行那一片至少变掉 100 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关返回 NA。&quot;
+         &quot;被拉的方向由 _lib.pull(prev) 逐帧读出来（玩家贴着的那一侧），读不出来返回 NA——&quot;
+         &quot;**不再写死「往上」**：第 3 关点色8 之后玩家改成往下沉。&quot;
+         &quot;落脚格 = 目标格主色是 10 就走过去、否则原地；落脚格在该方向上已经出窗口，返回 NA。&quot;
+         &quot;只说「会重画」，不说走了几格——走的距离可能超出窗口。&quot;)
+NOTE = (&quot;v1/v2 写的是「正上方是液体就上浮」，被 a096d65c539c023c 打掉：那一步玩家正上方是液体，&quot;
+        &quot;却只是平移了一格，因为它已经变成往下沉的了。&quot;)
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, pull, ahead, kind, origin, SIDE, HUD_ROW, FLOOR, NR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    p = pull(prev)
+    if d is None or p is None:
+        return &quot;NA&quot;
+    nb = ahead(d, p)
+    if not (0 &lt;= nb[0] &lt; NR):
+        return &quot;NA&quot;
+    if kind(prev, *nb) != FLOOR:
+        return &quot;NA&quot;
+    r0 = origin(*d, g=prev)[0]
+    lo, hi = (0, r0 + SIDE - 1) if p == &#x27;up&#x27; else (r0, len(prev) - 1)
+    n = 0
+    for r in range(max(0, lo), min(hi + 1, len(prev))):
+        if r == HUD_ROW:
+            continue
+        n += sum(1 for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 100 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，落脚格在「被拉的那一侧」若是液体，玩家就被带走：整屏重画，玩家格行那一片至少变掉 100 格。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4；换关返回 NA。&quot;
+         &quot;被拉的方向由 _lib.pull(prev) 逐帧读出来（玩家贴着的那一侧），读不出来返回 NA——&quot;
+         &quot;**不再写死「往上」**：第 3 关点色8 之后玩家改成往下沉。&quot;
+         &quot;落脚格 = 目标格主色是 10 就走过去、否则原地；落脚格在该方向上已经出窗口，返回 NA。&quot;
+         &quot;只说「会重画」，不说走了几格——走的距离可能超出窗口。&quot;)
+NOTE = (&quot;v1/v2 写的是「正上方是液体就上浮」，被 a096d65c539c023c 打掉：那一步玩家正上方是液体，&quot;
+        &quot;却只是平移了一格，因为它已经变成往下沉的了。&quot;)
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;cc69bce608399792&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, pull, ahead, kind, origin, SIDE, HUD_ROW, FLOOR, NR
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    d = dest(prev, action)
+    p = pull(prev)
+    if d is None or p is None:
+        return &quot;NA&quot;
+    nb = ahead(d, p)
+    if not (0 &lt;= nb[0] &lt; NR):
+        return &quot;NA&quot;
+    if kind(prev, *nb) != FLOOR:
+        return &quot;NA&quot;
+    r0 = origin(*d, g=prev)[0]
+    lo, hi = (0, r0 + SIDE - 1) if p == &#x27;up&#x27; else (r0, len(prev) - 1)
+    n = 0
+    for r in range(max(0, lo), min(hi + 1, len(prev))):
+        if r == HUD_ROW:
+            continue
+        n += sum(1 for x, y in zip(prev[r], nxt[r]) if x != y)
+    return &quot;TRUE&quot; if n &gt;= 100 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">sprite_one_cell</span><span class="chip c-lv">L0 · 清点</span><span class="chip c-alive">在册</span><span class="chip c-mute">6 版</span></div><div class="one">玩家的图恰好占一格</div></summary><div class="body"><div class="doc">玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:39:29 · L0</span><div>玩家永远是「色9 恰 6 格 + 色11 恰 2 格」，且这 8 格全落在同一个 5x5 的格子里。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格 + 色11 恰 2 格」，且这 8 格全落在同一个 5x5 的格子里。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = &quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    nose = cells_of(nxt, (NOSE,))
+    if len(body) != 6 or len(nose) != 2:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c) for r, c in body + nose}
+    return &quot;TRUE&quot; if len(cells) == 1 and None not in cells else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:02:46 · L0</span><div>玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。</div><div>v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+         &quot;**不再声称全图只有 2 格色11**：色 11 也用来画液面的装饰边（第 1 关 (1,2)(1,3)(1,4) 三格各有 2 格）。&quot;)
+NOTE = (&quot;v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——&quot;
+        &quot;第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。&quot;)
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;57bd2b25f3e428c2&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    if len(body) != 6:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c) for r, c in body}
+    if len(cells) != 1 or None in cells:
+        return &quot;FALSE&quot;
+    home = next(iter(cells))
+    nose = [(r, c) for r, c in cells_of(nxt, (NOSE,)) if cell_at(r, c) == home]
+    return &quot;TRUE&quot; if len(nose) == 2 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-15T21:06:08 · L0</span><div>玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。</div><div>v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+         &quot;**不再声称全图只有 2 格色11**：色 11 也用来画液面的装饰边（第 1 关 (1,2)(1,3)(1,4) 三格各有 2 格）。&quot;
+         &quot;nxt 是 GAME_OVER 那一帧时返回 NA：玩家被顶到液面就整个消失，这条不声称管它死了以后长什么样。&quot;)
+NOTE = (&quot;v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——&quot;
+        &quot;第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。&quot;)
+EVIDENCE = [&quot;6c2874a8285dd12c&quot;, &quot;57bd2b25f3e428c2&quot;, &quot;ee4d258e78331df6&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    if ctx and ctx.get(&quot;state_next&quot;) == &quot;GAME_OVER&quot;:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    if len(body) != 6:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c) for r, c in body}
+    if len(cells) != 1 or None in cells:
+        return &quot;FALSE&quot;
+    home = next(iter(cells))
+    nose = [(r, c) for r, c in cells_of(nxt, (NOSE,)) if cell_at(r, c) == home]
+    return &quot;TRUE&quot; if len(nose) == 2 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-15T21:38:59 · L0</span><div>玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。</div><div>v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+         &quot;**不再声称全图只有 2 格色11**：色 11 也用来画液面的装饰边（第 1 关 (1,2)(1,3)(1,4) 三格各有 2 格）。&quot;
+         &quot;nxt 是 GAME_OVER 那一帧时返回 NA：玩家被顶到液面就整个消失，这条不声称管它死了以后长什么样。&quot;)
+NOTE = (&quot;v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。&quot;
+        &quot;v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——&quot;
+        &quot;第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;6c2874a8285dd12c&quot;, &quot;57bd2b25f3e428c2&quot;, &quot;ee4d258e78331df6&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx and ctx.get(&quot;state_next&quot;) == &quot;GAME_OVER&quot;:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    if len(body) != 6:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c) for r, c in body}
+    if len(cells) != 1 or None in cells:
+        return &quot;FALSE&quot;
+    home = next(iter(cells))
+    nose = [(r, c) for r, c in cells_of(nxt, (NOSE,)) if cell_at(r, c) == home]
+    return &quot;TRUE&quot; if len(nose) == 2 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-15T21:41:12 · L0</span><div>玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。</div><div>v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+         &quot;**不再声称全图只有 2 格色11**：色 11 也用来画液面的装饰边（第 1 关 (1,2)(1,3)(1,4) 三格各有 2 格）。&quot;
+         &quot;nxt 是 GAME_OVER 那一帧时返回 NA：玩家被顶到液面就整个消失，这条不声称管它死了以后长什么样。&quot;)
+NOTE = (&quot;v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。&quot;
+        &quot;v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——&quot;
+        &quot;第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。&quot;)
+EVIDENCE = [&quot;91e0cd2e1f5924b4&quot;, &quot;6c2874a8285dd12c&quot;, &quot;57bd2b25f3e428c2&quot;, &quot;ee4d258e78331df6&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx and ctx.get(&quot;state_next&quot;) == &quot;GAME_OVER&quot;:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    if len(body) != 6:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c, nxt) for r, c in body}
+    if len(cells) != 1 or None in cells:
+        return &quot;FALSE&quot;
+    home = next(iter(cells))
+    nose = [(r, c) for r, c in cells_of(nxt, (NOSE,)) if cell_at(r, c, nxt) == home]
+    return &quot;TRUE&quot; if len(nose) == 2 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-15T21:42:48 · L0</span><div>玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。</div><div>v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+         &quot;**不再声称全图只有 2 格色11**：色 11 也用来画液面的装饰边（第 1 关 (1,2)(1,3)(1,4) 三格各有 2 格）。&quot;
+         &quot;nxt 是 GAME_OVER 那一帧时返回 NA：玩家被顶到液面就整个消失，这条不声称管它死了以后长什么样。&quot;)
+NOTE = (&quot;v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。&quot;
+        &quot;v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——&quot;
+        &quot;第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。&quot;)
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;91e0cd2e1f5924b4&quot;, &quot;6c2874a8285dd12c&quot;, &quot;57bd2b25f3e428c2&quot;, &quot;ee4d258e78331df6&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx and ctx.get(&quot;state_next&quot;) == &quot;GAME_OVER&quot;:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    if len(body) != 6:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c, nxt) for r, c in body}
+    if len(cells) != 1 or None in cells:
+        return &quot;FALSE&quot;
+    home = next(iter(cells))
+    nose = [(r, c) for r, c in cells_of(nxt, (NOSE,)) if cell_at(r, c, nxt) == home]
+    return &quot;TRUE&quot; if len(nose) == 2 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;玩家永远是「色9 恰 6 格」，全落在同一个 5x5 的格子里，且那一格里恰有 2 格色11（鼻子）。&quot;&quot;&quot;
+LEVEL = &quot;L0&quot;
+SCOPE = (&quot;看每一条转移的 nxt 帧；换关返回 NA。只管玩家自己的形状与整格对齐，不管它在哪。&quot;
+         &quot;**不再声称全图只有 2 格色11**：色 11 也用来画液面的装饰边（第 1 关 (1,2)(1,3)(1,4) 三格各有 2 格）。&quot;
+         &quot;nxt 是 GAME_OVER 那一帧时返回 NA：玩家被顶到液面就整个消失，这条不声称管它死了以后长什么样。&quot;)
+NOTE = (&quot;v4：scope 缩到只看左右走——点色8 那一帧玩家整个偏离格点 2 个像素（91e0cd2e1f5924b4）。&quot;
+        &quot;v1 把「全图色11 恰 2 格」和玩家形状捆在一起，被 57bd2b25f3e428c2 打掉——&quot;
+        &quot;第 1 关的液面装饰边也是色 11，全图共 8 格。v2 只数玩家那一格里的色 11。&quot;)
+EVIDENCE = [&quot;a096d65c539c023c&quot;, &quot;91e0cd2e1f5924b4&quot;, &quot;6c2874a8285dd12c&quot;, &quot;57bd2b25f3e428c2&quot;, &quot;ee4d258e78331df6&quot;]
+
+from _lib import BODY, NOSE, cell_at
+
+from geo import cells_of
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if ctx and ctx.get(&quot;state_next&quot;) == &quot;GAME_OVER&quot;:
+        return &quot;NA&quot;
+    body = cells_of(nxt, (BODY,))
+    if len(body) != 6:
+        return &quot;FALSE&quot;
+    cells = {cell_at(r, c, nxt) for r, c in body}
+    if len(cells) != 1 or None in cells:
+        return &quot;FALSE&quot;
+    home = next(iter(cells))
+    nose = [(r, c) for r, c in cells_of(nxt, (NOSE,)) if cell_at(r, c, nxt) == home]
+    return &quot;TRUE&quot; if len(nose) == 2 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">walk_keeps_upper_board</span><span class="chip c-lv">L2 · 什么时候没效果</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">浮不起来时，玩家那一行以上不变</div></summary><div class="body"><div class="doc">左右走时，只要落脚格的正上方不是液体（浮不起来），玩家格行及其以上的像素除玩家那两格外一格不变。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-15T20:57:07 · L2</span><div>左右走时，只要落脚格的正上方不是液体（浮不起来），玩家格行及其以上的像素除玩家那两格外一格不变。</div><div>board_static 的正身：那条没写「浮不起来」这个前提，被第 28 步的滚屏打掉了。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，只要落脚格的正上方不是液体（浮不起来），玩家格行及其以上的像素除玩家那两格外一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格（目标格主色是 10 就走过去，否则原地）的正上方不是液体；&quot;
+         &quot;落脚格正上方是液体时返回 NA（那一步会上浮加滚屏，由 rise_scrolls 管）；&quot;
+         &quot;落脚格已经在窗口第 0 格行（上方读不到）也返回 NA；换关、me() 定位不到返回 NA。&quot;
+         &quot;只断言行号 ≤ 玩家格底行的那一片：底下会被排空，这条不声称管。&quot;
+         &quot;它借了 move_needs_floor 的主张来算落脚格，那条另有概念走闸。&quot;)
+NOTE = &quot;board_static 的正身：那条没写「浮不起来」这个前提，被第 28 步的滚屏打掉了。&quot;
+EVIDENCE = [&quot;76f4a053cf393504&quot;, &quot;66e485cefc1a06a2&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, above, origin, SIDE, HUD_ROW, FLOOR
+
+
+def _blocked(g, action):
+    d = dest(g, action)
+    if d is None:
+        return None
+    a = above(g, d)
+    return None if a is None else (a != FLOOR)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if _blocked(prev, action) is not True:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    lim = max(origin(*a)[0], origin(*b)[0]) + SIDE - 1
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW or prev[r] == nxt[r]:
+            continue
+        for c, (x, y) in enumerate(zip(prev[r], nxt[r])):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if _blocked(prev, action) is not True:
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    skip = set()
+    for j in (a[1] - 1, a[1], a[1] + 1):
+        r0, c0 = origin(a[0], j)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                skip.add((r0 + dr, c0 + dc))
+    lim = origin(*a)[0] + SIDE - 1
+    return {(r, c): v for r in range(min(lim + 1, len(prev))) if r != HUD_ROW
+            for c, v in enumerate(prev[r]) if (r, c) not in skip}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-15T21:41:12 · L2</span><div>左右走时，只要落脚格的正上方不是液体（浮不起来），玩家格行及其以上的像素除玩家那两格外一格不变。</div><div>board_static 的正身：那条没写「浮不起来」这个前提，被第 28 步的滚屏打掉了。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，只要落脚格的正上方不是液体（浮不起来），玩家格行及其以上的像素除玩家那两格外一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格（目标格主色是 10 就走过去，否则原地）的正上方不是液体；&quot;
+         &quot;落脚格正上方是液体时返回 NA（那一步会上浮加滚屏，由 rise_scrolls 管）；&quot;
+         &quot;落脚格已经在窗口第 0 格行（上方读不到）也返回 NA；换关、me() 定位不到返回 NA。&quot;
+         &quot;只断言行号 ≤ 玩家格底行的那一片：底下会被排空，这条不声称管。&quot;
+         &quot;它借了 move_needs_floor 的主张来算落脚格，那条另有概念走闸。&quot;)
+NOTE = &quot;board_static 的正身：那条没写「浮不起来」这个前提，被第 28 步的滚屏打掉了。&quot;
+EVIDENCE = [&quot;76f4a053cf393504&quot;, &quot;66e485cefc1a06a2&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, above, origin, SIDE, HUD_ROW, FLOOR
+
+
+def _blocked(g, action):
+    d = dest(g, action)
+    if d is None:
+        return None
+    a = above(g, d)
+    return None if a is None else (a != FLOOR)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if _blocked(prev, action) is not True:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell, g=prev)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    lim = max(origin(*a, g=prev)[0], origin(*b, g=nxt)[0]) + SIDE - 1
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW or prev[r] == nxt[r]:
+            continue
+        for c, (x, y) in enumerate(zip(prev[r], nxt[r])):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if _blocked(prev, action) is not True:
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    skip = set()
+    for j in (a[1] - 1, a[1], a[1] + 1):
+        r0, c0 = origin(a[0], j, g=prev)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                skip.add((r0 + dr, c0 + dc))
+    lim = origin(*a, g=prev)[0] + SIDE - 1
+    return {(r, c): v for r in range(min(lim + 1, len(prev))) if r != HUD_ROW
+            for c, v in enumerate(prev[r]) if (r, c) not in skip}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;左右走时，只要落脚格的正上方不是液体（浮不起来），玩家格行及其以上的像素除玩家那两格外一格不变。&quot;&quot;&quot;
+LEVEL = &quot;L2&quot;
+SCOPE = (&quot;只看 ACTION3 / ACTION4，且 prev 里落脚格（目标格主色是 10 就走过去，否则原地）的正上方不是液体；&quot;
+         &quot;落脚格正上方是液体时返回 NA（那一步会上浮加滚屏，由 rise_scrolls 管）；&quot;
+         &quot;落脚格已经在窗口第 0 格行（上方读不到）也返回 NA；换关、me() 定位不到返回 NA。&quot;
+         &quot;只断言行号 ≤ 玩家格底行的那一片：底下会被排空，这条不声称管。&quot;
+         &quot;它借了 move_needs_floor 的主张来算落脚格，那条另有概念走闸。&quot;)
+NOTE = &quot;board_static 的正身：那条没写「浮不起来」这个前提，被第 28 步的滚屏打掉了。&quot;
+EVIDENCE = [&quot;76f4a053cf393504&quot;, &quot;66e485cefc1a06a2&quot;, &quot;7bd1d48711f966ca&quot;]
+
+from _lib import me, dest, above, origin, SIDE, HUD_ROW, FLOOR
+
+
+def _blocked(g, action):
+    d = dest(g, action)
+    if d is None:
+        return None
+    a = above(g, d)
+    return None if a is None else (a != FLOOR)
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = action.upper()
+    if not (act.startswith(&quot;ACTION3&quot;) or act.startswith(&quot;ACTION4&quot;)):
+        return &quot;NA&quot;
+    if _blocked(prev, action) is not True:
+        return &quot;NA&quot;
+    a, b = me(prev), me(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    free = set()
+    for cell in (a, b):
+        r0, c0 = origin(*cell, g=prev)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                free.add((r0 + dr, c0 + dc))
+    lim = max(origin(*a, g=prev)[0], origin(*b, g=nxt)[0]) + SIDE - 1
+    for r in range(min(lim + 1, len(prev))):
+        if r == HUD_ROW or prev[r] == nxt[r]:
+            continue
+        for c, (x, y) in enumerate(zip(prev[r], nxt[r])):
+            if x != y and (r, c) not in free:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if _blocked(prev, action) is not True:
+        return None
+    a = me(prev)
+    if a is None:
+        return None
+    skip = set()
+    for j in (a[1] - 1, a[1], a[1] + 1):
+        r0, c0 = origin(a[0], j, g=prev)
+        for dr in range(SIDE):
+            for dc in range(SIDE):
+                skip.add((r0 + dr, c0 + dc))
+    lim = origin(*a, g=prev)[0] + SIDE - 1
+    return {(r, c): v for r in range(min(lim + 1, len(prev))) if r != HUD_ROW
+            for c, v in enumerate(prev[r]) if (r, c) not in skip}
+</code></pre></details></div></details></div><details class="src"><summary>本局共享词汇 _lib.py</summary><pre><code class="language-python">&quot;&quot;&quot;bp35 的词汇表 —— **每个定义都是假设，不是装置给的事实**。
+
+实测来源：开局帧 + 第 1~6 步。
+  · 帧 64x64。行 63 整行是 HUD（开局全色 0），不属于棋盘。
+  · 棋盘是 6 格距的点阵：格 (i, j) 占 行 1+6i..5+6i、列 1+6j..5+6j，i、j 各 0..10
+    （i=10 只剩 行61..62，j=10 只剩 列61..63，都被裁）。格与格之间有一行/一列缝隙（行 6i、列 6j）。
+    依据：色 3 的装饰点只出现在 行 1+6i / 4+6i / 5+6i 与 列 2+6j / 1+6j / 4+6j 上；
+    色 14 的 7 个圆角块、以及玩家所在的那个洞，边界都正好落在这套格点上。
+  · 玩家 = 色 9（6 格核心）+ 色 11（2 格鼻子），鼻子贴在核心的行进侧，整体落在**一个**格子里。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from geo import cells_of  # noqa: F401
+
+CELL = 6                 # 格距（格边长 5 + 1 格缝）
+PHASE = (1, 1)           # 格 (0,0) 的左上角在 (行1, 列1)
+SIDE = 5                 # 一个格子里画得下的边长
+NR = NC = 11             # 格点行数 / 列数（末行末列被帧边裁掉）
+
+BODY, NOSE = 9, 11       # 玩家核心 / 朝向鼻子
+GOAL = 7                 # 第 39 步窗口上滚之后露出来的十字标记（5 格：中心加上下左右），全图唯一
+BG, FLOOR, TILE, DOT = 5, 10, 14, 3
+BLOCK12 = 12             # 第 2 关出现的另一种圆角块，画法与色14 相同；点开一样变液体（第 95 步实测）
+BLOCK8 = 8               # 第 3 关出现的第三种圆角块；点它会让玩家**往下掉**并整屏重画（第 152 步实测）
+OPENABLE = (TILE, BLOCK12)   # 命名是**猜**：色 5 带色 3 点阵，色 10 是大片，色 14 是 7 个圆角块
+HUD_ROW = 63
+HUD_EMPTY, HUD_FILL = 0, 15
+
+DELTA = {&quot;ACTION3&quot;: (0, -1), &quot;ACTION4&quot;: (0, +1)}   # 以**格**为单位；ACTION7 未定，不填
+
+
+_PH_CACHE: dict = {}
+
+
+def phase_of(g) -&gt; tuple[int, int]:
+    &quot;&quot;&quot;这一帧的格点相位 (行相位, 列相位)。**格点会动**——第 3 关点色8 翻转重力之后，
+    整块棋盘相对帧往下挪了 2 行，行相位从 1 变成 3；写死 PHASE 会让此后所有读数系统性偏两行。
+
+    判法：色 3 的点阵在每个墙格里固定长在局部 (0,1)、(3,0)、(4,3) 上，
+    所以行相位 p 满足「点的行号 mod 6 ∈ {p, p+3, p+4}」、列相位 q 满足「列号 mod 6 ∈ {q, q+1, q+3}」。
+    取让命中数最大的那个 p / q（块的四角也是色 3，会给别的相位加一点噪声，用 argmax 而不是集合相等）。
+    &quot;&quot;&quot;
+    key = id(g)
+    hit = _PH_CACHE.get(key)
+    if hit is not None and hit[0] is g:
+        return hit[1]
+    rows = [0] * 6
+    cols = [0] * 6
+    for r in range(HUD_ROW):
+        row = g[r]
+        rr = r % 6
+        for c, v in enumerate(row):
+            if v == DOT:
+                rows[rr] += 1
+                cols[c % 6] += 1
+    if not any(rows):
+        return PHASE
+    pr = max(range(6), key=lambda p: rows[p] + rows[(p + 3) % 6] + rows[(p + 4) % 6])
+    pc = max(range(6), key=lambda q: cols[q] + cols[(q + 1) % 6] + cols[(q + 3) % 6])
+    if len(_PH_CACHE) &gt; 512:
+        _PH_CACHE.clear()
+    _PH_CACHE[key] = (g, (pr, pc))
+    return (pr, pc)
+
+
+def origin(i: int, j: int, g=None) -&gt; tuple[int, int]:
+    &quot;&quot;&quot;格 (i, j) 左上角的像素坐标。给了帧就按这一帧实测的相位算，不给就用开局那套 (1, 1)。&quot;&quot;&quot;
+    ph = phase_of(g) if g is not None else PHASE
+    return (ph[0] + CELL * i, ph[1] + CELL * j)
+
+
+def cell_at(r: int, c: int, g=None):
+    &quot;&quot;&quot;像素 (r, c) 落在哪个格子里；落在缝隙上或越界返回 None。&quot;&quot;&quot;
+    ph = phase_of(g) if g is not None else PHASE
+    i, j = (r - ph[0]) // CELL, (c - ph[1]) // CELL
+    if not (0 &lt;= i &lt; NR and 0 &lt;= j &lt; NC):
+        return None
+    r0, c0 = origin(i, j, g)
+    if not (r0 &lt;= r &lt; r0 + SIDE and c0 &lt;= c &lt; c0 + SIDE):
+        return None
+    return (i, j)
+
+
+def me(g):
+    &quot;&quot;&quot;玩家所在格 (i, j)。定位方式：**只用色 9**（核心）的最小行/最小列落回格点。
+
+    注意这是**格点吸附**，不是「最小列减一」——两种读法对不上就该有反例。
+    第 46 步之前这里连色 11 一起用，第 1 关出现了另一个带色 11 的三格宽物件，把 me 读歪到 (1,2)；
+    色 11 只在**鼻子**这个角色上可信，定位一律用色 9。
+    &quot;&quot;&quot;
+    cs = cells_of(g, (BODY,))
+    if not cs:
+        return None
+    return cell_at(min(r for r, _ in cs), min(c for _, c in cs), g)
+
+
+def facing(g):
+    &quot;&quot;&quot;鼻子相对核心在哪边：&#x27;L&#x27;/&#x27;R&#x27;/&#x27;U&#x27;/&#x27;D&#x27;；读不出来返回 None。&quot;&quot;&quot;
+    body = cells_of(g, (BODY,))
+    nose = cells_of(g, (NOSE,))
+    if not body or not nose:
+        return None
+    br = sum(r for r, _ in body) / len(body)
+    bc = sum(c for _, c in body) / len(body)
+    nr = sum(r for r, _ in nose) / len(nose)
+    nc = sum(c for _, c in nose) / len(nose)
+    if abs(nc - bc) &gt;= abs(nr - br):
+        return &#x27;R&#x27; if nc &gt; bc else &#x27;L&#x27;
+    return &#x27;D&#x27; if nr &gt; br else &#x27;U&#x27;
+
+
+def patch(g, i: int, j: int):
+    &quot;&quot;&quot;格 (i, j) 的 5x5 内容（越界的格位置补 None）。&quot;&quot;&quot;
+    r0, c0 = origin(i, j, g)
+    return [[g[r][c] if 0 &lt;= r &lt; 63 and 0 &lt;= c &lt; 64 else None
+             for c in range(c0, c0 + SIDE)] for r in range(r0, r0 + SIDE)]
+
+
+def kind(g, i: int, j: int):
+    &quot;&quot;&quot;格 (i, j) 的主色（25 格里出现最多的那个色号）；越界返回 None。
+
+    玩家所在的格会读成 BG（玩家把自己那格画成色 5 的圆角块），不是地形本色。
+    &quot;&quot;&quot;
+    if not (0 &lt;= i &lt; NR and 0 &lt;= j &lt; NC):
+        return None
+    cnt: dict[int, int] = {}
+    for row in patch(g, i, j):
+        for v in row:
+            if v is not None:
+                cnt[v] = cnt.get(v, 0) + 1
+    return max(cnt, key=lambda k: cnt[k]) if cnt else None
+
+
+SPRITE = {
+    &#x27;L&#x27;: ((BG, BG, BODY, BG, BG),
+          (BG, NOSE, BODY, BODY, BG),
+          (BG, NOSE, BODY, BODY, BG),
+          (BG, BG, BODY, BG, BG),
+          (None, BG, BG, BG, None)),
+    &#x27;R&#x27;: ((BG, BG, BODY, BG, BG),
+          (BG, BODY, BODY, NOSE, BG),
+          (BG, BODY, BODY, NOSE, BG),
+          (BG, BG, BODY, BG, BG),
+          (None, BG, BG, BG, None)),
+}
+&quot;&quot;&quot;玩家那一格的 5x5 画法（实测自第 1~9 步）：只有左下/右下两角是透明的（None，露出地形本色），
+   左上/右下角照样画成 BG。朝向 U / D 没见过，所以没有条目——取不到就别生成。&quot;&quot;&quot;
+
+
+def hud_fill(g) -&gt; int:
+    &quot;&quot;&quot;HUD 条里已填色 15 的格数。&quot;&quot;&quot;
+    return sum(1 for v in g[HUD_ROW] if v == HUD_FILL)
+
+
+def click_cell(action: str, g=None):
+    &quot;&quot;&quot;&#x27;ACTION6:39,15&#x27; -&gt; 点中的格 (i, j)。第一个数是**列**、第二个是**行**（第 12~15 步实测：
+    ACTION6:39,15 改的是 行13-17 列37-41 那一块）。不是带坐标的 ACTION6、或点在缝隙上，返回 None。&quot;&quot;&quot;
+    a = action.upper()
+    if not a.startswith(&quot;ACTION6:&quot;):
+        return None
+    try:
+        x, y = (int(v) for v in a.split(&quot;:&quot;, 1)[1].split(&quot;,&quot;))
+    except ValueError:
+        return None
+    return cell_at(y, x, g)
+
+
+PLAYER_ROW = 6
+&quot;&quot;&quot;玩家永远画在第 6 格行（第 1~39 步实测）：上浮之后画面整体滚动，把玩家重新摆回这一行。
+所以屏幕是一个 11 格行的**窗口**，不是整个世界；窗口外的行读不到。&quot;&quot;&quot;
+
+
+def dest(g, action):
+    &quot;&quot;&quot;左右走这一步会落到哪个格：目标格主色是 10 才走得动，否则原地。不是左右走返回 None。&quot;&quot;&quot;
+    a = action.upper()
+    dj = -1 if a.startswith(&quot;ACTION3&quot;) else (1 if a.startswith(&quot;ACTION4&quot;) else None)
+    if dj is None:
+        return None
+    m = me(g)
+    if m is None:
+        return None
+    i, j = m
+    t = (i, j + dj)
+    if 0 &lt;= t[1] &lt; NC and kind(g, *t) == FLOOR:
+        return t
+    return m
+
+
+def above(g, cell):
+    &quot;&quot;&quot;某格正上方那一格的主色；已经在窗口第 0 行返回 None（窗口外读不到）。&quot;&quot;&quot;
+    i, j = cell
+    return kind(g, i - 1, j) if i - 1 &gt;= 0 else None
+
+
+def goal(g):
+    &quot;&quot;&quot;色 7 十字标记所在的格 (i, j)；窗口里看不到就返回 None。
+
+    它的格子被 kind 读成 5（标记只占 5 格，其余是 BG 与液体），所以不能拿 kind 找它。
+    &quot;&quot;&quot;
+    cs = cells_of(g, (GOAL,))
+    if not cs:
+        return None
+    return cell_at(min(r for r, _ in cs), min(c for _, c in cs) + 1, g)
+
+
+def marked(g, i: int, j: int) -&gt; bool:
+    &quot;&quot;&quot;这一格是不是「带记号的液体」：主色是 10，格里却嵌着色 12 的点（实测是 5 点的 X）。
+
+    第 2 关首次出现（S1 行的 j=3,4,5）。kind 读它是 10，所以光看 kind 的地图会把它当普通液体。
+    &quot;&quot;&quot;
+    if kind(g, i, j) != FLOOR:
+        return False
+    return any(v == BLOCK12 for row in patch(g, i, j) for v in row if v is not None)
+
+
+def pull(g):
+    &quot;&quot;&quot;玩家被液体拉向哪边：&#x27;up&#x27;（浮）/ &#x27;down&#x27;（沉）/ None（这一帧读不出来）。
+
+    读法**不是**「它是不是气泡」，而是「它此刻靠在哪一侧」：玩家总是贴着某个非液体停住，
+    贴住的那一侧就是被拉的方向。上方非液体、下方液体 = 被往上拉；反过来就是往下。
+    两侧都非液体（卡在缝里）或都液体时返回 None。
+    第 3 关点了那块色8 之后，同一个玩家从 &#x27;up&#x27; 变成了 &#x27;down&#x27;——这一局的重力对玩家是可翻转的。
+    &quot;&quot;&quot;
+    m = me(g)
+    if m is None:
+        return None
+    i, j = m
+    up = kind(g, i - 1, j) if i - 1 &gt;= 0 else None
+    dn = kind(g, i + 1, j) if i + 1 &lt; NR else None
+    if up == FLOOR and dn is not None and dn != FLOOR:
+        return &#x27;down&#x27;
+    if dn == FLOOR and up is not None and up != FLOOR:
+        return &#x27;up&#x27;
+    return None
+
+
+def ahead(cell, p):
+    &quot;&quot;&quot;格 cell 在被拉方向 p 上的相邻格。&quot;&quot;&quot;
+    i, j = cell
+    return (i - 1, j) if p == &#x27;up&#x27; else (i + 1, j)
+</code></pre></details></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/10ba54c8-b765-4e17-8be4-7a11afd23368" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

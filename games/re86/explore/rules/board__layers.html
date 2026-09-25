@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · board/layers</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · board/layers</h1><div class="sub">rule/board/layers.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>读数</h2><table>
+<tr><th>开口（行 / 去重）</th><td>2115 / 1433</td></tr>
+<tr><th>判对</th><td>520 / 327</td></tr><tr><th>判错</th><td>0 / 0</td></tr>
+<tr><th>读不出</th><td>1595 / 1106</td></tr><tr><th>沉默</th><td>38</td></tr>
+<tr><th>打红它的突变体</th><td>M15_layers_flip</td></tr>
+<tr><th>独家拒掉的造错转移（装置）</th><td>0</td></tr></table>
+<details><summary>沉默 / 读不出的理由</summary><table><tr><td class='num'>1519</td><td>U: 读不出：这一步前后至少有一帧一对重叠都没有</td></tr><tr><td class='num'>76</td><td>U: 读不出：前后两帧读到的不是同一对</td></tr><tr><td class='num'>34</td><td>N: 换关 / 终局那一步 → goal/level_up</td></tr><tr><td class='num'>4</td><td>N: RESET → notmodel/reset_restarts</td></tr></table></details>
+<details><summary>判错的那几条</summary><ul><li>无</li></ul></details></div>
+<div class="card"><h2>它说什么</h2><p>关内每一步：前一帧读到 i 压 j、后一帧读到同一对，方向一样（推、变色、换人都不改图层）。</p><pre>图层次序**一步之内不翻**：前后两帧都读得到的一对「谁压谁」，方向相同。</pre>
+<p class="note">论域：换关 / 终局 / RESET → 下一帧是别的盘；某一对只在一边读得到 → 不比（那一对这一步没被检验）</p></div>
+<div class="card"><h2>它明确不主张什么</h2><ul><li>图层次序本身是什么——只主张它不翻；整条次序由 run_rules.py 整关拼，给 switch/cycle 用</li></ul></div>
+<div class="card"><h2>改版史</h2><ul><li>v1 接手册子 zorder_fixed_order / zorder_stable_one_step / recolor_keeps_zorder：册子按**颜色**查表，它的 v9 自己记下「次序是物件的属性，颜色只是会变的标签」。这里按**这一帧里的第几件**比，不碰颜色</li></ul>
+<p class="note">接手起点册子的：zorder_fixed_order、zorder_stable_one_step、recolor_keeps_zorder</p></div>
+<div class="card"><h2>它的 Lean</h2><p><b>推论</b>：Derived/Slots.lean 里的 <code>layers_kept</code></p><pre>/-
+# Derived/Slots —— 每件东西待在自己的格位上（推论，不是定义）
+
+Python 那边有两条规则在这里**掉成了推论**：
+
+    move/others_stay   推一下时，没被选中的那几件不变
+    board/layers       图层次序一步之内不翻
+
+这边 `World.pieces` 的**下标就是图层**，而 `next` 只用 `List.set` 改被选中那一格、
+或者只改 `active`——所以两句话都是架构推出来的，不必另写定义。它们在这里是定理，
+**会失败**：哪天 `next` 改成重排列表、或者顺手动了别的格，这两条当场编不过。
+-/
+
+import Obj.World
+import Step
+
+-- 定理放在顶层：装置的 lean_check 用不带命名空间的名字打 `#print axioms`
+open Game
+
+/-- **move/others_stay**：推一下（非 ACTION5），件数不变，没被选中的每一格原样。 -/
+theorem others_stay (b : Board) (s s&#x27; : World) (a : Act) (ha : a ≠ .switch)
+    (h : next b s a = some s&#x27;) :
+    s&#x27;.pieces.length = s.pieces.length ∧ ∀ i, i ≠ s.active → s&#x27;.pieces[i]? = s.pieces[i]? := by
+  cases a with
+  | switch =&gt; exact absurd rfl ha
+  | up | down | left | right =&gt;
+    simp only [next] at h
+    split at h
+    · simp at h
+    · obtain ⟨q, _, hq⟩ := Option.map_eq_some_iff.mp h
+      subst hq
+      refine ⟨List.length_set, ?_⟩
+      intro i hi
+      exact List.getElem?_set_ne (Ne.symm hi)
+
+/-- **board/layers**：任何一步之后，件数不变，没被选中的每一格原样（ACTION5 连被选中的那格也不动）。
+    下标就是图层，所以这就是「图层不翻」。 -/
+theorem layers_kept (b : Board) (s s&#x27; : World) (a : Act) (h : next b s a = some s&#x27;) :
+    s&#x27;.pieces.length = s.pieces.length ∧ ∀ i, i ≠ s.active → s&#x27;.pieces[i]? = s.pieces[i]? := by
+  by_cases ha : a = .switch
+  · subst ha
+    simp only [next, Option.some.injEq] at h
+    subst h
+    exact ⟨rfl, fun _ _ =&gt; rfl⟩
+  · exact others_stay b s s&#x27; a ha h
+
+/-- **switch/cycle 的那一半**：ACTION5 一件东西都不改。 -/
+theorem switch_keeps_pieces (b : Board) (s s&#x27; : World) (h : next b s .switch = some s&#x27;) :
+    s&#x27;.pieces = s.pieces := by
+  simp only [next, Option.some.injEq] at h
+  subst h
+  rfl
+
+#print axioms others_stay
+#print axioms layers_kept
+#print axioms switch_keeps_pieces
+</pre></div>
+</div></body></html>

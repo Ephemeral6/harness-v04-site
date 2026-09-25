@@ -1,0 +1,83 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · 推论.tip_rides_free_end</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>推论.tip_rides_free_end</h1>
+<p><b>读数</b>：开口 955 行（去重 399）· 判对 <span class=ok>955</span> · 判错 <span class="mut">0</span>
+ · 读不清 0 · 闭嘴 1663</p>
+<p><b>它说什么</b>：伸缩之后带尖的条仍带尖，尖仍在离帽第 L-1 条的正中——也就是跟着自由端走了同一个位移。</p><p><b>什么时候不管</b>：只管模型预测真的伸缩了一根带尖的条的步。</p>
+<p><b>明确不主张</b>：不主张尖会不会从一根条换到另一根（语料 0 次）。</p>
+<details><summary>闭嘴的理由与条数</summary><ul><li>1373 · 伸缩的条都不带尖</li><li>118 · 不是点面板图标</li><li>103 · 模型预测整步作废</li><li>63 · 不是关内步</li><li>6 · 要动的条自由端在盘外(长度只知下界)</li></ul></details>
+<details><summary>改版史</summary><ul><li>v1 起点册子 bar_tip_follows + tip_at_open_end。</li><li>   在这个表示下它是推论：尖只记「有没有」，位置由长度算出（lean2/Derived/TipRidesFreeEnd.lean）；</li><li>   对着语料跑的是「伸缩之后帧上那一根还读得出尖」。尖要是留在原处，解析那一层当场读不成世界。</li></ul></details>
+<details><summary>专门弄坏它的突变体</summary><ul><li>没有专门对准它的</li></ul></details>
+<details open><summary>它的 Lean（推论：Derived/TipRidesFreeEnd.lean）</summary><pre>/-
+# Derived/TipRidesFreeEnd —— 推论（对应 `rule/推论/tip_rides_free_end.py`）
+
+尖只记「有没有」，位置由长度算出来。所以伸 3 格之后，尖还在，而且正好往自由端那边挪了 3 格——
+「尖跟着自由端走」是表示法的推论，不是一条独立的规则。
+-/
+
+import Step
+
+namespace Game
+
+theorem tip_rides_free_end (b : Bar) (hl : 1 ≤ b.len) :
+    (stretchBar b true).tip = b.tip ∧
+    (stretchBar b true).tipCell = b.dir.go 3 b.tipCell.1 b.tipCell.2 := by
+  refine ⟨by simp [stretchBar], ?_⟩
+  cases hd : b.dir &lt;;&gt; simp only [stretchBar, Bar.tipCell, Dir.go, hd, if_true] &lt;;&gt;
+    (apply Prod.ext &lt;;&gt; simp &lt;;&gt; omega)
+
+end Game
+</pre></details><details><summary>Python 源码</summary><pre>&quot;&quot;&quot;尖跟着自由端走：伸缩之后，带尖的那根条还带着尖（尖仍在离自由端一格处）。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.click import decode
+from derive.step import predict_cached, unreadable_input
+from rule._common import find_bar, in_level
+
+CLAIM = &quot;伸缩之后带尖的条仍带尖，尖仍在离帽第 L-1 条的正中——也就是跟着自由端走了同一个位移。&quot;
+SCOPE_NOTE = &quot;只管模型预测真的伸缩了一根带尖的条的步。&quot;
+NOT_CLAIMED = &quot;不主张尖会不会从一根条换到另一根（语料 0 次）。&quot;
+HISTORY = [
+    &quot;v1 起点册子 bar_tip_follows + tip_at_open_end。&quot;,
+    &quot;   在这个表示下它是推论：尖只记「有没有」，位置由长度算出（lean2/Derived/TipRidesFreeEnd.lean）；&quot;,
+    &quot;   对着语料跑的是「伸缩之后帧上那一根还读得出尖」。尖要是留在原处，解析那一层当场读不成世界。&quot;,
+]
+EVIDENCE = [2158]
+
+
+def scope_(w, action, ctx=None):
+    if not in_level(ctx):
+        return &quot;不是关内步&quot;
+    if decode(w.board, action)[0] not in (&quot;grow&quot;, &quot;shrink&quot;):
+        return &quot;不是点面板图标&quot;
+    out = predict_cached(w, action)
+    if out.kind != &quot;moved&quot;:
+        return &quot;模型预测整步作废&quot;
+    if not any(w.bars[i].tip for i in out.move.grown):
+        return &quot;伸缩的条都不带尖&quot;
+    return unreadable_input(w, out)
+
+
+def assert_(w, action, nw, ctx=None) -&gt; bool:
+    out = predict_cached(w, action)
+    for i in out.move.grown:
+        if not w.bars[i].tip:
+            continue
+        o = find_bar(nw, out.world.bars[i])
+        if o is None or (not o.tip and not o.clipped):
+            return False
+    return True
+</pre></details></div></main></body></html>

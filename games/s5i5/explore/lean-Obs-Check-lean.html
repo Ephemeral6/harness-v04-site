@@ -1,0 +1,121 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Obs/Check.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Obs/Check.lean</h1><p></p><details><summary>公理表（0 条）</summary><ul></ul></details><pre>/-
+# Obs/Check —— **判据层**：模型面对现实的两把尺子（0 条定理，尺子不自证）
+
+    agrees    一帧对不对：模型算出来的世界，和这一帧读出来的对不对得上
+    traceOk   一整条路：从开局起**带着模型自己算出来的状态**往下走，逐帧比
+
+## 观测比世界少一位信息，比法写在明处
+
+帧上读出来的条可能 `clipped`（自由端出了盘，长度只知道下界）。那时只比盘上看得见的那一截：
+**看得见的长度相等、模型的长度不短于它、帧上有尖则模型也有尖**。
+这和 Python 那一份（`rule/_common.py` 的 `same_bar`）是同一个口径，两份各自独立写，
+由 `lean2/verify.py` 逐条对账。
+
+计费行不比（不进模型）。盘面在「每关」那一层取自开局，在「逐条」那一层取自这一帧。
+-/
+
+import Step
+
+namespace Game
+
+/-- 帧上读出来的一根条。 -/
+structure ObsBar where
+  color   : Nat
+  r       : Nat
+  c       : Nat
+  dir     : Dir
+  len     : Nat
+  tip     : Bool
+  clipped : Bool
+  deriving DecidableEq, Repr
+
+/-- 帧上读出来的会动的那一组。`unsure` = 这一帧读法说不清（同色两根首尾相顶）。 -/
+structure Obs where
+  bars   : List ObsBar
+  walls  : List Wall
+  unsure : Bool
+  deriving DecidableEq, Repr
+
+/-- 盘上看得见的身体有几条（从帽往外连续整条落在盘上的）。 -/
+def visLen (b : Bar) : Nat :=
+  match b.dir with
+  | .D =&gt; if Nat.ble O b.c &amp;&amp; Nat.ble (b.c + 2) (O + 62 + 1) then min b.len ((O + 62) - b.r) else 0
+  | .U =&gt; if Nat.ble O b.c &amp;&amp; Nat.ble (b.c + 2) (O + 62 + 1) then min b.len (b.r - O) else 0
+  | .R =&gt; if Nat.ble O b.r &amp;&amp; Nat.ble (b.r + 2) (O + 62) then min b.len ((O + 63) - b.c) else 0
+  | .L =&gt; if Nat.ble O b.r &amp;&amp; Nat.ble (b.r + 2) (O + 62) then min b.len (b.c - O) else 0
+
+def barAgrees (m : Bar) (o : ObsBar) : Bool :=
+  m.color == o.color &amp;&amp; m.r == o.r &amp;&amp; m.c == o.c &amp;&amp; m.dir == o.dir &amp;&amp;
+  (if o.clipped then visLen m == o.len &amp;&amp; Nat.ble o.len m.len &amp;&amp; (m.tip || !o.tip)
+   else m.len == o.len &amp;&amp; m.tip == o.tip)
+
+def wallsSame (a b : List Wall) : Bool :=
+  a.length == b.length &amp;&amp; a.all (fun x =&gt; b.contains x) &amp;&amp; b.all (fun x =&gt; a.contains x)
+
+/-- 模型的世界 `w` 和这一帧 `o` 对得上吗。 -/
+def agrees (w : World) (o : Obs) : Bool :=
+  w.bars.length == o.bars.length &amp;&amp;
+  o.bars.all (fun ob =&gt; w.bars.any (fun m =&gt; barAgrees m ob)) &amp;&amp;
+  wallsSame w.walls o.walls
+
+/-- 帧上读出来的当成模型的输入（丢掉 `clipped`：这就是它只在没有 `clipped` 时才用的原因）。 -/
+def Obs.toWorld (o : Obs) (bd : Board) : World :=
+  { board := bd, bars := o.bars.map (fun b =&gt; ⟨b.color, b.r, b.c, b.dir, b.len, b.tip⟩), walls := o.walls }
+
+def Obs.clean (o : Obs) : Bool := !o.unsure &amp;&amp; o.bars.all (fun b =&gt; !b.clipped)
+
+/-- 一步之后应当是哪一帧：作废 = 原样。 -/
+def after (w : World) (a : Act) : Option World :=
+  match step w a with
+  | .ok w&#x27; =&gt; some w&#x27;
+  | .refused =&gt; some w
+  | .silent =&gt; none
+
+/-- 从 `s` 出发沿 `play` 走，每一步都和当时看到的那一帧比。**喂进下一轮的是模型自己算出来的状态。** -/
+def traceOk : World → List (Act × Obs) → Bool
+  | _, [] =&gt; true
+  | s, (a, o) :: rest =&gt;
+    match after s a with
+    | some s&#x27; =&gt; agrees s&#x27; o &amp;&amp; traceOk s&#x27; rest
+    | none =&gt; false
+
+/-- 只给读数用：第一处分家在第几步（`none` = 一处都没分家）。读数不是定理。 -/
+def firstSplit : World → List (Act × Obs) → Nat → Option Nat
+  | _, [], _ =&gt; none
+  | s, (a, o) :: rest, i =&gt;
+    match after s a with
+    | some s&#x27; =&gt; if agrees s&#x27; o then firstSplit s&#x27; rest (i + 1) else some i
+    | none =&gt; some i
+
+/-- 沿一串动作走，中途有没有哪一刻是赢面。遇到模型说不出话（RESET）的一支就停下算没赢——
+    所以「赢不了」的准确意思是「不经过 RESET 就赢不了」。 -/
+def everGoal : World → List Act → Bool
+  | w, [] =&gt; isGoal w
+  | w, a :: as =&gt; isGoal w ||
+    match after w a with
+    | some w&#x27; =&gt; everGoal w&#x27; as
+    | none =&gt; false
+
+/-- 这一关走得通：存在一串动作，照着走中途赢过。 -/
+def Winnable (w : World) : Prop := ∃ as : List Act, everGoal w as = true
+
+/-- 这一关走不通：任何一串动作照着走都没赢过（不经过 RESET）。 -/
+def Unsolvable (w : World) : Prop := ∀ as : List Act, everGoal w as = false
+
+end Game
+</pre></div></main></body></html>

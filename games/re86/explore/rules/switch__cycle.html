@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>规则 · switch/cycle</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>规则 · switch/cycle</h1><div class="sub">rule/switch/cycle.py</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="card"><h2>读数</h2><table>
+<tr><th>开口（行 / 去重）</th><td>93 / 59</td></tr>
+<tr><th>判对</th><td>58 / 35</td></tr><tr><th>判错</th><td>0 / 0</td></tr>
+<tr><th>读不出</th><td>35 / 26</td></tr><tr><th>沉默</th><td>2060</td></tr>
+<tr><th>打红它的突变体</th><td>M07_cycle_down、M17_hollow_blind</td></tr>
+<tr><th>独家拒掉的造错转移（装置）</th><td>0</td></tr></table>
+<details><summary>沉默 / 读不出的理由</summary><table><tr><td class='num'>2060</td><td>N: 不是 ACTION5 → move/*</td></tr><tr><td class='num'>23</td><td>U: 读不出：这一关的图层次序拼不全</td></tr><tr><td class='num'>11</td><td>U: 读不出：换之前光标被盖住</td></tr><tr><td class='num'>1</td><td>U: 读不出：换之后光标被盖住</td></tr></table></details>
+<details><summary>判错的那几条</summary><ul><li>无</li></ul></details></div>
+<div class="card"><h2>它说什么</h2><p>ACTION5 不改任何东西（几何、颜色、hub 那一格画不画本色），只把选中换到图层次序里上面一层那件（到顶绕回最底；中心在盘外的跳过）。</p><pre>ACTION5：所有东西一格不动，光标换到**图层次序里高一层**的那件（到顶绕回最底），
+包围盒中心在盘外的跳过。</pre>
+<p class="note">论域：不是 ACTION5 → move/*；换关 / 终局 → goal/level_up</p></div>
+<div class="card"><h2>它明确不主张什么</h2><ul><li>图层次序怎么定的（出生顺序？）——只主张它一关之内不变、ACTION5 按它轮</li><li>「中心在盘外的跳过」：语料里候选的中心全在盘内，这一支 0 次被检验</li><li>从没被选中过的斜叉 hub 画不画本色：两样都见过，是出生时定的，不主张</li><li>斜叉被选中**期间**（hub 压在光标底下，看不见）hub 会不会被清掉：第 2 关那件先画后空、第 4 关那件被推过、换下之后仍画着——跨步看是变了，可每一次变都发生在看不见的那几步里，这一条的逐步判决碰不到它。这一位因此不进 Lean 模型（lean2/Obs/Replay.lean 文件头）</li></ul></div>
+<div class="card"><h2>改版史</h2><ul><li>v1 起点册子 a5_cycle_order 用「形状名主键 + 颜色号升序」（11 版）；这里整关跟踪身份之后量出：第 6 关三件（square / plus / cross）的实际轮法是 plus → square → cross，与册子的 square → plus → cross 正好反向，而与「图层从下往上」逐次一致。全部 3 件的关里，读得到图层的那几关没有一次例外（runs/_wb-re86/probe_layers.py）</li><li>v2 并进撤册的 switch/hub_cleared 的那一半：hub 画不画本色是那件东西自己的，换人不改它（hub_cleared 被第 4 关驳倒 9 次，死因见 analysis/history/rule_retired/README.md）</li></ul>
+<p class="note">接手起点册子的：a5_switch、a5_cycle_order、a5_skips_offboard、active_center_when_hidden、diamond_center_hollow、rect_center_hollow、center_cell_persists、cursor_layer、cursor_hidden_by_object</p></div>
+<div class="card"><h2>它的 Lean</h2><p><b>定义</b>：Rule/Switch/Cycle.lean 里的 <code>cycle</code></p><pre>/-
+# Rule/Switch/Cycle —— ACTION5：选中换到图层上面一层那件（对应 `rule/switch/cycle.py`）
+
+`World.pieces` 按图层从下往上排，所以「上面一层」就是下标 +1，到顶绕回 0；
+包围盒中心在盘外的跳过。东西一件都不改——这一句在这边**表示不出来**：
+`cycle` 只返回一个下标。
+-/
+
+import Obj.World
+
+namespace Game
+
+def Piece.onBoard (p : Piece) : Bool :=
+  decide (0 ≤ p.cr) &amp;&amp; decide (p.cr &lt; 63) &amp;&amp; decide (0 ≤ p.cc) &amp;&amp; decide (p.cc &lt; 64)
+
+def cycle (s : World) : Nat :=
+  let n := s.pieces.length
+  let cand := (List.range n).map (fun k =&gt; (s.active + k + 1) % n)
+  (cand.find? (fun j =&gt; j != s.active &amp;&amp; ((s.pieces[j]?).map Piece.onBoard).getD false)).getD s.active
+
+end Game
+</pre></div>
+</div></body></html>

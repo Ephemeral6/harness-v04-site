@@ -1,0 +1,87 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Rule/Turn/LegendRotatesChain.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Rule/Turn/LegendRotatesChain.lean</h1><p></p><details><summary>公理表（0 条）</summary><ul></ul></details><pre>/-
+# Rule/Turn/LegendRotatesChain —— 定义（对应 `rule/转动/legend_rotates_chain.py`）
+
+点 K 色图例：K 色那根条（或 K 色枢纽上挂着的几根）连同整条下游，绕关节逆时针转 90°；
+关节 = K 色条身体第 1 条的正中那一格（枢纽则是枢纽中心）。转到的那一档压着别的东西就接着转，
+逐档的结论交给 `Rule/Refuse/RotationBlocked` 的 `verdict`。
+-/
+
+import Obj.Derive.Attach
+import Rule.Refuse.RotationBlocked
+
+namespace Game
+
+/-- 一根条绕 `(pr, pc)` 逆时针转一档：帽那块长方形转过去，方向跟着转。 -/
+def turnBar1 (pr pc : Nat) (b : Bar) : Bar :=
+  let cap := b.cap.rot pr pc
+  { b with r := cap.r0, c := cap.c0, dir := b.dir.ccw }
+
+def turnBar (pr pc : Nat) : Nat → Bar → Bar
+  | 0, b =&gt; b
+  | k + 1, b =&gt; turnBar pr pc k (turnBar1 pr pc b)
+
+/-- 在下游里的转 `k` 档，不在的原样。 -/
+def turnAll (pr pc k : Nat) : List (Bar × Bool) → List Bar
+  | [] =&gt; []
+  | (b, m) :: rest =&gt; (if m then turnBar pr pc k b else b) :: turnAll pr pc k rest
+
+/-- K 色恰好一根条时的关节：身体第 1 条的正中。 -/
+def jointOf (b : Bar) : Nat × Nat :=
+  match b.dir with
+  | .U =&gt; (b.r - 1, b.c + 1)
+  | .D =&gt; (b.r + 1, b.c + 1)
+  | .L =&gt; (b.r + 1, b.c - 1)
+  | .R =&gt; (b.r + 1, b.c + 1)
+
+/-- 关节与根：有 K 色枢纽就绕枢纽中心、根是帽贴着枢纽的条；否则 K 色要恰好一根条。 -/
+def pivotRoots (w : World) (K : Nat) : Option (Nat × Nat × List Bool) :=
+  match w.board.hubs.find? (·.color == K) with
+  | some h =&gt; some (h.r + 1, h.c + 1, w.bars.map (fun b =&gt; meetsAny b.cap h.ring))
+  | none =&gt;
+    match w.bars.filter (·.color == K) with
+    | [b] =&gt; some ((jointOf b).1, (jointOf b).2, w.bars.map (·.color == K))
+    | _ =&gt; none
+
+/-- 第 `k` 档的四个读数。 -/
+def turnInfo (w : World) (pr pc k : Nat) (chain : List (Bar × Bool)) : Bool × Bool × Bool × Bool :=
+  let moved := (chain.filter (·.2)).map (fun p =&gt; turnBar pr pc k p.1)
+  let others := (chain.filter (fun p =&gt; !p.2)).map (fun p =&gt; p.1.whole)
+              ++ w.board.hubs.map Hub.rect ++ w.walls.map (·.rect) ++ w.board.boxes
+  (moved.any (fun b =&gt; meetsAny b.whole w.board.fixed),
+   moved.any (fun b =&gt; meetsAny b.whole others),
+   moved.any (fun b =&gt; !b.whole.onBoard),
+   moved.any (fun b =&gt; !b.cap.onBoard))
+
+/-- 逐档试，最多 `n` 档。 -/
+def tryTurn (w : World) (pr pc : Nat) (chain : List (Bar × Bool)) : Nat → Nat → Res
+  | _, 0 =&gt; .refused
+  | k, n + 1 =&gt;
+    match turnInfo w pr pc k chain with
+    | (fx, bl, off, co) =&gt;
+      match verdict k fx bl off co with
+      | .refuse =&gt; .refused
+      | .next =&gt; tryTurn w pr pc chain (k + 1) n
+      | .accept =&gt; .ok { w with bars := turnAll pr pc k chain }
+
+def rotate (w : World) (K : Nat) : Res :=
+  match pivotRoots w K with
+  | none =&gt; .silent
+  | some (pr, pc, roots) =&gt; tryTurn w pr pc (w.bars.zip (downstream w.bars roots)) 1 3
+
+end Game
+</pre></div></main></body></html>

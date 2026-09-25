@@ -1,0 +1,3199 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>ft09 是怎么学出来的 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← ft09 的世界模型</a></div><h1>它是怎么学出来的</h1><p class="lede">agent 边玩边把看到的规律写成可检验的代码：每条都对接下来的每一步自动判对错。它一共写过 15 条，其中 6 条被后来的画面推翻，其余整理成模型里的 4 条规则，和另外 3 条只在录像上检验的规则。</p><h2>每条规则的来历</h2><ul class="origin"><li><b>点中一块瓦片，它的颜色沿本关调色板前进一位</b><div class="from">由这些早期说法合并而来：<code>click_paints_tile</code>、<code>click_toggles_tile</code>、<code>click_cycles_palette</code></div></li><li><b>被点瓦片的每个记号，把它指向的那块邻居也推前一位</b><div class="from">由这些早期说法合并而来：<code>plus_tile_cycles_neighbours</code>、<code>mark_directs_linkage</code></div></li><li><b>过关，当且仅当点完这一下，每个网格都照图样配齐</b><div class="from">由这些早期说法合并而来：<code>ring_matched_levels_up</code>、<code>no_levelup_before_ring_matches</code></div></li><li><b>其余一概不动</b><div class="from">由这些早期说法合并而来：<code>matched_grid_is_locked</code>、<code>nothing_else_changes</code></div></li><li><b>同一关里走一步，计数条用掉的格数不减少，一步最多多用两格</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>bar_eats_two</code>、<code>bar_used_never_shrinks</code></div></li><li><b>进入还要打的下一关，计数条重新填满</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：<code>bar_refills_on_levelup</code></div></li><li><b>重开之后，回到那一关的开局</b><span class="chip c-mute">不进 Lean 模型</span><div class="from">由这些早期说法合并而来：—</div></li></ul><h2>被推翻的说法</h2><div class="stories"><article class="story"><h3>点一下不是翻面，是沿调色板往前走</h3><div class="sub"><code>click_paints_tile</code><code>click_toggles_tile</code></div><ol class="tl"><li><b>原来以为</b><p>前几关每关只有两种颜色，点一块瓦片，它就在这两色之间来回翻。agent 先写成单向涂色，被反方向的一次点击否掉后，改成两色互换，又改过几次哪两种颜色算数。</p></li><li class="hit"><b>画面打脸</b><p>第一遍通关的第 32 步：那一关的图例里有三种颜色，一次点击的结果和两色互换对不上；同一块瓦片连点三下，颜色走完一整圈才回到原色。</p></li><li class="fix"><b>后来改成</b><p>改成沿右上角图例的顺序前进一位，到头绕回第一个。两色的关里，这和来回翻是同一件事，所以前几关分不出来。</p></li></ol></article><article class="story"><h3>没有加号瓦片，只有记号</h3><div class="sub"><code>plus_tile_cycles_neighbours</code></div><ol class="tl"><li><b>原来以为</b><p>有一关出现了几块四条边都带粉色记号的瓦片，点它会连带上下左右四块一起变色，于是被写成：加号瓦片牵动四个邻居。</p></li><li class="hit"><b>画面打脸</b><p>第一遍通关的第 74 步进入下一关：每块瓦片只在上边带一个记号，「加号」这个分类套不上了；随后点一块，变色的是它自己和正上方那一块，不是四块。</p></li><li class="fix"><b>后来改成</b><p>改成看记号本身：每个记号指向哪边，就牵动那一边的一块；指向空处、界外或别的网格中心，那个方向不动；联动只传一步。</p></li></ol></article></div><h2 id="appendix">附录</h2><p class="intro">附录保留仓库里的原始叫法，关号从 0 开始（L0 = 正文第 1 关）。</p><details class="apx"><summary>另外 2 个改写的故事</summary><div class="apxb stories"><article class="story"><h3>计数条每步吃两格</h3><div class="sub"><code>bar_eats_two</code></div><ol class="tl"><li><b>原来以为</b><p>开头两关，每走一步，计数条都正好多用两格。</p></li><li class="hit"><b>画面打脸</b><p>后来有一关，一步有时多用一格、有时一格不用，速度随关变化。</p></li><li class="fix"><b>后来改成</b><p>拆成几条：计数条的形状另立一条，换关重填另立一条，单步只留下「不减少、最多多用两格」。</p></li></ol></article><article class="story"><h3>配齐的网格并不会锁住</h3><div class="sub"><code>examples_obey_map</code><code>matched_grid_is_locked</code></div><ol class="tl"><li><b>原来以为</b><p>第一关有三个已经配好的示范网格，agent 以为配齐之后外圈就锁住不再变。</p></li><li class="hit"><b>画面打脸</b><p>把刚配齐的网格上的一块瓦片再点一下，它照样换了颜色。</p></li><li class="fix"><b>后来改成</b><p>过关看的是点完那一刻是否全部配齐；这条改写成「除了被点和被牵动的，其余一概不动」。</p></li></ol></article></div></details><details class="apx"><summary>全部 15 条早期说法的每一版与源码</summary><div class="apxb"><div class="list"><details class="item dead"><summary><div class="top"><span class="name">bar_eats_two</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-dead">撤册</span><span class="chip c-mute">1 版</span></div><div class="one">计数条每步正好多用两格</div></summary><div class="body"><div class="doc">每个动作把最后一行计数条上「已用」的格数正好加 2，已用段始终贴着最右端连续。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T00:54:41 · L4</span><div>每个动作把最后一行计数条上「已用」的格数正好加 2，已用段始终贴着最右端连续。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作把最后一行计数条上「已用」的格数正好加 2，已用段始终贴着最右端连续。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;看所有动作；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;最后一行出现除 BAR_FULL/BAR_USED 之外的颜色时返回 NA（此时读不出已用格数）&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;bb9c526f08ba144a&quot;]
+
+from _lib import BAR_USED, bar_used
+
+STEP_COST = 2
+
+
+def _rightmost(g, k):
+    &quot;&quot;&quot;最后一行的已用格是否恰好是最右 k 格。&quot;&quot;&quot;
+    row = g[-1]
+    n = len(row)
+    return all((row[c] == BAR_USED) == (c &gt;= n - k) for c in range(n))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    a, b = bar_used(prev), bar_used(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if not _rightmost(nxt, b):
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if b == a + STEP_COST else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    a = bar_used(prev)
+    if a is None:
+        return None
+    n = len(prev[-1])
+    r = len(prev) - 1
+    return {(r, c): BAR_USED for c in range(n - a - STEP_COST, n - a) if 0 &lt;= c &lt; n}
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;每个动作把最后一行计数条上「已用」的格数正好加 2，已用段始终贴着最右端连续。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;看所有动作；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;最后一行出现除 BAR_FULL/BAR_USED 之外的颜色时返回 NA（此时读不出已用格数）&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;bb9c526f08ba144a&quot;]
+
+from _lib import BAR_USED, bar_used
+
+STEP_COST = 2
+
+
+def _rightmost(g, k):
+    &quot;&quot;&quot;最后一行的已用格是否恰好是最右 k 格。&quot;&quot;&quot;
+    row = g[-1]
+    n = len(row)
+    return all((row[c] == BAR_USED) == (c &gt;= n - k) for c in range(n))
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    a, b = bar_used(prev), bar_used(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    if not _rightmost(nxt, b):
+        return &quot;FALSE&quot;
+    return &quot;TRUE&quot; if b == a + STEP_COST else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    a = bar_used(prev)
+    if a is None:
+        return None
+    n = len(prev[-1])
+    r = len(prev) - 1
+    return {(r, c): BAR_USED for c in range(n - a - STEP_COST, n - a) if 0 &lt;= c &lt; n}
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">bar_is_full_then_used</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">计数条只有未用、已用两段，已用段贴右</div></summary><div class="body"><div class="doc">最后一行任何时刻都是「左边一段色12、右边一段色11」两段（任一段可以为空），已用段永远贴着最右端连续。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:23:10 · L4</span><div>最后一行任何时刻都是「左边一段色12、右边一段色11」两段（任一段可以为空），已用段永远贴着最右端连续。</div><div>从 bar_eats_two v1 拆出来的那一半。v1 把『形状』和『每步吃 2 格』捆在一句话里，第 2 关每步吃 2/3 格把整条打倒，连带这一半也一起死了——其实它没错。一条概念只断言一件事。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;最后一行任何时刻都是「左边一段色12、右边一段色11」两段（任一段可以为空），已用段永远贴着最右端连续。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;看所有动作；prev 与 nxt 都要满足；最后一行出现色12/色11 之外的颜色时判 FALSE（那说明这个形状描述本身错了）&quot;
+NOTE = (&quot;从 bar_eats_two v1 拆出来的那一半。v1 把『形状』和『每步吃 2 格』捆在一句话里，&quot;
+        &quot;第 2 关每步吃 2/3 格把整条打倒，连带这一半也一起死了——其实它没错。一条概念只断言一件事。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;]
+
+from _lib import BAR_FULL, BAR_USED, bar_runs
+
+
+def _ok(g):
+    rs = bar_runs(g)
+    if any(c not in (BAR_FULL, BAR_USED) for c, _ in rs):
+        return False
+    return [c for c, _ in rs] in ([BAR_FULL], [BAR_USED], [BAR_FULL, BAR_USED])
+
+
+def assert_(prev, action, nxt, ctx=None):
+    return &quot;TRUE&quot; if _ok(prev) and _ok(nxt) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;最后一行任何时刻都是「左边一段色12、右边一段色11」两段（任一段可以为空），已用段永远贴着最右端连续。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;看所有动作；prev 与 nxt 都要满足；最后一行出现色12/色11 之外的颜色时判 FALSE（那说明这个形状描述本身错了）&quot;
+NOTE = (&quot;从 bar_eats_two v1 拆出来的那一半。v1 把『形状』和『每步吃 2 格』捆在一句话里，&quot;
+        &quot;第 2 关每步吃 2/3 格把整条打倒，连带这一半也一起死了——其实它没错。一条概念只断言一件事。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;]
+
+from _lib import BAR_FULL, BAR_USED, bar_runs
+
+
+def _ok(g):
+    rs = bar_runs(g)
+    if any(c not in (BAR_FULL, BAR_USED) for c, _ in rs):
+        return False
+    return [c for c, _ in rs] in ([BAR_FULL], [BAR_USED], [BAR_FULL, BAR_USED])
+
+
+def assert_(prev, action, nxt, ctx=None):
+    return &quot;TRUE&quot; if _ok(prev) and _ok(nxt) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">bar_refills_on_levelup</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">2 版</span></div><div class="one">进入还要打的下一关，计数条重新填满</div></summary><div class="body"><div class="doc">换关那一步之后，只要游戏还没结束，计数条就重新填满：已用格数回到 0。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:23:10 · L4</span><div>换关那一步之后，计数条重新填满：已用格数回到 0。</div><div>从 bar_eats_two v1 拆出来的第三半。它是这一局『预算』这个部件的关键一句：预算按关重置，所以一关里走了多少步不会记到下一关头上。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;换关那一步之后，计数条重新填满：已用格数回到 0。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;只看换关的一步（level_next == level_prev + 1）；别的步返回 NA；nxt 的最后一行读不出已用格数时返回 NA&quot;
+NOTE = (&quot;从 bar_eats_two v1 拆出来的第三半。它是这一局『预算』这个部件的关键一句：&quot;
+        &quot;预算按关重置，所以一关里走了多少步不会记到下一关头上。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;]
+
+from _lib import bar_used
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx[&quot;level_next&quot;] != ctx[&quot;level_prev&quot;] + 1:
+        return &quot;NA&quot;
+    b = bar_used(nxt)
+    if b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b == 0 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T02:19:51 · L4</span><div>换关那一步之后，只要游戏还没结束，计数条就重新填满：已用格数回到 0。</div><div>从 bar_eats_two v1 拆出来的第三半。它是这一局『预算』这个部件的关键一句：预算按关重置，所以一关里走了多少步不会记到下一关头上。v2：v1 死于 bb2425ba3bde9b7b —— 打完最后一关（level 5→6，state 变 WIN）那一步，计数条<b>没有</b>重填，整屏也没有重画（帧差只有 32 格，就是被点那一块）。v1 那句『换关就重填』把「过关」和「过完最后一关」混成了一件事。这条边界只有在真的通关时才露出来，所以它是这一局跑到 WIN 才买到的一条判据。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;换关那一步之后，只要游戏还没结束，计数条就重新填满：已用格数回到 0。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看换关的一步（level_next == level_prev + 1）；别的步返回 NA；&quot;
+         &quot;**换关同时游戏结束（state_next 不是 NOT_FINISHED）的那一步返回 NA** —— &quot;
+         &quot;没有下一关，也就没有下一关的预算；nxt 的最后一行读不出已用格数时返回 NA&quot;)
+NOTE = (&quot;从 bar_eats_two v1 拆出来的第三半。它是这一局『预算』这个部件的关键一句：&quot;
+        &quot;预算按关重置，所以一关里走了多少步不会记到下一关头上。&quot;
+        &quot;v2：v1 死于 bb2425ba3bde9b7b —— 打完最后一关（level 5→6，state 变 WIN）那一步，&quot;
+        &quot;计数条**没有**重填，整屏也没有重画（帧差只有 32 格，就是被点那一块）。&quot;
+        &quot;v1 那句『换关就重填』把「过关」和「过完最后一关」混成了一件事。&quot;
+        &quot;这条边界只有在真的通关时才露出来，所以它是这一局跑到 WIN 才买到的一条判据。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;, &quot;bb2425ba3bde9b7b&quot;]
+
+from _lib import bar_used
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx[&quot;level_next&quot;] != ctx[&quot;level_prev&quot;] + 1:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) not in (None, &quot;NOT_FINISHED&quot;):
+        return &quot;NA&quot;
+    b = bar_used(nxt)
+    if b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b == 0 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;换关那一步之后，只要游戏还没结束，计数条就重新填满：已用格数回到 0。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = (&quot;只看换关的一步（level_next == level_prev + 1）；别的步返回 NA；&quot;
+         &quot;**换关同时游戏结束（state_next 不是 NOT_FINISHED）的那一步返回 NA** —— &quot;
+         &quot;没有下一关，也就没有下一关的预算；nxt 的最后一行读不出已用格数时返回 NA&quot;)
+NOTE = (&quot;从 bar_eats_two v1 拆出来的第三半。它是这一局『预算』这个部件的关键一句：&quot;
+        &quot;预算按关重置，所以一关里走了多少步不会记到下一关头上。&quot;
+        &quot;v2：v1 死于 bb2425ba3bde9b7b —— 打完最后一关（level 5→6，state 变 WIN）那一步，&quot;
+        &quot;计数条**没有**重填，整屏也没有重画（帧差只有 32 格，就是被点那一块）。&quot;
+        &quot;v1 那句『换关就重填』把「过关」和「过完最后一关」混成了一件事。&quot;
+        &quot;这条边界只有在真的通关时才露出来，所以它是这一局跑到 WIN 才买到的一条判据。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;, &quot;bb2425ba3bde9b7b&quot;]
+
+from _lib import bar_used
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or ctx[&quot;level_next&quot;] != ctx[&quot;level_prev&quot;] + 1:
+        return &quot;NA&quot;
+    if ctx.get(&quot;state_next&quot;) not in (None, &quot;NOT_FINISHED&quot;):
+        return &quot;NA&quot;
+    b = bar_used(nxt)
+    if b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if b == 0 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">bar_used_never_shrinks</span><span class="chip c-lv">L4 · 计数与花费</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">同一关里计数条不减少，一步最多多用两格</div></summary><div class="body"><div class="doc">不换关的一步，计数条已用格数只会增加 0 到 2 格，从不减少。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:23:10 · L4</span><div>不换关的一步，计数条已用格数只会增加 0 到 2 格，从不减少。</div><div>从 bar_eats_two v1 退下来的那一半。v1 说『正好加 2』，那只是第 0、1 关的样子；第 2 关六步只吃掉 4 格（增量 1,0,1,1,0,1，看着像 round(本关步数×2/3)），所以『每步吃几格』是随关变的速率，不是常数 2。速率写不成单步断言（ctx 只给全局步数，给不了本关第几步），所以这里只保下能单步判的那一句：单调、且一步不超过 2 格。这条弱，但它是真的，而且哪天出现『点了一下条反而变长』或者『一步吃 3 格』就当场倒。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;不换关的一步，计数条已用格数只会增加 0 到 2 格，从不减少。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;看所有动作；换关（level_prev != level_next）返回 NA；prev 或 nxt 的最后一行读不出已用格数时返回 NA&quot;
+NOTE = (&quot;从 bar_eats_two v1 退下来的那一半。v1 说『正好加 2』，那只是第 0、1 关的样子；&quot;
+        &quot;第 2 关六步只吃掉 4 格（增量 1,0,1,1,0,1，看着像 round(本关步数×2/3)），&quot;
+        &quot;所以『每步吃几格』是随关变的速率，不是常数 2。速率写不成单步断言（ctx 只给全局步数，&quot;
+        &quot;给不了本关第几步），所以这里只保下能单步判的那一句：单调、且一步不超过 2 格。&quot;
+        &quot;这条弱，但它是真的，而且哪天出现『点了一下条反而变长』或者『一步吃 3 格』就当场倒。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;86b247993dc04d91&quot;, &quot;97e6fe26db533cf4&quot;]
+
+from _lib import bar_used
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    a, b = bar_used(prev), bar_used(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if 0 &lt;= b - a &lt;= 2 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;不换关的一步，计数条已用格数只会增加 0 到 2 格，从不减少。&quot;&quot;&quot;
+LEVEL = &quot;L4&quot;
+SCOPE = &quot;看所有动作；换关（level_prev != level_next）返回 NA；prev 或 nxt 的最后一行读不出已用格数时返回 NA&quot;
+NOTE = (&quot;从 bar_eats_two v1 退下来的那一半。v1 说『正好加 2』，那只是第 0、1 关的样子；&quot;
+        &quot;第 2 关六步只吃掉 4 格（增量 1,0,1,1,0,1，看着像 round(本关步数×2/3)），&quot;
+        &quot;所以『每步吃几格』是随关变的速率，不是常数 2。速率写不成单步断言（ctx 只给全局步数，&quot;
+        &quot;给不了本关第几步），所以这里只保下能单步判的那一句：单调、且一步不超过 2 格。&quot;
+        &quot;这条弱，但它是真的，而且哪天出现『点了一下条反而变长』或者『一步吃 3 格』就当场倒。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;86b247993dc04d91&quot;, &quot;97e6fe26db533cf4&quot;]
+
+from _lib import bar_used
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    a, b = bar_used(prev), bar_used(nxt)
+    if a is None or b is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if 0 &lt;= b - a &lt;= 2 else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">click_cycles_palette</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">点一块瓦片，它的颜色沿调色板前进一位</div></summary><div class="body"><div class="doc">ACTION6 点在任何一块外环瓦片上时，这块瓦片的<b>底色</b>前进到本关调色板里的下一个色（到头绕回第一个）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:33:14 · L1</span><div>ACTION6 点在任何一个 3x3 瓦片网格的外环瓦片上时，这个瓦片的 6x6 像素前进到本关调色板里的下一个色（到头绕回第一个）。</div><div>接替 click_toggles_tile（v4 撤册）。那一条说『在两个色之间来回翻转』，第 3 关一次点击 9→8 就把它打倒了：这一关外环有三个色，点击是<b>循环前进</b>不是二元互换，连点三次 9→8→12→9 走完一圈。两色关里循环和互换恰好长得一样，所以前三关看不出区别。顺序取自右上角图例从上到下；第 0 关没有图例（那一关右上角是网格本身），退回从瓦片上清点后排序——那一关只有两色，顺序无所谓。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一个 3x3 瓦片网格的外环瓦片上时，这个瓦片的 6x6 像素前进到本关调色板里的下一个色（到头绕回第一个）。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环瓦片上返回 NA（含落在中心瓦片、落在瓦片之间的缝里）；&quot;
+         &quot;本关调色板读不出来（少于两色）返回 NA；&quot;
+         &quot;被点瓦片在 prev 里不是单色、或它的颜色不在调色板里，返回 NA&quot;)
+NOTE = (&quot;接替 click_toggles_tile（v4 撤册）。那一条说『在两个色之间来回翻转』，&quot;
+        &quot;第 3 关一次点击 9→8 就把它打倒了：这一关外环有三个色，点击是**循环前进**不是二元互换，&quot;
+        &quot;连点三次 9→8→12→9 走完一圈。两色关里循环和互换恰好长得一样，所以前三关看不出区别。&quot;
+        &quot;顺序取自右上角图例从上到下；第 0 关没有图例（那一关右上角是网格本身），&quot;
+        &quot;退回从瓦片上清点后排序——那一关只有两色，顺序无所谓。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6f06e09e88984ff9&quot;, &quot;6db074a25f82b9f4&quot;, &quot;75f5ee75281d2552&quot;]
+
+from _lib import click_xy, grid_ring_tile, next_color, palette_seq, tile_cells, tile_solid
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    origin, i, j = hit
+    want = next_color(palette_seq(prev), tile_solid(prev, origin, i, j))
+    if want is None:
+        return None
+    return origin, i, j, want
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, i, j, want = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, i, j) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, i, j, want = t
+    return {c: want for c in tile_cells(origin, i, j)}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:55:14 · L1</span><div>ACTION6 点在任何一块外环瓦片上时，这块瓦片的<b>底色</b>前进到本关调色板里的下一个色（到头绕回第一个）。</div><div>v2：把「瓦片的颜色」换成「瓦片的<b>底色</b>」。第 4 关出现加号瓦片——底色之上盖着一层 MARK 色的棋盘花纹，整块不是单色，v1 因此对它一句话都说不出（tid 690d3d0a7349b356 判 NA）。实测那一下点击把它花纹底下那个色 14 推成了 15，花纹原样保留：所以变的是底色，不是整块像素。它同时牵动四个邻居，那半条主张归 plus_tile_cycles_neighbours 管，这里只说被点的那一块。v1 接替 click_toggles_tile（v4 撤册）：那一条说『在两个色之间来回翻转』，第 3 关一次点击 9→8 就把它打倒了——三色关里点击是循环前进不是二元互换。顺序取自图例从上到下；没有图例的关退回从瓦片上清点后排序（那些关只有两色，顺序无所谓）。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一块外环瓦片上时，这块瓦片的**底色**前进到本关调色板里的下一个色（到头绕回第一个）。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环位置上返回 NA（含落在中心瓦片、落在瓦片之间的缝里、落在网格之外）；&quot;
+         &quot;本关调色板读不出来（少于两色）返回 NA；&quot;
+         &quot;被点位置上的底色读不出来（那里是空槽、是中心瓦片、或是没见过的花纹）、&quot;
+         &quot;或它的颜色不在调色板里，返回 NA&quot;)
+NOTE = (&quot;v2：把「瓦片的颜色」换成「瓦片的**底色**」。第 4 关出现加号瓦片——底色之上盖着一层 MARK 色的棋盘花纹，&quot;
+        &quot;整块不是单色，v1 因此对它一句话都说不出（tid 690d3d0a7349b356 判 NA）。实测那一下点击&quot;
+        &quot;把它花纹底下那个色 14 推成了 15，花纹原样保留：所以变的是底色，不是整块像素。&quot;
+        &quot;它同时牵动四个邻居，那半条主张归 plus_tile_cycles_neighbours 管，这里只说被点的那一块。&quot;
+        &quot;v1 接替 click_toggles_tile（v4 撤册）：那一条说『在两个色之间来回翻转』，&quot;
+        &quot;第 3 关一次点击 9→8 就把它打倒了——三色关里点击是循环前进不是二元互换。&quot;
+        &quot;顺序取自图例从上到下；没有图例的关退回从瓦片上清点后排序（那些关只有两色，顺序无所谓）。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6f06e09e88984ff9&quot;, &quot;6db074a25f82b9f4&quot;, &quot;75f5ee75281d2552&quot;,
+            &quot;690d3d0a7349b356&quot;, &quot;8d9c57c6425e0300&quot;]
+
+from _lib import base_at, base_cells, click_xy, grid_ring_tile, next_color, palette_seq, tile_box
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    box = tile_box(hit[0], hit[1], hit[2])
+    want = next_color(palette_seq(prev), base_at(prev, *box))
+    if want is None:
+        return None
+    return box, want
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    box, want = t
+    return &quot;TRUE&quot; if base_at(nxt, *box) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    box, want = t
+    cells = base_cells(prev, *box)
+    return None if cells is None else {c: want for c in cells}
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T02:28:03 · L1</span><div>ACTION6 点在任何一块外环瓦片上时，这块瓦片的<b>底色</b>前进到本关调色板里的下一个色（到头绕回第一个）。</div><div>v3：换关免责从「只认 ctx」改成「ctx 或帧，两种都算」。原来那句在结算时够用，在<b>押注</b>时是个空条款——押注时这一步还没走，ctx 里的关卡号必然相等，于是这条概念会对换关那一下照常出预测，而换关后整屏重画，预测必错。换关册子本来看得出（levelup_imminent），所以补上帧上的那一半。旧语料上这是空改动：ctx 那一半已经把同一批步盖住了，C/N 应当一格不变。v2：把「瓦片的颜色」换成「瓦片的<b>底色</b>」。第 4 关出现带 MARK 花纹的瓦片——底色之上盖着一层花纹，整块不是单色，v1 因此对它一句话都说不出（tid 690d3d0a7349b356 判 NA）。实测那一下点击把它花纹底下那个色 14 推成了 15，花纹原样保留：所以变的是底色，不是整块像素。它同时牵动四个邻居，那半条主张归 plus_tile_cycles_neighbours 管，这里只说被点的那一块。v1 接替 click_toggles_tile（v4 撤册）：那一条说『在两个色之间来回翻转』，第 3 关一次点击 9→8 就把它打倒了——三色关里点击是循环前进不是二元互换。顺序取自图例从上到下；没有图例的关退回从瓦片上清点后排序（那些关只有两色，顺序无所谓）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一块外环瓦片上时，这块瓦片的**底色**前进到本关调色板里的下一个色（到头绕回第一个）。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关那一步返回 NA —— 换关后整屏重画；&quot;
+         &quot;换关有两种认法，**两种都用**：ctx 里 level_prev != level_next（结算时），&quot;
+         &quot;以及 levelup_imminent(prev, action) 为真（押注时 ctx 给不出关卡变化，只能从帧上看出来）；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环位置上返回 NA（含落在中心瓦片、落在瓦片之间的缝里、落在网格之外）；&quot;
+         &quot;本关调色板读不出来（少于两色）返回 NA；&quot;
+         &quot;被点位置上的底色读不出来（那里是空槽、是中心瓦片、或是没见过的花纹）、&quot;
+         &quot;或它的颜色不在调色板里，返回 NA&quot;)
+NOTE = (&quot;v3：换关免责从「只认 ctx」改成「ctx 或帧，两种都算」。原来那句在结算时够用，&quot;
+        &quot;在**押注**时是个空条款——押注时这一步还没走，ctx 里的关卡号必然相等，&quot;
+        &quot;于是这条概念会对换关那一下照常出预测，而换关后整屏重画，预测必错。&quot;
+        &quot;换关册子本来看得出（levelup_imminent），所以补上帧上的那一半。&quot;
+        &quot;旧语料上这是空改动：ctx 那一半已经把同一批步盖住了，C/N 应当一格不变。&quot;
+        &quot;v2：把「瓦片的颜色」换成「瓦片的**底色**」。第 4 关出现带 MARK 花纹的瓦片——底色之上盖着一层花纹，&quot;
+        &quot;整块不是单色，v1 因此对它一句话都说不出（tid 690d3d0a7349b356 判 NA）。实测那一下点击&quot;
+        &quot;把它花纹底下那个色 14 推成了 15，花纹原样保留：所以变的是底色，不是整块像素。&quot;
+        &quot;它同时牵动四个邻居，那半条主张归 plus_tile_cycles_neighbours 管，这里只说被点的那一块。&quot;
+        &quot;v1 接替 click_toggles_tile（v4 撤册）：那一条说『在两个色之间来回翻转』，&quot;
+        &quot;第 3 关一次点击 9→8 就把它打倒了——三色关里点击是循环前进不是二元互换。&quot;
+        &quot;顺序取自图例从上到下；没有图例的关退回从瓦片上清点后排序（那些关只有两色，顺序无所谓）。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6f06e09e88984ff9&quot;, &quot;6db074a25f82b9f4&quot;, &quot;75f5ee75281d2552&quot;,
+            &quot;690d3d0a7349b356&quot;, &quot;8d9c57c6425e0300&quot;]
+
+from _lib import (base_at, base_cells, click_xy, grid_ring_tile, levelup_imminent,
+                  next_color, palette_seq, tile_box)
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    if levelup_imminent(prev, action) is True:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    box = tile_box(hit[0], hit[1], hit[2])
+    want = next_color(palette_seq(prev), base_at(prev, *box))
+    if want is None:
+        return None
+    return box, want
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    box, want = t
+    return &quot;TRUE&quot; if base_at(nxt, *box) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    box, want = t
+    cells = base_cells(prev, *box)
+    return None if cells is None else {c: want for c in cells}
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一块外环瓦片上时，这块瓦片的**底色**前进到本关调色板里的下一个色（到头绕回第一个）。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关那一步返回 NA —— 换关后整屏重画；&quot;
+         &quot;换关有两种认法，**两种都用**：ctx 里 level_prev != level_next（结算时），&quot;
+         &quot;以及 levelup_imminent(prev, action) 为真（押注时 ctx 给不出关卡变化，只能从帧上看出来）；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环位置上返回 NA（含落在中心瓦片、落在瓦片之间的缝里、落在网格之外）；&quot;
+         &quot;本关调色板读不出来（少于两色）返回 NA；&quot;
+         &quot;被点位置上的底色读不出来（那里是空槽、是中心瓦片、或是没见过的花纹）、&quot;
+         &quot;或它的颜色不在调色板里，返回 NA&quot;)
+NOTE = (&quot;v3：换关免责从「只认 ctx」改成「ctx 或帧，两种都算」。原来那句在结算时够用，&quot;
+        &quot;在**押注**时是个空条款——押注时这一步还没走，ctx 里的关卡号必然相等，&quot;
+        &quot;于是这条概念会对换关那一下照常出预测，而换关后整屏重画，预测必错。&quot;
+        &quot;换关册子本来看得出（levelup_imminent），所以补上帧上的那一半。&quot;
+        &quot;旧语料上这是空改动：ctx 那一半已经把同一批步盖住了，C/N 应当一格不变。&quot;
+        &quot;v2：把「瓦片的颜色」换成「瓦片的**底色**」。第 4 关出现带 MARK 花纹的瓦片——底色之上盖着一层花纹，&quot;
+        &quot;整块不是单色，v1 因此对它一句话都说不出（tid 690d3d0a7349b356 判 NA）。实测那一下点击&quot;
+        &quot;把它花纹底下那个色 14 推成了 15，花纹原样保留：所以变的是底色，不是整块像素。&quot;
+        &quot;它同时牵动四个邻居，那半条主张归 plus_tile_cycles_neighbours 管，这里只说被点的那一块。&quot;
+        &quot;v1 接替 click_toggles_tile（v4 撤册）：那一条说『在两个色之间来回翻转』，&quot;
+        &quot;第 3 关一次点击 9→8 就把它打倒了——三色关里点击是循环前进不是二元互换。&quot;
+        &quot;顺序取自图例从上到下；没有图例的关退回从瓦片上清点后排序（那些关只有两色，顺序无所谓）。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6f06e09e88984ff9&quot;, &quot;6db074a25f82b9f4&quot;, &quot;75f5ee75281d2552&quot;,
+            &quot;690d3d0a7349b356&quot;, &quot;8d9c57c6425e0300&quot;]
+
+from _lib import (base_at, base_cells, click_xy, grid_ring_tile, levelup_imminent,
+                  next_color, palette_seq, tile_box)
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    if levelup_imminent(prev, action) is True:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    box = tile_box(hit[0], hit[1], hit[2])
+    want = next_color(palette_seq(prev), base_at(prev, *box))
+    if want is None:
+        return None
+    return box, want
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    box, want = t
+    return &quot;TRUE&quot; if base_at(nxt, *box) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    box, want = t
+    cells = base_cells(prev, *box)
+    return None if cells is None else {c: want for c in cells}
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">click_paints_tile</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">点一块瓦片，它从一种颜色涂成另一种</div></summary><div class="body"><div class="doc">ACTION6 点在活动网格某个单色色9 瓦片上时，这个瓦片的 6x6 像素全部变成色8。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T00:54:41 · L1</span><div>ACTION6 点在活动网格某个单色色9 瓦片上时，这个瓦片的 6x6 像素全部变成色8。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在活动网格某个单色色9 瓦片上时，这个瓦片的 6x6 像素全部变成色8。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;活动网格（FRAME 色的方框）定位不到返回 NA；点击坐标不落在某个瓦片里返回 NA；&quot;
+         &quot;被点的瓦片是中心瓦片 (1,1) 返回 NA；被点瓦片在 prev 里不是单色色9 返回 NA&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;bb9c526f08ba144a&quot;, &quot;14d7ee51ea8d0329&quot;]
+
+from _lib import active_origin, click_xy, tile_cells, tile_solid, tile_of_click
+
+BLANK = 9
+PAINTED = 8
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    origin = active_origin(prev)
+    if origin is None:
+        return None
+    ij = tile_of_click(origin, xy[0], xy[1])
+    if ij is None or ij == (1, 1):
+        return None
+    if tile_solid(prev, origin, ij[0], ij[1]) != BLANK:
+        return None
+    return origin, ij
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, ij = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, ij[0], ij[1]) == PAINTED else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, ij = t
+    return {c: PAINTED for c in tile_cells(origin, ij[0], ij[1])}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T00:55:07 · L1</span><div>ACTION6 点在活动网格某个单色色9 瓦片上时，这个瓦片的 6x6 像素全部变成色8。</div><div>v2：EVIDENCE 从 3 条砍到 1 条。v1 把当时全部 3 条转移都写进依据，考卷被吃空（universe=0，S=UNMEASURABLE、apply 一格都没认领）。主张与代码一字未动。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在活动网格某个单色色9 瓦片上时，这个瓦片的 6x6 像素全部变成色8。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;活动网格（FRAME 色的方框）定位不到返回 NA；点击坐标不落在某个瓦片里返回 NA；&quot;
+         &quot;被点的瓦片是中心瓦片 (1,1) 返回 NA；被点瓦片在 prev 里不是单色色9 返回 NA&quot;)
+NOTE = &quot;v2：EVIDENCE 从 3 条砍到 1 条。v1 把当时全部 3 条转移都写进依据，考卷被吃空（universe=0，S=UNMEASURABLE、apply 一格都没认领）。主张与代码一字未动。&quot;
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;]
+
+from _lib import active_origin, click_xy, tile_cells, tile_solid, tile_of_click
+
+BLANK = 9
+PAINTED = 8
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    origin = active_origin(prev)
+    if origin is None:
+        return None
+    ij = tile_of_click(origin, xy[0], xy[1])
+    if ij is None or ij == (1, 1):
+        return None
+    if tile_solid(prev, origin, ij[0], ij[1]) != BLANK:
+        return None
+    return origin, ij
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, ij = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, ij[0], ij[1]) == PAINTED else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, ij = t
+    return {c: PAINTED for c in tile_cells(origin, ij[0], ij[1])}
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在活动网格某个单色色9 瓦片上时，这个瓦片的 6x6 像素全部变成色8。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;活动网格（FRAME 色的方框）定位不到返回 NA；点击坐标不落在某个瓦片里返回 NA；&quot;
+         &quot;被点的瓦片是中心瓦片 (1,1) 返回 NA；被点瓦片在 prev 里不是单色色9 返回 NA&quot;)
+NOTE = &quot;v2：EVIDENCE 从 3 条砍到 1 条。v1 把当时全部 3 条转移都写进依据，考卷被吃空（universe=0，S=UNMEASURABLE、apply 一格都没认领）。主张与代码一字未动。&quot;
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;]
+
+from _lib import active_origin, click_xy, tile_cells, tile_solid, tile_of_click
+
+BLANK = 9
+PAINTED = 8
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    origin = active_origin(prev)
+    if origin is None:
+        return None
+    ij = tile_of_click(origin, xy[0], xy[1])
+    if ij is None or ij == (1, 1):
+        return None
+    if tile_solid(prev, origin, ij[0], ij[1]) != BLANK:
+        return None
+    return origin, ij
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, ij = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, ij[0], ij[1]) == PAINTED else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, ij = t
+    return {c: PAINTED for c in tile_cells(origin, ij[0], ij[1])}
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">click_toggles_tile</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-dead">撤册</span><span class="chip c-mute">4 版</span></div><div class="one">点一块瓦片，它在两种颜色之间来回翻</div></summary><div class="body"><div class="doc">ACTION6 点在任何一个 3x3 瓦片网格的外环瓦片上时，这个瓦片的 6x6 像素在本关那两个外环色之间来回翻转。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:01:39 · L1</span><div>ACTION6 点在活动网格外环某个单色瓦片上时，这个瓦片的 6x6 像素在色9 与色8 之间来回翻转。</div><div>接替 click_paints_tile（v2 撤册）：那一条只敢说色9→色8，第 5 步 ACTION6:54,54 实测到色8→色9，翻转是双向的，只说一半会让另一半永远落在残差里没人管。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在活动网格外环某个单色瓦片上时，这个瓦片的 6x6 像素在色9 与色8 之间来回翻转。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;活动网格（FRAME 色的方框）定位不到返回 NA；点击坐标不落在某个瓦片里返回 NA；&quot;
+         &quot;被点的是中心瓦片 (1,1) 返回 NA（点中心会发生什么还没量过）；&quot;
+         &quot;被点瓦片在 prev 里不是单色、或颜色不在 FLIP 里返回 NA&quot;)
+NOTE = (&quot;接替 click_paints_tile（v2 撤册）：那一条只敢说色9→色8，&quot;
+        &quot;第 5 步 ACTION6:54,54 实测到色8→色9，翻转是双向的，&quot;
+        &quot;只说一半会让另一半永远落在残差里没人管。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;457d40dae9ba827b&quot;]
+
+from _lib import active_origin, click_xy, tile_cells, tile_of_click, tile_solid
+
+FLIP = {9: 8, 8: 9}
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    origin = active_origin(prev)
+    if origin is None:
+        return None
+    ij = tile_of_click(origin, xy[0], xy[1])
+    if ij is None or ij == (1, 1):
+        return None
+    cur = tile_solid(prev, origin, ij[0], ij[1])
+    if cur not in FLIP:
+        return None
+    return origin, ij, FLIP[cur]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, ij, want = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, ij[0], ij[1]) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, ij, want = t
+    return {c: want for c in tile_cells(origin, ij[0], ij[1])}
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:05:35 · L1</span><div>ACTION6 点在任何一个 3x3 瓦片网格的外环单色瓦片上时，这个瓦片的 6x6 像素在色9 与色8 之间来回翻转。</div><div>v2：不再依赖『色4 的方框』定位活动网格 —— 第 1 关背景整片就是色4、一个方框都没有，而且有两个网格共用一排瓦片。改成从 tile_grids 扫出来的所有网格里找被点的那一格。FLIP 仍是第 0 关实测的 9↔8；第 1 关中心正中那格从色8 变成了色12，若翻转目标色其实跟着它变，这一版会在第 1 关的第一次点击上判 FALSE —— 那正是要问的。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一个 3x3 瓦片网格的外环单色瓦片上时，这个瓦片的 6x6 像素在色9 与色8 之间来回翻转。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环瓦片上返回 NA（含落在中心瓦片、落在瓦片之间的缝里）；&quot;
+         &quot;被点瓦片在 prev 里不是单色、或颜色不在 FLIP 里返回 NA&quot;)
+NOTE = (&quot;v2：不再依赖『色4 的方框』定位活动网格 —— 第 1 关背景整片就是色4、一个方框都没有，&quot;
+        &quot;而且有两个网格共用一排瓦片。改成从 tile_grids 扫出来的所有网格里找被点的那一格。&quot;
+        &quot;FLIP 仍是第 0 关实测的 9↔8；第 1 关中心正中那格从色8 变成了色12，&quot;
+        &quot;若翻转目标色其实跟着它变，这一版会在第 1 关的第一次点击上判 FALSE —— 那正是要问的。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;457d40dae9ba827b&quot;]
+
+from _lib import click_xy, grid_ring_tile, tile_cells, tile_solid
+
+FLIP = {9: 8, 8: 9}
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    origin, i, j = hit
+    cur = tile_solid(prev, origin, i, j)
+    if cur not in FLIP:
+        return None
+    return origin, i, j, FLIP[cur]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, i, j, want = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, i, j) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, i, j, want = t
+    return {c: want for c in tile_cells(origin, i, j)}
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T01:10:35 · L1</span><div>ACTION6 点在任何一个 3x3 瓦片网格的外环单色瓦片上时，这个瓦片的 6x6 像素在色9 和「该网格中心瓦片正中那格的颜色」之间来回翻转。</div><div>v3：v2 把『点亮色』写死成色8，死于 6f06e09e88984ff9（第 1 关第一次点击变成了色12）。改成从画面上读：点亮色 = 该网格中心瓦片正中那格的颜色（第 0 关色8、第 1 关色12），熄灭色 OFF 仍是写死的色9（两关都是 9，还没有反例，但它是这条概念最脆的一处）。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一个 3x3 瓦片网格的外环单色瓦片上时，这个瓦片的 6x6 像素在色9 和「该网格中心瓦片正中那格的颜色」之间来回翻转。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环瓦片上返回 NA（含落在中心瓦片、落在瓦片之间的缝里）；&quot;
+         &quot;读不出该网格中心正中那格的颜色返回 NA；ON 与 OFF 撞成同一个色返回 NA；&quot;
+         &quot;被点瓦片在 prev 里不是单色、或颜色既不是 OFF 也不是 ON 返回 NA&quot;)
+NOTE = (&quot;v3：v2 把『点亮色』写死成色8，死于 6f06e09e88984ff9（第 1 关第一次点击变成了色12）。&quot;
+        &quot;改成从画面上读：点亮色 = 该网格中心瓦片正中那格的颜色（第 0 关色8、第 1 关色12），&quot;
+        &quot;熄灭色 OFF 仍是写死的色9（两关都是 9，还没有反例，但它是这条概念最脆的一处）。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;457d40dae9ba827b&quot;, &quot;6f06e09e88984ff9&quot;]
+
+from _lib import center_mid_color, click_xy, grid_ring_tile, tile_cells, tile_solid
+
+OFF = 9
+
+
+def flip_of(g, origin):
+    &quot;&quot;&quot;这个网格的外环两色互换表；读不出来返回 None。&quot;&quot;&quot;
+    on = center_mid_color(g, origin)
+    if on is None or on == OFF:
+        return None
+    return {OFF: on, on: OFF}
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    origin, i, j = hit
+    flip = flip_of(prev, origin)
+    if flip is None:
+        return None
+    cur = tile_solid(prev, origin, i, j)
+    if cur not in flip:
+        return None
+    return origin, i, j, flip[cur]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, i, j, want = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, i, j) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, i, j, want = t
+    return {c: want for c in tile_cells(origin, i, j)}
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-07T01:15:28 · L1</span><div>ACTION6 点在任何一个 3x3 瓦片网格的外环瓦片上时，这个瓦片的 6x6 像素在本关那两个外环色之间来回翻转。</div><div>v4：v3 说『在色9 和该网格中心正中那格的颜色之间翻转』，把熄灭色写死成 9，死在第 2 关的画面上——那一关外环全是色8，而且同一关里有的网格中心正中是 8、有的是 12，『谁是熄灭色』根本不是全局常数。改成清点：全图网格的外环色 ∪ 中心正中色恰好两个色，点击就在这两个色之间互换。第 0 关 {8,9}、第 1 关 {9,12}、第 2 关 {8,12}。v2 把点亮色写死成色8，死于 6f06e09e88984ff9（第 1 关第一次点击变成了色12）。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一个 3x3 瓦片网格的外环瓦片上时，这个瓦片的 6x6 像素在本关那两个外环色之间来回翻转。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环瓦片上返回 NA（含落在中心瓦片、落在瓦片之间的缝里）；&quot;
+         &quot;全图网格的外环色与中心正中色清点出来不是恰好两个、或该网格中心正中色不在这两个里，返回 NA；&quot;
+         &quot;被点瓦片在 prev 里不是单色返回 NA&quot;)
+NOTE = (&quot;v4：v3 说『在色9 和该网格中心正中那格的颜色之间翻转』，把熄灭色写死成 9，&quot;
+        &quot;死在第 2 关的画面上——那一关外环全是色8，而且同一关里有的网格中心正中是 8、有的是 12，&quot;
+        &quot;『谁是熄灭色』根本不是全局常数。改成清点：全图网格的外环色 ∪ 中心正中色恰好两个色，&quot;
+        &quot;点击就在这两个色之间互换。第 0 关 {8,9}、第 1 关 {9,12}、第 2 关 {8,12}。&quot;
+        &quot;v2 把点亮色写死成色8，死于 6f06e09e88984ff9（第 1 关第一次点击变成了色12）。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;457d40dae9ba827b&quot;, &quot;6f06e09e88984ff9&quot;, &quot;c2484e5c3063e99d&quot;]
+
+from _lib import center_mid_color, click_xy, grid_palette_colors, grid_ring_tile, tile_cells, tile_solid
+
+
+def flip_of(g, origin):
+    &quot;&quot;&quot;本关外环两色的互换表；读不出来返回 None。&quot;&quot;&quot;
+    cs = grid_palette_colors(g)
+    on = center_mid_color(g, origin)
+    if cs is None or len(cs) != 2 or on not in cs:
+        return None
+    off = cs[0] if cs[1] == on else cs[1]
+    return {on: off, off: on}
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    origin, i, j = hit
+    flip = flip_of(prev, origin)
+    if flip is None:
+        return None
+    cur = tile_solid(prev, origin, i, j)
+    if cur not in flip:
+        return None
+    return origin, i, j, flip[cur]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, i, j, want = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, i, j) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, i, j, want = t
+    return {c: want for c in tile_cells(origin, i, j)}
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;ACTION6 点在任何一个 3x3 瓦片网格的外环瓦片上时，这个瓦片的 6x6 像素在本关那两个外环色之间来回翻转。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击坐标不落在任何被扫出来的网格的外环瓦片上返回 NA（含落在中心瓦片、落在瓦片之间的缝里）；&quot;
+         &quot;全图网格的外环色与中心正中色清点出来不是恰好两个、或该网格中心正中色不在这两个里，返回 NA；&quot;
+         &quot;被点瓦片在 prev 里不是单色返回 NA&quot;)
+NOTE = (&quot;v4：v3 说『在色9 和该网格中心正中那格的颜色之间翻转』，把熄灭色写死成 9，&quot;
+        &quot;死在第 2 关的画面上——那一关外环全是色8，而且同一关里有的网格中心正中是 8、有的是 12，&quot;
+        &quot;『谁是熄灭色』根本不是全局常数。改成清点：全图网格的外环色 ∪ 中心正中色恰好两个色，&quot;
+        &quot;点击就在这两个色之间互换。第 0 关 {8,9}、第 1 关 {9,12}、第 2 关 {8,12}。&quot;
+        &quot;v2 把点亮色写死成色8，死于 6f06e09e88984ff9（第 1 关第一次点击变成了色12）。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;457d40dae9ba827b&quot;, &quot;6f06e09e88984ff9&quot;, &quot;c2484e5c3063e99d&quot;]
+
+from _lib import center_mid_color, click_xy, grid_palette_colors, grid_ring_tile, tile_cells, tile_solid
+
+
+def flip_of(g, origin):
+    &quot;&quot;&quot;本关外环两色的互换表；读不出来返回 None。&quot;&quot;&quot;
+    cs = grid_palette_colors(g)
+    on = center_mid_color(g, origin)
+    if cs is None or len(cs) != 2 or on not in cs:
+        return None
+    off = cs[0] if cs[1] == on else cs[1]
+    return {on: off, off: on}
+
+
+def _target(prev, action, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    origin, i, j = hit
+    flip = flip_of(prev, origin)
+    if flip is None:
+        return None
+    cur = tile_solid(prev, origin, i, j)
+    if cur not in flip:
+        return None
+    return origin, i, j, flip[cur]
+
+
+def assert_(prev, action, nxt, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return &quot;NA&quot;
+    origin, i, j, want = t
+    return &quot;TRUE&quot; if tile_solid(nxt, origin, i, j) == want else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    t = _target(prev, action, ctx)
+    if t is None:
+        return None
+    origin, i, j, want = t
+    return {c: want for c in tile_cells(origin, i, j)}
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">examples_obey_map</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">示范网格的外圈都照图样配好</div></summary><div class="body"><div class="doc">没有被 FRAME 框住的那些 3x3 瓦片网格，外环颜色恒等于中心图样按 色2→色9、色0→色8 的映射。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T00:59:07 · L5</span><div>没有被 FRAME 框住的那些 3x3 瓦片网格，外环颜色恒等于中心图样按 色2→色9、色0→色8 的映射。</div><div>这是这一局的规则来源：三个已完成的网格示范了『外环 = 中心图样的映射』，活动网格要凑的就是同一件事。写它是为了让这条规则本身也能被判错，而不是只活在我脑子里——第 4 步就是因为我用眼睛数错了中心图样的列号而押空的。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;没有被 FRAME 框住的那些 3x3 瓦片网格，外环颜色恒等于中心图样按 色2→色9、色0→色8 的映射。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作，只看 nxt 这一帧（同一条主张在 prev 上也成立，但只判 nxt 一次）；&quot;
+         &quot;扫不到任何『非活动』网格返回 NA；某个网格的中心图样里有 MAP 之外的颜色返回 NA&quot;)
+NOTE = (&quot;这是这一局的规则来源：三个已完成的网格示范了『外环 = 中心图样的映射』，&quot;
+        &quot;活动网格要凑的就是同一件事。写它是为了让这条规则本身也能被判错，&quot;
+        &quot;而不是只活在我脑子里——第 4 步就是因为我用眼睛数错了中心图样的列号而押空的。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;]
+
+from _lib import active_origin, ring_and_wanted, tile_grids
+
+MAP = {2: 9, 0: 8}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    act = active_origin(nxt)
+    others = [o for o in tile_grids(nxt) if o != act]
+    if not others:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in others:
+        st = ring_and_wanted(nxt, MAP, origin=o)
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:01:39 · L5</span><div>没有被 FRAME 框住的那些 3x3 瓦片网格，外环颜色恒等于中心图样按 色2→色9、色0→色8 的映射。</div><div>这是这一局的规则来源：三个已完成的网格示范了『外环 = 中心图样的映射』，活动网格要凑的就是同一件事。写它是为了让这条规则本身也能被判错，而不是只活在我脑子里——第 4 步就是因为我用眼睛数错了中心图样的列号而押空的。v2：v1 死于 6ad68317227cf68f —— 换关那一步 nxt 是新一关的画面，拿旧关的规则去判新关的第一帧是无中生有。加『换关返回 NA』。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;没有被 FRAME 框住的那些 3x3 瓦片网格，外环颜色恒等于中心图样按 色2→色9、色0→色8 的映射。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作，只看 nxt 这一帧；&quot;
+         &quot;换关（level_prev != level_next）返回 NA —— 换关后 nxt 已经是新一关的画面；&quot;
+         &quot;扫不到任何『非活动』网格返回 NA；某个网格的中心图样里有 MAP 之外的颜色返回 NA&quot;)
+NOTE = (&quot;这是这一局的规则来源：三个已完成的网格示范了『外环 = 中心图样的映射』，&quot;
+        &quot;活动网格要凑的就是同一件事。写它是为了让这条规则本身也能被判错，&quot;
+        &quot;而不是只活在我脑子里——第 4 步就是因为我用眼睛数错了中心图样的列号而押空的。&quot;
+        &quot;v2：v1 死于 6ad68317227cf68f —— 换关那一步 nxt 是新一关的画面，&quot;
+        &quot;拿旧关的规则去判新关的第一帧是无中生有。加『换关返回 NA』。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import active_origin, ring_and_wanted, tile_grids
+
+MAP = {2: 9, 0: 8}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = active_origin(nxt)
+    others = [o for o in tile_grids(nxt) if o != act]
+    if not others:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in others:
+        st = ring_and_wanted(nxt, MAP, origin=o)
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;没有被 FRAME 框住的那些 3x3 瓦片网格，外环颜色恒等于中心图样按 色2→色9、色0→色8 的映射。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作，只看 nxt 这一帧；&quot;
+         &quot;换关（level_prev != level_next）返回 NA —— 换关后 nxt 已经是新一关的画面；&quot;
+         &quot;扫不到任何『非活动』网格返回 NA；某个网格的中心图样里有 MAP 之外的颜色返回 NA&quot;)
+NOTE = (&quot;这是这一局的规则来源：三个已完成的网格示范了『外环 = 中心图样的映射』，&quot;
+        &quot;活动网格要凑的就是同一件事。写它是为了让这条规则本身也能被判错，&quot;
+        &quot;而不是只活在我脑子里——第 4 步就是因为我用眼睛数错了中心图样的列号而押空的。&quot;
+        &quot;v2：v1 死于 6ad68317227cf68f —— 换关那一步 nxt 是新一关的画面，&quot;
+        &quot;拿旧关的规则去判新关的第一帧是无中生有。加『换关返回 NA』。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import active_origin, ring_and_wanted, tile_grids
+
+MAP = {2: 9, 0: 8}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    act = active_origin(nxt)
+    others = [o for o in tile_grids(nxt) if o != act]
+    if not others:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in others:
+        st = ring_and_wanted(nxt, MAP, origin=o)
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">mark_directs_linkage</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-alive">在册</span><span class="chip c-mute">3 版</span></div><div class="one">记号指向哪边，就牵动那一边的邻居</div></summary><div class="body"><div class="doc">点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T02:10:19 · L1</span><div>点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；被指到的若是另一个网格的中心瓦片，那一块一格不动。</div><div>接替 plus_tile_cycles_neighbours（v2 撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部 22 块可涂瓦片只带上边一条。所以旧那条是「四条边都带」的特例，不是规律本身。<b>方向语义在写下这条时还没被检验过</b>：第 4 关三块都是四条边全带，分不出记号指向哪一边；本条主张『上边中点的记号指上邻居』，第 5 关每一次点击都在考它 —— 若记号其实指相反方向，这一条当场判 FALSE。这是有意留的判据，不是疏漏。已实测：联动按<b>物理相邻</b>算，不管邻居属不属于任何网格（tid 4f9ef6ccd97f6f5f 里有一块不属于任何网格外环的瓦片照样被牵动 36 格）；联动碰到中心瓦片时那一块一格不动（同一 tid）。还没检验过的：被指到的邻居落在画面外、落在空槽（底色=背景色）时会怎样 —— 那两种走 NA。也还没检验过联动是否只走一步（记号会不会沿着链条传下去）：第 5 关全屏都带上边记号，若是链式传递，一次点击会改一整列，帧差量级立刻拆穿。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；被指到的若是另一个网格的中心瓦片，那一块一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点那块的底色与记号读不出来、一个记号都没有、&quot;
+         &quot;调色板读不出来，返回 NA；&quot;
+         &quot;被记号指到的邻居里只要有一块**既不是中心瓦片、底色又读不出来或不在调色板里**&quot;
+         &quot;（越界、空槽、没见过的花纹）就返回 NA —— 那种局面这条概念没被检验过。&quot;
+         &quot;**不管**没被记号指到的邻居会怎样（那归 nothing_else_changes），也不管被点那一块自己&quot;
+         &quot;（那归 click_cycles_palette）。&quot;)
+NOTE = (&quot;接替 plus_tile_cycles_neighbours（v2 撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。&quot;
+        &quot;『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：&quot;
+        &quot;每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；&quot;
+        &quot;带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；&quot;
+        &quot;第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部 22 块可涂瓦片只带上边一条。&quot;
+        &quot;所以旧那条是「四条边都带」的特例，不是规律本身。&quot;
+        &quot;**方向语义在写下这条时还没被检验过**：第 4 关三块都是四条边全带，分不出记号指向哪一边；&quot;
+        &quot;本条主张『上边中点的记号指上邻居』，第 5 关每一次点击都在考它 —— 若记号其实指相反方向，&quot;
+        &quot;这一条当场判 FALSE。这是有意留的判据，不是疏漏。&quot;
+        &quot;已实测：联动按**物理相邻**算，不管邻居属不属于任何网格（tid 4f9ef6ccd97f6f5f 里有一块&quot;
+        &quot;不属于任何网格外环的瓦片照样被牵动 36 格）；联动碰到中心瓦片时那一块一格不动（同一 tid）。&quot;
+        &quot;还没检验过的：被指到的邻居落在画面外、落在空槽（底色=背景色）时会怎样 —— 那两种走 NA。&quot;
+        &quot;也还没检验过联动是否只走一步（记号会不会沿着链条传下去）：第 5 关全屏都带上边记号，&quot;
+        &quot;若是链式传递，一次点击会改一整列，帧差量级立刻拆穿。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;]
+
+from _lib import (PITCH, TILE, base_at, base_cells, centers, click_xy, grid_ring_tile,
+                  marks_at, next_color, palette_seq, tile_read, tile_box)
+
+
+def _split(prev, action, ctx=None):
+    &quot;&quot;&quot;({(top,left): 新底色}, [一格不动的中心瓦片框])；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    base, marks = tile_read(prev, t, l)
+    if base is None or not marks:
+        return None
+    pal = palette_seq(prev)
+    if pal is None:
+        return None
+    cset = set(centers(prev))
+    move, frozen = {}, []
+    for dr, dc in sorted(marks):
+        box = (t + dr * PITCH, l + dc * PITCH)
+        if box in cset:
+            frozen.append(box)
+            continue
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        move[box] = want
+    return move, frozen
+
+
+def assert_(prev, action, nxt, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return &quot;NA&quot;
+    move, frozen = sp
+    for box, w in move.items():
+        if base_at(nxt, *box) != w:
+            return &quot;FALSE&quot;
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                if prev[t + dr][l + dc] != nxt[t + dr][l + dc]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return None
+    move, frozen = sp
+    out = {}
+    for box, w in move.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                out[(t + dr, l + dc)] = prev[t + dr][l + dc]
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T02:16:54 · L1</span><div>点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。</div><div>接替 plus_tile_cycles_neighbours（v2 撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部可涂瓦片只带上边一条。所以旧那条是「四条边都带」的特例，不是规律本身。v1 写下时方向语义还没被检验过（第 4 关三块都是四条边全带，分不出记号指哪边），v1 就把『上边的记号指上邻居』写成了会判错的话；6e1d... 之前的 f3cafc0883ae34a4 兑现了它：点 top30 left28，帧差 64 = 自己 32 + <b>上</b>邻居 32，下邻居一格不动，也没有链式传递。v2 补上「记号指向虚空」那一类，也是实测来的，不是推的：6e1d2bfeccd3d6a0 的记号指向空槽（整块背景色）、600415924f90231d 的记号指向画面外，两步帧差都是 33 = 自己 32 + 计数条 1，那个方向什么都没发生，背景也没长出瓦片。加上早先 4f9ef6ccd97f6f5f 测到的『指向中心瓦片时那一块一格不动』，「指不到可涂瓦片就无效」这三种情形现在都有 tid。同一 tid 还测到：联动按<b>物理相邻</b>算，不管邻居属不属于任何网格（那一步有一块不属于任何网格外环的瓦片照样被牵动 36 格）。还没检验过的：记号指向一块底色读得出、却不在调色板里的瓦片 —— 走 NA。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点那块的底色与记号读不出来、一个记号都没有、&quot;
+         &quot;调色板读不出来，返回 NA；&quot;
+         &quot;记号指到的邻居里只要有一块**底色读不出来、或读得出却不在调色板里**（压在图例上、&quot;
+         &quot;压在方框线上、没见过的花纹）就返回 NA —— 那种局面这条概念没被检验过。&quot;
+         &quot;**不管**没被记号指到的邻居会怎样（那归 nothing_else_changes），也不管被点那一块自己&quot;
+         &quot;（那归 click_cycles_palette）。&quot;)
+NOTE = (&quot;接替 plus_tile_cycles_neighbours（v2 撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。&quot;
+        &quot;『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：&quot;
+        &quot;每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；&quot;
+        &quot;带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；&quot;
+        &quot;第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部可涂瓦片只带上边一条。&quot;
+        &quot;所以旧那条是「四条边都带」的特例，不是规律本身。&quot;
+        &quot;v1 写下时方向语义还没被检验过（第 4 关三块都是四条边全带，分不出记号指哪边），&quot;
+        &quot;v1 就把『上边的记号指上邻居』写成了会判错的话；6e1d... 之前的 f3cafc0883ae34a4 兑现了它：&quot;
+        &quot;点 top30 left28，帧差 64 = 自己 32 + **上**邻居 32，下邻居一格不动，也没有链式传递。&quot;
+        &quot;v2 补上「记号指向虚空」那一类，也是实测来的，不是推的：&quot;
+        &quot;6e1d2bfeccd3d6a0 的记号指向空槽（整块背景色）、600415924f90231d 的记号指向画面外，&quot;
+        &quot;两步帧差都是 33 = 自己 32 + 计数条 1，那个方向什么都没发生，背景也没长出瓦片。&quot;
+        &quot;加上早先 4f9ef6ccd97f6f5f 测到的『指向中心瓦片时那一块一格不动』，&quot;
+        &quot;「指不到可涂瓦片就无效」这三种情形现在都有 tid。&quot;
+        &quot;同一 tid 还测到：联动按**物理相邻**算，不管邻居属不属于任何网格（那一步有一块&quot;
+        &quot;不属于任何网格外环的瓦片照样被牵动 36 格）。&quot;
+        &quot;还没检验过的：记号指向一块底色读得出、却不在调色板里的瓦片 —— 走 NA。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;, &quot;f3cafc0883ae34a4&quot;,
+            &quot;6e1d2bfeccd3d6a0&quot;, &quot;600415924f90231d&quot;]
+
+from _lib import (TILE, base_at, base_cells, centers, click_xy, grid_ring_tile,
+                  link_boxes, next_color, palette_seq, tile_read, tile_box)
+
+
+def _split(prev, action, ctx=None):
+    &quot;&quot;&quot;({(top,left): 新底色}, [该一格不动的框])；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    base, marks = tile_read(prev, t, l)
+    if base is None or not marks:
+        return None
+    pal = palette_seq(prev)
+    if pal is None:
+        return None
+    lb = link_boxes(prev, t, l, marks, set(centers(prev)))
+    if lb is None:
+        return None
+    boxes, frozen = lb
+    move = {}
+    for box in boxes:
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        move[box] = want
+    return move, frozen
+
+
+def assert_(prev, action, nxt, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return &quot;NA&quot;
+    move, frozen = sp
+    for box, w in move.items():
+        if base_at(nxt, *box) != w:
+            return &quot;FALSE&quot;
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                if prev[t + dr][l + dc] != nxt[t + dr][l + dc]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return None
+    move, frozen = sp
+    out = {}
+    for box, w in move.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                out[(t + dr, l + dc)] = prev[t + dr][l + dc]
+    return out
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T02:28:03 · L1</span><div>点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。</div><div>v3：换关免责补上帧上的那一半（levelup_imminent）。原来只认 ctx，那在押注时是空条款——押注时这一步还没走，ctx 里关卡号必然相等，概念会对换关那一下照常出预测，而换关整屏重画。旧语料上应是空改动（ctx 那一半已盖住同一批步），验收判据就是 C/N 与 E 一格不变。v2 接替 plus_tile_cycles_neighbours（撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部可涂瓦片只带上边一条。所以旧那条是「四条边都带」的特例，不是规律本身。v1 写下时方向语义还没被检验过（第 4 关三块都是四条边全带，分不出记号指哪边），v1 就把『上边的记号指上邻居』写成了会判错的话；6e1d... 之前的 f3cafc0883ae34a4 兑现了它：点 top30 left28，帧差 64 = 自己 32 + <b>上</b>邻居 32，下邻居一格不动，也没有链式传递。v2 补上「记号指向虚空」那一类，也是实测来的，不是推的：6e1d2bfeccd3d6a0 的记号指向空槽（整块背景色）、600415924f90231d 的记号指向画面外，两步帧差都是 33 = 自己 32 + 计数条 1，那个方向什么都没发生，背景也没长出瓦片。加上早先 4f9ef6ccd97f6f5f 测到的『指向中心瓦片时那一块一格不动』，「指不到可涂瓦片就无效」这三种情形现在都有 tid。同一 tid 还测到：联动按<b>物理相邻</b>算，不管邻居属不属于任何网格（那一步有一块不属于任何网格外环的瓦片照样被牵动 36 格）。还没检验过的：记号指向一块底色读得出、却不在调色板里的瓦片 —— 走 NA。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关那一步返回 NA，两种认法都用：&quot;
+         &quot;ctx 里 level_prev != level_next（结算时）、levelup_imminent(prev, action) 为真（押注时）；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点那块的底色与记号读不出来、一个记号都没有、&quot;
+         &quot;调色板读不出来，返回 NA；&quot;
+         &quot;记号指到的邻居里只要有一块**底色读不出来、或读得出却不在调色板里**（压在图例上、&quot;
+         &quot;压在方框线上、没见过的花纹）就返回 NA —— 那种局面这条概念没被检验过。&quot;
+         &quot;**不管**没被记号指到的邻居会怎样（那归 nothing_else_changes），也不管被点那一块自己&quot;
+         &quot;（那归 click_cycles_palette）。&quot;)
+NOTE = (&quot;v3：换关免责补上帧上的那一半（levelup_imminent）。原来只认 ctx，那在押注时是空条款——&quot;
+        &quot;押注时这一步还没走，ctx 里关卡号必然相等，概念会对换关那一下照常出预测，而换关整屏重画。&quot;
+        &quot;旧语料上应是空改动（ctx 那一半已盖住同一批步），验收判据就是 C/N 与 E 一格不变。&quot;
+        &quot;v2 接替 plus_tile_cycles_neighbours（撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。&quot;
+        &quot;『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：&quot;
+        &quot;每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；&quot;
+        &quot;带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；&quot;
+        &quot;第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部可涂瓦片只带上边一条。&quot;
+        &quot;所以旧那条是「四条边都带」的特例，不是规律本身。&quot;
+        &quot;v1 写下时方向语义还没被检验过（第 4 关三块都是四条边全带，分不出记号指哪边），&quot;
+        &quot;v1 就把『上边的记号指上邻居』写成了会判错的话；6e1d... 之前的 f3cafc0883ae34a4 兑现了它：&quot;
+        &quot;点 top30 left28，帧差 64 = 自己 32 + **上**邻居 32，下邻居一格不动，也没有链式传递。&quot;
+        &quot;v2 补上「记号指向虚空」那一类，也是实测来的，不是推的：&quot;
+        &quot;6e1d2bfeccd3d6a0 的记号指向空槽（整块背景色）、600415924f90231d 的记号指向画面外，&quot;
+        &quot;两步帧差都是 33 = 自己 32 + 计数条 1，那个方向什么都没发生，背景也没长出瓦片。&quot;
+        &quot;加上早先 4f9ef6ccd97f6f5f 测到的『指向中心瓦片时那一块一格不动』，&quot;
+        &quot;「指不到可涂瓦片就无效」这三种情形现在都有 tid。&quot;
+        &quot;同一 tid 还测到：联动按**物理相邻**算，不管邻居属不属于任何网格（那一步有一块&quot;
+        &quot;不属于任何网格外环的瓦片照样被牵动 36 格）。&quot;
+        &quot;还没检验过的：记号指向一块底色读得出、却不在调色板里的瓦片 —— 走 NA。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;, &quot;f3cafc0883ae34a4&quot;,
+            &quot;6e1d2bfeccd3d6a0&quot;, &quot;600415924f90231d&quot;]
+
+from _lib import (TILE, base_at, base_cells, centers, click_xy, grid_ring_tile, levelup_imminent,
+                  link_boxes, next_color, palette_seq, tile_read, tile_box)
+
+
+def _split(prev, action, ctx=None):
+    &quot;&quot;&quot;({(top,left): 新底色}, [该一格不动的框])；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    if levelup_imminent(prev, action) is True:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    base, marks = tile_read(prev, t, l)
+    if base is None or not marks:
+        return None
+    pal = palette_seq(prev)
+    if pal is None:
+        return None
+    lb = link_boxes(prev, t, l, marks, set(centers(prev)))
+    if lb is None:
+        return None
+    boxes, frozen = lb
+    move = {}
+    for box in boxes:
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        move[box] = want
+    return move, frozen
+
+
+def assert_(prev, action, nxt, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return &quot;NA&quot;
+    move, frozen = sp
+    for box, w in move.items():
+        if base_at(nxt, *box) != w:
+            return &quot;FALSE&quot;
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                if prev[t + dr][l + dc] != nxt[t + dr][l + dc]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return None
+    move, frozen = sp
+    out = {}
+    for box, w in move.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                out[(t + dr, l + dc)] = prev[t + dr][l + dc]
+    return out
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在一块带记号的瓦片上时，它每个记号位指向的那块邻居瓦片的底色也前进一位（上边中点的记号指上邻居，依此类推）；记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关那一步返回 NA，两种认法都用：&quot;
+         &quot;ctx 里 level_prev != level_next（结算时）、levelup_imminent(prev, action) 为真（押注时）；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点那块的底色与记号读不出来、一个记号都没有、&quot;
+         &quot;调色板读不出来，返回 NA；&quot;
+         &quot;记号指到的邻居里只要有一块**底色读不出来、或读得出却不在调色板里**（压在图例上、&quot;
+         &quot;压在方框线上、没见过的花纹）就返回 NA —— 那种局面这条概念没被检验过。&quot;
+         &quot;**不管**没被记号指到的邻居会怎样（那归 nothing_else_changes），也不管被点那一块自己&quot;
+         &quot;（那归 click_cycles_palette）。&quot;)
+NOTE = (&quot;v3：换关免责补上帧上的那一半（levelup_imminent）。原来只认 ctx，那在押注时是空条款——&quot;
+        &quot;押注时这一步还没走，ctx 里关卡号必然相等，概念会对换关那一下照常出预测，而换关整屏重画。&quot;
+        &quot;旧语料上应是空改动（ctx 那一半已盖住同一批步），验收判据就是 C/N 与 E 一格不变。&quot;
+        &quot;v2 接替 plus_tile_cycles_neighbours（撤册）：那一条说的是「加号瓦片牵动四个正交邻居」。&quot;
+        &quot;『加号瓦片』这个名字本身就是错的抽象。全五关机械核对（runs/.../marks.py）后的形态是：&quot;
+        &quot;每块瓦片读成 3x3 小格，四角与正中承载底色，四条边的中点是记号位，取值只能是底色或 MARK；&quot;
+        &quot;带 MARK 的边有几条就联动几个方向。第 0~3 关一条记号都没有（所以点击只改自己）；&quot;
+        &quot;第 4 关只有 3 块瓦片四条边全带（当时管它们叫「加号」）；第 5 关全部可涂瓦片只带上边一条。&quot;
+        &quot;所以旧那条是「四条边都带」的特例，不是规律本身。&quot;
+        &quot;v1 写下时方向语义还没被检验过（第 4 关三块都是四条边全带，分不出记号指哪边），&quot;
+        &quot;v1 就把『上边的记号指上邻居』写成了会判错的话；6e1d... 之前的 f3cafc0883ae34a4 兑现了它：&quot;
+        &quot;点 top30 left28，帧差 64 = 自己 32 + **上**邻居 32，下邻居一格不动，也没有链式传递。&quot;
+        &quot;v2 补上「记号指向虚空」那一类，也是实测来的，不是推的：&quot;
+        &quot;6e1d2bfeccd3d6a0 的记号指向空槽（整块背景色）、600415924f90231d 的记号指向画面外，&quot;
+        &quot;两步帧差都是 33 = 自己 32 + 计数条 1，那个方向什么都没发生，背景也没长出瓦片。&quot;
+        &quot;加上早先 4f9ef6ccd97f6f5f 测到的『指向中心瓦片时那一块一格不动』，&quot;
+        &quot;「指不到可涂瓦片就无效」这三种情形现在都有 tid。&quot;
+        &quot;同一 tid 还测到：联动按**物理相邻**算，不管邻居属不属于任何网格（那一步有一块&quot;
+        &quot;不属于任何网格外环的瓦片照样被牵动 36 格）。&quot;
+        &quot;还没检验过的：记号指向一块底色读得出、却不在调色板里的瓦片 —— 走 NA。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;, &quot;f3cafc0883ae34a4&quot;,
+            &quot;6e1d2bfeccd3d6a0&quot;, &quot;600415924f90231d&quot;]
+
+from _lib import (TILE, base_at, base_cells, centers, click_xy, grid_ring_tile, levelup_imminent,
+                  link_boxes, next_color, palette_seq, tile_read, tile_box)
+
+
+def _split(prev, action, ctx=None):
+    &quot;&quot;&quot;({(top,left): 新底色}, [该一格不动的框])；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    if levelup_imminent(prev, action) is True:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    base, marks = tile_read(prev, t, l)
+    if base is None or not marks:
+        return None
+    pal = palette_seq(prev)
+    if pal is None:
+        return None
+    lb = link_boxes(prev, t, l, marks, set(centers(prev)))
+    if lb is None:
+        return None
+    boxes, frozen = lb
+    move = {}
+    for box in boxes:
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        move[box] = want
+    return move, frozen
+
+
+def assert_(prev, action, nxt, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return &quot;NA&quot;
+    move, frozen = sp
+    for box, w in move.items():
+        if base_at(nxt, *box) != w:
+            return &quot;FALSE&quot;
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                if prev[t + dr][l + dc] != nxt[t + dr][l + dc]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return None
+    move, frozen = sp
+    out = {}
+    for box, w in move.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                out[(t + dr, l + dc)] = prev[t + dr][l + dc]
+    return out
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">matched_grid_is_locked</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-dead">撤册</span><span class="chip c-mute">3 版</span></div><div class="one">配齐的网格就锁住不再变</div></summary><div class="body"><div class="doc">外环已经等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:05:35 · L5</span><div>外环已经等于「中心图样按 色2→色9、色0→色8 映射」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。</div><div>接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。换名字是因为主张换了，不该顶着旧名字继续攒分。映射本身站得住：第 0 关三个示范网格逐格吻合（runs/&lt;run&gt;/probe_grids.py 的输出），而『凑齐 = 换关条件』由 no_levelup_before_ring_matches 与 ring_matched_levels_up 承担。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;外环已经等于「中心图样按 色2→色9、色0→色8 映射」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作；换关（level_prev != level_next）返回 NA —— 换关后 nxt 是新一关的画面；&quot;
+         &quot;prev 里一个『已凑齐』的网格都没有返回 NA；&quot;
+         &quot;某个网格的中心图样里有 MAP 之外的颜色（正中间那格不算）时，那个网格跳过&quot;)
+NOTE = (&quot;接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——&quot;
+        &quot;那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，&quot;
+        &quot;照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。&quot;
+        &quot;换名字是因为主张换了，不该顶着旧名字继续攒分。&quot;
+        &quot;映射本身站得住：第 0 关三个示范网格逐格吻合（runs/&lt;run&gt;/probe_grids.py 的输出），&quot;
+        &quot;而『凑齐 = 换关条件』由 no_levelup_before_ring_matches 与 ring_matched_levels_up 承担。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import center_pattern, ring_and_wanted, ring_colors, tile_grids
+
+MAP = {2: 9, 0: 8}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in tile_grids(prev):
+        st = ring_and_wanted(prev, MAP, origin=o)
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            continue
+        if ring_colors(nxt, o) != ring or center_pattern(nxt, o) != center_pattern(prev, o):
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:10:35 · L5</span><div>外环已经等于「中心图样按 色2→色9、色0→中心正中那格的颜色 映射」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。</div><div>接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。v2：点亮色改成从画面上读（该网格中心正中那格的颜色），第 0 关色8、第 1 关色12。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;外环已经等于「中心图样按 色2→色9、色0→中心正中那格的颜色 映射」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作；换关（level_prev != level_next）返回 NA —— 换关后 nxt 是新一关的画面；&quot;
+         &quot;prev 里一个『已凑齐』的网格都没有返回 NA；&quot;
+         &quot;某个网格读不出中心正中色、或中心图样里有 PAT 之外的图样色时，那个网格跳过&quot;)
+NOTE = (&quot;接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——&quot;
+        &quot;那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，&quot;
+        &quot;照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。&quot;
+        &quot;v2：点亮色改成从画面上读（该网格中心正中那格的颜色），第 0 关色8、第 1 关色12。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import center_mid_color, center_pattern, ring_and_wanted, ring_colors, tile_grids
+
+OFF = 9
+PAT_OFF = 2
+PAT_ON = 0
+
+
+def map_of(g, origin):
+    on = center_mid_color(g, origin)
+    if on is None or on == OFF:
+        return None
+    return {PAT_OFF: OFF, PAT_ON: on}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in tile_grids(prev):
+        st = ring_and_wanted(prev, o, map_of(prev, o))
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            continue
+        if ring_colors(nxt, o) != ring or center_pattern(nxt, o) != center_pattern(prev, o):
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T01:15:28 · L5</span><div>外环已经等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。</div><div>v3：熄灭色从写死的色9 改成本关清点出来的另一个外环色（第 2 关是色8）。v2 点亮色改成从画面上读。接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;外环已经等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作；换关（level_prev != level_next）返回 NA —— 换关后 nxt 是新一关的画面；&quot;
+         &quot;prev 里一个『已凑齐』的网格都没有返回 NA；&quot;
+         &quot;全图两色清点不出来、某个网格的中心正中色不在这两色里、&quot;
+         &quot;或中心图样里有 PAT 之外的图样色时，那个网格跳过&quot;)
+NOTE = (&quot;v3：熄灭色从写死的色9 改成本关清点出来的另一个外环色（第 2 关是色8）。&quot;
+        &quot;v2 点亮色改成从画面上读。&quot;
+        &quot;接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——&quot;
+        &quot;那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，&quot;
+        &quot;照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import (center_mid_color, center_pattern, grid_palette_colors,
+                  ring_and_wanted, ring_colors, tile_grids)
+
+PAT_ON = 0
+PAT_OFF = 2
+
+
+def map_of(g, origin):
+    cs = grid_palette_colors(g)
+    on = center_mid_color(g, origin)
+    if cs is None or len(cs) != 2 or on not in cs:
+        return None
+    off = cs[0] if cs[1] == on else cs[1]
+    return {PAT_ON: on, PAT_OFF: off}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in tile_grids(prev):
+        st = ring_and_wanted(prev, o, map_of(prev, o))
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            continue
+        if ring_colors(nxt, o) != ring or center_pattern(nxt, o) != center_pattern(prev, o):
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;外环已经等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」的网格，这一步之后外环与中心图样一格不变（凑齐即锁定）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作；换关（level_prev != level_next）返回 NA —— 换关后 nxt 是新一关的画面；&quot;
+         &quot;prev 里一个『已凑齐』的网格都没有返回 NA；&quot;
+         &quot;全图两色清点不出来、某个网格的中心正中色不在这两色里、&quot;
+         &quot;或中心图样里有 PAT 之外的图样色时，那个网格跳过&quot;)
+NOTE = (&quot;v3：熄灭色从写死的色9 改成本关清点出来的另一个外环色（第 2 关是色8）。&quot;
+        &quot;v2 点亮色改成从画面上读。&quot;
+        &quot;接替 examples_obey_map（v2 撤册）：那一条说的是『没被色4 方框圈住的网格恒满足映射』——&quot;
+        &quot;那其实是第 0 关三个示范网格的样子，不是一条规律：第 1 关没有方框、两个网格都还没凑齐，&quot;
+        &quot;照那个写法会整关判 FALSE。这里留下真正可迁移的那一半：凑齐了就不再动。&quot;)
+EVIDENCE = [&quot;61cd5dd603db2df4&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import (center_mid_color, center_pattern, grid_palette_colors,
+                  ring_and_wanted, ring_colors, tile_grids)
+
+PAT_ON = 0
+PAT_OFF = 2
+
+
+def map_of(g, origin):
+    cs = grid_palette_colors(g)
+    on = center_mid_color(g, origin)
+    if cs is None or len(cs) != 2 or on not in cs:
+        return None
+    off = cs[0] if cs[1] == on else cs[1]
+    return {PAT_ON: on, PAT_OFF: off}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    verdict = &quot;NA&quot;
+    for o in tile_grids(prev):
+        st = ring_and_wanted(prev, o, map_of(prev, o))
+        if st is None:
+            continue
+        ring, want = st
+        if ring != want:
+            continue
+        if ring_colors(nxt, o) != ring or center_pattern(nxt, o) != center_pattern(prev, o):
+            return &quot;FALSE&quot;
+        verdict = &quot;TRUE&quot;
+    return verdict
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">no_levelup_before_ring_matches</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">6 版</span></div><div class="one">网格没配齐，就绝不会过关</div></summary><div class="body"><div class="doc">把这一步点中的外环瓦片换到下一个色之后，只要还有任何一个 3x3 网格的外环没到齐目标色，这一步就不换关。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T00:54:41 · L5</span><div>活动网格外环还不等于「中心 3x3 图样按 色2→色9、色0→色8 映射」时，绝不换关。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;活动网格外环还不等于「中心 3x3 图样按 色2→色9、色0→色8 映射」时，绝不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作；没有 ctx（拿不到关卡号）返回 NA；活动网格定位不到返回 NA；&quot;
+         &quot;中心图样或外环读不出单色返回 NA；中心图样里出现 MAP 之外的颜色（正中间那格不算）返回 NA；&quot;
+         &quot;prev 里外环已经等于映射时返回 NA —— 那一半交给 ring_matched_levels_up&quot;)
+NOTE = &quot;&quot;
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;14d7ee51ea8d0329&quot;]
+
+from _lib import ring_and_wanted
+
+MAP = {2: 9, 0: 8}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    st = ring_and_wanted(prev, MAP)
+    if st is None:
+        return &quot;NA&quot;
+    ring, want = st
+    if ring == want:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:01:39 · L5</span><div>把这一步点中的瓦片按 色9↔色8 翻转之后，活动网格外环仍不等于「中心图样按 色2→色9、色0→色8 映射」时，绝不换关。</div><div>v2：v1 死于 6ad68317227cf68f（ACTION6:38,54）—— 它只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步，prev 当然还没凑齐。修法是把这一下点击的效果先算进去再判，主张从『prev 没凑齐就不换关』改成『这一步之后仍没凑齐就不换关』。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的瓦片按 色9↔色8 翻转之后，活动网格外环仍不等于「中心图样按 色2→色9、色0→色8 映射」时，绝不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx（拿不到关卡号）返回 NA；&quot;
+         &quot;prev 的活动网格 / 中心图样 / 外环读不出来返回 NA；&quot;
+         &quot;中心图样里出现 MAP 之外的颜色（正中间那格不算）返回 NA；&quot;
+         &quot;点中的是中心瓦片 (1,1) 返回 NA（点中心会发生什么还没量过）；&quot;
+         &quot;被点瓦片的颜色不在 FLIP 里返回 NA；&quot;
+         &quot;翻转后外环已经等于映射时返回 NA —— 那一半交给 ring_matched_levels_up。&quot;
+         &quot;点击落在瓦片之间的缝里 / 网格之外时，按『外环不变』算，照常判。&quot;)
+NOTE = (&quot;v2：v1 死于 6ad68317227cf68f（ACTION6:38,54）—— 它只看 prev 的外环，&quot;
+        &quot;而凑齐外环的那一下点击本身就是换关的那一步，prev 当然还没凑齐。&quot;
+        &quot;修法是把这一下点击的效果先算进去再判，主张从『prev 没凑齐就不换关』&quot;
+        &quot;改成『这一步之后仍没凑齐就不换关』。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import active_origin, click_xy, ring_and_wanted, ring_colors, tile_of_click
+
+MAP = {2: 9, 0: 8}
+FLIP = {9: 8, 8: 9}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return &quot;NA&quot;
+    origin = active_origin(prev)
+    st = ring_and_wanted(prev, MAP, origin=origin)
+    if origin is None or st is None:
+        return &quot;NA&quot;
+    ring, want = st
+    ij = tile_of_click(origin, xy[0], xy[1])
+    if ij == (1, 1):
+        return &quot;NA&quot;
+    after = dict(ring)
+    if ij is not None:
+        cur = ring[ij]
+        if cur not in FLIP:
+            return &quot;NA&quot;
+        after[ij] = FLIP[cur]
+    if after == want:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T01:05:35 · L5</span><div>把这一步点中的外环瓦片按 色9↔色8 翻转之后，只要还有任何一个 3x3 网格的外环不等于「中心图样按 色2→色9、色0→色8 映射」，这一步就不换关。</div><div>v3：v2 只认『色4 方框圈出来的那一个网格』，第 1 关没有方框、而且有两个网格要同时凑齐，v2 在那里会整关静默。改成对 tile_grids 扫出来的每一个网格都要求凑齐。v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片按 色9↔色8 翻转之后，只要还有任何一个 3x3 网格的外环不等于「中心图样按 色2→色9、色0→色8 映射」，这一步就不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx（拿不到关卡号）返回 NA；&quot;
+         &quot;一个网格都扫不出来返回 NA；任何一个网格的中心图样里有 MAP 之外的颜色（正中间那格不算）返回 NA；&quot;
+         &quot;被点瓦片的颜色不在 FLIP 里返回 NA；&quot;
+         &quot;翻转后所有网格都已等于映射时返回 NA —— 那一半交给 ring_matched_levels_up。&quot;
+         &quot;点击落在瓦片之间的缝里 / 网格之外 / 中心瓦片上时，按『外环不变』算，照常判。&quot;)
+NOTE = (&quot;v3：v2 只认『色4 方框圈出来的那一个网格』，第 1 关没有方框、而且有两个网格要同时凑齐，&quot;
+        &quot;v2 在那里会整关静默。改成对 tile_grids 扫出来的每一个网格都要求凑齐。&quot;
+        &quot;v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6ad68317227cf68f&quot;]
+
+from _lib import all_matched_after_click, click_xy
+
+MAP = {2: 9, 0: 8}
+FLIP = {9: 8, 8: 9}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, MAP, FLIP)
+    if ok is None or ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-07T01:10:35 · L5</span><div>把这一步点中的外环瓦片翻转之后，只要还有任何一个 3x3 网格的外环不等于「中心图样按 色2→色9、色0→中心正中那格的颜色 映射」，这一步就不换关。</div><div>v4：跟 click_toggles_tile 一起把『点亮色 = 色8』换成『= 该网格中心正中那格的颜色』（第 1 关是色12）。v3 把两个映射色都写死，会在第 1 关整关判不出目标。v2 只认色4 方框圈住的那一个网格（第 1 关没有方框、且有两个网格要同时凑齐）。v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片翻转之后，只要还有任何一个 3x3 网格的外环不等于「中心图样按 色2→色9、色0→中心正中那格的颜色 映射」，这一步就不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx（拿不到关卡号）返回 NA；&quot;
+         &quot;一个网格都扫不出来返回 NA；任何一个网格读不出中心正中色、&quot;
+         &quot;或中心图样里有 PAT 之外的图样色（正中间那格不算）返回 NA；&quot;
+         &quot;被点瓦片的颜色既不是 OFF 也不是 ON 返回 NA；&quot;
+         &quot;翻转后所有网格都已凑齐时返回 NA —— 那一半交给 ring_matched_levels_up。&quot;
+         &quot;点击落在瓦片之间的缝里 / 网格之外 / 中心瓦片上时，按『外环不变』算，照常判。&quot;)
+NOTE = (&quot;v4：跟 click_toggles_tile 一起把『点亮色 = 色8』换成『= 该网格中心正中那格的颜色』&quot;
+        &quot;（第 1 关是色12）。v3 把两个映射色都写死，会在第 1 关整关判不出目标。&quot;
+        &quot;v2 只认色4 方框圈住的那一个网格（第 1 关没有方框、且有两个网格要同时凑齐）。&quot;
+        &quot;v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6ad68317227cf68f&quot;, &quot;6f06e09e88984ff9&quot;]
+
+from _lib import all_matched_after_click, center_mid_color, click_xy
+
+OFF = 9
+PAT_OFF = 2        # 中心图样里代表「该位置外环应为 OFF」的图样色
+PAT_ON = 0         # 中心图样里代表「该位置外环应为 ON」的图样色
+
+
+def map_of(g, origin):
+    on = center_mid_color(g, origin)
+    if on is None or on == OFF:
+        return None
+    return {PAT_OFF: OFF, PAT_ON: on}
+
+
+def flip_of(g, origin):
+    on = center_mid_color(g, origin)
+    if on is None or on == OFF:
+        return None
+    return {OFF: on, on: OFF}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, map_of, flip_of)
+    if ok is None or ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-07T01:15:28 · L5</span><div>把这一步点中的外环瓦片翻转之后，只要还有任何一个 3x3 网格的外环不等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」，这一步就不换关。</div><div>v5：熄灭色不再写死成色9。第 2 关外环全是色8，同一关里有的网格中心正中是 8、有的是 12，谁点亮谁熄灭是相对每个网格说的；改成清点全图两色，另一色即该网格的『色2 色』。v4 把点亮色改成从中心正中那格读（第 1 关色12），v3 把两个映射色都写死。v2 只认色4 方框圈住的那一个网格（第 1 关没有方框、且有两个网格要同时凑齐）。v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片翻转之后，只要还有任何一个 3x3 网格的外环不等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」，这一步就不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx（拿不到关卡号）返回 NA；&quot;
+         &quot;一个网格都扫不出来返回 NA；全图网格的外环色 ∪ 中心正中色不是恰好两个返回 NA；&quot;
+         &quot;任何一个网格的中心正中色不在这两色里、或中心图样里有 PAT 之外的图样色（正中间那格不算）返回 NA；&quot;
+         &quot;被点瓦片的颜色不在这两色里返回 NA；&quot;
+         &quot;翻转后所有网格都已凑齐时返回 NA —— 那一半交给 ring_matched_levels_up。&quot;
+         &quot;点击落在瓦片之间的缝里 / 网格之外 / 中心瓦片上时，按『外环不变』算，照常判。&quot;)
+NOTE = (&quot;v5：熄灭色不再写死成色9。第 2 关外环全是色8，同一关里有的网格中心正中是 8、有的是 12，&quot;
+        &quot;谁点亮谁熄灭是相对每个网格说的；改成清点全图两色，另一色即该网格的『色2 色』。&quot;
+        &quot;v4 把点亮色改成从中心正中那格读（第 1 关色12），v3 把两个映射色都写死。&quot;
+        &quot;v2 只认色4 方框圈住的那一个网格（第 1 关没有方框、且有两个网格要同时凑齐）。&quot;
+        &quot;v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6ad68317227cf68f&quot;, &quot;6f06e09e88984ff9&quot;, &quot;c2484e5c3063e99d&quot;]
+
+from _lib import all_matched_after_click, center_mid_color, click_xy, grid_palette_colors
+
+PAT_ON = 0         # 中心图样里代表「该位置外环应为中心正中那格的颜色」的图样色
+PAT_OFF = 2        # 中心图样里代表「该位置外环应为本关另一个外环色」的图样色
+
+
+def _two(g, origin):
+    cs = grid_palette_colors(g)
+    on = center_mid_color(g, origin)
+    if cs is None or len(cs) != 2 or on not in cs:
+        return None
+    return on, (cs[0] if cs[1] == on else cs[1])
+
+
+def map_of(g, origin):
+    p = _two(g, origin)
+    return None if p is None else {PAT_ON: p[0], PAT_OFF: p[1]}
+
+
+def flip_of(g, origin):
+    p = _two(g, origin)
+    return None if p is None else {p[0]: p[1], p[1]: p[0]}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, map_of, flip_of)
+    if ok is None or ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v6 · 2026-09-07T01:33:14 · L5</span><div>把这一步点中的外环瓦片换到下一个色之后，只要还有任何一个 3x3 网格的外环没到齐目标色，这一步就不换关。</div><div>v6：目标色不再是『两色里的另一个』。第 3 关调色板三色，『图样色2 该显示哪个色』本身不唯一，靠共用瓦片必须一致这条约束锁死（这一关锁出色8）。点击也从二元互换改成沿调色板循环前进（v5 的 flip_of 死于 6db074a25f82b9f4）。v5 熄灭色从写死的色9 改成清点出来的另一色；v4 点亮色改成从中心正中那格读；v3 两个映射色都写死；v2 只认色4 方框圈住的那一个网格；v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。</div><details class="src"><summary>v6 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片换到下一个色之后，只要还有任何一个 3x3 网格的外环没到齐目标色，这一步就不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx（拿不到关卡号）返回 NA；&quot;
+         &quot;一个网格都扫不出来、调色板读不出来、中心图样里有 PAT 之外的图样色、&quot;
+         &quot;某网格的正中色不在调色板里，返回 NA；&quot;
+         &quot;调色板多于两色而共用瓦片又锁不死目标（解不唯一）返回 NA；&quot;
+         &quot;被点瓦片的颜色不在调色板里返回 NA；&quot;
+         &quot;换到下一个色之后所有网格都已到齐时返回 NA —— 那一半交给 ring_matched_levels_up。&quot;
+         &quot;点击落在瓦片之间的缝里 / 网格之外 / 中心瓦片上时，按『外环不变』算，照常判。&quot;)
+NOTE = (&quot;v6：目标色不再是『两色里的另一个』。第 3 关调色板三色，&quot;
+        &quot;『图样色2 该显示哪个色』本身不唯一，靠共用瓦片必须一致这条约束锁死（这一关锁出色8）。&quot;
+        &quot;点击也从二元互换改成沿调色板循环前进（v5 的 flip_of 死于 6db074a25f82b9f4）。&quot;
+        &quot;v5 熄灭色从写死的色9 改成清点出来的另一色；v4 点亮色改成从中心正中那格读；&quot;
+        &quot;v3 两个映射色都写死；v2 只认色4 方框圈住的那一个网格；&quot;
+        &quot;v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6ad68317227cf68f&quot;, &quot;6f06e09e88984ff9&quot;, &quot;c2484e5c3063e99d&quot;, &quot;6db074a25f82b9f4&quot;]
+
+from _lib import all_matched_after_click, click_xy
+
+PAT_ON = 0         # 中心图样里代表「该位置外环应为中心正中那格的颜色」的图样色
+PAT_OFF = 2        # 中心图样里代表「该位置外环应为调色板里别的某一个色」的图样色
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, PAT_ON, PAT_OFF)
+    if ok is None or ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片换到下一个色之后，只要还有任何一个 3x3 网格的外环没到齐目标色，这一步就不换关。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx（拿不到关卡号）返回 NA；&quot;
+         &quot;一个网格都扫不出来、调色板读不出来、中心图样里有 PAT 之外的图样色、&quot;
+         &quot;某网格的正中色不在调色板里，返回 NA；&quot;
+         &quot;调色板多于两色而共用瓦片又锁不死目标（解不唯一）返回 NA；&quot;
+         &quot;被点瓦片的颜色不在调色板里返回 NA；&quot;
+         &quot;换到下一个色之后所有网格都已到齐时返回 NA —— 那一半交给 ring_matched_levels_up。&quot;
+         &quot;点击落在瓦片之间的缝里 / 网格之外 / 中心瓦片上时，按『外环不变』算，照常判。&quot;)
+NOTE = (&quot;v6：目标色不再是『两色里的另一个』。第 3 关调色板三色，&quot;
+        &quot;『图样色2 该显示哪个色』本身不唯一，靠共用瓦片必须一致这条约束锁死（这一关锁出色8）。&quot;
+        &quot;点击也从二元互换改成沿调色板循环前进（v5 的 flip_of 死于 6db074a25f82b9f4）。&quot;
+        &quot;v5 熄灭色从写死的色9 改成清点出来的另一色；v4 点亮色改成从中心正中那格读；&quot;
+        &quot;v3 两个映射色都写死；v2 只认色4 方框圈住的那一个网格；&quot;
+        &quot;v1 死于 6ad68317227cf68f：只看 prev 的外环，而凑齐外环的那一下点击本身就是换关的那一步。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;6ad68317227cf68f&quot;, &quot;6f06e09e88984ff9&quot;, &quot;c2484e5c3063e99d&quot;, &quot;6db074a25f82b9f4&quot;]
+
+from _lib import all_matched_after_click, click_xy
+
+PAT_ON = 0         # 中心图样里代表「该位置外环应为中心正中那格的颜色」的图样色
+PAT_OFF = 2        # 中心图样里代表「该位置外环应为调色板里别的某一个色」的图样色
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, PAT_ON, PAT_OFF)
+    if ok is None or ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">nothing_else_changes</span><span class="chip c-lv">L6 · 会自己变的东西</span><span class="chip c-alive">在册</span><span class="chip c-mute">4 版</span></div><div class="one">除了被点和被牵动的瓦片与计数条，画面不变</div></summary><div class="body"><div class="doc">一步之内，画面上变的只有这几处：点中的那块瓦片、它记号指向的那些<b>可涂</b>邻居瓦片、和最后一行。别处一格不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:23:10 · L6</span><div>一步之内，画面上变的只有两处：这一下点中的那个 6x6 外环瓦片、和最后一行。别处一格不动。</div><div>接替 matched_grid_is_locked（v3 撤册）。那一条说『凑齐的网格外环一格不变』，被 b7a2cae509e5177f 打倒：把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。但它想问的那件事——『会不会有我没点的东西自己在动』——是真问题，这里换个问法：整屏除了被点的那一块和最后一行，一格不动。没有联动、没有动画、没有自发变化。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，画面上变的只有两处：这一下点中的那个 6x6 外环瓦片、和最后一行。别处一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA —— 换关后整屏重画；&quot;
+         &quot;点击没落在任何网格的外环瓦片上时，断言收紧为『只有最后一行会变』，照常判&quot;)
+NOTE = (&quot;接替 matched_grid_is_locked（v3 撤册）。那一条说『凑齐的网格外环一格不变』，&quot;
+        &quot;被 b7a2cae509e5177f 打倒：把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。&quot;
+        &quot;但它想问的那件事——『会不会有我没点的东西自己在动』——是真问题，这里换个问法：&quot;
+        &quot;整屏除了被点的那一块和最后一行，一格不动。没有联动、没有动画、没有自发变化。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;b7a2cae509e5177f&quot;]
+
+from _lib import click_xy, grid_ring_tile, tile_cells
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return &quot;NA&quot;
+    allowed = set()
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is not None:
+        allowed = set(tile_cells(hit[0], hit[1], hit[2]))
+    last = len(prev) - 1
+    for r in range(len(prev)):
+        if r == last:
+            continue
+        pr, nr = prev[r], nxt[r]
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in allowed:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:55:14 · L6</span><div>一步之内，画面上变的只有这几处：点中的那块瓦片、（它若是加号瓦片）它的四个正交邻居、和最后一行。别处一格不动。</div><div>v2：加上加号瓦片的四个邻居。v1 死于 690d3d0a7349b356 —— 点一块加号瓦片，帧差 164 格，它自己加上下左右四块一起换了色。v1 那句『变的只有被点的那一块』当场作废。注意这条概念只管<b>影响面</b>，不管变成什么色；变成什么色是 click_cycles_palette 和 plus_tile_cycles_neighbours 的事。所以四个邻居这里按整块 36 格放行，不去校验花纹保留——那样才是一条概念只断言一件事。v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，画面上变的只有这几处：点中的那块瓦片、（它若是加号瓦片）它的四个正交邻居、和最后一行。别处一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA —— 换关后整屏重画；&quot;
+         &quot;点击没落在任何网格的外环位置上时，断言收紧为『只有最后一行会变』，照常判&quot;)
+NOTE = (&quot;v2：加上加号瓦片的四个邻居。v1 死于 690d3d0a7349b356 —— 点一块加号瓦片，帧差 164 格，&quot;
+        &quot;它自己加上下左右四块一起换了色。v1 那句『变的只有被点的那一块』当场作废。&quot;
+        &quot;注意这条概念只管**影响面**，不管变成什么色；变成什么色是 click_cycles_palette &quot;
+        &quot;和 plus_tile_cycles_neighbours 的事。所以四个邻居这里按整块 36 格放行，&quot;
+        &quot;不去校验花纹保留——那样才是一条概念只断言一件事。&quot;
+        &quot;v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，&quot;
+        &quot;被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;b7a2cae509e5177f&quot;, &quot;690d3d0a7349b356&quot;]
+
+from _lib import NEIGH, PITCH, TILE, click_xy, grid_ring_tile, plus_at, tile_box
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return &quot;NA&quot;
+    boxes = []
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is not None:
+        t, l = tile_box(hit[0], hit[1], hit[2])
+        boxes.append((t, l))
+        if plus_at(prev, t, l):
+            boxes += [(t + dr * PITCH, l + dc * PITCH) for dr, dc in NEIGH]
+    allowed = {(t + dr, l + dc) for t, l in boxes for dr in range(TILE) for dc in range(TILE)}
+    last = len(prev) - 1
+    for r in range(len(prev)):
+        if r == last:
+            continue
+        pr, nr = prev[r], nxt[r]
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in allowed:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T02:10:19 · L6</span><div>一步之内，画面上变的只有这几处：点中的那块瓦片、它每个记号位指向的那块邻居瓦片、和最后一行。别处一格不动。</div><div>v3：影响面从「加号瓦片的四个正交邻居」改成「记号位指向的邻居」。第 5 关全部可涂瓦片只带上边一条记号，v2 那句『加号牵动四邻』在这一关会把三个多余的邻居一起放行 —— 放得越宽越判不错，所以收紧。方向语义由 mark_directs_linkage 承担；这里只管<b>影响面</b>，不管变成什么色，所以邻居按整块 36 格放行，不校验记号保留。v2 死于 690d3d0a7349b356（点一块四条边全带记号的瓦片，帧差 164 格，它自己加四邻一起换色），那一步把 v1 的『变的只有被点那一块』当场作废。v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，画面上变的只有这几处：点中的那块瓦片、它每个记号位指向的那块邻居瓦片、和最后一行。别处一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA —— 换关后整屏重画；&quot;
+         &quot;点击没落在任何网格的外环位置上、或被点那块的记号读不出来时，&quot;
+         &quot;断言收紧为『只有最后一行会变』，照常判&quot;)
+NOTE = (&quot;v3：影响面从「加号瓦片的四个正交邻居」改成「记号位指向的邻居」。&quot;
+        &quot;第 5 关全部可涂瓦片只带上边一条记号，v2 那句『加号牵动四邻』在这一关会把三个多余的邻居&quot;
+        &quot;一起放行 —— 放得越宽越判不错，所以收紧。方向语义由 mark_directs_linkage 承担；&quot;
+        &quot;这里只管**影响面**，不管变成什么色，所以邻居按整块 36 格放行，不校验记号保留。&quot;
+        &quot;v2 死于 690d3d0a7349b356（点一块四条边全带记号的瓦片，帧差 164 格，它自己加四邻一起换色），&quot;
+        &quot;那一步把 v1 的『变的只有被点那一块』当场作废。&quot;
+        &quot;v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，&quot;
+        &quot;被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;b7a2cae509e5177f&quot;, &quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;]
+
+from _lib import PITCH, TILE, click_xy, grid_ring_tile, marks_at, tile_box
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return &quot;NA&quot;
+    boxes = []
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is not None:
+        t, l = tile_box(hit[0], hit[1], hit[2])
+        boxes.append((t, l))
+        for dr, dc in (marks_at(prev, t, l) or ()):
+            boxes.append((t + dr * PITCH, l + dc * PITCH))
+    allowed = {(t + dr, l + dc) for t, l in boxes for dr in range(TILE) for dc in range(TILE)}
+    last = len(prev) - 1
+    for r in range(len(prev)):
+        if r == last:
+            continue
+        pr, nr = prev[r], nxt[r]
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in allowed:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-07T02:16:54 · L6</span><div>一步之内，画面上变的只有这几处：点中的那块瓦片、它记号指向的那些<b>可涂</b>邻居瓦片、和最后一行。别处一格不动。</div><div>v4：影响面再收一次 —— 从「记号指向的邻居」收到「记号指向的<b>可涂</b>邻居」。实测记号指向出界（600415924f90231d）、指向空槽（6e1d2bfeccd3d6a0）、指向中心瓦片（4f9ef6ccd97f6f5f）时那个方向什么都不发生，帧差里只有被点那一块加计数条；v3 把那些方向的 36 格一律放行，放得越宽越判不错，所以收紧。v3 把影响面从「加号瓦片的四个正交邻居」改成「记号位指向的邻居」——第 5 关全部可涂瓦片只带上边一条记号，v2 那句『加号牵动四邻』在这一关会把三个多余的邻居一起放行。方向与可涂性的语义由 mark_directs_linkage 承担；这里只管<b>影响面</b>，不管变成什么色，所以邻居按整块 36 格放行，不校验记号保留。v2 死于 690d3d0a7349b356（点一块四条边全带记号的瓦片，帧差 164 格，它自己加四邻一起换色），那一步把 v1 的『变的只有被点那一块』当场作废。v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，画面上变的只有这几处：点中的那块瓦片、它记号指向的那些**可涂**邻居瓦片、和最后一行。别处一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA —— 换关后整屏重画；&quot;
+         &quot;点击没落在任何网格的外环位置上、或被点那块的记号读不出来时，&quot;
+         &quot;断言收紧为『只有最后一行会变』，照常判；&quot;
+         &quot;记号指到一块底色读不出来的东西时（没量过），放宽到允许全部被指邻居都变&quot;)
+NOTE = (&quot;v4：影响面再收一次 —— 从「记号指向的邻居」收到「记号指向的**可涂**邻居」。&quot;
+        &quot;实测记号指向出界（600415924f90231d）、指向空槽（6e1d2bfeccd3d6a0）、指向中心瓦片&quot;
+        &quot;（4f9ef6ccd97f6f5f）时那个方向什么都不发生，帧差里只有被点那一块加计数条；&quot;
+        &quot;v3 把那些方向的 36 格一律放行，放得越宽越判不错，所以收紧。&quot;
+        &quot;v3 把影响面从「加号瓦片的四个正交邻居」改成「记号位指向的邻居」——第 5 关全部可涂瓦片&quot;
+        &quot;只带上边一条记号，v2 那句『加号牵动四邻』在这一关会把三个多余的邻居一起放行。&quot;
+        &quot;方向与可涂性的语义由 mark_directs_linkage 承担；这里只管**影响面**，不管变成什么色，&quot;
+        &quot;所以邻居按整块 36 格放行，不校验记号保留。&quot;
+        &quot;v2 死于 690d3d0a7349b356（点一块四条边全带记号的瓦片，帧差 164 格，它自己加四邻一起换色），&quot;
+        &quot;那一步把 v1 的『变的只有被点那一块』当场作废。&quot;
+        &quot;v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，&quot;
+        &quot;被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;b7a2cae509e5177f&quot;, &quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;,
+            &quot;6e1d2bfeccd3d6a0&quot;, &quot;600415924f90231d&quot;]
+
+from _lib import PITCH, TILE, click_xy, grid_ring_tile, link_boxes, tile_read, tile_box
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return &quot;NA&quot;
+    boxes = []
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is not None:
+        t, l = tile_box(hit[0], hit[1], hit[2])
+        boxes.append((t, l))
+        marks = tile_read(prev, t, l)[1] or ()
+        lb = link_boxes(prev, t, l, marks)
+        if lb is None:
+            boxes += [(t + dr * PITCH, l + dc * PITCH) for dr, dc in marks]
+        else:
+            boxes += lb[0]
+    allowed = {(t + dr, l + dc) for t, l in boxes for dr in range(TILE) for dc in range(TILE)}
+    last = len(prev) - 1
+    for r in range(len(prev)):
+        if r == last:
+            continue
+        pr, nr = prev[r], nxt[r]
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in allowed:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之内，画面上变的只有这几处：点中的那块瓦片、它记号指向的那些**可涂**邻居瓦片、和最后一行。别处一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L6&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA —— 换关后整屏重画；&quot;
+         &quot;点击没落在任何网格的外环位置上、或被点那块的记号读不出来时，&quot;
+         &quot;断言收紧为『只有最后一行会变』，照常判；&quot;
+         &quot;记号指到一块底色读不出来的东西时（没量过），放宽到允许全部被指邻居都变&quot;)
+NOTE = (&quot;v4：影响面再收一次 —— 从「记号指向的邻居」收到「记号指向的**可涂**邻居」。&quot;
+        &quot;实测记号指向出界（600415924f90231d）、指向空槽（6e1d2bfeccd3d6a0）、指向中心瓦片&quot;
+        &quot;（4f9ef6ccd97f6f5f）时那个方向什么都不发生，帧差里只有被点那一块加计数条；&quot;
+        &quot;v3 把那些方向的 36 格一律放行，放得越宽越判不错，所以收紧。&quot;
+        &quot;v3 把影响面从「加号瓦片的四个正交邻居」改成「记号位指向的邻居」——第 5 关全部可涂瓦片&quot;
+        &quot;只带上边一条记号，v2 那句『加号牵动四邻』在这一关会把三个多余的邻居一起放行。&quot;
+        &quot;方向与可涂性的语义由 mark_directs_linkage 承担；这里只管**影响面**，不管变成什么色，&quot;
+        &quot;所以邻居按整块 36 格放行，不校验记号保留。&quot;
+        &quot;v2 死于 690d3d0a7349b356（点一块四条边全带记号的瓦片，帧差 164 格，它自己加四邻一起换色），&quot;
+        &quot;那一步把 v1 的『变的只有被点那一块』当场作废。&quot;
+        &quot;v1 接替 matched_grid_is_locked（v3 撤册）：那一条说『凑齐的网格外环一格不变』，&quot;
+        &quot;被 b7a2cae509e5177f 打倒——把刚凑齐的网格的左上瓦片再点一次，它照样翻回去了，凑齐不锁定。&quot;)
+EVIDENCE = [&quot;d89ef1db9b3187a9&quot;, &quot;b7a2cae509e5177f&quot;, &quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;,
+            &quot;6e1d2bfeccd3d6a0&quot;, &quot;600415924f90231d&quot;]
+
+from _lib import PITCH, TILE, click_xy, grid_ring_tile, link_boxes, tile_read, tile_box
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return &quot;NA&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return &quot;NA&quot;
+    boxes = []
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is not None:
+        t, l = tile_box(hit[0], hit[1], hit[2])
+        boxes.append((t, l))
+        marks = tile_read(prev, t, l)[1] or ()
+        lb = link_boxes(prev, t, l, marks)
+        if lb is None:
+            boxes += [(t + dr * PITCH, l + dc * PITCH) for dr, dc in marks]
+        else:
+            boxes += lb[0]
+    allowed = {(t + dr, l + dc) for t, l in boxes for dr in range(TILE) for dc in range(TILE)}
+    last = len(prev) - 1
+    for r in range(len(prev)):
+        if r == last:
+            continue
+        pr, nr = prev[r], nxt[r]
+        for c in range(len(pr)):
+            if pr[c] != nr[c] and (r, c) not in allowed:
+                return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">pattern_three_marks_no_tile</span><span class="chip c-lv">L7 · 看得见什么</span><span class="chip c-alive">在册</span><span class="chip c-mute">1 版</span></div><div class="one">图样里的第三种标记表示那里没有瓦片</div></summary><div class="body"><div class="doc">中心图样里取值 3 的那些位置，恰好就是外环上「没有可涂瓦片」的位置：出界、空槽、或另一个网格的中心。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:49:42 · L7</span><div>中心图样里取值 3 的那些位置，恰好就是外环上「没有可涂瓦片」的位置：出界、空槽、或另一个网格的中心。</div><div>第 4 关才第一次出现取值 3：那一关有 8 个网格互相咬合，有的伸到画面外、有的角上是空的、有的角上是另一个网格的中心。前四关每个网格八个角都实打实有瓦片，所以图样里只有 0 和 2。这条一并给旧词汇里两处写死的东西平了反：网格不再要求『八个外环都单色』，也不再要求全图共用一套格点（第 0 关左右两组网格的相位本来就不一样）。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;中心图样里取值 3 的那些位置，恰好就是外环上「没有可涂瓦片」的位置：出界、空槽、或另一个网格的中心。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = (&quot;看 prev 与 nxt 两帧；一个网格都扫不出来的帧跳过，两帧都扫不出来返回 NA；&quot;
+         &quot;只管中心图样里 0/2/3 三种取值的位置——出现第四种取值时判 FALSE，&quot;
+         &quot;因为那说明『图样格只有这三种意思』这个前提本身塌了。&quot;)
+NOTE = (&quot;第 4 关才第一次出现取值 3：那一关有 8 个网格互相咬合，有的伸到画面外、有的角上是空的、&quot;
+        &quot;有的角上是另一个网格的中心。前四关每个网格八个角都实打实有瓦片，所以图样里只有 0 和 2。&quot;
+        &quot;这条一并给旧词汇里两处写死的东西平了反：网格不再要求『八个外环都单色』，&quot;
+        &quot;也不再要求全图共用一套格点（第 0 关左右两组网格的相位本来就不一样）。&quot;)
+EVIDENCE = [&quot;3e15bdb9dfa25a5e&quot;]
+
+from _lib import PAT_NONE, center_pattern, centers, slot_kind, tile_grids
+
+CODES = (0, 2, PAT_NONE)
+
+
+def _check(g):
+    &quot;&quot;&quot;这一帧上主张成不成立：TRUE / FALSE / None（这帧没有网格，说不出话）。&quot;&quot;&quot;
+    grids = tile_grids(g)
+    if not grids:
+        return None
+    cset = set(centers(g))
+    for o in grids:
+        pat = center_pattern(g, o)
+        if pat is None:
+            return None
+        for i in range(3):
+            for j in range(3):
+                if (i, j) == (1, 1):
+                    continue
+                code = pat[i][j]
+                if code not in CODES:
+                    return False
+                gone = slot_kind(g, o, i, j, cset) in (&quot;off&quot;, &quot;empty&quot;, &quot;center&quot;)
+                if (code == PAT_NONE) != gone:
+                    return False
+    return True
+
+
+def assert_(prev, action, nxt, ctx=None):
+    verdicts = [v for v in (_check(prev), _check(nxt)) if v is not None]
+    if not verdicts:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if all(verdicts) else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;中心图样里取值 3 的那些位置，恰好就是外环上「没有可涂瓦片」的位置：出界、空槽、或另一个网格的中心。&quot;&quot;&quot;
+LEVEL = &quot;L7&quot;
+SCOPE = (&quot;看 prev 与 nxt 两帧；一个网格都扫不出来的帧跳过，两帧都扫不出来返回 NA；&quot;
+         &quot;只管中心图样里 0/2/3 三种取值的位置——出现第四种取值时判 FALSE，&quot;
+         &quot;因为那说明『图样格只有这三种意思』这个前提本身塌了。&quot;)
+NOTE = (&quot;第 4 关才第一次出现取值 3：那一关有 8 个网格互相咬合，有的伸到画面外、有的角上是空的、&quot;
+        &quot;有的角上是另一个网格的中心。前四关每个网格八个角都实打实有瓦片，所以图样里只有 0 和 2。&quot;
+        &quot;这条一并给旧词汇里两处写死的东西平了反：网格不再要求『八个外环都单色』，&quot;
+        &quot;也不再要求全图共用一套格点（第 0 关左右两组网格的相位本来就不一样）。&quot;)
+EVIDENCE = [&quot;3e15bdb9dfa25a5e&quot;]
+
+from _lib import PAT_NONE, center_pattern, centers, slot_kind, tile_grids
+
+CODES = (0, 2, PAT_NONE)
+
+
+def _check(g):
+    &quot;&quot;&quot;这一帧上主张成不成立：TRUE / FALSE / None（这帧没有网格，说不出话）。&quot;&quot;&quot;
+    grids = tile_grids(g)
+    if not grids:
+        return None
+    cset = set(centers(g))
+    for o in grids:
+        pat = center_pattern(g, o)
+        if pat is None:
+            return None
+        for i in range(3):
+            for j in range(3):
+                if (i, j) == (1, 1):
+                    continue
+                code = pat[i][j]
+                if code not in CODES:
+                    return False
+                gone = slot_kind(g, o, i, j, cset) in (&quot;off&quot;, &quot;empty&quot;, &quot;center&quot;)
+                if (code == PAT_NONE) != gone:
+                    return False
+    return True
+
+
+def assert_(prev, action, nxt, ctx=None):
+    verdicts = [v for v in (_check(prev), _check(nxt)) if v is not None]
+    if not verdicts:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if all(verdicts) else &quot;FALSE&quot;
+</code></pre></details></div></details><details class="item dead"><summary><div class="top"><span class="name">plus_tile_cycles_neighbours</span><span class="chip c-lv">L1 · 点了会怎样</span><span class="chip c-dead">撤册</span><span class="chip c-mute">2 版</span></div><div class="one">加号瓦片牵动上下左右四个邻居</div></summary><div class="body"><div class="doc">点在加号瓦片上时，它正上下左右四块瓦片里每一块<b>可涂瓦片</b>的底色也各自前进一位；那四块里若有另一个网格的中心瓦片，那一块一格不动。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T01:55:14 · L1</span><div>点在加号瓦片（底色之上盖着一层 6 号棋盘花纹的那种）上时，它正上下左右四块瓦片的底色也各自前进一位。</div><div>第 4 关第一次出现加号瓦片。它被自己所属网格的图样记作 2，也就是<b>必须</b>被涂成熄灭色，不是装饰。实测点它一下，它自己和四个正交邻居五块瓦片的底色同时前进一位（tid 690d3d0a7349b356，帧差 164 格）。这条只说那四个邻居；被点那一块归 click_cycles_palette 管。还没检验过的：邻居落在画面外、落在空槽、落在另一个网格的中心瓦片上时会怎样（第 4 关的加号瓦片 top28 left22 的下邻居就是一个中心瓦片，去点它就能问出来）。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在加号瓦片（底色之上盖着一层 6 号棋盘花纹的那种）上时，它正上下左右四块瓦片的底色也各自前进一位。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点的那块不是加号瓦片、调色板读不出来，返回 NA；&quot;
+         &quot;四个邻居里只要有一块的底色读不出来（越界、空槽、中心瓦片、没见过的花纹）就返回 NA &quot;
+         &quot;—— 那种局面这条概念没被检验过，不许拿它当『那一块不变』的依据。&quot;)
+NOTE = (&quot;第 4 关第一次出现加号瓦片。它被自己所属网格的图样记作 2，也就是**必须**被涂成熄灭色，&quot;
+        &quot;不是装饰。实测点它一下，它自己和四个正交邻居五块瓦片的底色同时前进一位（tid 690d3d0a7349b356，帧差 164 格）。&quot;
+        &quot;这条只说那四个邻居；被点那一块归 click_cycles_palette 管。&quot;
+        &quot;还没检验过的：邻居落在画面外、落在空槽、落在另一个网格的中心瓦片上时会怎样&quot;
+        &quot;（第 4 关的加号瓦片 top28 left22 的下邻居就是一个中心瓦片，去点它就能问出来）。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;]
+
+from _lib import NEIGH, PITCH, base_at, base_cells, click_xy, grid_ring_tile, next_color, palette_seq, plus_at, tile_box
+
+
+def _targets(prev, action, ctx=None):
+    &quot;&quot;&quot;{(top,left): 新底色}，只含四个邻居；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    if not plus_at(prev, t, l):
+        return None
+    pal = palette_seq(prev)
+    out = {}
+    for dr, dc in NEIGH:
+        box = (t + dr * PITCH, l + dc * PITCH)
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        out[box] = want
+    return out
+
+
+def assert_(prev, action, nxt, ctx=None):
+    tg = _targets(prev, action, ctx)
+    if tg is None:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if all(base_at(nxt, *box) == w for box, w in tg.items()) else &quot;FALSE&quot;
+
+
+def apply(prev, action, ctx=None):
+    tg = _targets(prev, action, ctx)
+    if tg is None:
+        return None
+    out = {}
+    for box, w in tg.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    return out
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T02:01:46 · L1</span><div>点在加号瓦片上时，它正上下左右四块瓦片里每一块<b>可涂瓦片</b>的底色也各自前进一位；那四块里若有另一个网格的中心瓦片，那一块一格不动。</div><div>第 4 关第一次出现加号瓦片。它被自己所属网格的图样记作 2，也就是<b>必须</b>被涂成熄灭色，不是装饰。v1 实测（tid 690d3d0a7349b356，帧差 164 格）：点它一下，它自己和四个正交邻居五块瓦片的底色同时前进一位。v2 是被 4f9ef6ccd97f6f5f 逼出来的两处修正，都不是缩 scope 而是把主张说准：(1) 那一步点的加号瓦片下邻居是另一个网格的中心瓦片，帧差 129 = 自己 20 + 三个邻居各 36 + 计数条 1，<b>中心瓦片一格没动</b> —— 联动碰不到中心瓦片，图样是题面，改不了；(2) 那一步的上邻居是一块<b>不属于任何网格外环</b>的孤立瓦片，它照样被牵动了 36 格 15→14。所以联动按<b>物理相邻</b>算，不是网格内相邻，v1 恰好没区分出这一点。还没检验过的：邻居落在画面外、落在空槽（整块背景色）时会怎样 —— 那两种仍走 NA。这条只说那四个邻居；被点那一块归 click_cycles_palette 管。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在加号瓦片上时，它正上下左右四块瓦片里每一块**可涂瓦片**的底色也各自前进一位；那四块里若有另一个网格的中心瓦片，那一块一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点的那块不是加号瓦片、调色板读不出来，返回 NA；&quot;
+         &quot;四个邻居里只要有一块**既不是中心瓦片、底色又读不出来或不在调色板里**（越界、空槽、没见过的花纹）&quot;
+         &quot;就返回 NA —— 那种局面这条概念没被检验过，不许拿它当『那一块不变』的依据。&quot;)
+NOTE = (&quot;第 4 关第一次出现加号瓦片。它被自己所属网格的图样记作 2，也就是**必须**被涂成熄灭色，不是装饰。&quot;
+        &quot;v1 实测（tid 690d3d0a7349b356，帧差 164 格）：点它一下，它自己和四个正交邻居五块瓦片的底色同时前进一位。&quot;
+        &quot;v2 是被 4f9ef6ccd97f6f5f 逼出来的两处修正，都不是缩 scope 而是把主张说准：&quot;
+        &quot;(1) 那一步点的加号瓦片下邻居是另一个网格的中心瓦片，帧差 129 = 自己 20 + 三个邻居各 36 + 计数条 1，&quot;
+        &quot;**中心瓦片一格没动** —— 联动碰不到中心瓦片，图样是题面，改不了；&quot;
+        &quot;(2) 那一步的上邻居是一块**不属于任何网格外环**的孤立瓦片，它照样被牵动了 36 格 15→14。&quot;
+        &quot;所以联动按**物理相邻**算，不是网格内相邻，v1 恰好没区分出这一点。&quot;
+        &quot;还没检验过的：邻居落在画面外、落在空槽（整块背景色）时会怎样 —— 那两种仍走 NA。&quot;
+        &quot;这条只说那四个邻居；被点那一块归 click_cycles_palette 管。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;]
+
+from _lib import (NEIGH, PITCH, TILE, base_at, base_cells, centers, click_xy, grid_ring_tile,
+                  next_color, palette_seq, plus_at, tile_box)
+
+
+def _split(prev, action, ctx=None):
+    &quot;&quot;&quot;({(top,left): 新底色}, [一格不动的中心瓦片框])；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    if not plus_at(prev, t, l):
+        return None
+    pal = palette_seq(prev)
+    if pal is None:
+        return None
+    cset = set(centers(prev))
+    move, frozen = {}, []
+    for dr, dc in NEIGH:
+        box = (t + dr * PITCH, l + dc * PITCH)
+        if box in cset:
+            frozen.append(box)
+            continue
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        move[box] = want
+    return move, frozen
+
+
+def assert_(prev, action, nxt, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return &quot;NA&quot;
+    move, frozen = sp
+    for box, w in move.items():
+        if base_at(nxt, *box) != w:
+            return &quot;FALSE&quot;
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                if prev[t + dr][l + dc] != nxt[t + dr][l + dc]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return None
+    move, frozen = sp
+    out = {}
+    for box, w in move.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                out[(t + dr, l + dc)] = prev[t + dr][l + dc]
+    return out
+</code></pre></details></div></div><details class="src"><summary>撤册前最后一版源码</summary><pre><code class="language-python">&quot;&quot;&quot;点在加号瓦片上时，它正上下左右四块瓦片里每一块**可涂瓦片**的底色也各自前进一位；那四块里若有另一个网格的中心瓦片，那一块一格不动。&quot;&quot;&quot;
+LEVEL = &quot;L1&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；换关（level_prev != level_next）返回 NA；&quot;
+         &quot;点击没落在任何网格的外环位置上、被点的那块不是加号瓦片、调色板读不出来，返回 NA；&quot;
+         &quot;四个邻居里只要有一块**既不是中心瓦片、底色又读不出来或不在调色板里**（越界、空槽、没见过的花纹）&quot;
+         &quot;就返回 NA —— 那种局面这条概念没被检验过，不许拿它当『那一块不变』的依据。&quot;)
+NOTE = (&quot;第 4 关第一次出现加号瓦片。它被自己所属网格的图样记作 2，也就是**必须**被涂成熄灭色，不是装饰。&quot;
+        &quot;v1 实测（tid 690d3d0a7349b356，帧差 164 格）：点它一下，它自己和四个正交邻居五块瓦片的底色同时前进一位。&quot;
+        &quot;v2 是被 4f9ef6ccd97f6f5f 逼出来的两处修正，都不是缩 scope 而是把主张说准：&quot;
+        &quot;(1) 那一步点的加号瓦片下邻居是另一个网格的中心瓦片，帧差 129 = 自己 20 + 三个邻居各 36 + 计数条 1，&quot;
+        &quot;**中心瓦片一格没动** —— 联动碰不到中心瓦片，图样是题面，改不了；&quot;
+        &quot;(2) 那一步的上邻居是一块**不属于任何网格外环**的孤立瓦片，它照样被牵动了 36 格 15→14。&quot;
+        &quot;所以联动按**物理相邻**算，不是网格内相邻，v1 恰好没区分出这一点。&quot;
+        &quot;还没检验过的：邻居落在画面外、落在空槽（整块背景色）时会怎样 —— 那两种仍走 NA。&quot;
+        &quot;这条只说那四个邻居；被点那一块归 click_cycles_palette 管。&quot;)
+EVIDENCE = [&quot;690d3d0a7349b356&quot;, &quot;4f9ef6ccd97f6f5f&quot;]
+
+from _lib import (NEIGH, PITCH, TILE, base_at, base_cells, centers, click_xy, grid_ring_tile,
+                  next_color, palette_seq, plus_at, tile_box)
+
+
+def _split(prev, action, ctx=None):
+    &quot;&quot;&quot;({(top,left): 新底色}, [一格不动的中心瓦片框])；说不出话返回 None。&quot;&quot;&quot;
+    if ctx and ctx[&quot;level_prev&quot;] != ctx[&quot;level_next&quot;]:
+        return None
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(prev, xy[0], xy[1])
+    if hit is None:
+        return None
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    if not plus_at(prev, t, l):
+        return None
+    pal = palette_seq(prev)
+    if pal is None:
+        return None
+    cset = set(centers(prev))
+    move, frozen = {}, []
+    for dr, dc in NEIGH:
+        box = (t + dr * PITCH, l + dc * PITCH)
+        if box in cset:
+            frozen.append(box)
+            continue
+        want = next_color(pal, base_at(prev, *box))
+        if want is None:
+            return None
+        move[box] = want
+    return move, frozen
+
+
+def assert_(prev, action, nxt, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return &quot;NA&quot;
+    move, frozen = sp
+    for box, w in move.items():
+        if base_at(nxt, *box) != w:
+            return &quot;FALSE&quot;
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                if prev[t + dr][l + dc] != nxt[t + dr][l + dc]:
+                    return &quot;FALSE&quot;
+    return &quot;TRUE&quot;
+
+
+def apply(prev, action, ctx=None):
+    sp = _split(prev, action, ctx)
+    if sp is None:
+        return None
+    move, frozen = sp
+    out = {}
+    for box, w in move.items():
+        cells = base_cells(prev, *box)
+        if cells is None:
+            return None
+        for c in cells:
+            out[c] = w
+    for t, l in frozen:
+        for dr in range(TILE):
+            for dc in range(TILE):
+                out[(t + dr, l + dc)] = prev[t + dr][l + dc]
+    return out
+</code></pre></details></div></details><details class="item"><summary><div class="top"><span class="name">ring_matched_levels_up</span><span class="chip c-lv">L5 · 怎样算过关</span><span class="chip c-alive">在册</span><span class="chip c-mute">5 版</span></div><div class="one">所有网格配齐的那一步就过关</div></summary><div class="body"><div class="doc">把这一步点中的外环瓦片换到下一个色之后，所有 3x3 网格的外环都到齐了目标色，这一步就换关（level +1）。</div><div class="ver"><div class="v"><span class="h">v1 · 2026-09-07T00:54:41 · L5</span><div>一步之后活动网格外环恰好等于「中心图样按 色2→色9、色0→色8 映射」，这一步就换关（level +1）。</div><div>写在实测之前：至今没有任何一条转移落进它的 scope，专为下一步立的靶子。</div><details class="src"><summary>v1 源码</summary><pre><code class="language-python">&quot;&quot;&quot;一步之后活动网格外环恰好等于「中心图样按 色2→色9、色0→色8 映射」，这一步就换关（level +1）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;看所有动作；没有 ctx 返回 NA；prev 里外环已经等于映射（本来就凑好了）返回 NA；&quot;
+         &quot;prev 的活动网格 / 中心图样 / 外环读不出来返回 NA；&quot;
+         &quot;nxt 里活动网格读不出来时：换关了判 TRUE，没换关判 NA（画面被换掉本身就是换关的样子）&quot;)
+NOTE = &quot;写在实测之前：至今没有任何一条转移落进它的 scope，专为下一步立的靶子。&quot;
+EVIDENCE = [&quot;14d7ee51ea8d0329&quot;]
+
+from _lib import ring_and_wanted
+
+MAP = {2: 9, 0: 8}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None:
+        return &quot;NA&quot;
+    before = ring_and_wanted(prev, MAP)
+    if before is None:
+        return &quot;NA&quot;
+    ring0, want0 = before
+    if ring0 == want0:
+        return &quot;NA&quot;
+    after = ring_and_wanted(nxt, MAP)
+    if after is None:
+        return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;NA&quot;
+    ring1, want1 = after
+    if ring1 != want1:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v2 · 2026-09-07T01:05:35 · L5</span><div>把这一步点中的外环瓦片按 色9↔色8 翻转之后，所有 3x3 网格的外环都等于「中心图样按 色2→色9、色0→色8 映射」，这一步就换关（level +1）。</div><div>v2：只看 prev 加上这一下点击的效果，不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，v1 是靠『nxt 里网格读不出来就当换关了』这条兜底才判 TRUE 的，那是撞对的，不是说对的。同时跟 no_levelup 一起从『色4 方框那一个网格』改成『所有扫出来的网格』。</div><details class="src"><summary>v2 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片按 色9↔色8 翻转之后，所有 3x3 网格的外环都等于「中心图样按 色2→色9、色0→色8 映射」，这一步就换关（level +1）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx 返回 NA；&quot;
+         &quot;一个网格都扫不出来 / 中心图样含 MAP 之外的颜色 / 被点瓦片颜色不在 FLIP 里返回 NA；&quot;
+         &quot;翻转后还有网格没凑齐时返回 NA —— 那一半交给 no_levelup_before_ring_matches；&quot;
+         &quot;prev 里本来就全凑齐了（这一下点击只会破坏它）也照上面的判据走&quot;)
+NOTE = (&quot;v2：只看 prev 加上这一下点击的效果，不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，&quot;
+        &quot;v1 是靠『nxt 里网格读不出来就当换关了』这条兜底才判 TRUE 的，那是撞对的，不是说对的。&quot;
+        &quot;同时跟 no_levelup 一起从『色4 方框那一个网格』改成『所有扫出来的网格』。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;]
+
+from _lib import all_matched_after_click, click_xy
+
+MAP = {2: 9, 0: 8}
+FLIP = {9: 8, 8: 9}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, MAP, FLIP)
+    if ok is None or not ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v3 · 2026-09-07T01:10:35 · L5</span><div>把这一步点中的外环瓦片翻转之后，所有 3x3 网格的外环都等于「中心图样按 色2→色9、色0→中心正中那格的颜色 映射」，这一步就换关（level +1）。</div><div>v3：跟 no_levelup 一起改成『点亮色从画面上读』。v2 只看 prev 加这一下点击的效果、不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，v1 是靠『nxt 里网格读不出来就当换关了』这条兜底才判 TRUE 的，那是撞对的不是说对的。</div><details class="src"><summary>v3 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片翻转之后，所有 3x3 网格的外环都等于「中心图样按 色2→色9、色0→中心正中那格的颜色 映射」，这一步就换关（level +1）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx 返回 NA；&quot;
+         &quot;一个网格都扫不出来 / 读不出中心正中色 / 中心图样含 PAT 之外的图样色 / &quot;
+         &quot;被点瓦片颜色既不是 OFF 也不是 ON，返回 NA；&quot;
+         &quot;翻转后还有网格没凑齐时返回 NA —— 那一半交给 no_levelup_before_ring_matches&quot;)
+NOTE = (&quot;v3：跟 no_levelup 一起改成『点亮色从画面上读』。&quot;
+        &quot;v2 只看 prev 加这一下点击的效果、不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，&quot;
+        &quot;v1 是靠『nxt 里网格读不出来就当换关了』这条兜底才判 TRUE 的，那是撞对的不是说对的。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;]
+
+from _lib import all_matched_after_click, center_mid_color, click_xy
+
+OFF = 9
+PAT_OFF = 2
+PAT_ON = 0
+
+
+def map_of(g, origin):
+    on = center_mid_color(g, origin)
+    if on is None or on == OFF:
+        return None
+    return {PAT_OFF: OFF, PAT_ON: on}
+
+
+def flip_of(g, origin):
+    on = center_mid_color(g, origin)
+    if on is None or on == OFF:
+        return None
+    return {OFF: on, on: OFF}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, map_of, flip_of)
+    if ok is None or not ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v4 · 2026-09-07T01:15:28 · L5</span><div>把这一步点中的外环瓦片翻转之后，所有 3x3 网格的外环都等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」，这一步就换关（level +1）。</div><div>v4：跟 no_levelup 一起把『熄灭色 = 色9』换成『本关清点出来的另一个外环色』（第 2 关是色8）。v3 改成点亮色从画面上读；v2 只看 prev 加这一下点击的效果、不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，v1 是靠『nxt 里网格读不出来就当换关了』兜底才判 TRUE 的。</div><details class="src"><summary>v4 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片翻转之后，所有 3x3 网格的外环都等于「中心图样：色0 那格 → 中心正中色，色2 那格 → 本关另一个外环色」，这一步就换关（level +1）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx 返回 NA；&quot;
+         &quot;一个网格都扫不出来 / 全图两色清点不出来 / 中心正中色不在这两色里 / &quot;
+         &quot;中心图样含 PAT 之外的图样色 / 被点瓦片颜色不在这两色里，返回 NA；&quot;
+         &quot;翻转后还有网格没凑齐时返回 NA —— 那一半交给 no_levelup_before_ring_matches&quot;)
+NOTE = (&quot;v4：跟 no_levelup 一起把『熄灭色 = 色9』换成『本关清点出来的另一个外环色』（第 2 关是色8）。&quot;
+        &quot;v3 改成点亮色从画面上读；v2 只看 prev 加这一下点击的效果、不再读 nxt —— &quot;
+        &quot;换关那一步 nxt 已经是新一关的画面，v1 是靠『nxt 里网格读不出来就当换关了』兜底才判 TRUE 的。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;, &quot;c2484e5c3063e99d&quot;]
+
+from _lib import all_matched_after_click, center_mid_color, click_xy, grid_palette_colors
+
+PAT_ON = 0
+PAT_OFF = 2
+
+
+def _two(g, origin):
+    cs = grid_palette_colors(g)
+    on = center_mid_color(g, origin)
+    if cs is None or len(cs) != 2 or on not in cs:
+        return None
+    return on, (cs[0] if cs[1] == on else cs[1])
+
+
+def map_of(g, origin):
+    p = _two(g, origin)
+    return None if p is None else {PAT_ON: p[0], PAT_OFF: p[1]}
+
+
+def flip_of(g, origin):
+    p = _two(g, origin)
+    return None if p is None else {p[0]: p[1], p[1]: p[0]}
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, map_of, flip_of)
+    if ok is None or not ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div><div class="v"><span class="h">v5 · 2026-09-07T01:33:14 · L5</span><div>把这一步点中的外环瓦片换到下一个色之后，所有 3x3 网格的外环都到齐了目标色，这一步就换关（level +1）。</div><div>v5：跟 no_levelup 一起改成『沿调色板循环前进』+『目标由共用瓦片一致性锁死』。v4 熄灭色改成清点出来的另一色；v3 点亮色从画面上读；v2 只看 prev 加这一下点击的效果、不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，v1 是靠『nxt 里网格读不出来就当换关了』兜底才判 TRUE 的。</div><details class="src"><summary>v5 源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片换到下一个色之后，所有 3x3 网格的外环都到齐了目标色，这一步就换关（level +1）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx 返回 NA；&quot;
+         &quot;网格扫不出来 / 调色板读不出来 / 目标锁不死 / 中心图样含 PAT 之外的图样色 / &quot;
+         &quot;被点瓦片颜色不在调色板里，返回 NA；&quot;
+         &quot;换色之后还有网格没到齐时返回 NA —— 那一半交给 no_levelup_before_ring_matches&quot;)
+NOTE = (&quot;v5：跟 no_levelup 一起改成『沿调色板循环前进』+『目标由共用瓦片一致性锁死』。&quot;
+        &quot;v4 熄灭色改成清点出来的另一色；v3 点亮色从画面上读；&quot;
+        &quot;v2 只看 prev 加这一下点击的效果、不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，&quot;
+        &quot;v1 是靠『nxt 里网格读不出来就当换关了』兜底才判 TRUE 的。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;, &quot;c2484e5c3063e99d&quot;]
+
+from _lib import all_matched_after_click, click_xy
+
+PAT_ON = 0
+PAT_OFF = 2
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, PAT_ON, PAT_OFF)
+    if ok is None or not ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div></div><details class="src"><summary>当前版本源码</summary><pre><code class="language-python">&quot;&quot;&quot;把这一步点中的外环瓦片换到下一个色之后，所有 3x3 网格的外环都到齐了目标色，这一步就换关（level +1）。&quot;&quot;&quot;
+LEVEL = &quot;L5&quot;
+SCOPE = (&quot;只看带坐标的 ACTION6；没有 ctx 返回 NA；&quot;
+         &quot;网格扫不出来 / 调色板读不出来 / 目标锁不死 / 中心图样含 PAT 之外的图样色 / &quot;
+         &quot;被点瓦片颜色不在调色板里，返回 NA；&quot;
+         &quot;换色之后还有网格没到齐时返回 NA —— 那一半交给 no_levelup_before_ring_matches&quot;)
+NOTE = (&quot;v5：跟 no_levelup 一起改成『沿调色板循环前进』+『目标由共用瓦片一致性锁死』。&quot;
+        &quot;v4 熄灭色改成清点出来的另一色；v3 点亮色从画面上读；&quot;
+        &quot;v2 只看 prev 加这一下点击的效果、不再读 nxt —— 换关那一步 nxt 已经是新一关的画面，&quot;
+        &quot;v1 是靠『nxt 里网格读不出来就当换关了』兜底才判 TRUE 的。&quot;)
+EVIDENCE = [&quot;6ad68317227cf68f&quot;, &quot;c2484e5c3063e99d&quot;]
+
+from _lib import all_matched_after_click, click_xy
+
+PAT_ON = 0
+PAT_OFF = 2
+
+
+def assert_(prev, action, nxt, ctx=None):
+    if ctx is None or click_xy(action) is None:
+        return &quot;NA&quot;
+    ok = all_matched_after_click(prev, action, PAT_ON, PAT_OFF)
+    if ok is None or not ok:
+        return &quot;NA&quot;
+    return &quot;TRUE&quot; if ctx[&quot;level_next&quot;] == ctx[&quot;level_prev&quot;] + 1 else &quot;FALSE&quot;
+</code></pre></details></div></details></div><details class="src"><summary>本局共享词汇 _lib.py</summary><pre><code class="language-python">&quot;&quot;&quot;ft09 的词汇表 —— 每个定义都是假设，不是装置给的事实。
+
+实测出来的形态（第 0~4 关）：
+  屏幕上有若干「3x3 瓦片网格」：瓦片边长 6 像素、相邻瓦片左上角相差 8（中间 2 像素背景）。
+  8 个外环瓦片一般是单色；正中间那个瓦片是 3x3 个 2x2 小格的**图样**，图样格取值只见过 {0, 2, 3}，
+  正中那一格是这个网格的「点亮色」。
+  **网格没有全局格点**：第 0 关左右两组网格的相位就不一样，所以一切都从中心瓦片往外定位。
+  最后一行是一条计数条，换关时重新填满。
+  右上角可能有一列 4x4 的色块图例（第 0 关没有）。
+
+留 None / 返回 None 的都是没量出来的，别猜着填。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from geo import bbox, cells_of, components
+
+TILE = 6           # 瓦片边长（像素）
+PITCH = 8          # 相邻瓦片左上角的距离
+SUB = 2            # 中心瓦片里小格的边长：6 = 3x2
+FRAME = 4          # 第 0 关圈住待凑网格的方框颜色
+FRAME_PAD = 4      # 方框外接框往内缩多少像素才是首个瓦片的左上角
+
+CELL = TILE        # 兼容模板里的名字
+PHASE = None       # 这一局没有全图格点，不用相位
+DELTA = {}         # 这一局只有 ACTION6（带坐标），没有方向性位移
+
+PAT_CODES = (0, 2, 3)   # 中心图样格只见过这三个值
+PAT_NONE = 3            # 主张：3 的位置根本不是可涂的外环瓦片（出界 / 空槽 / 另一个网格的中心）
+LEGEND_W = 4            # 图例色块边长
+MARK = 6                # 加号瓦片上那层交错花纹的颜色（第 4 关第一次出现）
+NEIGH = ((-1, 0), (1, 0), (0, -1), (0, 1))   # 加号瓦片牵动的四个正交邻居
+
+
+def me(g):
+    &quot;&quot;&quot;这一局没有「玩家块」；保持 None，任何引用它的概念都该返回 NA。&quot;&quot;&quot;
+    return None
+
+
+def walls(g):
+    &quot;&quot;&quot;这一局没有量出「阻挡」这回事。&quot;&quot;&quot;
+    return None
+
+
+def bg(g):
+    &quot;&quot;&quot;背景色：左上角那一格。第 0 关是 5，之后几关是 4。&quot;&quot;&quot;
+    return g[0][0]
+
+
+def click_xy(action):
+    &quot;&quot;&quot;&#x27;ACTION6:38,46&#x27; -&gt; (38, 46)（x=列, y=行）。不是带坐标的点击返回 None。
+
+    实测（第 3 步 ACTION6:38,46 改的是 rows44-49 x cols36-41）：x 是列、y 是行。
+    注意装置打帧差时每格印成 (x, y)，而概念的 apply 用 (row, col) —— 两种序并存。
+    &quot;&quot;&quot;
+    if not isinstance(action, str) or &quot;:&quot; not in action:
+        return None
+    name, _, coords = action.partition(&quot;:&quot;)
+    if name.strip().upper() != &quot;ACTION6&quot;:
+        return None
+    try:
+        x, y = (int(v) for v in coords.split(&quot;,&quot;))
+    except ValueError:
+        return None
+    return (x, y)
+
+
+# ---------- 瓦片 ----------
+
+def _uniform(g, r, c, n):
+    &quot;&quot;&quot;(r,c) 起 n x n 是不是单色；越界或不单色返回 None。&quot;&quot;&quot;
+    if r &lt; 0 or c &lt; 0 or r + n &gt; len(g) or c + n &gt; len(g[0]):
+        return None
+    v = g[r][c]
+    for dr in range(n):
+        row = g[r + dr]
+        for dc in range(n):
+            if row[c + dc] != v:
+                return None
+    return v
+
+
+def tile_box(origin, i, j):
+    &quot;&quot;&quot;网格里第 (i, j) 个瓦片的 (top, left)。i/j 都在 0..2。&quot;&quot;&quot;
+    return (origin[0] + i * PITCH, origin[1] + j * PITCH)
+
+
+def tile_cells(origin, i, j):
+    &quot;&quot;&quot;第 (i, j) 个瓦片覆盖的全部像素 (row, col)。&quot;&quot;&quot;
+    t, l = tile_box(origin, i, j)
+    return [(t + dr, l + dc) for dr in range(TILE) for dc in range(TILE)]
+
+
+def tile_solid(g, origin, i, j):
+    &quot;&quot;&quot;第 (i, j) 个瓦片是单色时返回色号，不是单色（或越界）返回 None。&quot;&quot;&quot;
+    t, l = tile_box(origin, i, j)
+    return _uniform(g, t, l, TILE)
+
+
+def tile_of_click(origin, x, y):
+    &quot;&quot;&quot;点击坐标（x=列, y=行）落在这个网格的哪个瓦片：返回 (i, j)，落在瓦片之外返回 None。&quot;&quot;&quot;
+    if origin is None:
+        return None
+    di, dj = y - origin[0], x - origin[1]
+    if di &lt; 0 or dj &lt; 0:
+        return None
+    i, j = di // PITCH, dj // PITCH
+    if not (i &lt;= 2 and j &lt;= 2):
+        return None
+    if di - i * PITCH &gt;= TILE or dj - j * PITCH &gt;= TILE:
+        return None          # 落在瓦片之间的缝里
+    return (i, j)
+
+
+def pattern_at(g, t, l):
+    &quot;&quot;&quot;(t,l) 起的 6x6 读成 3x3 的 SUB x SUB 图样；任一小格不单色、或整块单色，返回 None。&quot;&quot;&quot;
+    if t &lt; 0 or l &lt; 0 or t + TILE &gt; len(g) or l + TILE &gt; len(g[0]):
+        return None
+    out = []
+    for a in range(3):
+        row = []
+        for b in range(3):
+            v = _uniform(g, t + a * SUB, l + b * SUB, SUB)
+            if v is None:
+                return None
+            row.append(v)
+        out.append(row)
+    return out if len({v for r_ in out for v in r_}) &gt; 1 else None
+
+
+def is_center(g, t, l):
+    &quot;&quot;&quot;(t,l) 起的 6x6 是不是一个网格的中心瓦片。
+
+    判据（位置无关，不依赖任何全局格点）：能读成 3x3 图样、**周围八格取值都在 PAT_CODES 里**、
+    **正中那格不在 PAT_CODES 里**（它是这个网格的点亮色）。
+    图例的 4x4 色块、外环的棋盘格瓦片、以及从真中心平移 2 像素的假窗口，都被这两条挡掉。
+    &quot;&quot;&quot;
+    pat = pattern_at(g, t, l)
+    if pat is None:
+        return False
+    if pat[1][1] in PAT_CODES:
+        return False
+    return all(pat[i][j] in PAT_CODES for i in range(3) for j in range(3) if (i, j) != (1, 1))
+
+
+def centers(g):
+    &quot;&quot;&quot;全图所有中心瓦片的 (top, left)，按行列序。&quot;&quot;&quot;
+    return [(t, l)
+            for t in range(len(g) - TILE + 1)
+            for l in range(len(g[0]) - TILE + 1)
+            if is_center(g, t, l)]
+
+
+# ---------- 底色与边上的记号 ----------
+
+# 瓦片读成 3x3 小格后：四角与正中承载底色，四条边的中点是「记号位」。
+# 记号位 -&gt; 它指向的邻居（以瓦片为单位的偏移）。
+EDGE_DIR = {(0, 1): (-1, 0), (2, 1): (1, 0), (1, 0): (0, -1), (1, 2): (0, 1)}
+BASE_SUB = ((0, 0), (0, 2), (1, 1), (2, 0), (2, 2))   # 承载底色的五个小格
+
+
+def tile_read(g, t, l):
+    &quot;&quot;&quot;把一块物理瓦片读成 (底色, 记号方向集合)；读不出来返回 (None, None)。
+
+    判据：3x3 小格里四角与正中同色（=底色），四条边的中点要么也是底色、要么是 MARK 色。
+    出现第三种颜色就是读不出——那不是一块瓦片（压在方框线上、压在图例上、是中心图样）。
+    这一条把「整块单色的普通瓦片」「四条边全带记号的『加号』」「只带一条边的」统一成同一种形态。
+    &quot;&quot;&quot;
+    pat = pattern_at(g, t, l)
+    if pat is None:
+        v = _uniform(g, t, l, TILE)
+        return (v, frozenset()) if v is not None else (None, None)
+    base = pat[0][0]
+    if any(pat[a][b] != base for a, b in BASE_SUB):
+        return (None, None)
+    marks = set()
+    for (a, b), d in EDGE_DIR.items():
+        if pat[a][b] == base:
+            continue
+        if pat[a][b] != MARK:
+            return (None, None)
+        marks.add(d)
+    return (base, frozenset(marks))
+
+
+def base_at(g, t, l):
+    &quot;&quot;&quot;一块物理瓦片的**底色**（四角与正中那五个小格的共同色）；读不出来（含越界）返回 None。&quot;&quot;&quot;
+    return tile_read(g, t, l)[0]
+
+
+def marks_at(g, t, l):
+    &quot;&quot;&quot;这块瓦片带记号的方向集合（(dr,dc) 以瓦片为单位）；读不出来返回 None。&quot;&quot;&quot;
+    return tile_read(g, t, l)[1]
+
+
+def marked_at(g, t, l):
+    &quot;&quot;&quot;这块瓦片带不带记号。&quot;&quot;&quot;
+    m = marks_at(g, t, l)
+    return bool(m)
+
+
+plus_at = marked_at   # 旧名：第 4 关只见过四条边全带记号的，当时管它叫「加号瓦片」
+
+
+def base_cells(g, t, l):
+    &quot;&quot;&quot;这块瓦片里**承载底色**的像素 (row, col)：整块 36 格，减去每个记号位占的 4 格。&quot;&quot;&quot;
+    base, marks = tile_read(g, t, l)
+    if base is None:
+        return None
+    skip = {sub for sub, d in EDGE_DIR.items() if d in marks}
+    return [(t + a * SUB + dr, l + b * SUB + dc)
+            for a in range(3) for b in range(3) if (a, b) not in skip
+            for dr in range(SUB) for dc in range(SUB)]
+
+
+def link_boxes(g, t, l, marks, cset=None):
+    &quot;&quot;&quot;(t,l) 的记号指向的邻居里，**真正会被推色**的那些框；说不出话返回 None。
+
+    实测：记号指向出界、指向空槽（底色=背景色）、指向另一个网格的中心瓦片时，
+    那个方向就是无效的 —— 那一块一格不动，也不算说不出话。
+    指向一块底色读不出来的东西才是没量过，返回 None。
+    第二个返回值是「在画面内、被跳过、因此应当一格不动」的那些框。
+    &quot;&quot;&quot;
+    if cset is None:
+        cset = set(centers(g))
+    move, frozen = [], []
+    for dr, dc in sorted(marks):
+        box = (t + dr * PITCH, l + dc * PITCH)
+        if box[0] &lt; 0 or box[1] &lt; 0 or box[0] + TILE &gt; len(g) or box[1] + TILE &gt; len(g[0]):
+            continue
+        if box in cset:
+            frozen.append(box)
+            continue
+        b = base_at(g, *box)
+        if b is None:
+            return None
+        if b == bg(g):
+            frozen.append(box)
+            continue
+        move.append(box)
+    return move, frozen
+
+
+def click_effect(g, action):
+    &quot;&quot;&quot;这一下点击把哪些物理瓦片的底色推到什么色：{(top,left): 新底色}；说不出话返回 None。
+
+    压着这几条主张（随引用它的概念一起被推翻）：
+      1. 点中的那块瓦片，底色沿调色板前进一位；
+      2. 它每一个**记号位**指向的那块邻居瓦片，底色也各自前进一位 —— 按**物理相邻**算，
+         不管那块瓦片属不属于任何网格（实测有一块不属于任何网格的瓦片照样被牵动）；
+         联动只走一步，不沿着记号继续传下去；
+      3. 记号指向出界、指向空槽、指向另一个网格的中心瓦片时，那个方向无效，那一块一格不动。
+    点在瓦片之外、调色板读不出来、被点那块或某个该受影响的邻居底色读不出来 / 不在调色板里，
+    一律返回 None ——**不是「没有影响」，是册子说不出话**。
+    &quot;&quot;&quot;
+    xy = click_xy(action)
+    if xy is None:
+        return None
+    hit = grid_ring_tile(g, xy[0], xy[1])
+    if hit is None:
+        return None
+    pal = palette_seq(g)
+    t, l = tile_box(hit[0], hit[1], hit[2])
+    base, marks = tile_read(g, t, l)
+    if base is None:
+        return None
+    lb = link_boxes(g, t, l, marks)
+    if lb is None:
+        return None
+    out = {}
+    for box in [(t, l)] + lb[0]:
+        nxt = next_color(pal, base_at(g, *box))
+        if nxt is None:
+            return None
+        out[box] = nxt
+    return out
+
+
+def tile_grids(g):
+    &quot;&quot;&quot;全图所有「3x3 瓦片网格」的左上角 (top, left) —— 即每个中心瓦片往左上退一个 PITCH。
+
+    网格允许伸到画面外、允许某些外环位置是空的，这两种位置在图样里记作 PAT_NONE。
+    &quot;&quot;&quot;
+    return [(t - PITCH, l - PITCH) for t, l in centers(g)]
+
+
+def center_pattern(g, origin):
+    &quot;&quot;&quot;中心瓦片 (1,1) 里的 3x3 图样：返回 3x3 的色号表；读不出来则 None。&quot;&quot;&quot;
+    if origin is None:
+        return None
+    t, l = tile_box(origin, 1, 1)
+    return pattern_at(g, t, l)
+
+
+def center_mid_color(g, origin):
+    &quot;&quot;&quot;中心瓦片正中那格（3x3 图样的 (1,1)）的颜色 —— 这个网格的「点亮色」。&quot;&quot;&quot;
+    pat = center_pattern(g, origin)
+    return None if pat is None else pat[1][1]
+
+
+def slot_kind(g, origin, i, j, cset=None):
+    &quot;&quot;&quot;外环某个位置是什么：
+
+      &#x27;off&#x27;    出界（哪怕只出一点）
+      &#x27;empty&#x27;  底色就是背景色 —— 那里根本没有瓦片
+      &#x27;center&#x27; 那里是另一个网格的中心瓦片
+      &#x27;solid&#x27;  底色读得出来且不是背景色 —— 可涂（带不带记号都算）
+      &#x27;other&#x27;  底色读不出来（压在方框线上、压在图例上、没见过的花纹）
+    &quot;&quot;&quot;
+    t, l = tile_box(origin, i, j)
+    if t &lt; 0 or l &lt; 0 or t + TILE &gt; len(g) or l + TILE &gt; len(g[0]):
+        return &quot;off&quot;
+    if cset is None:
+        cset = set(centers(g))
+    if (t, l) in cset:
+        return &quot;center&quot;
+    v = base_at(g, t, l)
+    if v is None:
+        return &quot;other&quot;
+    return &quot;empty&quot; if v == bg(g) else &quot;solid&quot;
+
+
+def unpaintable(g, origin, i, j, cset=None):
+    &quot;&quot;&quot;主张 PAT_NONE 对应的就是这三种位置。&quot;&quot;&quot;
+    return slot_kind(g, origin, i, j, cset) in (&quot;off&quot;, &quot;empty&quot;, &quot;center&quot;)
+
+
+def ring_colors(g, origin):
+    &quot;&quot;&quot;外环 8 个瓦片：{(i, j): 色}，不是单色的位置给 None。origin 为 None 时返回 None。&quot;&quot;&quot;
+    if origin is None:
+        return None
+    return {(i, j): tile_solid(g, origin, i, j)
+            for i in range(3) for j in range(3) if (i, j) != (1, 1)}
+
+
+def grid_ring_tile(g, x, y):
+    &quot;&quot;&quot;点击坐标（x=列, y=行）落在哪个网格的哪个外环位置：返回 (origin, i, j)。
+
+    纯几何，不管那个位置上有没有瓦片。落在中心瓦片、瓦片之间的缝里、所有网格之外，返回 None。
+    共用瓦片取扫到的第一个网格 —— 同一块物理瓦片，取哪个网格算出来的色号都一样。
+    &quot;&quot;&quot;
+    for o in tile_grids(g):
+        ij = tile_of_click(o, x, y)
+        if ij is not None and ij != (1, 1):
+            return (o, ij[0], ij[1])
+    return None
+
+
+# ---------- 调色板 ----------
+
+def _runs(line, skip):
+    out = []
+    i, n = 0, len(line)
+    while i &lt; n:
+        if line[i] == skip:
+            i += 1
+            continue
+        j = i
+        while j &lt; n and line[j] == line[i]:
+            j += 1
+        out.append((i, j - i, line[i]))
+        i = j
+    return out
+
+
+def legend_col(g):
+    &quot;&quot;&quot;图例所在的列：第 0 行里非背景色的极大游程恰好一条、且长 LEGEND_W 时，返回它的起点列。
+
+    第 0 关第 0 行整行背景 → None；第 1~3 关是 60；第 4 关挪到了 54 —— 所以不能写死列号。
+    &quot;&quot;&quot;
+    rs = _runs(g[0], bg(g))
+    if len(rs) != 1 or rs[0][1] != LEGEND_W:
+        return None
+    return rs[0][0]
+
+
+def legend_colors(g):
+    &quot;&quot;&quot;图例列从 row0 往下，每 LEGEND_W 行一个色块，读到不单色或撞背景色为止。
+
+    实测：第 0 关 []、第 1 关 [9,12]、第 2 关 [8,12]、第 3 关 [9,8,12]、第 4 关 [14,15]。
+    &quot;&quot;&quot;
+    c0 = legend_col(g)
+    if c0 is None:
+        return []
+    out, r = [], 0
+    while r + LEGEND_W &lt;= len(g):
+        v = _uniform(g, r, c0, LEGEND_W)
+        if v is None or v == bg(g):
+            break
+        out.append(v)
+        r += LEGEND_W
+    return out
+
+
+def grid_palette_colors(g):
+    &quot;&quot;&quot;清点：所有网格的**外环瓦片底色**（读得出且非背景的）与**正中格**颜色，去重后排序。
+
+    纯清点，不含「这些色就是本关的调色板」这类断言 —— 那是概念的主张。
+    没有网格、或某个网格读不出正中色时返回 None。
+    &quot;&quot;&quot;
+    grids = tile_grids(g)
+    if not grids:
+        return None
+    b = bg(g)
+    out = set()
+    for o in grids:
+        mid = center_mid_color(g, o)
+        if mid is None:
+            return None
+        out.add(mid)
+        for i in range(3):
+            for j in range(3):
+                if (i, j) == (1, 1):
+                    continue
+                v = base_at(g, *tile_box(o, i, j))
+                if v is not None and v != b:
+                    out.add(v)
+    return sorted(out)
+
+
+def palette_seq(g):
+    &quot;&quot;&quot;本关外环可用色的**有序**表：有图例就用图例的从上到下，没图例就退回从瓦片上清点后排序。
+
+    第 0 关没有图例，只能清点（那一关只有两色，顺序无所谓）。少于两色返回 None。
+    &quot;&quot;&quot;
+    seq = legend_colors(g)
+    if not seq:
+        cs = grid_palette_colors(g)
+        seq = list(cs) if cs else []
+    return seq if len(seq) &gt;= 2 else None
+
+
+def next_color(seq, c):
+    &quot;&quot;&quot;在有序调色板里前进一位（循环）。c 不在表里返回 None。&quot;&quot;&quot;
+    if seq is None or c not in seq:
+        return None
+    return seq[(seq.index(c) + 1) % len(seq)]
+
+
+# ---------- 目标 ----------
+
+def _product(lists):
+    out = [()]
+    for xs in lists:
+        out = [t + (v,) for t in out for v in xs]
+    return out
+
+
+def ring_targets(g, pat_on, pat_off):
+    &quot;&quot;&quot;每个网格的外环目标色表 {origin: {(i,j): 色}}；定不死就返回 None。
+
+    这里面压着四条主张，它们随引用本函数的概念一起被推翻：
+      1. 中心图样里 pat_on 的位置，外环应为该网格正中那格的颜色；
+      2. pat_off 的位置，外环应为调色板里**别的**某一个色（同一个网格里统一一个）；
+      3. PAT_NONE 的位置不是可涂瓦片，没有目标 —— 不进色表；
+      4. 同一块物理瓦片被两个网格共用时，两边要求的颜色必须相同。
+    调色板多于两色时第 2 条本身不唯一，靠第 4 条锁死；锁不死（解不唯一）就返回 None。
+    &quot;&quot;&quot;
+    grids = tile_grids(g)
+    pal = palette_seq(g)
+    if not grids or pal is None:
+        return None
+    mids, pats = {}, {}
+    for o in grids:
+        m, p = center_mid_color(g, o), center_pattern(g, o)
+        if m is None or p is None or m not in pal:
+            return None
+        for i in range(3):
+            for j in range(3):
+                if (i, j) != (1, 1) and p[i][j] not in (pat_on, pat_off, PAT_NONE):
+                    return None
+        mids[o], pats[o] = m, p
+    box = {}
+    for o in grids:
+        for i in range(3):
+            for j in range(3):
+                if (i, j) != (1, 1) and pats[o][i][j] != PAT_NONE:
+                    box.setdefault(tile_box(o, i, j), []).append((o, i, j))
+    cands = [[c for c in pal if c != mids[o]] for o in grids]
+    if not box:
+        return None
+    sols = []
+    for combo in _product(cands):
+        x = dict(zip(grids, combo))
+        want, ok = {}, True
+        for k, vs in box.items():
+            cols = {mids[o] if pats[o][i][j] == pat_on else x[o] for o, i, j in vs}
+            if len(cols) != 1:
+                ok = False
+                break
+            want[k] = cols.pop()
+        if ok:
+            sols.append(want)
+    if len(sols) != 1:
+        return None
+    want = sols[0]
+    return {o: {(i, j): want[tile_box(o, i, j)]
+                for i in range(3) for j in range(3)
+                if (i, j) != (1, 1) and pats[o][i][j] != PAT_NONE}
+            for o in grids}
+
+
+def all_matched_after_click(g, action, pat_on, pat_off):
+    &quot;&quot;&quot;把这一下点击的换色算进去之后，是否**每一个**网格的外环都等于目标色表。
+
+    返回 True / False；网格扫不出来、目标定不死、目标位置上底色读不出来、
+    点击的影响面算不出来，一律返回 None（说不出话，不是说没到齐）。
+    比的是**底色**：加号瓦片带着 MARK 花纹也算数，只看它花纹底下那个色。
+    共用瓦片存在，所以「凑齐」必须对所有网格同时成立。
+    &quot;&quot;&quot;
+    targets = ring_targets(g, pat_on, pat_off)
+    if targets is None:
+        return None
+    eff = click_effect(g, action)
+    if eff is None and click_xy(action) is not None:
+        return None
+    eff = eff or {}
+    for o, want in targets.items():
+        for (i, j), w in want.items():
+            box = tile_box(o, i, j)
+            cur = eff.get(box, base_at(g, *box))
+            if cur is None:
+                return None
+            if cur != w:
+                return False
+    return True
+
+
+PAT_MID = 0        # 中心图样里代表「该位置外环应为中心正中那格的颜色」的图样色
+PAT_OTHER = 2      # 中心图样里代表「该位置外环应为调色板里别的某一个色」的图样色
+
+
+def levelup_imminent(g, action):
+    &quot;&quot;&quot;这一下点击会不会当场换关——只从**帧**算，不看 ctx。说不出话返回 None。
+
+    为什么要有它：概念一直靠 ctx 的 level_prev != level_next 给换关那一步免责，
+    那在结算时管用，在**押注**时失效——押注时这一步还没走，ctx 里两个关卡号必然相等，
+    于是概念会照常预测，而换关后整屏重画，预测必错。
+    换关这件事册子本来就看得出（ring_matched_levels_up 判的就是它），所以写成帧上的判据，
+    结算和押注两头都成立。
+    &quot;&quot;&quot;
+    return all_matched_after_click(g, action, PAT_MID, PAT_OTHER)
+
+
+# ---------- 第 0 关的方框 ----------
+
+def frame_bbox(g):
+    &quot;&quot;&quot;FRAME 色最大连通块的外接框；没有就 None。&quot;&quot;&quot;
+    cs = components(cells_of(g, FRAME))
+    if not cs:
+        return None
+    return bbox(cs[0])
+
+
+def active_origin(g):
+    &quot;&quot;&quot;第 0 关那种「被 FRAME 方框圈住的网格」的左上瓦片 (top, left)；不是那种画面返回 None。&quot;&quot;&quot;
+    bb = frame_bbox(g)
+    if bb is None:
+        return None
+    t, b, l, r = bb
+    side = 3 * PITCH + TILE - 1
+    if (b - t, r - l) != (side, side):
+        return None
+    return (t + FRAME_PAD, l + FRAME_PAD)
+
+
+# ---------- 计数条 ----------
+
+BAR_ROW = -1       # 计数条在最后一行
+BAR_FULL = 12      # 还没用掉的那一段的颜色
+BAR_USED = 11      # 已经用掉的那一段的颜色
+
+
+def bar_used(g):
+    &quot;&quot;&quot;计数条上「已用」格数：最后一行里 BAR_USED 色的格数。行里出现别的颜色时返回 None。&quot;&quot;&quot;
+    row = g[BAR_ROW]
+    if any(v not in (BAR_FULL, BAR_USED) for v in row):
+        return None
+    return sum(1 for v in row if v == BAR_USED)
+
+
+def bar_runs(g):
+    &quot;&quot;&quot;清点：最后一行的游程 [(色, 长度), …]。不含任何「它是计数条」的断言。&quot;&quot;&quot;
+    out = []
+    for v in g[BAR_ROW]:
+        if out and out[-1][0] == v:
+            out[-1][1] += 1
+        else:
+            out.append([v, 1])
+    return [(a, b) for a, b in out]
+</code></pre></details></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/22ad2c44-13eb-4fc0-9e30-d1c27641b190" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

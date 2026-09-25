@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>objects/state/colors.py · lp85</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     这一局：瓷砖的颜色是不透明的 id，前端按 ARC 的 16 色调色板配色（配色表在 render.js 里）；
+     下面只有场地、按钮、插槽框、变了的格的描边这几样。 */
+  --field: #2b2f3a;  --outer: #151820;
+  --button: #8a93a6; --button-hit: #ffd84d;
+  --changed: #ffffff;
+  --bar-fill: #59b0ff; --bar-empty: #232834;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+  --link: #7ab8ff; --fg: #e8eaf0;
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>objects/state/colors.py</h1>
+  <div class="sub">`Colors` —— 每一块瓷砖现在的颜色，与 `World.cells` 同序一一对应。</div>
+  <nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../howto.html">怎么给别人看</a></nav>
+</header>
+<div class="cols"><div class="card"><h2>读数：抹掉它会怎样</h2>
+<dl class="kv"><dt>World 字段</dt><dd class="mono">colors</dd>
+<dt>字段消融</dt><dd>抹成常量，判决变了 <b>302</b> 处（其中规则直接跑不起来 274 处；分母 319 条 = 真实转移 + 错的 next）</dd>
+<dt>构造见证</dt><dd>seq 1：颜色整体循环挪一位 ⇒ 规则 <span class="mono">press_permutes</span> 从「C」变成「E」</dd></dl>
+<div class="boards" style="margin-top:12px"><figure class="board" style="margin:0"><figcaption>见证用的那一帧（seq 1）</figcaption><canvas data-seq="1" data-side="prev" data-scale="4"></canvas></figure></div></div><div class="card"><h2>为什么删不掉它</h2><pre class="doc">字段 colors（objects/state/colors.py）—— 为什么删不掉它
+
+1. 它记什么：每一格瓷砖现在的颜色，与 cells 同序。整局唯一真正被玩的东西。
+
+2. 谁读它（点名）：rule/click/press_permutes.py（下一帧颜色 = 按接线搬过的颜色）、
+   rule/click/dead_click.py（整个世界相等）、rule/win/win_iff_slots.py（插槽那一格的颜色）、
+   derive/panel.py::slot_rings（环上恰好一块角标色瓷砖）。
+
+3. 抹成常量（真跑）：判决变了 302 处，其中 274 处跑不起来（颜色个数与格数对不上）。
+   构造见证：A = seq 1 之前的世界；B = A 的颜色整体循环挪一位。press_permutes 对 A 判对、对 B 判错。
+
+4. 分离表「分得开」：第 3 / 245 帧，两帧版面、竖条都一样，只差颜色。自然见证与构造见证都在。
+
+判决：留。它也是 Lean 模型的全部状态（Obj/State/Colors.lean）。
+</pre></div><div class="card"><h2>它是什么</h2><pre class="doc">`Colors` —— 每一块瓷砖现在的颜色，与 `World.cells` 同序一一对应。
+
+这是整局**唯一真正被玩的东西**：每一次有效点击都是对它做一次置换（`derive/wiring.py`），
+过关就是「每个插槽那一格上的颜色等于它的角标色」。
+
+颜色是**不透明的标签**：规则只判相等，从不比大小、从不拿它当方向或当语义。
+旧册子吃过两次这个亏（拿箭头色当方向、拿一种角标色当全局常数）。</pre></div><div class="card"><h2>它的 Lean：Obj/State/Colors.lean（定义）</h2><pre class="lean">/-
+# Obj/State/Colors —— 每一格瓷砖现在的颜色（对应 `objects/state/colors.py`）
+
+**这就是模型的全部状态。** 第 k 项是 `Cells` 里第 k 格的颜色。
+
+`objects/state/bar.py`（竖条）**没有对应的 Lean 文件**：竖条的速率是关级常数，
+任何一帧上都读不出来，模型要带着它就得编一个速率。它的两条规则身份是「不进模型」，
+论域条数与被驳倒次数见 `lean2/readings.json` 的身份表。
+-/
+
+abbrev Colors := List Nat
+</pre></div></div>
+</div>
+<script>window.DATA={"boards":[{"tile":4,"rows":[19,25,31,37,43],"cols":[12,18,24,30,36,42,48],"cells":[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[1,0],[1,6],[2,0],[2,6],[3,0],[3,6],[4,0],[4,1],[4,2],[4,3],[4,4],[4,5],[4,6]],"buttons":[{"box":[29,36,2,7],"dir":[0,-1]},{"box":[29,36,56,61],"dir":[0,1]}],"slots":[{"cell":[0,0],"mark":11}],"kinds":["belt","belt"]},{"tile":2,"rows":[17,20,23,26,29,32,35,38,41,44],"cols":[17,20,23,26,29,32,35,38,41,44],"cells":[[0,2],[0,3],[0,4],[0,5],[0,6],[1,2],[1,6],[2,2],[2,6],[3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7],[3,8],[3,9],[4,2],[4,6],[5,2],[5,6],[6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],[6,7],[6,8],[6,9],[7,2],[7,6],[8,2],[8,6],[9,2],[9,3],[9,4],[9,5],[9,6]],"buttons":[{"box":[16,19,19,21],"dir":[0,-1]},{"box":[16,19,38,40],"dir":[0,1]},{"box":[25,28,13,15],"dir":[0,-1]},{"box":[25,28,47,49],"dir":[0,1]},{"box":[34,37,13,15],"dir":[0,-1]},{"box":[34,37,47,49],"dir":[0,1]}],"slots":[{"cell":[3,6],"mark":11},{"cell":[6,6],"mark":11}],"kinds":["belt","belt","belt","belt","belt","belt"]},{"tile":2,"rows":[19,22,25,28,31,34,37],"cols":[15,18,21,24,27,30,33,36,39,42,45],"cells":[[0,2],[0,3],[0,4],[0,6],[0,7],[0,8],[1,1],[1,5],[1,9],[2,0],[2,4],[2,6],[2,10],[3,0],[3,4],[3,6],[3,10],[4,0],[4,4],[4,6],[4,10],[5,1],[5,5],[5,9],[6,2],[6,3],[6,4],[6,6],[6,7],[6,8]],"buttons":[{"box":[40,43,22,24],"dir":[0,-1]},{"box":[40,43,25,27],"dir":[0,1]},{"box":[40,43,34,36],"dir":[0,-1]},{"box":[40,43,37,39],"dir":[0,1]}],"slots":[{"cell":[3,0],"mark":11},{"cell":[3,10],"mark":12}],"kinds":["belt","belt","belt","belt"]},{"tile":2,"rows":[9,12,15,18,21,39,42,45,48,51],"cols":[9,12,15,18,21,39,42,45,48,51],"cells":[[0,2],[0,7],[1,2],[1,7],[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],[2,8],[2,9],[3,2],[3,7],[4,2],[4,7],[5,2],[5,7],[6,2],[6,7],[7,0],[7,1],[7,2],[7,3],[7,4],[7,5],[7,6],[7,7],[7,8],[7,9],[8,2],[8,7],[9,2],[9,7]],"buttons":[{"box":[5,7,14,17],"dir":[-1,0]},{"box":[5,7,44,47],"dir":[-1,0]},{"box":[14,17,5,7],"dir":[0,-1]},{"box":[14,17,24,26],"dir":[0,1]},{"box":[14,17,35,37],"dir":[0,-1]},{"box":[14,17,54,56],"dir":[0,1]},{"box":[24,26,14,17],"dir":[1,0]},{"box":[24,26,44,47],"dir":[1,0]},{"box":[35,37,14,17],"dir":[-1,0]},{"box":[35,37,44,47],"dir":[-1,0]},{"box":[44,47,5,7],"dir":[0,-1]},{"box":[44,47,24,26],"dir":[0,1]},{"box":[44,47,35,37],"dir":[0,-1]},{"box":[44,47,54,56],"dir":[0,1]},{"box":[54,56,14,17],"dir":[1,0]},{"box":[54,56,44,47],"dir":[1,0]}],"slots":[{"cell":[7,7],"mark":11},{"cell":[7,9],"mark":12}],"kinds":["belt","belt","belt","belt","belt","belt","belt","belt","belt","belt","belt","belt","belt","belt","belt","belt"]},{"tile":4,"rows":[6,12,18,24,30,36,42,48,54],"cols":[17,23,29,35,41],"cells":[[0,0],[0,1],[0,2],[0,3],[0,4],[1,0],[2,0],[2,1],[2,2],[3,2],[4,0],[4,1],[4,2],[5,0],[6,0],[6,1],[6,2],[7,2],[8,0],[8,1],[8,2]],"buttons":[{"box":[4,11,7,12],"dir":[0,-1]},{"box":[4,11,49,54],"dir":[0,1]},{"box":[34,41,9,14],"dir":[0,-1]},{"box":[34,41,35,40],"dir":[0,1]}],"slots":[{"cell":[0,0],"mark":11},{"cell":[0,4],"mark":11}],"kinds":["belt","belt","belt","belt"]},{"tile":2,"rows":[6,9,12,15,18,21,24,27,33,36,39,42,45,48,51,54],"cols":[5,8,11,14,17,20,23,26,29,32,35,38,41,44,47,50,53],"cells":[[0,0],[0,3],[0,6],[0,10],[0,13],[0,16],[1,1],[1,3],[1,5],[1,11],[1,13],[1,15],[2,2],[2,3],[2,4],[2,12],[2,13],[2,14],[3,0],[3,1],[3,2],[3,4],[3,5],[3,6],[3,10],[3,11],[3,12],[3,14],[3,15],[3,16],[4,2],[4,3],[4,4],[4,12],[4,13],[4,14],[5,1],[5,3],[5,5],[5,11],[5,13],[5,15],[6,0],[6,3],[6,6],[6,10],[6,13],[6,16],[7,7],[7,9],[8,8],[9,5],[9,8],[9,11],[10,6],[10,8],[10,10],[11,7],[11,8],[11,9],[12,5],[12,6],[12,7],[12,9],[12,10],[12,11],[13,7],[13,8],[13,9],[14,6],[14,8],[14,10],[15,5],[15,8],[15,11]],"buttons":[{"box":[14,17,26,28],"dir":[0,1]},{"box":[14,17,56,58],"dir":[0,1]},{"box":[27,30,14,16],"dir":[0,1]},{"box":[27,30,44,46],"dir":[0,1]},{"box":[44,47,41,43],"dir":[0,1]},{"box":[54,56,52,55],"dir":[-1,0]},{"box":[57,60,29,31],"dir":[0,1]}],"slots":[{"cell":[7,7],"mark":11},{"cell":[7,9],"mark":11},{"cell":[8,8],"mark":11}],"kinds":["star-rad","star-rad","star-rot","star-rot","star-rad","hub","star-rot"]},{"tile":2,"rows":[23,26,29,35,38],"cols":[20,23,26,29,32,35,38,41],"cells":[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[1,0],[2,0],[3,3],[3,4],[4,3],[4,4]],"buttons":[{"box":[19,21,19,22],"dir":[-1,0]},{"box":[32,34,19,22],"dir":[1,0]},{"box":[41,44,28,30],"dir":[0,-1]},{"box":[41,44,32,34],"dir":[0,1]}],"slots":[{"cell":[0,7],"mark":11},{"cell":[3,4],"mark":11}],"kinds":["belt","belt","belt","belt"]},{"tile":2,"rows":[6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51],"cols":[3,6,9,12,15,18,21,24,27,30,33,36,39,42],"cells":[[0,1],[0,7],[1,2],[1,5],[1,7],[1,11],[2,0],[2,3],[2,6],[2,9],[2,11],[2,13],[3,1],[3,4],[3,7],[3,9],[3,11],[3,13],[4,2],[4,5],[4,8],[4,11],[4,13],[5,3],[5,6],[5,9],[5,11],[5,13],[6,4],[6,7],[6,10],[6,13],[7,5],[7,8],[7,11],[7,13],[8,6],[8,9],[8,11],[8,13],[9,7],[9,9],[9,11],[9,13],[10,7],[10,9],[10,11],[10,13],[11,7],[11,9],[11,11],[11,13],[12,7],[12,9],[12,11],[12,13],[13,7],[13,9],[13,11],[13,13],[14,7],[14,9],[14,11],[14,12],[14,13],[15,7],[15,9],[15,11],[15,13]],"buttons":[{"box":[23,26,48,50],"dir":[0,-1]},{"box":[23,26,52,54],"dir":[0,1]},{"box":[28,31,48,50],"dir":[0,-1]},{"box":[28,31,52,54],"dir":[0,1]},{"box":[33,36,48,50],"dir":[0,-1]},{"box":[33,36,52,54],"dir":[0,1]},{"box":[56,59,30,32],"dir":[0,-1]},{"box":[56,59,35,37],"dir":[0,1]}],"slots":[{"cell":[15,7],"mark":11},{"cell":[15,9],"mark":11},{"cell":[15,11],"mark":11}],"kinds":["panel","panel","panel","panel","panel","panel","panel","panel"]}],"steps":[{"seq":1,"step":1,"action":"ACTION6:5,32","lvl":0,"lvl_next":0,"state_next":"NOT_FINISHED","cert":false,"mark":null,"seg":"f5450d20","board":0,"click":[5,32],"hit_button":0,"hit_kind":"belt","prev":[1,2,10,9,15,11,2,10,15,15,9,2,10,1,1,9,9,10,15,2],"next":[2,10,9,15,11,2,15,1,9,10,10,15,2,2,1,1,9,9,10,15],"next_board":null,"next_colors_raw":[2,10,9,15,11,2,15,1,9,10,10,15,2,2,1,1,9,9,10,15],"bar":0,"bar_next":5,"changed":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,17,18,19],"verdicts":{"dead_click":"N:点中按钮","press_permutes":"C","bar_never_drops":"C","new_level_bar_empty":"N:没换关","win_iff_slots":"C","board_static":"C"}}],"rules":["dead_click","press_permutes","bar_never_drops","new_level_bar_empty","win_iff_slots","board_static"],"palette":["#FFFFFF","#CCCCCC","#999999","#666666","#333333","#000000","#E53AA3","#FF7BCC","#F93C31","#1E93FF","#88D8F1","#FFDC00","#FF851B","#921231","#4FCC30","#A356D6"]};</script>
+<script>
+// 画一张盘。**只有尺寸与配色**：每个位置、每个颜色 id、哪几格变了、点在哪、点中了哪个按钮，
+// 全是 web/export.py 在 Python 那边算好导出来的。这里一个世界的数都不算。
+// check_no_logic.py 会来这里搜对象层 / 推导层 / 规则层 / 形式化层的函数名，搜到就算破。
+
+(function () {
+  // 色号 → 显示色：web/export.py 从 ARC-AGI-3 官方色表取好写进 DATA.palette，这里只读，不另抄。
+  const PALETTE = window.DATA.palette;
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888";
+
+  function draw(canvas, board, colors, opts) {
+    opts = opts || {};
+    const S = opts.scale || 6;
+    const N = 64;
+    canvas.width = N * S;
+    canvas.height = N * S;
+    const g = canvas.getContext("2d");
+    g.fillStyle = css("--field");
+    g.fillRect(0, 0, N * S, N * S);
+
+    // 竖条（第 0 列）：导出的是填了几格
+    if (typeof opts.bar === "number") {
+      g.fillStyle = css("--bar-empty");
+      g.fillRect(0, 0, S, N * S);
+      g.fillStyle = css("--bar-fill");
+      g.fillRect(0, 0, S, opts.bar * S);
+    }
+
+    const t = board.tile;
+    // 瓷砖
+    board.cells.forEach((rc, i) => {
+      const y = board.rows[rc[0]], x = board.cols[rc[1]];
+      g.fillStyle = PALETTE[colors[i] % 16];
+      g.fillRect(x * S, y * S, t * S, t * S);
+    });
+    // 插槽：在格外画一圈角标色的框（角标本来是四角的小方块，这里画成框更好认）
+    board.slots.forEach((sl) => {
+      const y = board.rows[sl.cell[0]], x = board.cols[sl.cell[1]];
+      g.strokeStyle = PALETTE[sl.mark % 16];
+      g.lineWidth = Math.max(2, S / 2);
+      g.strokeRect((x - 1) * S, (y - 1) * S, (t + 2) * S, (t + 2) * S);
+    });
+    // 按钮：框 + 指向的小三角
+    board.buttons.forEach((b, i) => {
+      const [r0, r1, c0, c1] = b.box;
+      g.fillStyle = i === opts.hitButton ? css("--button-hit") : css("--button");
+      g.globalAlpha = 0.85;
+      g.fillRect(c0 * S, r0 * S, (c1 - c0 + 1) * S, (r1 - r0 + 1) * S);
+      g.globalAlpha = 1;
+      const cy = (r0 + r1 + 1) / 2 * S, cx = (c0 + c1 + 1) / 2 * S;
+      const h = Math.min(r1 - r0 + 1, c1 - c0 + 1) * S * 0.35;
+      const [dr, dc] = b.dir;
+      g.fillStyle = "#111";
+      g.beginPath();
+      g.moveTo(cx + dc * h, cy + dr * h);
+      g.lineTo(cx - dc * h * 0.6 - dr * h * 0.7, cy - dr * h * 0.6 + dc * h * 0.7);
+      g.lineTo(cx - dc * h * 0.6 + dr * h * 0.7, cy - dr * h * 0.6 - dc * h * 0.7);
+      g.closePath();
+      g.fill();
+    });
+    // 这一步变了的格：白框
+    (opts.changed || []).forEach((i) => {
+      const rc = board.cells[i];
+      const y = board.rows[rc[0]], x = board.cols[rc[1]];
+      g.strokeStyle = css("--changed");
+      g.lineWidth = 1.5;
+      g.strokeRect(x * S + 1, y * S + 1, t * S - 2, t * S - 2);
+    });
+    // 点在哪
+    if (opts.click) {
+      const [x, y] = opts.click;
+      g.strokeStyle = "#ff4d6d";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc((x + 0.5) * S, (y + 0.5) * S, S * 1.6, 0, Math.PI * 2);
+      g.stroke();
+    }
+  }
+
+  window.Render = { draw, PALETTE };
+})();
+
+</script>
+<script>
+// 回放页：一步步翻导出好的轨迹。**只摆数据**——每一帧的颜色、变了哪几格、点中了哪个按钮、
+// 每条规则说了什么，都是 web/export.py 算好的。
+// 另外两处也用这一份：页面上带 data-seq 的 <canvas>，按导出的那一帧画（首页、对象页、规则页的配图）。
+
+(function () {
+  const D = window.DATA;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  function frameBySeq(seq) {
+    return D.steps.find((f) => f.seq === seq);
+  }
+
+  function paintStatic() {
+    document.querySelectorAll("canvas[data-seq]").forEach((cv) => {
+      const f = frameBySeq(Number(cv.dataset.seq));
+      if (!f) return;
+      const after = cv.dataset.side === "next";
+      const board = after && f.next_board ? f.next_board : D.boards[f.board];
+      const colors = after ? (f.next || f.next_colors_raw) : f.prev;
+      window.Render.draw(cv, board, colors, {
+        scale: Number(cv.dataset.scale || 5),
+        bar: after ? f.bar_next : f.bar,
+        changed: after ? f.changed : [],
+        click: after ? null : f.click,
+        hitButton: after ? null : f.hit_button,
+      });
+    });
+  }
+
+  function verdictChip(v) {
+    if (!v) return "";
+    if (v === "C") return '<span class="chip TRUE">判对</span>';
+    if (v === "E") return '<span class="chip FALSE">判错</span>';
+    if (v === "U") return '<span class="chip NA">读不成</span>';
+    return '<span class="chip NA">不管</span> <span class="why">' + esc(v.slice(2)) + "</span>";
+  }
+
+  function show(i) {
+    const f = D.steps[i];
+    $("pos").value = i;
+    $("label").textContent = `第 ${i + 1} / ${D.steps.length} 行 · seq ${f.seq} · 第 ${f.lvl} 关`
+      + (f.cert ? " · 认证段" : " · 未认证段");
+    const board = D.boards[f.board];
+    window.Render.draw($("before"), board, f.prev,
+      { scale: 6, bar: f.bar, click: f.click, hitButton: f.hit_button });
+    const nb = f.next_board || board;
+    window.Render.draw($("after"), nb, f.next || f.next_colors_raw,
+      { scale: 6, bar: f.bar_next, changed: f.changed });
+    let what = `<b>${esc(f.action)}</b>`;
+    if (f.mark) what += `　<span class="chip NA">不接手</span> ${esc(f.mark)}`;
+    else if (f.hit_button === null) what += "　点空（没落在任何按钮里）";
+    else what += `　点中第 ${f.hit_button} 个按钮（${esc(f.hit_kind)}）`;
+    if (f.lvl_next !== f.lvl) what += `　→ <b>过关</b>（下一帧是第 ${f.lvl_next} 关${f.state_next === "WIN" ? "，整局赢了" : ""}）`;
+    what += `　竖条 ${f.bar} → ${f.bar_next}；变了 ${f.changed.length} 格`;
+    $("what").innerHTML = what;
+    let rows = "";
+    for (const name of D.rules) {
+      const v = (f.verdicts || {})[name];
+      rows += `<tr><td class="mono"><a href="rules/${name}.html">${name}</a></td><td>${verdictChip(v)}</td></tr>`;
+    }
+    $("verdicts").innerHTML = rows;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    paintStatic();
+    if (!$("pos")) return;
+    $("pos").max = D.steps.length - 1;
+    $("pos").addEventListener("input", (e) => show(Number(e.target.value)));
+    $("prevBtn").addEventListener("click", () => show(Math.max(0, Number($("pos").value) - 1)));
+    $("nextBtn").addEventListener("click", () => show(Math.min(D.steps.length - 1, Number($("pos").value) + 1)));
+    const start = Number(new URLSearchParams(location.search).get("i") || 0);
+    show(start);
+  });
+})();
+
+</script>
+</body>
+</html>

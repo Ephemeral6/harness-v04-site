@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean · Derived/Slots.lean</title>
+<style>
+/* 只有尺寸与配色。形状照 ledger/templates/web/style.css（一行一张卡、结论在前、堆料收进 details）。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;  --warn: #c9a227;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif; }
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 0 0 14px; }
+.card h2 { margin: 0 0 8px; font-size: 16px; }
+.gaps { border-color: var(--warn); }
+.gaps li { margin: 3px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+th { color: var(--dim); font-weight: 500; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; }
+.chip.TRUE, .chip.C { background: #1f3b2c; color: var(--ok); }
+.chip.FALSE, .chip.E { background: #45201e; color: var(--bad); }
+.chip.NA, .chip.N, .chip.U { background: #262a35; color: var(--dim); }
+.note { color: var(--dim); font-size: 13px; }
+.grouphead { margin: 18px 0 4px; font-weight: 600; font-size: 15px; }
+pre { background: #0e1015; border: 1px solid var(--line); padding: 10px; overflow-x: auto;
+  font-size: 12px; line-height: 1.45; white-space: pre; }
+details summary { cursor: pointer; color: var(--dim); }
+.boards { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.shot { text-align: center; font-size: 12px; color: var(--dim); }
+canvas.frame { image-rendering: pixelated; width: 256px; height: 256px; border: 1px solid var(--line); }
+.row { display: block; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+input[type=range] { width: 360px; max-width: 100%; }
+select, button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 3px 8px; }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Lean · Derived/Slots.lean</h1><div class="sub">源码原样</div>
+<nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../howto.html">怎么给别人看</a>
+</nav>
+</header>
+<div class='card'><pre>/-
+# Derived/Slots —— 每件东西待在自己的格位上（推论，不是定义）
+
+Python 那边有两条规则在这里**掉成了推论**：
+
+    move/others_stay   推一下时，没被选中的那几件不变
+    board/layers       图层次序一步之内不翻
+
+这边 `World.pieces` 的**下标就是图层**，而 `next` 只用 `List.set` 改被选中那一格、
+或者只改 `active`——所以两句话都是架构推出来的，不必另写定义。它们在这里是定理，
+**会失败**：哪天 `next` 改成重排列表、或者顺手动了别的格，这两条当场编不过。
+-/
+
+import Obj.World
+import Step
+
+-- 定理放在顶层：装置的 lean_check 用不带命名空间的名字打 `#print axioms`
+open Game
+
+/-- **move/others_stay**：推一下（非 ACTION5），件数不变，没被选中的每一格原样。 -/
+theorem others_stay (b : Board) (s s&#x27; : World) (a : Act) (ha : a ≠ .switch)
+    (h : next b s a = some s&#x27;) :
+    s&#x27;.pieces.length = s.pieces.length ∧ ∀ i, i ≠ s.active → s&#x27;.pieces[i]? = s.pieces[i]? := by
+  cases a with
+  | switch =&gt; exact absurd rfl ha
+  | up | down | left | right =&gt;
+    simp only [next] at h
+    split at h
+    · simp at h
+    · obtain ⟨q, _, hq⟩ := Option.map_eq_some_iff.mp h
+      subst hq
+      refine ⟨List.length_set, ?_⟩
+      intro i hi
+      exact List.getElem?_set_ne (Ne.symm hi)
+
+/-- **board/layers**：任何一步之后，件数不变，没被选中的每一格原样（ACTION5 连被选中的那格也不动）。
+    下标就是图层，所以这就是「图层不翻」。 -/
+theorem layers_kept (b : Board) (s s&#x27; : World) (a : Act) (h : next b s a = some s&#x27;) :
+    s&#x27;.pieces.length = s.pieces.length ∧ ∀ i, i ≠ s.active → s&#x27;.pieces[i]? = s.pieces[i]? := by
+  by_cases ha : a = .switch
+  · subst ha
+    simp only [next, Option.some.injEq] at h
+    subst h
+    exact ⟨rfl, fun _ _ =&gt; rfl⟩
+  · exact others_stay b s s&#x27; a ha h
+
+/-- **switch/cycle 的那一半**：ACTION5 一件东西都不改。 -/
+theorem switch_keeps_pieces (b : Board) (s s&#x27; : World) (h : next b s .switch = some s&#x27;) :
+    s&#x27;.pieces = s.pieces := by
+  simp only [next, Option.some.injEq] at h
+  subst h
+  rfl
+
+#print axioms others_stay
+#print axioms layers_kept
+#print axioms switch_keeps_pieces
+</pre></div>
+</div></body></html>

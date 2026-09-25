@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obs/Replay.lean</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     世界的配色。这些值是**前端配的**，不是世界里的颜色 —— 世界那边只有几个名字，
+     以及一个不透明的 id（只许判相等）。名字换成本局的，个数随本局。
+     下面这一组是某一局的样子，留着当个例子： */
+  /* 这一局画的是原始帧：16 个色号的显示色不在这里配——由 web/export.py 从 ARC-AGI-3 官方色表
+     写进 SITE.palette，site.js 读它。 */
+  --hit: #ffd84d;  --diff: #ff4136;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+</style>
+</head><body><div class="wrap">
+<header><h1>Obs/Replay.lean</h1><div class="sub">观测：整条轨迹，只存这一份（生成）</div><nav><a href="../index.html">这是个什么游戏</a><a href="../replay.html">回放</a><a href="../objects/index.html">对象</a><a href="../rules/index.html">规则</a><a href="../lean/index.html">形式化</a><a href="../share.html">怎么给别人看</a></nav></header>
+<div class="card"><h2>源码</h2><pre class="lean">/-
+# Replay —— 整条轨迹，**只存这一份**（自动生成：`python lean2/export_replay.py`，不要手改）
+
+语料：封存局 sb26-20260907 · run sb26-0907-1213 · 424 行（两段：3c596d2f seq 1–299 认证=False；7138129b seq 300–424 认证=True）。
+这里收了 423 步；不收的 1 步是前一帧读不成世界的（终局画面 (a) 档），见 `excluded`。
+
+## 身份
+
+切片键是 `seq`（唯一，已核）。`step` 有 3 处重号 —— 不许拿它当键。
+
+## 两个口径在这一局重合（逐帧核过，不是假定）
+
+    layouts     每一关一张版面。导出时把**每一帧**读到的版面和本关版面比过一遍，全等
+    worlds      每一帧的局面，去重后 302 个，按下标引用
+
+过关那一步的下一帧是下一关的盘：`obs = levelUp`，**不带世界，版面也不并进本关**。
+-/
+
+import Obs.Check
+
+namespace Game
+namespace Replay
+
+set_option maxRecDepth 100000
+
+
+/-- 每一关一张版面（第 0 关到第 7 关）。 -/
+def layouts : List Layout := [
+  ⟨[9, 14, 11, 15], [⟨8, true, [⟨29, 22⟩, ⟨29, 28⟩, ⟨29, 34⟩, ⟨29, 40⟩]⟩], [⟨58, 19⟩, ⟨58, 27⟩, ⟨58, 35⟩, ⟨58, 43⟩]⟩,
+  ⟨[12, 15, 8, 9, 14, 11, 6], [⟨8, true, [⟨22, 22⟩, ⟨22, 28⟩, ⟨22, 34⟩, ⟨22, 40⟩]⟩, ⟨14, false, [⟨36, 22⟩, ⟨36, 28⟩, ⟨36, 34⟩, ⟨36, 40⟩]⟩], [⟨58, 10⟩, ⟨58, 17⟩, ⟨58, 24⟩, ⟨58, 31⟩, ⟨58, 38⟩, ⟨58, 45⟩, ⟨58, 52⟩]⟩,
+  ⟨[8, 14, 15, 11, 6, 9, 12], [⟨8, true, [⟨23, 19⟩, ⟨23, 25⟩, ⟨23, 31⟩, ⟨23, 37⟩, ⟨23, 43⟩]⟩, ⟨14, false, [⟨35, 19⟩, ⟨35, 25⟩]⟩, ⟨9, false, [⟨35, 37⟩, ⟨35, 43⟩]⟩], [⟨58, 10⟩, ⟨58, 17⟩, ⟨58, 24⟩, ⟨58, 31⟩, ⟨58, 38⟩, ⟨58, 45⟩, ⟨58, 52⟩]⟩,
+  ⟨[11, 8, 14, 9, 6, 12, 15], [⟨8, true, [⟨22, 19⟩, ⟨22, 25⟩, ⟨22, 31⟩, ⟨22, 37⟩, ⟨22, 43⟩]⟩, ⟨14, false, [⟨36, 25⟩, ⟨36, 31⟩, ⟨36, 37⟩]⟩], [⟨58, 10⟩, ⟨58, 17⟩, ⟨58, 24⟩, ⟨58, 31⟩, ⟨58, 38⟩, ⟨58, 45⟩, ⟨58, 52⟩]⟩,
+  ⟨[6, 14, 8, 8, 14, 8, 8, 11, 15], [⟨8, true, [⟨22, 19⟩, ⟨22, 25⟩, ⟨22, 31⟩, ⟨22, 37⟩, ⟨22, 43⟩]⟩, ⟨9, false, [⟨36, 25⟩, ⟨36, 31⟩, ⟨36, 37⟩]⟩], [⟨58, 6⟩, ⟨58, 13⟩, ⟨58, 20⟩, ⟨58, 27⟩, ⟨58, 34⟩, ⟨58, 41⟩, ⟨58, 48⟩, ⟨58, 55⟩]⟩,
+  ⟨[9, 11, 11, 12, 15, 15, 14, 6, 6], [⟨8, true, [⟨22, 12⟩, ⟨22, 18⟩, ⟨22, 24⟩]⟩, ⟨14, false, [⟨22, 38⟩, ⟨22, 44⟩, ⟨22, 50⟩]⟩, ⟨9, false, [⟨36, 12⟩, ⟨36, 18⟩, ⟨36, 24⟩]⟩, ⟨12, false, [⟨36, 38⟩, ⟨36, 44⟩, ⟨36, 50⟩]⟩], [⟨58, 3⟩, ⟨58, 10⟩, ⟨58, 17⟩, ⟨58, 24⟩, ⟨58, 31⟩, ⟨58, 38⟩, ⟨58, 45⟩, ⟨58, 52⟩, ⟨58, 59⟩]⟩,
+  ⟨[8, 9, 14, 11, 14, 9, 8], [⟨8, true, [⟨16, 25⟩, ⟨16, 31⟩, ⟨16, 37⟩]⟩, ⟨9, false, [⟨29, 25⟩, ⟨29, 31⟩, ⟨29, 37⟩]⟩, ⟨14, false, [⟨42, 25⟩, ⟨42, 31⟩, ⟨42, 37⟩]⟩], [⟨58, 6⟩, ⟨58, 13⟩, ⟨58, 20⟩, ⟨58, 27⟩, ⟨58, 34⟩, ⟨58, 41⟩, ⟨58, 48⟩, ⟨58, 55⟩]⟩,
+  ⟨[8, 11, 12, 9, 14, 15], [⟨8, true, [⟨26, 22⟩, ⟨26, 28⟩, ⟨26, 34⟩, ⟨26, 40⟩]⟩, ⟨9, false, [⟨40, 22⟩, ⟨40, 28⟩, ⟨40, 34⟩, ⟨40, 40⟩]⟩], [⟨58, 6⟩, ⟨58, 13⟩, ⟨58, 20⟩, ⟨58, 27⟩, ⟨58, 34⟩, ⟨58, 41⟩, ⟨58, 48⟩, ⟨58, 55⟩]⟩]
+
+/-- 全部局面，去重后 302 个。 -/
+def worlds : List World := [
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 1⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 0⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 2⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 3⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 19⟩, 3⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 4⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 22⟩, 4⟩,
+  ⟨[(⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 5⟩,
+  ⟨[(⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 35⟩, 5⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 6⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 43⟩, 6⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 7⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 27⟩, 7⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 8⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 8⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 27⟩, 8⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 9⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 10⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 10⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 11⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 28⟩, 11⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 12⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 12⟩,
+  ⟨[(⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 13⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 13⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 27⟩, 13⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 14⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 34⟩, 14⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩)], none, 15⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 22⟩, 15⟩,
+  ⟨[(⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩)], none, 16⟩,
+  ⟨[(⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 28⟩, 16⟩,
+  ⟨[(⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 11⟩)], none, 17⟩,
+  ⟨[(⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 40⟩, 17⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 18⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 19⟩, 18⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 19⟩,
+  ⟨[(⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 11⟩)], none, 19⟩,
+  ⟨[(⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩)], none, 19⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩), (⟨58, 19⟩, ⟨Kind.brick, 9⟩)], none, 19⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 19⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 34⟩, 19⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], none, 20⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 28⟩, 20⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], none, 21⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 22⟩, 21⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], none, 22⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 34⟩, 22⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], none, 23⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 22⟩, 23⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], none, 24⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 28⟩, 24⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], none, 25⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 34⟩, 25⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 26⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 26⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 27⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 34⟩, 27⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], none, 28⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 28⟩, 28⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], none, 29⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 22⟩, 29⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], none, 30⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨29, 34⟩, 30⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], none, 31⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 22⟩, 31⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], none, 32⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 28⟩, 32⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], none, 33⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 34⟩, 33⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 34⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 34⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 35⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 34⟩, 35⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], none, 36⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 28⟩, 36⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], none, 37⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 22⟩, 37⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], none, 38⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 14⟩)], some ⟨29, 34⟩, 38⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], none, 39⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 15⟩), (⟨29, 28⟩, ⟨Kind.brick, 11⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 22⟩, 39⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], none, 40⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 15⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 28⟩, 40⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], none, 41⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 15⟩), (⟨29, 40⟩, ⟨Kind.brick, 9⟩)], some ⟨29, 34⟩, 41⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 42⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 34⟩, 42⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 28⟩, 42⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 42⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 40⟩, 42⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 43⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 34⟩, 43⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 44⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 28⟩, 44⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 45⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 45⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 46⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 35⟩, 46⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 43⟩, 46⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 27⟩, 46⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 19⟩, 46⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 47⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 35⟩, 47⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 48⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨29, 22⟩, 48⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 34⟩, ⟨Kind.brick, 14⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 49⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], none, 49⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 19⟩, 49⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 11⟩), (⟨58, 43⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 43⟩, 49⟩,
+  ⟨[(⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 35⟩, ⟨Kind.brick, 9⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 35⟩, 0⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 1⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨58, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 19⟩, 1⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], none, 2⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩), (⟨58, 43⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 43⟩, 2⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], none, 3⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 27⟩, 3⟩,
+  ⟨[(⟨29, 22⟩, ⟨Kind.brick, 9⟩), (⟨29, 28⟩, ⟨Kind.brick, 14⟩), (⟨29, 34⟩, ⟨Kind.brick, 11⟩), (⟨29, 40⟩, ⟨Kind.brick, 15⟩)], none, 4⟩,
+  ⟨[(⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 0⟩,
+  ⟨[(⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 17⟩, 0⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 1⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 24⟩, 1⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 2⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 10⟩, 2⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 3⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 31⟩, 3⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 4⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 38⟩, 4⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 5⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 45⟩, 5⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 6⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 52⟩, 6⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 7⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 8⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 15⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 12⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨22, 22⟩, 8⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 15⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 9⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 8⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 15⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨22, 28⟩, 9⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 10⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 14⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 9⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨36, 22⟩, 10⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 11⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 6⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨36, 28⟩, 11⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 6⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 12⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 6⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], some ⟨36, 34⟩, 12⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], none, 13⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], none, 14⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 8⟩), (⟨36, 22⟩, ⟨Kind.brick, 9⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], some ⟨22, 40⟩, 14⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 9⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], none, 15⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 9⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 14⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], some ⟨22, 40⟩, 15⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 14⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], none, 16⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 14⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 11⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], some ⟨22, 40⟩, 16⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 11⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], none, 17⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 11⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨36, 40⟩, ⟨Kind.brick, 6⟩)], some ⟨22, 40⟩, 17⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 18⟩,
+  ⟨[(⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩), (⟨58, 52⟩, ⟨Kind.brick, 8⟩)], some ⟨58, 52⟩, 0⟩,
+  ⟨[(⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩), (⟨58, 52⟩, ⟨Kind.brick, 8⟩)], none, 0⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 1⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 17⟩, 1⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 2⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 24⟩, 2⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 3⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 31⟩, 3⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 4⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 45⟩, 4⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩)], none, 5⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 38⟩, 5⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨35, 43⟩, ⟨Kind.brick, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩)], none, 6⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨35, 43⟩, ⟨Kind.brick, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩)], some ⟨58, 10⟩, 6⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨35, 43⟩, ⟨Kind.brick, 9⟩)], none, 7⟩,
+  ⟨[(⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], some ⟨58, 52⟩, 0⟩,
+  ⟨[(⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], none, 0⟩,
+  ⟨[(⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], none, 1⟩,
+  ⟨[(⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 10⟩, 1⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], none, 2⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 31⟩, 2⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], none, 3⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 45⟩, 3⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 4⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 17⟩, 4⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨36, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 5⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨36, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 24⟩, 5⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨36, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 6⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨36, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 38⟩, 6⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨36, 37⟩, ⟨Kind.brick, 6⟩)], none, 7⟩,
+  ⟨[(⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 13⟩, ⟨Kind.brick, 6⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 9⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 13⟩, 0⟩,
+  ⟨[(⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 13⟩, ⟨Kind.brick, 6⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 9⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 0⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 9⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 1⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 9⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 48⟩, 1⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 2⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 55⟩, 2⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 3⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 34⟩, 3⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 4⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 6⟩, 4⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 5⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 41⟩, 5⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩)], none, 6⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩)], some ⟨58, 20⟩, 6⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩)], none, 7⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩)], some ⟨58, 27⟩, 7⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 6⟩), (⟨22, 25⟩, ⟨Kind.link, 9⟩), (⟨22, 31⟩, ⟨Kind.link, 9⟩), (⟨22, 37⟩, ⟨Kind.brick, 11⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 8⟩), (⟨36, 37⟩, ⟨Kind.brick, 8⟩)], none, 8⟩,
+  ⟨[(⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.link, 14⟩), (⟨58, 52⟩, ⟨Kind.link, 9⟩), (⟨58, 59⟩, ⟨Kind.link, 12⟩)], some ⟨58, 52⟩, 0⟩,
+  ⟨[(⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.link, 14⟩), (⟨58, 52⟩, ⟨Kind.link, 9⟩), (⟨58, 59⟩, ⟨Kind.link, 12⟩)], none, 0⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.link, 14⟩), (⟨58, 59⟩, ⟨Kind.link, 12⟩)], none, 1⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.link, 14⟩), (⟨58, 59⟩, ⟨Kind.link, 12⟩)], some ⟨58, 59⟩, 1⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.link, 14⟩)], none, 2⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.link, 14⟩)], some ⟨58, 45⟩, 2⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 3⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 10⟩, ⟨Kind.brick, 6⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 10⟩, 3⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 4⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 31⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 31⟩, 4⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 5⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 3⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 3⟩, 5⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 6⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 24⟩, 6⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 24⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 7⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 24⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 17⟩, 7⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 24⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨36, 44⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], none, 8⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 24⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨36, 44⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩)], some ⟨58, 38⟩, 8⟩,
+  ⟨[(⟨22, 12⟩, ⟨Kind.link, 9⟩), (⟨22, 18⟩, ⟨Kind.link, 12⟩), (⟨22, 24⟩, ⟨Kind.link, 14⟩), (⟨22, 38⟩, ⟨Kind.brick, 14⟩), (⟨22, 44⟩, ⟨Kind.brick, 6⟩), (⟨22, 50⟩, ⟨Kind.brick, 6⟩), (⟨36, 12⟩, ⟨Kind.brick, 9⟩), (⟨36, 18⟩, ⟨Kind.brick, 11⟩), (⟨36, 24⟩, ⟨Kind.brick, 11⟩), (⟨36, 38⟩, ⟨Kind.brick, 12⟩), (⟨36, 44⟩, ⟨Kind.brick, 15⟩), (⟨36, 50⟩, ⟨Kind.brick, 15⟩)], none, 9⟩,
+  ⟨[(⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 6⟩, ⟨Kind.brick, 8⟩), (⟨58, 13⟩, ⟨Kind.brick, 9⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 6⟩, 0⟩,
+  ⟨[(⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 6⟩, ⟨Kind.brick, 8⟩), (⟨58, 13⟩, ⟨Kind.brick, 9⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 0⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 13⟩, ⟨Kind.brick, 9⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 1⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 13⟩, ⟨Kind.brick, 9⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 13⟩, 1⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 2⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 55⟩, 2⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩)], none, 3⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 14⟩)], some ⟨58, 48⟩, 3⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 4⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 34⟩, 4⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 5⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 8⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 20⟩, 5⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨29, 37⟩, ⟨Kind.brick, 8⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 6⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨29, 37⟩, ⟨Kind.brick, 8⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 27⟩, ⟨Kind.brick, 14⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 27⟩, 6⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨29, 37⟩, ⟨Kind.brick, 8⟩), (⟨42, 25⟩, ⟨Kind.brick, 14⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], none, 7⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨29, 37⟩, ⟨Kind.brick, 8⟩), (⟨42, 25⟩, ⟨Kind.brick, 14⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩)], some ⟨58, 41⟩, 7⟩,
+  ⟨[(⟨16, 25⟩, ⟨Kind.brick, 8⟩), (⟨16, 31⟩, ⟨Kind.brick, 9⟩), (⟨16, 37⟩, ⟨Kind.link, 9⟩), (⟨29, 25⟩, ⟨Kind.link, 14⟩), (⟨29, 31⟩, ⟨Kind.brick, 9⟩), (⟨29, 37⟩, ⟨Kind.brick, 8⟩), (⟨42, 25⟩, ⟨Kind.brick, 14⟩), (⟨42, 31⟩, ⟨Kind.brick, 11⟩), (⟨42, 37⟩, ⟨Kind.brick, 14⟩)], none, 8⟩,
+  ⟨[(⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 13⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 12⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 27⟩, 0⟩,
+  ⟨[(⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 13⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 12⟩), (⟨58, 27⟩, ⟨Kind.brick, 8⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 0⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 13⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 12⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 1⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 13⟩, ⟨Kind.brick, 11⟩), (⟨58, 20⟩, ⟨Kind.brick, 12⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 13⟩, 1⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 12⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 2⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 20⟩, ⟨Kind.brick, 12⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 20⟩, 2⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 3⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 34⟩, 3⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 4⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 41⟩, 4⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 5⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 6⟩, 5⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 6⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 7⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 48⟩, 7⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 8⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], none, 8⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 8⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 55⟩, 8⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 8⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨40, 40⟩, ⟨Kind.link, 9⟩)], none, 9⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 8⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨40, 40⟩, ⟨Kind.link, 9⟩)], none, 10⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩), (⟨58, 55⟩, ⟨Kind.link, 9⟩)], some ⟨58, 55⟩, 3⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], none, 4⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 34⟩, ⟨Kind.brick, 9⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], some ⟨58, 34⟩, 4⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], none, 5⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 41⟩, ⟨Kind.brick, 14⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], some ⟨58, 41⟩, 5⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], none, 6⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨58, 6⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], some ⟨58, 6⟩, 6⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], none, 7⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨58, 48⟩, ⟨Kind.link, 8⟩)], some ⟨58, 48⟩, 7⟩,
+  ⟨[(⟨26, 22⟩, ⟨Kind.brick, 8⟩), (⟨26, 28⟩, ⟨Kind.brick, 11⟩), (⟨26, 34⟩, ⟨Kind.brick, 12⟩), (⟨26, 40⟩, ⟨Kind.link, 9⟩), (⟨40, 22⟩, ⟨Kind.brick, 9⟩), (⟨40, 28⟩, ⟨Kind.brick, 14⟩), (⟨40, 34⟩, ⟨Kind.brick, 15⟩), (⟨40, 40⟩, ⟨Kind.link, 8⟩)], none, 8⟩,
+  ⟨[(⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 31⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 31⟩, 0⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 1⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 17⟩, ⟨Kind.brick, 15⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 17⟩, 1⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 2⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 38⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 38⟩, 2⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 3⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨58, 10⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 10⟩, 3⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 4⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 45⟩, 4⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 5⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨58, 24⟩, ⟨Kind.brick, 14⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 24⟩, 5⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], none, 6⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨58, 52⟩, ⟨Kind.brick, 11⟩)], some ⟨58, 52⟩, 6⟩,
+  ⟨[(⟨22, 22⟩, ⟨Kind.brick, 12⟩), (⟨22, 28⟩, ⟨Kind.brick, 15⟩), (⟨22, 34⟩, ⟨Kind.link, 14⟩), (⟨22, 40⟩, ⟨Kind.brick, 6⟩), (⟨36, 22⟩, ⟨Kind.brick, 8⟩), (⟨36, 28⟩, ⟨Kind.brick, 9⟩), (⟨36, 34⟩, ⟨Kind.brick, 14⟩), (⟨36, 40⟩, ⟨Kind.brick, 11⟩)], none, 7⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 31⟩, ⟨Kind.brick, 11⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 31⟩, 1⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 2⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨58, 10⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 10⟩, 2⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 3⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨58, 17⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 17⟩, 3⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 4⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨58, 24⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 24⟩, 4⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], none, 5⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩), (⟨58, 45⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 45⟩, 5⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩)], none, 6⟩,
+  ⟨[(⟨23, 19⟩, ⟨Kind.brick, 8⟩), (⟨23, 25⟩, ⟨Kind.link, 14⟩), (⟨23, 31⟩, ⟨Kind.brick, 11⟩), (⟨23, 37⟩, ⟨Kind.link, 9⟩), (⟨23, 43⟩, ⟨Kind.brick, 12⟩), (⟨35, 19⟩, ⟨Kind.brick, 14⟩), (⟨35, 25⟩, ⟨Kind.brick, 15⟩), (⟨35, 37⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 38⟩, 6⟩,
+  ⟨[(⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 10⟩, ⟨Kind.brick, 11⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], some ⟨58, 10⟩, 0⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], none, 1⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 31⟩, ⟨Kind.brick, 8⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], some ⟨58, 31⟩, 1⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], none, 2⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩), (⟨58, 52⟩, ⟨Kind.link, 14⟩)], some ⟨58, 52⟩, 2⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 24⟩, ⟨Kind.brick, 12⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 24⟩, 3⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], none, 4⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 38⟩, ⟨Kind.brick, 15⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 38⟩, 4⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], none, 5⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩), (⟨58, 45⟩, ⟨Kind.brick, 9⟩)], some ⟨58, 45⟩, 5⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩)], none, 6⟩,
+  ⟨[(⟨22, 19⟩, ⟨Kind.brick, 11⟩), (⟨22, 25⟩, ⟨Kind.brick, 8⟩), (⟨22, 31⟩, ⟨Kind.link, 14⟩), (⟨22, 37⟩, ⟨Kind.brick, 12⟩), (⟨22, 43⟩, ⟨Kind.brick, 15⟩), (⟨36, 25⟩, ⟨Kind.brick, 14⟩), (⟨36, 31⟩, ⟨Kind.brick, 9⟩), (⟨58, 17⟩, ⟨Kind.brick, 6⟩)], some ⟨58, 17⟩, 6⟩]
+
+def layoutAt (i : Nat) : Layout := layouts.getD i default
+def worldAt (i : Nat) : World := worlds.getD i default
+
+/-- 观测到的结果：同一关的下一帧（按下标）/ 换关。 -/
+inductive ObsIx where
+  | same (w : Nat)
+  | levelUp
+deriving DecidableEq, Repr, Inhabited
+
+def obsOf : ObsIx → Obs
+  | ObsIx.same i =&gt; Obs.same (worldAt i)
+  | ObsIx.levelUp =&gt; Obs.levelUp
+
+/-- 轨迹上的一步：`seq` 是身份；`cert` = 这一步在成绩单认证的那一段里。 -/
+structure Step where
+  seq  : Nat
+  lvl  : Nat
+  cert : Bool
+  act  : Act
+  prev : Nat
+  obs  : ObsIx
+deriving DecidableEq, Repr, Inhabited
+
+/-- 整条轨迹，共 423 步。 -/
+def steps : List Step := [
+  ⟨1, 0, false, Act.submit, 1, ObsIx.same 0⟩,
+  ⟨2, 0, false, Act.undo, 0, ObsIx.same 0⟩,
+  ⟨3, 0, false, Act.submit, 0, ObsIx.same 2⟩,
+  ⟨4, 0, false, Act.submit, 2, ObsIx.same 3⟩,
+  ⟨5, 0, false, Act.click ⟨58, 19⟩, 3, ObsIx.same 4⟩,
+  ⟨6, 0, false, Act.click ⟨29, 22⟩, 4, ObsIx.same 5⟩,
+  ⟨7, 0, false, Act.click ⟨29, 22⟩, 5, ObsIx.same 6⟩,
+  ⟨8, 0, false, Act.click ⟨3, 27⟩, 6, ObsIx.same 6⟩,
+  ⟨9, 0, false, Act.click ⟨29, 28⟩, 6, ObsIx.same 7⟩,
+  ⟨10, 0, false, Act.click ⟨58, 35⟩, 7, ObsIx.same 8⟩,
+  ⟨11, 0, false, Act.click ⟨29, 22⟩, 8, ObsIx.same 9⟩,
+  ⟨12, 0, false, Act.click ⟨58, 43⟩, 9, ObsIx.same 10⟩,
+  ⟨13, 0, false, Act.click ⟨29, 34⟩, 10, ObsIx.same 11⟩,
+  ⟨14, 0, false, Act.click ⟨58, 27⟩, 11, ObsIx.same 12⟩,
+  ⟨15, 0, false, Act.click ⟨29, 40⟩, 12, ObsIx.same 13⟩,
+  ⟨16, 0, false, Act.undo, 13, ObsIx.same 14⟩,
+  ⟨17, 0, false, Act.click ⟨58, 27⟩, 14, ObsIx.same 15⟩,
+  ⟨18, 0, false, Act.submit, 15, ObsIx.same 16⟩,
+  ⟨19, 0, false, Act.click ⟨29, 40⟩, 16, ObsIx.same 16⟩,
+  ⟨20, 0, false, Act.submit, 16, ObsIx.same 17⟩,
+  ⟨21, 0, false, Act.click ⟨29, 22⟩, 17, ObsIx.same 18⟩,
+  ⟨22, 0, false, Act.click ⟨27, 30⟩, 18, ObsIx.same 19⟩,
+  ⟨23, 0, false, Act.click ⟨53, 30⟩, 19, ObsIx.same 19⟩,
+  ⟨24, 0, false, Act.click ⟨2, 60⟩, 19, ObsIx.same 19⟩,
+  ⟨25, 0, false, Act.click ⟨1, 20⟩, 19, ObsIx.same 19⟩,
+  ⟨26, 0, false, Act.click ⟨58, 19⟩, 19, ObsIx.same 19⟩,
+  ⟨27, 0, false, Act.click ⟨29, 28⟩, 19, ObsIx.same 20⟩,
+  ⟨28, 0, false, Act.click ⟨29, 34⟩, 20, ObsIx.same 21⟩,
+  ⟨29, 0, false, Act.click ⟨29, 22⟩, 21, ObsIx.same 22⟩,
+  ⟨30, 0, false, Act.click ⟨58, 19⟩, 22, ObsIx.same 23⟩,
+  ⟨31, 0, false, Act.undo, 23, ObsIx.same 24⟩,
+  ⟨32, 0, false, Act.click ⟨24, 17⟩, 24, ObsIx.same 24⟩,
+  ⟨33, 0, false, Act.click ⟨58, 27⟩, 24, ObsIx.same 25⟩,
+  ⟨34, 0, false, Act.click ⟨29, 40⟩, 25, ObsIx.same 26⟩,
+  ⟨35, 0, false, Act.click ⟨29, 34⟩, 26, ObsIx.same 27⟩,
+  ⟨36, 0, false, Act.click ⟨58, 19⟩, 27, ObsIx.same 28⟩,
+  ⟨37, 0, false, Act.click ⟨29, 22⟩, 28, ObsIx.same 29⟩,
+  ⟨38, 0, false, Act.click ⟨58, 27⟩, 29, ObsIx.same 30⟩,
+  ⟨39, 0, false, Act.click ⟨29, 28⟩, 30, ObsIx.same 31⟩,
+  ⟨40, 0, false, Act.click ⟨58, 35⟩, 31, ObsIx.same 32⟩,
+  ⟨41, 0, false, Act.click ⟨29, 40⟩, 32, ObsIx.same 33⟩,
+  ⟨42, 0, false, Act.click ⟨58, 43⟩, 33, ObsIx.same 34⟩,
+  ⟨43, 0, false, Act.click ⟨58, 19⟩, 34, ObsIx.same 35⟩,
+  ⟨44, 0, false, Act.click ⟨58, 19⟩, 35, ObsIx.same 34⟩,
+  ⟨45, 0, false, Act.click ⟨58, 19⟩, 34, ObsIx.same 35⟩,
+  ⟨46, 0, false, Act.click ⟨3, 20⟩, 35, ObsIx.same 35⟩,
+  ⟨47, 0, false, Act.click ⟨1, 18⟩, 35, ObsIx.same 35⟩,
+  ⟨48, 0, false, Act.click ⟨58, 19⟩, 35, ObsIx.same 34⟩,
+  ⟨49, 0, false, Act.submit, 34, ObsIx.same 36⟩,
+  ⟨50, 0, false, Act.undo, 36, ObsIx.same 37⟩,
+  ⟨51, 0, false, Act.undo, 37, ObsIx.same 38⟩,
+  ⟨52, 0, false, Act.undo, 38, ObsIx.same 39⟩,
+  ⟨53, 0, false, Act.undo, 39, ObsIx.same 40⟩,
+  ⟨54, 0, false, Act.click ⟨29, 34⟩, 40, ObsIx.same 41⟩,
+  ⟨55, 0, false, Act.click ⟨29, 40⟩, 41, ObsIx.same 42⟩,
+  ⟨56, 0, false, Act.click ⟨29, 28⟩, 42, ObsIx.same 43⟩,
+  ⟨57, 0, false, Act.click ⟨29, 34⟩, 43, ObsIx.same 44⟩,
+  ⟨58, 0, false, Act.click ⟨29, 22⟩, 44, ObsIx.same 45⟩,
+  ⟨59, 0, false, Act.click ⟨29, 28⟩, 45, ObsIx.same 46⟩,
+  ⟨60, 0, false, Act.click ⟨29, 34⟩, 46, ObsIx.same 47⟩,
+  ⟨61, 0, false, Act.click ⟨29, 40⟩, 47, ObsIx.same 48⟩,
+  ⟨62, 0, false, Act.click ⟨29, 22⟩, 48, ObsIx.same 49⟩,
+  ⟨63, 0, false, Act.click ⟨29, 28⟩, 49, ObsIx.same 50⟩,
+  ⟨64, 0, false, Act.click ⟨29, 28⟩, 50, ObsIx.same 51⟩,
+  ⟨65, 0, false, Act.click ⟨29, 34⟩, 51, ObsIx.same 52⟩,
+  ⟨66, 0, false, Act.click ⟨29, 34⟩, 52, ObsIx.same 53⟩,
+  ⟨67, 0, false, Act.click ⟨29, 40⟩, 53, ObsIx.same 54⟩,
+  ⟨68, 0, false, Act.click ⟨29, 22⟩, 54, ObsIx.same 55⟩,
+  ⟨69, 0, false, Act.click ⟨29, 28⟩, 55, ObsIx.same 56⟩,
+  ⟨70, 0, false, Act.click ⟨29, 34⟩, 56, ObsIx.same 57⟩,
+  ⟨71, 0, false, Act.click ⟨29, 40⟩, 57, ObsIx.same 58⟩,
+  ⟨72, 0, false, Act.click ⟨29, 28⟩, 58, ObsIx.same 59⟩,
+  ⟨73, 0, false, Act.click ⟨29, 34⟩, 59, ObsIx.same 60⟩,
+  ⟨74, 0, false, Act.click ⟨29, 22⟩, 60, ObsIx.same 61⟩,
+  ⟨75, 0, false, Act.click ⟨29, 28⟩, 61, ObsIx.same 62⟩,
+  ⟨76, 0, false, Act.click ⟨29, 34⟩, 62, ObsIx.same 63⟩,
+  ⟨77, 0, false, Act.click ⟨29, 40⟩, 63, ObsIx.same 64⟩,
+  ⟨78, 0, false, Act.click ⟨29, 22⟩, 64, ObsIx.same 65⟩,
+  ⟨79, 0, false, Act.click ⟨29, 28⟩, 65, ObsIx.same 66⟩,
+  ⟨80, 0, false, Act.click ⟨29, 28⟩, 66, ObsIx.same 67⟩,
+  ⟨81, 0, false, Act.click ⟨29, 34⟩, 67, ObsIx.same 68⟩,
+  ⟨82, 0, false, Act.click ⟨29, 34⟩, 68, ObsIx.same 69⟩,
+  ⟨83, 0, false, Act.click ⟨29, 40⟩, 69, ObsIx.same 70⟩,
+  ⟨84, 0, false, Act.click ⟨29, 22⟩, 70, ObsIx.same 71⟩,
+  ⟨85, 0, false, Act.click ⟨29, 28⟩, 71, ObsIx.same 72⟩,
+  ⟨86, 0, false, Act.click ⟨29, 34⟩, 72, ObsIx.same 73⟩,
+  ⟨87, 0, false, Act.click ⟨29, 40⟩, 73, ObsIx.same 74⟩,
+  ⟨88, 0, false, Act.click ⟨29, 28⟩, 74, ObsIx.same 75⟩,
+  ⟨89, 0, false, Act.click ⟨29, 34⟩, 75, ObsIx.same 76⟩,
+  ⟨90, 0, false, Act.click ⟨29, 22⟩, 76, ObsIx.same 77⟩,
+  ⟨91, 0, false, Act.click ⟨29, 28⟩, 77, ObsIx.same 78⟩,
+  ⟨92, 0, false, Act.click ⟨29, 34⟩, 78, ObsIx.same 79⟩,
+  ⟨93, 0, false, Act.click ⟨29, 40⟩, 79, ObsIx.same 80⟩,
+  ⟨94, 0, false, Act.click ⟨29, 22⟩, 80, ObsIx.same 81⟩,
+  ⟨95, 0, false, Act.click ⟨29, 28⟩, 81, ObsIx.same 82⟩,
+  ⟨96, 0, false, Act.click ⟨29, 28⟩, 82, ObsIx.same 83⟩,
+  ⟨97, 0, false, Act.click ⟨29, 34⟩, 83, ObsIx.same 84⟩,
+  ⟨98, 0, false, Act.click ⟨29, 34⟩, 84, ObsIx.same 85⟩,
+  ⟨99, 0, false, Act.click ⟨29, 40⟩, 85, ObsIx.same 86⟩,
+  ⟨100, 0, false, Act.click ⟨29, 34⟩, 86, ObsIx.same 87⟩,
+  ⟨101, 0, false, Act.click ⟨29, 34⟩, 87, ObsIx.same 86⟩,
+  ⟨102, 0, false, Act.click ⟨29, 28⟩, 86, ObsIx.same 88⟩,
+  ⟨103, 0, false, Act.click ⟨29, 28⟩, 88, ObsIx.same 86⟩,
+  ⟨104, 0, false, Act.click ⟨29, 22⟩, 86, ObsIx.same 89⟩,
+  ⟨105, 0, false, Act.click ⟨29, 22⟩, 89, ObsIx.same 86⟩,
+  ⟨106, 0, false, Act.click ⟨29, 40⟩, 86, ObsIx.same 90⟩,
+  ⟨107, 0, false, Act.click ⟨58, 43⟩, 90, ObsIx.same 91⟩,
+  ⟨108, 0, false, Act.click ⟨29, 34⟩, 91, ObsIx.same 92⟩,
+  ⟨109, 0, false, Act.click ⟨58, 35⟩, 92, ObsIx.same 93⟩,
+  ⟨110, 0, false, Act.click ⟨29, 28⟩, 93, ObsIx.same 94⟩,
+  ⟨111, 0, false, Act.click ⟨58, 27⟩, 94, ObsIx.same 95⟩,
+  ⟨112, 0, false, Act.click ⟨29, 22⟩, 95, ObsIx.same 96⟩,
+  ⟨113, 0, false, Act.click ⟨58, 19⟩, 96, ObsIx.same 97⟩,
+  ⟨114, 0, false, Act.click ⟨58, 35⟩, 97, ObsIx.same 98⟩,
+  ⟨115, 0, false, Act.click ⟨58, 43⟩, 98, ObsIx.same 99⟩,
+  ⟨116, 0, false, Act.click ⟨58, 27⟩, 99, ObsIx.same 100⟩,
+  ⟨117, 0, false, Act.click ⟨58, 35⟩, 100, ObsIx.same 98⟩,
+  ⟨118, 0, false, Act.click ⟨58, 19⟩, 98, ObsIx.same 101⟩,
+  ⟨119, 0, false, Act.click ⟨58, 27⟩, 101, ObsIx.same 100⟩,
+  ⟨120, 0, false, Act.click ⟨58, 35⟩, 100, ObsIx.same 98⟩,
+  ⟨121, 0, false, Act.click ⟨58, 43⟩, 98, ObsIx.same 99⟩,
+  ⟨122, 0, false, Act.click ⟨58, 19⟩, 99, ObsIx.same 101⟩,
+  ⟨123, 0, false, Act.click ⟨58, 27⟩, 101, ObsIx.same 100⟩,
+  ⟨124, 0, false, Act.click ⟨29, 22⟩, 100, ObsIx.same 102⟩,
+  ⟨125, 0, false, Act.click ⟨58, 35⟩, 102, ObsIx.same 103⟩,
+  ⟨126, 0, false, Act.click ⟨29, 34⟩, 103, ObsIx.same 104⟩,
+  ⟨127, 0, false, Act.click ⟨29, 22⟩, 104, ObsIx.same 105⟩,
+  ⟨128, 0, false, Act.click ⟨29, 34⟩, 105, ObsIx.same 106⟩,
+  ⟨129, 0, false, Act.undo, 106, ObsIx.same 107⟩,
+  ⟨130, 0, false, Act.click ⟨58, 19⟩, 107, ObsIx.same 108⟩,
+  ⟨131, 0, false, Act.click ⟨58, 43⟩, 108, ObsIx.same 109⟩,
+  ⟨132, 0, false, Act.reset, 109, ObsIx.same 1⟩,
+  ⟨133, 0, false, Act.click ⟨58, 35⟩, 1, ObsIx.same 110⟩,
+  ⟨134, 0, false, Act.click ⟨29, 22⟩, 110, ObsIx.same 111⟩,
+  ⟨135, 0, false, Act.click ⟨58, 19⟩, 111, ObsIx.same 112⟩,
+  ⟨136, 0, false, Act.click ⟨29, 28⟩, 112, ObsIx.same 113⟩,
+  ⟨137, 0, false, Act.click ⟨58, 43⟩, 113, ObsIx.same 114⟩,
+  ⟨138, 0, false, Act.click ⟨29, 34⟩, 114, ObsIx.same 115⟩,
+  ⟨139, 0, false, Act.click ⟨58, 27⟩, 115, ObsIx.same 116⟩,
+  ⟨140, 0, false, Act.click ⟨29, 40⟩, 116, ObsIx.same 117⟩,
+  ⟨141, 0, false, Act.submit, 117, ObsIx.levelUp⟩,
+  ⟨142, 1, false, Act.click ⟨29, 22⟩, 118, ObsIx.same 118⟩,
+  ⟨143, 1, false, Act.click ⟨58, 19⟩, 118, ObsIx.same 119⟩,
+  ⟨144, 1, false, Act.click ⟨29, 28⟩, 119, ObsIx.same 119⟩,
+  ⟨145, 1, false, Act.click ⟨58, 19⟩, 119, ObsIx.same 118⟩,
+  ⟨146, 1, false, Act.click ⟨58, 17⟩, 118, ObsIx.same 119⟩,
+  ⟨147, 1, false, Act.click ⟨22, 22⟩, 119, ObsIx.same 120⟩,
+  ⟨148, 1, false, Act.click ⟨58, 24⟩, 120, ObsIx.same 121⟩,
+  ⟨149, 1, false, Act.click ⟨36, 22⟩, 121, ObsIx.same 122⟩,
+  ⟨150, 1, false, Act.click ⟨58, 10⟩, 122, ObsIx.same 123⟩,
+  ⟨151, 1, false, Act.click ⟨22, 28⟩, 123, ObsIx.same 124⟩,
+  ⟨152, 1, false, Act.click ⟨58, 31⟩, 124, ObsIx.same 125⟩,
+  ⟨153, 1, false, Act.click ⟨22, 40⟩, 125, ObsIx.same 126⟩,
+  ⟨154, 1, false, Act.click ⟨58, 38⟩, 126, ObsIx.same 127⟩,
+  ⟨155, 1, false, Act.click ⟨36, 28⟩, 127, ObsIx.same 128⟩,
+  ⟨156, 1, false, Act.click ⟨58, 45⟩, 128, ObsIx.same 129⟩,
+  ⟨157, 1, false, Act.click ⟨36, 34⟩, 129, ObsIx.same 130⟩,
+  ⟨158, 1, false, Act.click ⟨58, 52⟩, 130, ObsIx.same 131⟩,
+  ⟨159, 1, false, Act.click ⟨36, 40⟩, 131, ObsIx.same 132⟩,
+  ⟨160, 1, false, Act.submit, 132, ObsIx.same 133⟩,
+  ⟨161, 1, false, Act.click ⟨22, 22⟩, 133, ObsIx.same 134⟩,
+  ⟨162, 1, false, Act.click ⟨22, 40⟩, 134, ObsIx.same 135⟩,
+  ⟨163, 1, false, Act.click ⟨22, 28⟩, 135, ObsIx.same 136⟩,
+  ⟨164, 1, false, Act.click ⟨22, 40⟩, 136, ObsIx.same 137⟩,
+  ⟨165, 1, false, Act.click ⟨36, 22⟩, 137, ObsIx.same 138⟩,
+  ⟨166, 1, false, Act.click ⟨36, 34⟩, 138, ObsIx.same 139⟩,
+  ⟨167, 1, false, Act.click ⟨36, 28⟩, 139, ObsIx.same 140⟩,
+  ⟨168, 1, false, Act.click ⟨36, 34⟩, 140, ObsIx.same 141⟩,
+  ⟨169, 1, false, Act.click ⟨36, 34⟩, 141, ObsIx.same 142⟩,
+  ⟨170, 1, false, Act.click ⟨36, 40⟩, 142, ObsIx.same 143⟩,
+  ⟨171, 1, false, Act.submit, 143, ObsIx.same 144⟩,
+  ⟨172, 1, false, Act.click ⟨22, 40⟩, 144, ObsIx.same 145⟩,
+  ⟨173, 1, false, Act.click ⟨36, 22⟩, 145, ObsIx.same 146⟩,
+  ⟨174, 1, false, Act.click ⟨22, 40⟩, 146, ObsIx.same 147⟩,
+  ⟨175, 1, false, Act.click ⟨36, 28⟩, 147, ObsIx.same 148⟩,
+  ⟨176, 1, false, Act.click ⟨22, 40⟩, 148, ObsIx.same 149⟩,
+  ⟨177, 1, false, Act.click ⟨36, 34⟩, 149, ObsIx.same 150⟩,
+  ⟨178, 1, false, Act.click ⟨22, 40⟩, 150, ObsIx.same 151⟩,
+  ⟨179, 1, false, Act.click ⟨36, 40⟩, 151, ObsIx.same 152⟩,
+  ⟨180, 1, false, Act.submit, 152, ObsIx.levelUp⟩,
+  ⟨181, 2, false, Act.click ⟨58, 52⟩, 154, ObsIx.same 153⟩,
+  ⟨182, 2, false, Act.click ⟨23, 19⟩, 153, ObsIx.same 155⟩,
+  ⟨183, 2, false, Act.click ⟨58, 17⟩, 155, ObsIx.same 156⟩,
+  ⟨184, 2, false, Act.click ⟨35, 19⟩, 156, ObsIx.same 157⟩,
+  ⟨185, 2, false, Act.click ⟨58, 24⟩, 157, ObsIx.same 158⟩,
+  ⟨186, 2, false, Act.click ⟨35, 25⟩, 158, ObsIx.same 159⟩,
+  ⟨187, 2, false, Act.click ⟨58, 31⟩, 159, ObsIx.same 160⟩,
+  ⟨188, 2, false, Act.click ⟨23, 31⟩, 160, ObsIx.same 161⟩,
+  ⟨189, 2, false, Act.click ⟨58, 45⟩, 161, ObsIx.same 162⟩,
+  ⟨190, 2, false, Act.click ⟨35, 37⟩, 162, ObsIx.same 163⟩,
+  ⟨191, 2, false, Act.click ⟨58, 38⟩, 163, ObsIx.same 164⟩,
+  ⟨192, 2, false, Act.click ⟨35, 43⟩, 164, ObsIx.same 165⟩,
+  ⟨193, 2, false, Act.click ⟨58, 10⟩, 165, ObsIx.same 166⟩,
+  ⟨194, 2, false, Act.click ⟨23, 43⟩, 166, ObsIx.same 167⟩,
+  ⟨195, 2, false, Act.submit, 167, ObsIx.levelUp⟩,
+  ⟨196, 3, false, Act.click ⟨57, 52⟩, 169, ObsIx.same 168⟩,
+  ⟨197, 3, false, Act.click ⟨22, 31⟩, 168, ObsIx.same 170⟩,
+  ⟨198, 3, false, Act.click ⟨58, 10⟩, 170, ObsIx.same 171⟩,
+  ⟨199, 3, false, Act.click ⟨22, 19⟩, 171, ObsIx.same 172⟩,
+  ⟨200, 3, false, Act.click ⟨58, 31⟩, 172, ObsIx.same 173⟩,
+  ⟨201, 3, false, Act.click ⟨22, 25⟩, 173, ObsIx.same 174⟩,
+  ⟨202, 3, false, Act.click ⟨58, 45⟩, 174, ObsIx.same 175⟩,
+  ⟨203, 3, false, Act.click ⟨36, 31⟩, 175, ObsIx.same 176⟩,
+  ⟨204, 3, false, Act.click ⟨58, 17⟩, 176, ObsIx.same 177⟩,
+  ⟨205, 3, false, Act.click ⟨36, 37⟩, 177, ObsIx.same 178⟩,
+  ⟨206, 3, false, Act.click ⟨58, 24⟩, 178, ObsIx.same 179⟩,
+  ⟨207, 3, false, Act.click ⟨22, 37⟩, 179, ObsIx.same 180⟩,
+  ⟨208, 3, false, Act.click ⟨58, 38⟩, 180, ObsIx.same 181⟩,
+  ⟨209, 3, false, Act.click ⟨22, 43⟩, 181, ObsIx.same 182⟩,
+  ⟨210, 3, false, Act.submit, 182, ObsIx.levelUp⟩,
+  ⟨211, 4, false, Act.click ⟨57, 13⟩, 184, ObsIx.same 183⟩,
+  ⟨212, 4, false, Act.click ⟨22, 19⟩, 183, ObsIx.same 185⟩,
+  ⟨213, 4, false, Act.click ⟨57, 48⟩, 185, ObsIx.same 186⟩,
+  ⟨214, 4, false, Act.click ⟨22, 25⟩, 186, ObsIx.same 187⟩,
+  ⟨215, 4, false, Act.click ⟨57, 55⟩, 187, ObsIx.same 188⟩,
+  ⟨216, 4, false, Act.click ⟨22, 31⟩, 188, ObsIx.same 189⟩,
+  ⟨217, 4, false, Act.click ⟨57, 34⟩, 189, ObsIx.same 190⟩,
+  ⟨218, 4, false, Act.click ⟨22, 37⟩, 190, ObsIx.same 191⟩,
+  ⟨219, 4, false, Act.click ⟨57, 6⟩, 191, ObsIx.same 192⟩,
+  ⟨220, 4, false, Act.click ⟨22, 43⟩, 192, ObsIx.same 193⟩,
+  ⟨221, 4, false, Act.click ⟨57, 41⟩, 193, ObsIx.same 194⟩,
+  ⟨222, 4, false, Act.click ⟨36, 25⟩, 194, ObsIx.same 195⟩,
+  ⟨223, 4, false, Act.click ⟨57, 20⟩, 195, ObsIx.same 196⟩,
+  ⟨224, 4, false, Act.click ⟨36, 31⟩, 196, ObsIx.same 197⟩,
+  ⟨225, 4, false, Act.click ⟨57, 27⟩, 197, ObsIx.same 198⟩,
+  ⟨226, 4, false, Act.click ⟨36, 37⟩, 198, ObsIx.same 199⟩,
+  ⟨227, 4, false, Act.submit, 199, ObsIx.levelUp⟩,
+  ⟨228, 5, false, Act.click ⟨57, 52⟩, 201, ObsIx.same 200⟩,
+  ⟨229, 5, false, Act.click ⟨22, 12⟩, 200, ObsIx.same 202⟩,
+  ⟨230, 5, false, Act.click ⟨57, 59⟩, 202, ObsIx.same 203⟩,
+  ⟨231, 5, false, Act.click ⟨22, 18⟩, 203, ObsIx.same 204⟩,
+  ⟨232, 5, false, Act.click ⟨57, 45⟩, 204, ObsIx.same 205⟩,
+  ⟨233, 5, false, Act.click ⟨22, 24⟩, 205, ObsIx.same 206⟩,
+  ⟨234, 5, false, Act.click ⟨57, 10⟩, 206, ObsIx.same 207⟩,
+  ⟨235, 5, false, Act.click ⟨22, 44⟩, 207, ObsIx.same 208⟩,
+  ⟨236, 5, false, Act.click ⟨57, 31⟩, 208, ObsIx.same 209⟩,
+  ⟨237, 5, false, Act.click ⟨22, 50⟩, 209, ObsIx.same 210⟩,
+  ⟨238, 5, false, Act.click ⟨57, 3⟩, 210, ObsIx.same 211⟩,
+  ⟨239, 5, false, Act.click ⟨36, 18⟩, 211, ObsIx.same 212⟩,
+  ⟨240, 5, false, Act.click ⟨57, 24⟩, 212, ObsIx.same 213⟩,
+  ⟨241, 5, false, Act.click ⟨36, 24⟩, 213, ObsIx.same 214⟩,
+  ⟨242, 5, false, Act.click ⟨57, 17⟩, 214, ObsIx.same 215⟩,
+  ⟨243, 5, false, Act.click ⟨36, 44⟩, 215, ObsIx.same 216⟩,
+  ⟨244, 5, false, Act.click ⟨57, 38⟩, 216, ObsIx.same 217⟩,
+  ⟨245, 5, false, Act.click ⟨36, 50⟩, 217, ObsIx.same 218⟩,
+  ⟨246, 5, false, Act.submit, 218, ObsIx.levelUp⟩,
+  ⟨247, 6, false, Act.click ⟨57, 6⟩, 220, ObsIx.same 219⟩,
+  ⟨248, 6, false, Act.click ⟨16, 25⟩, 219, ObsIx.same 221⟩,
+  ⟨249, 6, false, Act.click ⟨57, 13⟩, 221, ObsIx.same 222⟩,
+  ⟨250, 6, false, Act.click ⟨16, 31⟩, 222, ObsIx.same 223⟩,
+  ⟨251, 6, false, Act.click ⟨57, 55⟩, 223, ObsIx.same 224⟩,
+  ⟨252, 6, false, Act.click ⟨16, 37⟩, 224, ObsIx.same 225⟩,
+  ⟨253, 6, false, Act.click ⟨57, 48⟩, 225, ObsIx.same 226⟩,
+  ⟨254, 6, false, Act.click ⟨29, 25⟩, 226, ObsIx.same 227⟩,
+  ⟨255, 6, false, Act.click ⟨57, 34⟩, 227, ObsIx.same 228⟩,
+  ⟨256, 6, false, Act.click ⟨29, 31⟩, 228, ObsIx.same 229⟩,
+  ⟨257, 6, false, Act.click ⟨57, 20⟩, 229, ObsIx.same 230⟩,
+  ⟨258, 6, false, Act.click ⟨29, 37⟩, 230, ObsIx.same 231⟩,
+  ⟨259, 6, false, Act.click ⟨57, 27⟩, 231, ObsIx.same 232⟩,
+  ⟨260, 6, false, Act.click ⟨42, 25⟩, 232, ObsIx.same 233⟩,
+  ⟨261, 6, false, Act.click ⟨57, 41⟩, 233, ObsIx.same 234⟩,
+  ⟨262, 6, false, Act.click ⟨42, 37⟩, 234, ObsIx.same 235⟩,
+  ⟨263, 6, false, Act.submit, 235, ObsIx.levelUp⟩,
+  ⟨264, 7, false, Act.click ⟨57, 27⟩, 237, ObsIx.same 236⟩,
+  ⟨265, 7, false, Act.click ⟨26, 22⟩, 236, ObsIx.same 238⟩,
+  ⟨266, 7, false, Act.click ⟨57, 13⟩, 238, ObsIx.same 239⟩,
+  ⟨267, 7, false, Act.click ⟨26, 28⟩, 239, ObsIx.same 240⟩,
+  ⟨268, 7, false, Act.click ⟨57, 20⟩, 240, ObsIx.same 241⟩,
+  ⟨269, 7, false, Act.click ⟨26, 34⟩, 241, ObsIx.same 242⟩,
+  ⟨270, 7, false, Act.click ⟨57, 34⟩, 242, ObsIx.same 243⟩,
+  ⟨271, 7, false, Act.click ⟨40, 22⟩, 243, ObsIx.same 244⟩,
+  ⟨272, 7, false, Act.click ⟨57, 41⟩, 244, ObsIx.same 245⟩,
+  ⟨273, 7, false, Act.click ⟨40, 28⟩, 245, ObsIx.same 246⟩,
+  ⟨274, 7, false, Act.click ⟨57, 6⟩, 246, ObsIx.same 247⟩,
+  ⟨275, 7, false, Act.click ⟨40, 34⟩, 247, ObsIx.same 248⟩,
+  ⟨276, 7, false, Act.submit, 248, ObsIx.same 249⟩,
+  ⟨277, 7, false, Act.click ⟨57, 48⟩, 249, ObsIx.same 250⟩,
+  ⟨278, 7, false, Act.click ⟨26, 40⟩, 250, ObsIx.same 251⟩,
+  ⟨279, 7, false, Act.click ⟨57, 55⟩, 251, ObsIx.same 252⟩,
+  ⟨280, 7, false, Act.click ⟨40, 40⟩, 252, ObsIx.same 253⟩,
+  ⟨281, 7, false, Act.submit, 253, ObsIx.same 254⟩,
+  ⟨282, 7, false, Act.reset, 254, ObsIx.same 237⟩,
+  ⟨283, 7, false, Act.click ⟨57, 27⟩, 237, ObsIx.same 236⟩,
+  ⟨284, 7, false, Act.click ⟨26, 22⟩, 236, ObsIx.same 238⟩,
+  ⟨285, 7, false, Act.click ⟨57, 13⟩, 238, ObsIx.same 239⟩,
+  ⟨286, 7, false, Act.click ⟨26, 28⟩, 239, ObsIx.same 240⟩,
+  ⟨287, 7, false, Act.click ⟨57, 20⟩, 240, ObsIx.same 241⟩,
+  ⟨288, 7, false, Act.click ⟨26, 34⟩, 241, ObsIx.same 242⟩,
+  ⟨289, 7, false, Act.click ⟨57, 55⟩, 242, ObsIx.same 255⟩,
+  ⟨290, 7, false, Act.click ⟨26, 40⟩, 255, ObsIx.same 256⟩,
+  ⟨291, 7, false, Act.click ⟨57, 34⟩, 256, ObsIx.same 257⟩,
+  ⟨292, 7, false, Act.click ⟨40, 22⟩, 257, ObsIx.same 258⟩,
+  ⟨293, 7, false, Act.click ⟨57, 41⟩, 258, ObsIx.same 259⟩,
+  ⟨294, 7, false, Act.click ⟨40, 28⟩, 259, ObsIx.same 260⟩,
+  ⟨295, 7, false, Act.click ⟨57, 6⟩, 260, ObsIx.same 261⟩,
+  ⟨296, 7, false, Act.click ⟨40, 34⟩, 261, ObsIx.same 262⟩,
+  ⟨297, 7, false, Act.click ⟨57, 48⟩, 262, ObsIx.same 263⟩,
+  ⟨298, 7, false, Act.click ⟨40, 40⟩, 263, ObsIx.same 264⟩,
+  ⟨299, 7, false, Act.submit, 264, ObsIx.levelUp⟩,
+  ⟨301, 0, true, Act.click ⟨57, 35⟩, 1, ObsIx.same 110⟩,
+  ⟨302, 0, true, Act.click ⟨29, 22⟩, 110, ObsIx.same 111⟩,
+  ⟨303, 0, true, Act.click ⟨57, 19⟩, 111, ObsIx.same 112⟩,
+  ⟨304, 0, true, Act.click ⟨29, 28⟩, 112, ObsIx.same 113⟩,
+  ⟨305, 0, true, Act.click ⟨57, 43⟩, 113, ObsIx.same 114⟩,
+  ⟨306, 0, true, Act.click ⟨29, 34⟩, 114, ObsIx.same 115⟩,
+  ⟨307, 0, true, Act.click ⟨57, 27⟩, 115, ObsIx.same 116⟩,
+  ⟨308, 0, true, Act.click ⟨29, 40⟩, 116, ObsIx.same 117⟩,
+  ⟨309, 0, true, Act.submit, 117, ObsIx.levelUp⟩,
+  ⟨310, 1, true, Act.click ⟨57, 31⟩, 118, ObsIx.same 265⟩,
+  ⟨311, 1, true, Act.click ⟨22, 22⟩, 265, ObsIx.same 266⟩,
+  ⟨312, 1, true, Act.click ⟨57, 17⟩, 266, ObsIx.same 267⟩,
+  ⟨313, 1, true, Act.click ⟨22, 28⟩, 267, ObsIx.same 268⟩,
+  ⟨314, 1, true, Act.click ⟨57, 38⟩, 268, ObsIx.same 269⟩,
+  ⟨315, 1, true, Act.click ⟨22, 40⟩, 269, ObsIx.same 270⟩,
+  ⟨316, 1, true, Act.click ⟨57, 10⟩, 270, ObsIx.same 271⟩,
+  ⟨317, 1, true, Act.click ⟨36, 22⟩, 271, ObsIx.same 272⟩,
+  ⟨318, 1, true, Act.click ⟨57, 45⟩, 272, ObsIx.same 273⟩,
+  ⟨319, 1, true, Act.click ⟨36, 28⟩, 273, ObsIx.same 274⟩,
+  ⟨320, 1, true, Act.click ⟨57, 24⟩, 274, ObsIx.same 275⟩,
+  ⟨321, 1, true, Act.click ⟨36, 34⟩, 275, ObsIx.same 276⟩,
+  ⟨322, 1, true, Act.click ⟨57, 52⟩, 276, ObsIx.same 277⟩,
+  ⟨323, 1, true, Act.click ⟨36, 40⟩, 277, ObsIx.same 278⟩,
+  ⟨324, 1, true, Act.submit, 278, ObsIx.levelUp⟩,
+  ⟨325, 2, true, Act.click ⟨57, 52⟩, 154, ObsIx.same 153⟩,
+  ⟨326, 2, true, Act.click ⟨23, 19⟩, 153, ObsIx.same 155⟩,
+  ⟨327, 2, true, Act.click ⟨57, 31⟩, 155, ObsIx.same 279⟩,
+  ⟨328, 2, true, Act.click ⟨23, 31⟩, 279, ObsIx.same 280⟩,
+  ⟨329, 2, true, Act.click ⟨57, 10⟩, 280, ObsIx.same 281⟩,
+  ⟨330, 2, true, Act.click ⟨23, 43⟩, 281, ObsIx.same 282⟩,
+  ⟨331, 2, true, Act.click ⟨57, 17⟩, 282, ObsIx.same 283⟩,
+  ⟨332, 2, true, Act.click ⟨35, 19⟩, 283, ObsIx.same 284⟩,
+  ⟨333, 2, true, Act.click ⟨57, 24⟩, 284, ObsIx.same 285⟩,
+  ⟨334, 2, true, Act.click ⟨35, 25⟩, 285, ObsIx.same 286⟩,
+  ⟨335, 2, true, Act.click ⟨57, 45⟩, 286, ObsIx.same 287⟩,
+  ⟨336, 2, true, Act.click ⟨35, 37⟩, 287, ObsIx.same 288⟩,
+  ⟨337, 2, true, Act.click ⟨57, 38⟩, 288, ObsIx.same 289⟩,
+  ⟨338, 2, true, Act.click ⟨35, 43⟩, 289, ObsIx.same 167⟩,
+  ⟨339, 2, true, Act.submit, 167, ObsIx.levelUp⟩,
+  ⟨340, 3, true, Act.click ⟨57, 10⟩, 169, ObsIx.same 290⟩,
+  ⟨341, 3, true, Act.click ⟨22, 19⟩, 290, ObsIx.same 291⟩,
+  ⟨342, 3, true, Act.click ⟨57, 31⟩, 291, ObsIx.same 292⟩,
+  ⟨343, 3, true, Act.click ⟨22, 25⟩, 292, ObsIx.same 293⟩,
+  ⟨344, 3, true, Act.click ⟨57, 52⟩, 293, ObsIx.same 294⟩,
+  ⟨345, 3, true, Act.click ⟨22, 31⟩, 294, ObsIx.same 174⟩,
+  ⟨346, 3, true, Act.click ⟨57, 24⟩, 174, ObsIx.same 295⟩,
+  ⟨347, 3, true, Act.click ⟨22, 37⟩, 295, ObsIx.same 296⟩,
+  ⟨348, 3, true, Act.click ⟨57, 38⟩, 296, ObsIx.same 297⟩,
+  ⟨349, 3, true, Act.click ⟨22, 43⟩, 297, ObsIx.same 298⟩,
+  ⟨350, 3, true, Act.click ⟨57, 45⟩, 298, ObsIx.same 299⟩,
+  ⟨351, 3, true, Act.click ⟨36, 31⟩, 299, ObsIx.same 300⟩,
+  ⟨352, 3, true, Act.click ⟨57, 17⟩, 300, ObsIx.same 301⟩,
+  ⟨353, 3, true, Act.click ⟨36, 37⟩, 301, ObsIx.same 182⟩,
+  ⟨354, 3, true, Act.submit, 182, ObsIx.levelUp⟩,
+  ⟨355, 4, true, Act.click ⟨57, 13⟩, 184, ObsIx.same 183⟩,
+  ⟨356, 4, true, Act.click ⟨22, 19⟩, 183, ObsIx.same 185⟩,
+  ⟨357, 4, true, Act.click ⟨57, 48⟩, 185, ObsIx.same 186⟩,
+  ⟨358, 4, true, Act.click ⟨22, 25⟩, 186, ObsIx.same 187⟩,
+  ⟨359, 4, true, Act.click ⟨57, 55⟩, 187, ObsIx.same 188⟩,
+  ⟨360, 4, true, Act.click ⟨22, 31⟩, 188, ObsIx.same 189⟩,
+  ⟨361, 4, true, Act.click ⟨57, 34⟩, 189, ObsIx.same 190⟩,
+  ⟨362, 4, true, Act.click ⟨22, 37⟩, 190, ObsIx.same 191⟩,
+  ⟨363, 4, true, Act.click ⟨57, 6⟩, 191, ObsIx.same 192⟩,
+  ⟨364, 4, true, Act.click ⟨22, 43⟩, 192, ObsIx.same 193⟩,
+  ⟨365, 4, true, Act.click ⟨57, 41⟩, 193, ObsIx.same 194⟩,
+  ⟨366, 4, true, Act.click ⟨36, 25⟩, 194, ObsIx.same 195⟩,
+  ⟨367, 4, true, Act.click ⟨57, 20⟩, 195, ObsIx.same 196⟩,
+  ⟨368, 4, true, Act.click ⟨36, 31⟩, 196, ObsIx.same 197⟩,
+  ⟨369, 4, true, Act.click ⟨57, 27⟩, 197, ObsIx.same 198⟩,
+  ⟨370, 4, true, Act.click ⟨36, 37⟩, 198, ObsIx.same 199⟩,
+  ⟨371, 4, true, Act.submit, 199, ObsIx.levelUp⟩,
+  ⟨372, 5, true, Act.click ⟨57, 52⟩, 201, ObsIx.same 200⟩,
+  ⟨373, 5, true, Act.click ⟨22, 12⟩, 200, ObsIx.same 202⟩,
+  ⟨374, 5, true, Act.click ⟨57, 59⟩, 202, ObsIx.same 203⟩,
+  ⟨375, 5, true, Act.click ⟨22, 18⟩, 203, ObsIx.same 204⟩,
+  ⟨376, 5, true, Act.click ⟨57, 45⟩, 204, ObsIx.same 205⟩,
+  ⟨377, 5, true, Act.click ⟨22, 24⟩, 205, ObsIx.same 206⟩,
+  ⟨378, 5, true, Act.click ⟨57, 10⟩, 206, ObsIx.same 207⟩,
+  ⟨379, 5, true, Act.click ⟨22, 44⟩, 207, ObsIx.same 208⟩,
+  ⟨380, 5, true, Act.click ⟨57, 31⟩, 208, ObsIx.same 209⟩,
+  ⟨381, 5, true, Act.click ⟨22, 50⟩, 209, ObsIx.same 210⟩,
+  ⟨382, 5, true, Act.click ⟨57, 3⟩, 210, ObsIx.same 211⟩,
+  ⟨383, 5, true, Act.click ⟨36, 18⟩, 211, ObsIx.same 212⟩,
+  ⟨384, 5, true, Act.click ⟨57, 24⟩, 212, ObsIx.same 213⟩,
+  ⟨385, 5, true, Act.click ⟨36, 24⟩, 213, ObsIx.same 214⟩,
+  ⟨386, 5, true, Act.click ⟨57, 17⟩, 214, ObsIx.same 215⟩,
+  ⟨387, 5, true, Act.click ⟨36, 44⟩, 215, ObsIx.same 216⟩,
+  ⟨388, 5, true, Act.click ⟨57, 38⟩, 216, ObsIx.same 217⟩,
+  ⟨389, 5, true, Act.click ⟨36, 50⟩, 217, ObsIx.same 218⟩,
+  ⟨390, 5, true, Act.submit, 218, ObsIx.levelUp⟩,
+  ⟨391, 6, true, Act.click ⟨57, 6⟩, 220, ObsIx.same 219⟩,
+  ⟨392, 6, true, Act.click ⟨16, 25⟩, 219, ObsIx.same 221⟩,
+  ⟨393, 6, true, Act.click ⟨57, 13⟩, 221, ObsIx.same 222⟩,
+  ⟨394, 6, true, Act.click ⟨16, 31⟩, 222, ObsIx.same 223⟩,
+  ⟨395, 6, true, Act.click ⟨57, 55⟩, 223, ObsIx.same 224⟩,
+  ⟨396, 6, true, Act.click ⟨16, 37⟩, 224, ObsIx.same 225⟩,
+  ⟨397, 6, true, Act.click ⟨57, 48⟩, 225, ObsIx.same 226⟩,
+  ⟨398, 6, true, Act.click ⟨29, 25⟩, 226, ObsIx.same 227⟩,
+  ⟨399, 6, true, Act.click ⟨57, 34⟩, 227, ObsIx.same 228⟩,
+  ⟨400, 6, true, Act.click ⟨29, 31⟩, 228, ObsIx.same 229⟩,
+  ⟨401, 6, true, Act.click ⟨57, 20⟩, 229, ObsIx.same 230⟩,
+  ⟨402, 6, true, Act.click ⟨29, 37⟩, 230, ObsIx.same 231⟩,
+  ⟨403, 6, true, Act.click ⟨57, 27⟩, 231, ObsIx.same 232⟩,
+  ⟨404, 6, true, Act.click ⟨42, 25⟩, 232, ObsIx.same 233⟩,
+  ⟨405, 6, true, Act.click ⟨57, 41⟩, 233, ObsIx.same 234⟩,
+  ⟨406, 6, true, Act.click ⟨42, 37⟩, 234, ObsIx.same 235⟩,
+  ⟨407, 6, true, Act.submit, 235, ObsIx.levelUp⟩,
+  ⟨408, 7, true, Act.click ⟨57, 27⟩, 237, ObsIx.same 236⟩,
+  ⟨409, 7, true, Act.click ⟨26, 22⟩, 236, ObsIx.same 238⟩,
+  ⟨410, 7, true, Act.click ⟨57, 13⟩, 238, ObsIx.same 239⟩,
+  ⟨411, 7, true, Act.click ⟨26, 28⟩, 239, ObsIx.same 240⟩,
+  ⟨412, 7, true, Act.click ⟨57, 20⟩, 240, ObsIx.same 241⟩,
+  ⟨413, 7, true, Act.click ⟨26, 34⟩, 241, ObsIx.same 242⟩,
+  ⟨414, 7, true, Act.click ⟨57, 55⟩, 242, ObsIx.same 255⟩,
+  ⟨415, 7, true, Act.click ⟨26, 40⟩, 255, ObsIx.same 256⟩,
+  ⟨416, 7, true, Act.click ⟨57, 34⟩, 256, ObsIx.same 257⟩,
+  ⟨417, 7, true, Act.click ⟨40, 22⟩, 257, ObsIx.same 258⟩,
+  ⟨418, 7, true, Act.click ⟨57, 41⟩, 258, ObsIx.same 259⟩,
+  ⟨419, 7, true, Act.click ⟨40, 28⟩, 259, ObsIx.same 260⟩,
+  ⟨420, 7, true, Act.click ⟨57, 6⟩, 260, ObsIx.same 261⟩,
+  ⟨421, 7, true, Act.click ⟨40, 34⟩, 261, ObsIx.same 262⟩,
+  ⟨422, 7, true, Act.click ⟨57, 48⟩, 262, ObsIx.same 263⟩,
+  ⟨423, 7, true, Act.click ⟨40, 40⟩, 263, ObsIx.same 264⟩,
+  ⟨424, 7, true, Act.submit, 264, ObsIx.levelUp⟩]
+
+/-- 不收的那几步：(seq, 为什么)。 -/
+def excluded : List (Nat × String) := [(300, &quot;前一帧读不成世界（终局画面，(a) 档）&quot;)]
+
+/-- 按 `seq` 取。越界给空步（空步在任何判据下都会立刻露馅）。 -/
+def bySeq (n : Nat) : Step := (steps.find? (fun s =&gt; s.seq == n)).getD default
+
+/-- 从 `seq = want` 那一步起连着取 `len` 步，每步配上**观测到的下一帧**。
+    只给同关的步用（换关那一步没有下一帧的世界）。取不到就短 —— 所以每一段都配 `_len` 定理。 -/
+def playFrom (want len : Nat) : List (Act × World) :=
+  ((steps.dropWhile (fun s =&gt; s.seq != want)).take len).map
+    (fun s =&gt; (s.act, match s.obs with
+                      | ObsIx.same i =&gt; worldAt i
+                      | ObsIx.levelUp =&gt; default))
+
+#eval &quot;REPLAY steps=&quot; ++ toString steps.length ++ &quot; worlds=&quot; ++ toString worlds.length ++
+  &quot; layouts=&quot; ++ toString layouts.length
+
+end Replay
+end Game
+</pre></div><div class="card"><h2>定理</h2>（这一份只有定义）</div>
+</div>
+<script>
+// 页面上唯一的一份脚本。**只画，不算**：每一张帧、每一个框、每一个判决都是
+// web/export.py 在 Python 那边算好导出来的。这里做的只有两件事：
+//   一、把一帧（导出好的 4096 个色号）按调色板画成方格；
+//   二、在回放页上翻页，把导出好的那几样（点在哪、点中了哪一位、哪些格变了、各条规则怎么判）摆出来。
+// check_no_logic.py 会来这里搜对象层 / 规则层的方法名，搜到就算破。
+
+(function () {
+  "use strict";
+  const SITE = window.SITE || {};
+  const css = getComputedStyle(document.documentElement);
+  // 色号 → 显示色：web/export.py 从 ARC-AGI-3 官方色表取好、pages.py 写进 SITE.palette，这里只读，不另抄。
+  const PAL = SITE.palette || [];
+  const HIT = css.getPropertyValue("--hit").trim() || "#ffd84d";
+  const DIFF = css.getPropertyValue("--diff").trim() || "#ff4136";
+
+  function paintFrame(cv, hexs, marks) {
+    const n = 64, px = Math.floor(cv.width / n);
+    const g = cv.getContext("2d");
+    for (let i = 0; i < n * n; i++) {
+      g.fillStyle = PAL[parseInt(hexs[i], 16)];
+      g.fillRect((i % n) * px, Math.floor(i / n) * px, px, px);
+    }
+    marks = marks || {};
+    g.lineWidth = 2;
+    (marks.diff || []).forEach(function (rc) {
+      g.strokeStyle = DIFF;
+      g.strokeRect(rc[1] * px + 1, rc[0] * px + 1, px - 2, px - 2);
+    });
+    if (marks.box) {                       // 导出好的命中框：[行, 列, 高, 宽]
+      g.strokeStyle = HIT;
+      g.strokeRect(marks.box[1] * px, marks.box[0] * px, marks.box[3] * px, marks.box[2] * px);
+    }
+    if (marks.click) {
+      g.fillStyle = HIT;
+      g.beginPath();
+      g.arc(marks.click[1] * px + px / 2, marks.click[0] * px + px / 2, px * 0.8, 0, 7);
+      g.fill();
+    }
+  }
+  window.paintFrame = paintFrame;
+
+  // ---- 首页 / 对象页：按导出的帧号画
+  document.querySelectorAll("canvas[data-frame]").forEach(function (cv) {
+    const i = parseInt(cv.getAttribute("data-frame"), 10);
+    if (SITE.frames && SITE.frames[i]) paintFrame(cv, SITE.frames[i]);
+  });
+
+  // ---- 回放页
+  const cvA = document.getElementById("cvPrev"), cvB = document.getElementById("cvNext");
+  if (cvA && SITE.steps) {
+    const S = SITE.steps, slider = document.getElementById("slider");
+    const label = document.getElementById("stepLabel"), tbl = document.getElementById("verdicts");
+    const info = document.getElementById("stepInfo");
+    slider.max = S.length - 1;
+    function show(k) {
+      const s = S[k];
+      const box = s.hitBox || null;
+      paintFrame(cvA, SITE.frames[s.prev], { click: s.click, box: box });
+      paintFrame(cvB, SITE.frames[s.next], { diff: s.diff_cells });
+      label.textContent = "seq " + s.seq + " · 第 " + s.lvl + " 关 · " + s.act + (s.cert ? " · 认证段" : " · 未认证段");
+      info.innerHTML = s.info;
+      tbl.innerHTML = s.rows;
+      slider.value = k;
+    }
+    document.getElementById("prevBtn").onclick = function () { show(Math.max(0, +slider.value - 1)); };
+    document.getElementById("nextBtn").onclick = function () { show(Math.min(S.length - 1, +slider.value + 1)); };
+    slider.oninput = function () { show(+slider.value); };
+    const jump = document.getElementById("jump");
+    if (jump) jump.onchange = function () {
+      const k = S.findIndex(function (s) { return String(s.seq) === jump.value; });
+      if (k >= 0) show(k);
+    };
+    show(0);
+  }
+
+  // ---- 下拉跳页
+  document.querySelectorAll("select[data-nav]").forEach(function (sel) {
+    sel.onchange = function () { if (sel.value) location.href = sel.value; };
+  });
+})();
+
+</script>
+</body></html>

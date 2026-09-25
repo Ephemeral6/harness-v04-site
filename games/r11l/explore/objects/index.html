@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>对象 · r11l</title>
+<style>
+/* 只有尺寸与配色。**这个文件是「渲染方面的东西」的全部**，别往里加别的。
+
+   这一份是**跨局可搬的**：底下那一块「世界的配色」按本局改名字，别的原样拿走。
+   两局各写一套页面的代价在 `meta/PIPELINE.md`「前端也只该有一份形状」里。 */
+:root {
+  --bg: #12141a;  --panel: #1a1d25;  --line: #2a2f3a;
+  --ink: #e8eaf0;  --dim: #8b93a7;  --faint: #5a6275;
+
+  /* ↓↓↓ **本局专属，照着改这一块，别的原样拿走** ↓↓↓
+     这一局的盘是 16 种颜色码（0..f）加两个前端自己的码：
+     u = 这一帧看不见的底色；n = 对象层**明说不记**的那一位（菱形 / 罐子 / 漆块的核、多色靶环的臂）。
+     颜色码 0..f 的显示色由 web/export.py 从 ARC-AGI-3 官方色表写进 DATA.palette，site.js 读它；这里只配 u / n。 */
+  --unknown: #15181e;
+  --neutral: #9aa0ab;
+  /* ↑↑↑ 本局专属到此为止 ↑↑↑ */
+  --fg: var(--ink);  --link: #7ab8ff;
+
+  --ok: #4caf7d;  --bad: #e5544b;  --na: #4a5163;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Noto Sans SC", sans-serif;
+}
+a { color: #7ab8ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+header .sub { color: var(--dim); font-size: 13px; }
+header nav { margin-top: 10px; display: flex; gap: 16px; font-size: 13px; }
+
+/* **一行一张卡。** 原来是 1fr + 380px 两栏，于是「说得更细一点」和
+   「为什么删不掉它」「它的 Lean」挤在同一行里，哪一段是哪一段看不出来。 */
+.cols { display: block; }
+.cols > div + div { margin-top: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--dim);
+           text-transform: uppercase; letter-spacing: .8px; }
+
+.boards { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.board figcaption { color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+svg.grid { display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+
+.controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; flex-wrap: wrap; }
+button { background: #232834; color: var(--ink); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 11px; cursor: pointer; font-size: 13px; }
+button:hover { background: #2c3340; }
+button:disabled { opacity: .4; cursor: default; }
+input[type=range] { flex: 1; min-width: 180px; accent-color: #59b0ff; }
+.step-label { color: var(--dim); font-size: 13px; min-width: 190px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 500; font-size: 12px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; min-width: 46px; text-align: center; padding: 1px 7px;
+        border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.chip.TRUE { background: rgba(76,175,125,.16); color: var(--ok); }
+.chip.FALSE { background: rgba(229,84,75,.18); color: var(--bad); }
+.chip.NA { background: #222732; color: var(--faint); }
+
+.why { color: var(--dim); font-size: 12px; }
+.kv { display: grid; grid-template-columns: 116px 1fr; gap: 3px 10px; font-size: 13px; }
+.kv dt { color: var(--dim); }
+.kv dd { margin: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 12px; color: var(--dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+
+.note { color: var(--dim); font-size: 12.5px; }
+.note strong { color: var(--ink); }
+pre.doc { white-space: pre-wrap; font-size: 13px; line-height: 1.65; margin: 0;
+          font-family: inherit; }
+pre.doc b { color: #ffd88a; font-weight: 600; }
+ul.tight { margin: 6px 0 0; padding-left: 18px; }
+ul.tight li { margin: 3px 0; }
+
+.rulelist { display: grid; gap: 10px; }
+.rulelist a.row { display: grid; grid-template-columns: 210px 1fr auto; gap: 14px;
+                  padding: 11px 14px; background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 8px; color: var(--ink); }
+.rulelist a.row:hover { border-color: #3c4658; text-decoration: none; }
+.rulelist .nm { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: #7ab8ff; }
+.rulelist .cl { color: var(--dim); font-size: 13px; }
+
+/* 规则文档的排版 */
+#doc h3 { font-size: 13.5px; margin: 20px 0 8px; color: #ffd88a; font-weight: 600; }
+#doc h3:first-child { margin-top: 0; }
+#doc p { margin: 9px 0; }
+#doc p:first-child { margin-top: 0; }
+#doc table.doc { margin: 10px 0; font-size: 12.5px; }
+#doc table.doc th { color: var(--dim); }
+#doc pre.fixed { margin: 9px 0; padding: 9px 12px; background: #15181f;
+                 border: 1px solid var(--line); border-radius: 6px;
+                 font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+                 line-height: 1.6; white-space: pre-wrap; color: #cfd6e6; }
+#doc code, .note code, td code { background: #22273200; color: #9ecbff;
+                                 font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+
+/* 每页最上面那一段人话 + 图 */
+.hero { background: linear-gradient(180deg, #1c2330, #1a1d25);
+        border: 1px solid #313a4a; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+.hero .plain { font-size: 15.5px; line-height: 1.85; margin-bottom: 16px; }
+.hero .plain p { margin: 10px 0; }
+.hero .plain p:first-child { margin-top: 0; }
+.hero .plain b { color: #ffd88a; }
+.hero .plain code { color: #9ecbff; }
+pre.doc.small { font-size: 12px; line-height: 1.6;
+                font-family: ui-monospace, Consolas, monospace; color: #b9c2d4;
+                max-height: 560px; overflow: auto; }
+
+/* ── 形式化页 ───────────────────────────────────────────────────────────── */
+td.ok, .ok { color: var(--ok); }
+td.bad, .bad { color: var(--bad); font-weight: 600; }
+
+#outline { max-height: 1400px; overflow: auto; }
+.lsec { font-size: 12px; margin: 22px 0 10px; color: #ffd88a; font-weight: 600;
+        letter-spacing: .5px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.lsec:first-child { margin-top: 0; }
+.litem { padding: 9px 0 9px 11px; border-left: 2px solid var(--line); margin: 8px 0; }
+.litem.thm { border-left-color: #3b5a7a; }
+.lhead { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.lkind { font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+         letter-spacing: .6px; min-width: 62px; }
+.lname { font-size: 13px; color: #9ecbff; }
+.litem.thm .lname { color: #7ab8ff; }
+.ldoc { margin-top: 5px; color: var(--dim); font-size: 12.5px; line-height: 1.7; }
+.ldoc p { margin: 6px 0; }
+.ldoc p:first-child { margin-top: 0; }
+.ldoc b { color: var(--ink); }
+.ldoc code { color: #9ecbff; }
+.ldoc table.doc { font-size: 12px; margin: 8px 0; }
+.lhead .chip { min-width: 0; font-weight: 500; letter-spacing: 0;
+               font-family: ui-monospace, Consolas, monospace; }
+
+pre.lean { margin: 0; padding: 14px 16px; background: #0f1218; border: 1px solid var(--line);
+           border-radius: 8px; overflow: auto; max-height: 720px;
+           font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+           font-size: 12px; line-height: 1.62; color: #cfd6e6; }
+pre.lean i { font-style: normal; }
+pre.lean i.c { color: #5f6b80; }        /* 注释 */
+pre.lean i.s { color: #b5cea8; }        /* 字符串 */
+pre.lean i.k { color: #c08cdc; }        /* 关键字 */
+pre.lean i.t { color: #6fb3c8; }        /* 策略 */
+pre.lean i.p { color: #d79a5b; }        /* #print / #eval */
+
+/* 具体的盘 */
+.card.scene { margin-top: 16px; }
+.card.scene h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 2px;
+                 text-transform: none; font-size: 14px; color: var(--ink); }
+.scene .boards { align-items: flex-start; gap: 22px; }
+.scene-words { flex: 1 1 320px; min-width: 300px; font-size: 14px; line-height: 1.8; }
+.scene-words p { margin: 8px 0; }
+.scene-words p:first-child { margin-top: 0; }
+.scene-words b { color: #ffd88a; }
+.scene-words code { color: #9ecbff; }
+.scene details { margin-top: 14px; }
+.scene summary { cursor: pointer; color: var(--dim); font-size: 12.5px; padding: 4px 0; }
+.scene summary:hover { color: var(--ink); }
+.scene details pre.lean { margin-top: 8px; max-height: 460px; }
+
+.navsep { color: #3a4152; margin: 0 .35em 0 .15em; user-select: none }
+
+/* 挑一份 Lean 看：下拉，不是一排 26 个链接 */
+.picker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim) }
+.picker select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; max-width: 420px;
+}
+.picker select:hover { border-color: #4a5265 }
+.grouphead {
+  margin: 20px 0 8px; font-size: 12px; color: var(--dim);
+  letter-spacing: .8px; text-transform: uppercase;
+}
+.grouphead:first-child { margin-top: 0 }
+
+/* 一份 Lean 拆成几段时，段与段之间的横条 */
+.partsbar { margin-top: 8px; font-size: 12px; }
+.partsbar a { color: var(--link) }
+
+/* 一份 Lean 拆开之后，每一段在首页上单独一行 */
+.subrows { margin: 2px 0 10px 18px; border-left: 1px solid var(--line); padding-left: 12px }
+.sub-row {
+  display: flex; gap: 12px; align-items: baseline; padding: 5px 0;
+  color: var(--fg); text-decoration: none; font-size: 13px;
+}
+.sub-row:hover { color: var(--link) }
+.sub-row .cl { flex: 1 }
+
+/* ── 本局加的几样（只有尺寸与配色） ───────────────────────────────────── */
+canvas.grid { display: block; background: var(--unknown); border: 1px solid var(--line);
+              border-radius: 6px; image-rendering: pixelated; }
+.gaps { border: 1px solid #6a5a2a; background: #231f14; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.gaps h2 { margin: 0 0 6px; font-size: 13px; color: #ffd88a; }
+.gaps li { margin: 3px 0; font-size: 13px; }
+.stat { display: inline-block; margin: 0 18px 8px 0; }
+.stat b { font-size: 20px; color: var(--ink); display: block; }
+.stat span { color: var(--dim); font-size: 12px; }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; margin-top: 10px; }
+.verdicts div { font-size: 12.5px; }
+.kbd { font-family: ui-monospace, Consolas, monospace; color: #9ecbff; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>对象</h1>
+  <div class="sub">一样东西一页。分组读的是 objects/ 下的子文件夹。</div>
+  <nav>
+  <a href="../index.html">这是个什么游戏</a>
+  <a href="../replay.html">回放</a>
+  <a href="../objects/index.html">对象</a>
+  <a href="../rules/index.html">规则</a>
+  <a href="../lean/index.html">形式化</a>
+  <a href="../share.html">怎么给别人看</a>
+</nav>
+</header>
+<div class="gaps"><h2>明写的缺口（6 条）—— 摆在最上面，不藏</h2><ul class="tight"><li>「不可做」只有一把钥匙（墨用光了、颜色又不对）；技能要求至少两把理由不同的，第二把（挡住了）没写</li><li>配对的「颜色集合」那一半这批语料考不动：反向测试把配对改成不看颜色，判错 0——罐子从没落在配不上的靶心上</li><li>看不见的底色按「不挡路」算（明写的假设）：Python 倚仗它 32 步、被驳倒 0 次；整关拼盘之后仍看不见的格同样按这一条</li><li>RESET 不进模型：「放回第 0 关开局」在这批语料上被驳倒的机会只有 1 次（没被驳倒不构成证明）</li><li>预算 60 下是外推（每关最多见到第 23 下），竖条见底会怎样语料 0 次</li><li>点在两颗菱形重叠处：Lean 取 anchors 里第一颗、Python 取排序后第一颗，语料 0 次，两边在这一处可能不同</li></ul></div><div class="card"><h2>往返读数</h2>
+<p>原始帧 → World → 按对象重画，和原始帧逐格比：178 张不同的帧里，不同的格
+<b>6480</b> 格，其中对象层明说不记的那几位 6480 格、别的 <b>0</b> 格。
+也就是说：除了明说删掉的那几位，帧上每一格都被这几样对象记住了。</p></div>
+<div class="card"><h2>对象（按它们为什么是一类分组）</h2><div class="rulelist"><div class="grouphead">board</div><p class="note" style="margin:0 0 10px">**盘面的底子**：底色（一关之内不变）和预算（一关之内只增不减的计数，显示成第 0 列的竖条）。</p>
+<a class="row" href="bar.html"><span class="nm">objects/board/bar.py</span><span class="cl">预算 —— 这一关已经点了几下（`World.spent`），以及它在第 0 列怎么显示成一根竖条。</span><span class="why">定义</span></a>
+<a class="row" href="terrain.html"><span class="nm">objects/board/terrain.py</span><span class="cl">`Terrain` —— 底色：一关之内不变的那张地。</span><span class="why">定义</span></a>
+<div class="grouphead">fixture</div><p class="note" style="margin:0 0 10px">**摆设**：盘上从不换位置的东西——漆块和靶环。</p>
+<a class="row" href="blob.html"><span class="nm">objects/fixture/blob.py</span><span class="cl">`Blob` —— 漆块：和罐子同形（切角 5×5）的一块颜料，**不牵任何虚线**。</span><span class="why">定义</span></a>
+<a class="row" href="reticle.html"><span class="nm">objects/fixture/reticle.py</span><span class="cl">`Reticle` —— 靶环：一个罐子要去的地方。</span><span class="why">定义</span></a>
+<div class="grouphead">geometry</div><p class="note" style="margin:0 0 10px">几何：格坐标、占地形状、整格直线。**这一类里没有任何世界断言**——</p>
+<a class="row" href="cell.html"><span class="nm">objects/geometry/cell.py</span><span class="cl">`Cell` —— 一个格的坐标（行, 列），从 0 数起。</span><span class="why">定义</span></a>
+<a class="row" href="centroid.html"><span class="nm">objects/geometry/centroid.py</span><span class="cl">`centroid(cells)` —— 一组格的**下取整**质心：(Σ行 // n, Σ列 // n)。</span><span class="why">定义</span></a>
+<a class="row" href="footprint.html"><span class="nm">objects/geometry/footprint.py</span><span class="cl">三种**占地形状**：一样东西以它的中心为原点，占哪些相对格。</span><span class="why">定义</span></a>
+<a class="row" href="line.html"><span class="nm">objects/geometry/line.py</span><span class="cl">`line(p, q)` —— 两格之间的整格直线（沿长轴逐格，短轴四舍五入、半格远离零），含两端。</span><span class="why">豁免：虚线不在 Seen 里（模型不画虚线）；它只给 parse 核「虚线画在哪」与渲染用</span></a>
+<div class="grouphead">piece</div><p class="note" style="margin:0 0 10px">**棋子**：点一下就可能换位置的东西。</p>
+<a class="row" href="group.html"><span class="nm">objects/piece/group.py</span><span class="cl">`Group` —— 一组：一个**罐子**（切角 5×5 的圆盘）和牵着它的那几颗菱形。</span><span class="why">定义</span></a>
+<div class="grouphead">还没归类（2 样）</div><p class="note" style="margin:0 0 10px"><b>新加了一样却忘了给它归类。</b>摆在这里是为了让它露出来。</p>
+<a class="row" href="parse.html"><span class="nm">objects/parse.py</span><span class="cl">帧 → 世界。**全局唯一碰像素的地方。** 上面每一层只认 `World` 的字段，读不到帧。</span><span class="why">豁免：唯一碰像素的那一份；形式化这一侧从帧读好的 World 起手，不碰像素</span></a>
+<a class="row" href="world.html"><span class="nm">objects/world.py</span><span class="cl">`World` —— 这一局的**全部状态**。字段就是这一局的对象。</span><span class="why">定义</span></a></div></div>
+<div class="card"><h2>World.selected（选中）为什么删不掉</h2><pre class="doc">selected（World.selected）—— 选中的那颗菱形
+
+1. 它记的是什么
+   环色为 0 的那颗菱形在哪一格。帧上全盘恰好一颗（解析的良构检查）。
+
+2. 哪几条规则读它（点名）
+   click_moves / click_rejected（挪的是哪一颗）、click_selects（点完之后选中换给谁）、
+   absorb / lock / level_clear（先要知道罐子落哪）。
+
+3. 抹成常量，判决变不变（真跑）
+   抹成第一帧的值：645 处。字段内「换成本组第一颗」：186 处（六条规则都变）。
+
+4. 分离表 —— 与上两句对不对得上
+   分得开：第 39 / 233 帧（seq 20 next / seq 117 next）。三个读数一致。
+
+为什么是 World 的一个字段而不是每颗菱形身上的一位（卡 02 就定下来的「展开」）：
+摊在每颗菱形上，就得另配一条「恰好一颗选中」的检查；收成一个字段，「两颗都选中」写都写不出来。
+</pre></div>
+<div class="card"><h2>这一版是怎么剩下来的（已删的那一位，死因）</h2>
+<p class="note">撤掉的东西不摆进上面那张现役表；这里只展示死因本身，<b>它已经不在对象层里了</b>。</p><pre class="doc">Diamond（已删，卡 06）—— 菱形的核色
+
+第一轮：Group.anchors 是 Diamond(cell, core) 的元组，core = 菱形核的颜色（被罐子压住核的那几帧读不出，记 None）。
+原件：analysis/history/round3/objects/piece/diamond.py
+
+1. 它记的是什么
+   每颗菱形核的颜色。起点册子拿它当「同一组」的旁证（cluster_is_within_core_color）。
+
+2. 哪几条规则读它（点名）
+   只有一句：click_moves（v2）的「挪过去核色不变」。
+
+3. 抹成常量，判决变不变（真跑，analysis/ablate_sub_round3.txt）
+   抹成 None：0 处（那一句遇到 None 就不比——温柔的扰动）。
+   换成「它所在的行号」（狠：跟着位置变）：83 处，全在 click_moves 那一句。
+   **两种扰动都试了**，读数说：有人读。
+
+4. 为什么还是删
+   判据 1：「少记这些信息，玩法是否仍能正确运行？」——能。读它的只有它自己那一句「核色不变」：
+   没有任何别的字段的下一步取决于核色（选谁、挪到哪、取墨、锁靶、过关，一样都不看它）。
+   一位只被用来预测它自己的信息，是惰性的。删掉之后 Diamond 只剩一个格，并进 Cell。
+   删掉之后规则读数逐条不变（9 条、判错 0、无人区 0），拒绝集 846 → 846。
+
+   顺带：被压住的菱形核色读不出来（None）——删掉之后 World 里不再有任何一位「这一帧读不出来」的信息。
+</pre>
+<details><summary>分离表三次取数（field_split.txt）</summary><pre class="doc small">字段两两分离表（ledger/field_split.py）· 三次取数，逐条对照
+语料：runs/r11l-0907-0045/transitions.jsonl，184 行 → 368 帧（prev + next 各一帧；重复的帧照算）
+「第 k 帧」= 第 k//2 行的 prev（k 偶）或 next（k 奇）。
+
+两张表：
+  full   对象层原样
+  state  投影掉 terrain 再量（runs/_wb-r11l/fs_state/）。理由：terrain 记「这一帧看得见的底色」，
+         它的 None 掩码是「东西摆在哪」的函数，任何两帧只要东西挪过，terrain 就不同——
+         于是 full 表上别的字段一个见证都找不到。同变表（下面）量出来 groups 与 terrain
+         100 次变化 100 次同时，0 次单独：terrain 把 groups 的信息抄了一遍。
+
+========================================================================
+一、卡 02 提对象之后（round1，原件 analysis/history/round1/objects/）
+------------------------------------------------------------------------
+full：读成世界 368 帧，读不成 0 帧
+  bar        分得开     见证 第 5 / 9 帧（seq 3 next / seq 5 next：只差竖条一格）
+  selected   分得开     见证 第 39 / 233 帧（seq 20 next / seq 117 next）
+  groups     分不开
+  blobs      分不开
+  reticles   分不开
+  locked     分不开
+  terrain    分不开
+state：
+  bar        分得开     第 5 / 9 帧
+  selected   分得开     第 39 / 233 帧
+  groups     分得开     第 43 / 237 帧（seq 22 next / seq 119 next）
+  blobs      分不开
+  reticles   分不开
+  locked     分不开
+
+同变表（相邻两帧之间一起变的次数，runs/_wb-r11l/cochange.py，184 条转移）：
+  reticles × locked   同变 23　只 reticles 2　只 locked 0   ← 只 reticles 的 2 次都是换关那一步（整盘换了）
+  groups   × terrain  同变 100 只 groups 0　 只 terrain 0   ← terrain 的掩码跟着 groups 走
+  blobs    × groups   同变 28　只 blobs 0　　只 groups 72   ← 漆块变 ⇒ 组也变（取墨），反过来不成立
+
+========================================================================
+二、卡 03 动手之后（round2 = round3 的对象层：locked 并进 reticles）
+------------------------------------------------------------------------
+full：
+  bar        分得开     第 5 / 9 帧
+  selected   分得开     第 39 / 233 帧
+  groups / blobs / reticles / terrain   分不开
+state：
+  bar        分得开     第 5 / 9 帧
+  selected   分得开     第 39 / 233 帧
+  groups     分得开     第 43 / 237 帧
+  blobs      分不开
+  reticles   分不开
+
+对照：动手前后，除了被并掉的 locked，每一栏一字不差——并掉的那一位没有带走任何一对见证。
+
+========================================================================
+三、卡 06 重取（本版对象层：删核色、删核那一格墨、靶环臂色商成集合、bar 拆成 spent）
+------------------------------------------------------------------------
+full：
+  spent      分得开     第 5 / 9 帧
+  selected   分得开     第 39 / 233 帧
+  groups / blobs / reticles / terrain   分不开
+state：
+  spent      分得开     第 5 / 9 帧
+  selected   分得开     第 39 / 233 帧
+  groups     分得开     第 43 / 237 帧
+  blobs      分不开
+  reticles   分不开
+
+对照：卡 06 删掉的都是**字段内部**的位（核色、核那一格、臂的顺序），顶层字段的分离表不看得见它们——
+所以这一栏读数不变是意料之中，**不说明那几刀砍得对**。它们的凭据在字段内消融：
+analysis/ablate_sub_round3.txt（动手前）与 analysis/ablate_sub_round4.txt（动手后）。
+
+========================================================================
+「分不开」的那几栏各是哪一种（三种可能：没人读 / 同生共死 / 这批语料分不开）
+------------------------------------------------------------------------
+  blobs      这批语料分不开：漆块只在取墨时变，而取墨必然同时改一组的墨。
+             消融 20 处、点名 absorb —— 有人读，不是没人读。
+  reticles   这批语料分不开：靶环只在锁靶时变，而锁靶必然是某一组刚挪到靶心上。
+             消融 68 处、点名 lock / level_clear。
+  terrain    （full 表）掩码与组同生共死；颜色本身有人读（消融 242 处、点名 blocked）。
+             处置是**拆**：形式化那一侧底色住进 Board，不是状态（lean2/Obj/Board/Terrain.lean）。
+  groups     full 表分不开只因为 terrain 抄了它；state 表分得开。
+</pre></details>
+<details><summary>每一轮动了什么（record.txt）</summary><pre class="doc small">record.txt —— 每一轮动了什么、为什么、读数怎么变（只追加，不改写）
+工作台：ledger/games/r11l/　语料：runs/r11l-0907-0045/transitions.jsonl（184 行）
+每一轮的原件在 analysis/history/round&lt;N&gt;/（对象层 / 规则层 / 读数一起存）。
+
+========================================================================
+第 0 步 · 认领语料（卡 00）
+------------------------------------------------------------------------
+命令：python ledger/trace_source.py r11l   → r11l-20260907 / run r11l-0907-0045 / 100.0 / 6/6 / 183 步
+命令：python corpus.py（落盘 analysis/corpus.json）
+  段：guid f7c92a41  seq 1..102（102 行）  到过第 6 关  成绩单**不认证**
+      guid 49c58a7b  seq 103..184（82 行） 到过第 6 关  成绩单认证（第一行是 RESET）
+  对账：成绩单 level_actions [3, 10, 15, 13, 17, 23] == 语料认证段逐关点击数  ✓
+  标记：move 171 · levelup 10 · win 2 · reset 1（全部 184 行都在语料里）
+  键：seq 唯一；step 有 1 处重号（102：通关那一步与 RESET 同号）；tid 有 1 处重号
+  EVIDENCE：tid 是内容哈希（同号异内容 0、同内容异号 0、有重号）；册子引用 99 个、命中 99 个
+    —— 命中只说明内容重叠；出处靠 run_id（与封存局同一个 run），不靠命中率。
+
+========================================================================
+第 0b 步 · 先写解析（卡 01）
+------------------------------------------------------------------------
+探针 v0（runs/_wb-r11l/parse_v0.py）第一遍：368 帧里 12 帧读不成——全在第一段第 2 关 seq 22..33，
+一个罐子压住半颗菱形。两种病：
+  · 露出来的半圈环色被当成一个「幻影圆盘」（和真罐子叠在一起）
+  · 被压住的那颗菱形没人认
+改法（写进 objects/parse.py）：圆盘不许含未选环色；互相压着的候选**列出全部取法**，
+恰好一种能让「每一格都有人解释」成立才收；再按「露出来的环格全同色、没露的全在圆盘底下」认回被压住的菱形。
+之后 368 帧 0 帧读不成。
+
+读不成的帧分两档（run_rules.py 报）：(a) 不是局面 0 帧 · (b) 是局面读不出 0 帧。
+提出过又被证伪的 (a) 判据：「WIN 之后那一帧不是局面」——两次 WIN 之后的帧都读得成世界，画的还是那一盘。
+
+========================================================================
+round1 · 提对象（卡 02）
+------------------------------------------------------------------------
+World：bar / selected / groups（Group(anchors=[Diamond(cell, core)], ink 21 格)）/ blobs（ink 21）/
+       reticles（arms 四臂）/ locked / terrain
+同时在写这一版时就做掉了三处「展开」（它们的凭据是解析的良构检查在 368 帧上 0 次触发）：
+  罐子的中心  → 不是字段，是锚点的下取整质心（良构：画在哪 == 质心）
+  虚线        → 不是字段，是罐子到每颗锚点的直线（良构：帧上的虚线全在这些直线上）
+  「选中」    → 不摊在每颗菱形上，收成 World.selected（「恰好一颗」表示不出反例）
+分离表：见 field_split.txt 第一节。
+
+========================================================================
+round2 · 简化对象（卡 03）：凭区分检验动手
+------------------------------------------------------------------------
+动手：
+  合  locked 并进 reticles（锁上 = 臂色消失 = arms None）
+      见证：同变表 reticles × locked 关内 23 次全部同时；分离表两者都分不开
+不动手、列欠账（交卡 06）：
+  字段             倾向     凭什么                              缺哪个读数
+  Diamond.core     删       只在册子里当「同组」旁证，没有规则会用   消融（要规则）
+  ink 的核那一格    删       配对看的是环（册子 target_pairs 就这么写） 消融
+  reticle 的臂顺序  商掉     配对只看颜色集合                        对称变换下判决变不变（要规则）
+  bar              拆？     册子「掉 1 或 2 格」没锐化，怀疑是计数的显示 规则那一侧有没有分支
+  blobs            留       分离表分不开，但取墨要读它               消融 / 点名
+  terrain          拆？     掩码抄了 groups；颜色要给「挡不挡路」用     消融 / 点名
+分离表：动手前后对照见 field_split.txt 第二节（除 locked 外逐栏一字不差）。
+
+========================================================================
+round2 · 长规则（卡 04）：14 条（原件 analysis/history/round2/rule/）
+------------------------------------------------------------------------
+一步怎么走：click_selects / place / others_stay / overlap_ok / click_rejected
+世界怎么回应：absorb / blobs_fixed / ink_kept / bar_drain / bar_refill / terrain_static
+什么算赢：lock / level_clear
+说了但不进模型：reset
+不进规则（被对象层吸收）：m_is_centroid、road_is_lines、circle_ring_translates（表示不出反例）、
+  overlap_hides_diamond（解析的事）、road_covers_fresh_ink（比对口径 derive/seen.py）
+
+第一次跑：absorb、overlap_ok 的 |scope| = 0 —— 判红。死因「论域把自己写没了」：
+  论域要求落点底色看得见，而取墨必须落在漆块上，漆块底下的底色整关都看不见。
+  改法不是放宽论域，是把「看不见的底色」写成一条明写的假设：看不见的格不挡路（derive/blocked.py）。
+  它有机会被驳倒：倚仗它判成挪得动的 32 步，被驳倒 0 次（run_rules.py 报）。
+改后读数：14 条全部 |scope| &gt; 0、判错 0；无人区 0；「模型里的规则都没开口」1 条（RESET，只有不进模型那一条开口）。
+锐化：bar_drain 从册子的「掉 1 或 2 格」锐化成「长度 ≡ 9 (mod 16) 掉两格」——全语料 11 次掉两格全在 57、41。
+
+========================================================================
+round3 · 简化规则（卡 05）：就地洗，14 → 9
+------------------------------------------------------------------------
+判断：就地洗，不重排。理由：round2 已经是按「它管什么」分组、按字段分工写的，论域不互咬；
+      冗余只在「同一个字段被互补论域的几条各说一半」。
+合并（每一处都是「同一字段、论域互补或相同」）：
+  click_moves = place + others_stay + overlap_ok   place 与 others_stay 论域完全相同；overlap_ok 的论域是子集、结论被蕴含
+  absorb      = absorb + blobs_fixed + ink_kept    论域互补（20 + 153 = 173），单向蕴含拼成等价
+  bar         = bar_drain + bar_refill             同一字段，论域互补（173 + 10）
+新旧对照（python run_rules.py --compare analysis/history/round2，另起进程各跑一遍）：
+  规则 14 → 9　判错 0 → 0　无人区 0 → 0　拒绝集（846 个全量变异）846 → 846，旧有新无 0
+  **这个拒绝集读数偏软**：竖条那一条几乎对每个变异都说 FALSE（变异多半换了整帧、竖条长度就不对），
+  拒绝率 100% 是它撑起来的；各条规则自己的分辨力要看反向测试一（源码突变）那张表。
+
+========================================================================
+round4 · 重查对象（卡 06）：删 / 拆 / 合（动手前原样存 analysis/history/round3/）
+------------------------------------------------------------------------
+读数全部重取：拒绝集（--compare round3）、字段消融（criteria_run）、字段内消融（ablate_sub.py）、分离表。
+
+字段 | 卡 03 判了什么 | 这一轮量到的 | 删/拆/合 | 为什么
+Diamond.core | 欠账（倾向删） | 抹成 None：0 处；换成跟位置走的行号：83 处（全在 click_moves 那一句「核色不变」） | 删（Diamond 并成 Cell） | 有人读，但只被用来预测它自己：没有任何别的字段的下一步取决于它（判据 1：少记它玩法照样对）
+Group.ink[核] / Blob.ink[核] | 欠账（倾向删） | 只抹罐子那一格 8 处、只抹漆块那一格 8 处、两者一起抹 0 处（absorb） | 删 | 信息只从漆块的核流到罐子的核，再流不出去（配对只看环）
+Reticle 臂顺序 | 欠账（倾向商掉） | 四臂转一格：0 处 | 商掉（存颜色集合） | 保持全部判决的对称变换
+bar | 欠账（倾向拆） | bar 规则里长着一个 if（≡ 9 mod 16）；竖条一律掉一格的突变体判错 12 | 拆：状态记 spent（点了几下），竖条是它的显示 | 规则里长出来的 if 是对象少一位的账单；拆完规则没分支，取整进解析的良构检查
+blobs | 欠账（留） | 消融 20 处（absorb）；分离表仍分不开 | 留 | 有人读；分不开是语料的事（取墨必然同时改墨）
+terrain | 欠账（拆？） | 消融 242 处；软地当空地 29 处、软地当硬墙 31 处 | 留（Python），拆（Lean：Board 不是状态） | 挡路要读它；掩码是别的字段的函数，形式化那一侧不进状态
+locked（卡 03 已合） | 已动手 | 合并之后 lock / level_clear 读数不变，判错 0 | 维持 | 那一刀没砍错：合并后的读数与合并前逐条一致
+selected | —— | 消融 645 处；换一颗选中 186 处 | 留 |
+groups | —— | 消融 818 处 | 留 |
+spent（新） | —— | 消融 181 处（bar） | 留 |
+
+动手后规则读数（python run_rules.py）：9 条，判错 0，无人区 0，|scope|=0 的 0 条（与动手前逐条一致）。
+新旧对照（--compare analysis/history/round3）：判错 0 → 0、无人区 0 → 0、拒绝集 846 → 846、旧有新无 0。
+
+========================================================================
+反向测试（卡 07）：python run_rules.py --reverse
+------------------------------------------------------------------------
+第一次跑：十一个突变体**全部没红**，连「必红：所有断言都说假」也没红——机制是死的。
+  查：突变体拷到 runs/_wb-r11l/mut/&lt;名&gt;/ 另起进程，paths.py 按「往上数三层」认仓库根，
+      拷走之后数错了层，子进程连语料都没找到、读数是 None。
+  改：paths.py 改成「往上找到 ledger/trace_source.py 那一层」。
+  **必红那一个是唯一把这件事暴露出来的东西**——没有它，这一行读数会被读成「十个突变体都挡不住」。
+第二次跑（本版）：必红那一个红了（判错 1059）；其余见 analysis/readings.json 的 reverse 一节。
+  没红的两个都是同一个入口——「扰动所改的那一位在语料里恰好无所谓」：
+    配对只比颜色种数 / 锁靶不看颜色：判错 0 —— 语料里罐子从没落在配不上的靶心上，
+    配对的「颜色集合」那一半这批语料考不动。写进 gaps，上页面。
+装置的消融与变异：6 个字段 0 个「抹掉之后判决一个字没变」；120 个变异全被拒（26 个读不成世界）。
+  「独家拒绝 0」6 条：装置的变异多半换整帧、竖条长度先错，被 bar 独家拒掉；各条的分辨力看源码突变那张表。
+</pre></details></div>
+
+</div>
+
+</body>
+</html>

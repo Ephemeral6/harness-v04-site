@@ -1,0 +1,2350 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>ft09 的证明与验证 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+:root{
+  --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
+  --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
+  --alive:#2C7A4E; --alive-soft:#E1F0E6; --dead:#A24E28; --dead-soft:#F5E6DE; --gap:#8E6410; --gap-soft:#F4EBD6;
+  --code-ink:#1E2A36; --k:#7A3E9D; --s:#2C7A4E; --c:#7A8794; --n:#A24E28; --t:#2A5CAA;
+  --sans:"IBM Plex Sans","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"IBM Plex Serif","Noto Serif SC","Songti SC",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+    --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+    --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+    --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1318; --panel:#151C23; --sunk:#10161C; --ink:#E1E8EE; --muted:#8C99A6; --rule:#25303A; --frame:#5C6875;
+  --accent:#7FA8EE; --accent-soft:#1C2A40; --on-accent:#0E1318;
+  --alive:#71C495; --alive-soft:#15291E; --dead:#E08E66; --dead-soft:#33211A; --gap:#E0B458; --gap-soft:#30281A;
+  --code-ink:#D4DDE5; --k:#C79BE8; --s:#8FD1A8; --c:#6F7C88; --n:#E8A07E; --t:#8FB5F2;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:18px;align-items:center;min-height:52px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+.bar nav{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.bar nav a{color:var(--muted);text-decoration:none}
+.bar nav a.on,.bar nav a:hover{color:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:36px 56px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:32px;line-height:1.3;margin:8px 0 16px;font-weight:600;text-wrap:balance;max-width:26ch}
+h2{font-size:21px;margin:56px 0 14px;font-weight:600;text-wrap:balance;scroll-margin-top:72px}
+h3{font-size:16px;margin:0;font-weight:600}
+h3.sec{font-size:16px;margin:30px 0 8px}
+p{margin:0 0 12px}
+.lede{font-size:16px;max-width:66ch}
+.why{color:var(--muted);max-width:66ch;font-size:15px}
+.intro{max-width:70ch;color:var(--muted);font-size:14.5px}
+.note{font-size:13px;color:var(--muted);max-width:70ch}
+.prose{max-width:66ch}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0;align-items:center}
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);text-decoration:none;font-size:14.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;font-size:15.5px;padding:12px 20px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:28px 0 0;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;max-width:760px}
+.chain b{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.chain span.l{color:var(--muted);font-size:14px}
+.chain .to{color:var(--frame);font-size:18px}
+figure{margin:0}
+.px{position:relative;width:256px;height:256px;flex:none}
+.px img{display:block;width:256px;height:256px;image-rendering:pixelated;image-rendering:crisp-edges;border:1px solid var(--frame);box-sizing:content-box}
+.px .ring{position:absolute;left:1px;top:1px;width:256px;height:256px;pointer-events:none}
+.pair{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:18px 0 6px}
+.pair .cap{font-size:13px;color:var(--muted);margin-top:6px;width:256px}
+.pair .arrow{font-size:22px;color:var(--frame)}
+.pair figcaption{flex-basis:100%;font-size:14px;color:var(--muted);max-width:70ch}
+.shots{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px}
+.shots figcaption{font-size:13.5px;margin-top:6px;width:256px}
+.shots figcaption b{font-weight:500}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:6px}
+.rule{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.rule h3{font-size:15.5px;line-height:1.5}
+.rule p{margin:0;font-size:14.5px}
+.rule .ok{font-size:13px;color:var(--alive)}
+.rule .from{font-size:12px;color:var(--muted)}
+.rule .from code{font-family:var(--mono);font-size:11.5px}
+.stories{display:grid;gap:14px}
+.story{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px}
+.story .sub{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px}
+.story .sub code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+ol.tl{list-style:none;margin:0;padding:0 0 0 16px;display:grid;gap:10px;border-left:2px solid var(--rule)}
+ol.tl li{position:relative}
+ol.tl li::before{content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--frame)}
+ol.tl li.hit::before{background:var(--dead)} ol.tl li.fix::before{background:var(--alive)}
+ol.tl b{font-size:12.5px;color:var(--muted);font-weight:500}
+ol.tl li.hit b{color:var(--dead)} ol.tl li.fix b{color:var(--alive)}
+ol.tl p{margin:2px 0 0;font-size:14.5px;max-width:72ch}
+.result{font-size:16px;font-weight:500;max-width:66ch;margin:14px 0 10px}
+ul.lst{margin:0;padding-left:20px;max-width:72ch;display:grid;gap:8px;font-size:14.5px}
+ul.gaps li::marker{color:var(--gap)}
+details.apx{background:var(--panel);border:1px solid var(--rule);border-radius:8px;margin-bottom:10px}
+details.apx > summary{cursor:pointer;padding:12px 16px;font-weight:500}
+.apxb{padding:0 16px 16px;display:grid;gap:10px}
+.gloss{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;max-width:70ch;margin:0 0 14px}
+.gloss dt{font-family:var(--mono);color:var(--muted)} .gloss dd{margin:0}
+.chip{display:inline-block;font-size:11.5px;line-height:1.6;padding:0 7px;border-radius:999px;font-family:var(--mono);white-space:nowrap}
+.c-lv{background:var(--accent-soft);color:var(--accent)} .c-alive{background:var(--alive-soft);color:var(--alive)}
+.c-dead{background:var(--dead-soft);color:var(--dead)} .c-gap{background:var(--gap-soft);color:var(--gap)} .c-mute{background:var(--sunk);color:var(--muted)}
+.list{display:grid;gap:8px}
+.item{background:var(--ground);border:1px solid var(--rule);border-radius:8px}
+.item.dead{border-left:3px solid var(--dead)}
+.item > summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;gap:4px}
+.item > summary::-webkit-details-marker{display:none}
+.item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.item .name{font-family:var(--mono);font-size:13.5px;font-weight:500}
+.item .one{font-size:14px}
+.item[open] > summary{border-bottom:1px solid var(--rule)}
+.body{padding:12px 14px;display:grid;gap:12px}
+.doc{white-space:pre-wrap;font-size:14px;max-width:80ch}
+.doc code,.one code,.ver code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.ver{border-left:2px solid var(--rule);padding-left:12px;display:grid;gap:10px}
+.ver .v{display:grid;gap:2px;font-size:13.5px} .ver .v .h{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.group{margin:16px 0 6px;font-size:13px;color:var(--muted)} .group b{color:var(--ink);font-weight:500}
+pre{margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--code-ink);tab-size:4}
+pre code{font-family:inherit;background:none}
+.hljs-keyword,.hljs-built_in{color:var(--k)} .hljs-string{color:var(--s)} .hljs-comment{color:var(--c);font-style:italic}
+.hljs-number,.hljs-literal{color:var(--n)} .hljs-title,.hljs-type{color:var(--t)}
+details.src > summary{cursor:pointer;font-size:13px;color:var(--accent);margin-bottom:8px}
+.tbox{overflow-x:auto;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px}
+.t th,.t td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left}
+.t th{font-weight:500;color:var(--muted);font-size:12.5px} .t tr:last-child td{border-bottom:none}
+.t td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.md{max-width:80ch;font-size:14px}
+.md h1{font-size:20px;margin-top:0}.md h2{font-size:17px;margin:26px 0 8px}.md h3{font-size:15px;margin:20px 0 6px}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--sunk);padding:0 4px;border-radius:3px}
+.md pre code{padding:0;background:none}
+.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:13px}
+.md th,.md td{border:1px solid var(--rule);padding:5px 9px;text-align:left}
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.g{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--ink);display:grid;gap:4px}
+.g .id{font-family:var(--mono);font-weight:500;font-size:15px} .g .s{font-size:12.5px;color:var(--muted)}
+a.g:hover{border-color:var(--accent)} .g.off{opacity:.55}
+ul.objs{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;max-width:900px}
+ul.objs li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+ul.objs li b{font-weight:600} ul.objs li span{font-size:14px;color:var(--muted)} ul.objs li code{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:48px}
+.branch{display:grid;gap:4px;padding:16px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-decoration:none;color:var(--ink)}
+.branch b{font-size:16px;color:var(--accent)} .branch span{font-size:14px;color:var(--muted)}
+.branch:hover{border-color:var(--accent)}
+ul.origin{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-width:900px}
+ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:12px 16px;display:grid;gap:4px}
+ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
+footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← ft09 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从认证那一遍的真实开局出发，照规则推演每一次点击，逐帧和录像比对，直到过关那一步；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通：每关逐帧核对 3 到 20 步，再加过关的那一步；逐帧核对的 74 步加上各关过关的那一步，正是官方记录的 80 步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/22ad2c44-13eb-4fc0-9e30-d1c27641b190" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像全部 168 步上逐步检验，0 次说错；每一步都至少有一条规则表态。</li><li>同一批 167 步，Lean 版规则与 Python 版规则逐步对账，结论完全一致。</li><li>把 Python 版规则故意改错 16 种（含一种不改行为的对照），检验抓住了 12 种；其余几种改的是过关条件里的细节或底板，这份录像里没有能把它们和原规则分开的局面。</li><li>把 Lean 版故意改错 9 处（含一处不改行为的对照），8 处让证明编译失败或被检查拦下，对照那一处照常通过。</li><li>50 条定理全部检查过依赖，只用到 Lean 的标准基础，没有跳过任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>计数条与重开的规则</h2><p class="prose">另有 3 条规则，在录像上逐步检验，不在 Lean 模型里：计数条每步涨多少、重开后回到哪里，都取决于这一关走过的历史，单看当前画面读不出来。</p><div class="rules"><article class="rule"><h3>同一关里走一步，计数条用掉的格数不减少，一步最多多用两格</h3><p>每一关用得快慢不同，取决于这一关已经走了几步，单看当前画面读不出来。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">157/157 步</span></div></article><article class="rule"><h3>进入还要打的下一关，计数条重新填满</h3><p>打完最后一关的那一步，计数条原样不动。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>重开之后，回到那一关的开局</h3><p>重开后的世界和那一关第一次出现时的开局完全相同。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 168 条记录，是两遍完整通关：第一遍边摸索边打，打到通关；从通关画面重开一次之后，第二遍 80 步，是官方认证的那一遍，首页的截图和全部证明都用它。</p><h2>适用范围</h2><ul class="lst"><li>模型描述同一关里的一步：计数条怎么涨、重开回到哪里、下一关长什么样，由录像检验，不进 Lean。打不通的定理只算点击，模型里没有重开这一步。</li><li>录像里没有出现点空白处、点网格中心、计数条用满这几种情况，规则对它们的说法未在录像上检验。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>scope / 论域</dt><dd>一条规则管哪些步</dd><dt>C / E / N</dt><dd>管到的步数 / 其中说错的 / 不归它管的</dd><dt>底色 / 记号</dt><dd>瓦片的颜色 / 瓦片边上指向邻居的粉色小块</dd><dt>ON / OFF</dt><dd>图样里要涂点亮色的位置 / 要涂另一种颜色的位置</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
+
+## 契约（装置按名字找）
+
+| 名字 | 是什么 |
+|---|---|
+| `World` | `@dataclass(frozen=True)`。字段就是这一局的对象 |
+| `parse(frame) -&gt; World` | 帧 → 世界。**全局唯一碰像素的地方**；读不出来抛 `ParseError` |
+| `ParseError` | 「这一帧读不成一个世界」 |
+| `parse_action(frame, action) -&gt; Act` | 原始动作 → 世界里的动作（点了哪个槽位）。同样只在 `parse.py` 里 |
+
+## 目录
+
+```
+objects/
+  parse.py      唯一碰像素的地方（留在根上，它最该显眼）
+  world.py      World —— 这一局一帧的全部状态
+  lattice/      位置：格阵与槽位（Cell）
+  board/        一关之内不变的版面与题面（Tile、Grid）；会变的只有 World.colors 与 bar_used
+  act/          玩家能做的事（Act）
+```
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .act.act import CLICK, RESET, VOID, Act                     # noqa: F401
+from .board.grid import NONE, OFF, ON, RING, Grid                # noqa: F401
+from .lattice.cell import Cell                                   # noqa: F401
+from .parse import ParseError, parse, parse_action               # noqa: F401
+from .board.tile import DIRS, Tile                               # noqa: F401
+from .world import World                                         # noqa: F401
+
+__all__ = [&quot;World&quot;, &quot;parse&quot;, &quot;ParseError&quot;, &quot;parse_action&quot;, &quot;Act&quot;, &quot;Cell&quot;, &quot;Tile&quot;, &quot;Grid&quot;,
+           &quot;CLICK&quot;, &quot;VOID&quot;, &quot;RESET&quot;, &quot;ON&quot;, &quot;OFF&quot;, &quot;NONE&quot;, &quot;RING&quot;, &quot;DIRS&quot;]
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">act/__init__.py</span></div><div class="one"><b>玩家能做的事</b>，换成世界里的话。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**玩家能做的事**，换成世界里的话。
+
+分成一个子文件夹的理由：它不是世界的状态，是作用在世界上的东西；
+但它和世界共用同一套坐标（`Cell`），所以也要从帧里解析。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .act import CLICK, RESET, VOID, Act  # noqa: F401
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">act/act.py</span></div><div class="one"><code>Act</code> —— 一个动作，换成<b>世界里的话</b>：点了哪个槽位，或者点空了，或者重开。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Act` —— 一个动作，换成**世界里的话**：点了哪个槽位，或者点空了，或者重开。
+
+## 为什么动作也要解析
+
+原始动作是 `ACTION6:x,y`（像素坐标）。「这一下点中了哪一块」要靠格阵几何才答得出，
+那是碰像素的事，只许 `parse.py` 做。于是到了规则这一层，动作只剩三种：
+
+    CLICK  点中了某个槽位（上面可能是瓦片、可能是网格中心）
+    VOID   点在所有槽位之外（缝里、空白处）
+    RESET  重开
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..lattice.cell import Cell
+
+CLICK, VOID, RESET = &quot;click&quot;, &quot;void&quot;, &quot;reset&quot;
+
+
+@dataclass(frozen=True)
+class Act:
+    kind: str
+    cell: Cell | None = None
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">board/__init__.py</span></div><div class="one"><b>一关之内不变的那半边：版面与题面。</b> 瓦片的位置与记号、网格的图样与点亮色。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**一关之内不变的那半边：版面与题面。** 瓦片的位置与记号、网格的图样与点亮色。
+
+分成一个子文件夹的理由：这一组在一关之内**一格都不动**——
+它们规定「点一下牵动谁」和「什么算做完」，但自己从不改变。
+会变的只有 `World.colors`（瓦片底色）和 `World.bar_used`（计数条）。
+（调色板没有自己的类——它就是一串有序的色号，住在 `World.palette`。）
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .grid import NONE, OFF, ON, RING, Grid  # noqa: F401
+from .tile import DIRS, Tile  # noqa: F401
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">board/grid.py</span></div><div class="one"><code>Grid</code> —— 一个 3x3 网格的<b>题面</b>：中心在哪、点亮色是什么、中心图样怎么写。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Grid` —— 一个 3x3 网格的**题面**：中心在哪、点亮色是什么、中心图样怎么写。
+
+## 它是什么
+
+网格的正中那一块不是瓦片，是一张 3x3 的**图样**：正中那一格的颜色是
+这个网格的「点亮色」，周围八格每一格写着外环对应位置该是什么：
+
+    ON    这个位置的外环应当是点亮色
+    OFF   这个位置的外环应当是调色板里**别的**某一个色（同一个网格里统一一个）
+    NONE  这个位置根本没有可涂瓦片（出界、空槽、或另一个网格的中心）
+
+外环本身**不存在这里**——外环上的瓦片就是 `World.tiles` 里那几块，
+按位置认。一块瓦片可以同时是两个网格的外环（共用瓦片）。
+
+## 判据 2：为什么图样按「意义」存，不按色号存
+
+图样格在画面上是三个色号。按色号存的话，每条读它的规则都得各自知道
+「哪个色号是什么意思」——那是同一件事的好几份副本。这里只存意义。
+代价写在明处：**色号到意义的对应是解析时按值认的**（见 `parse.py`），
+全部语料上它没错过，但它是一次观察，不是结构。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..lattice.cell import Cell
+
+ON, OFF, NONE = &quot;on&quot;, &quot;off&quot;, &quot;none&quot;
+
+# 外环八个位置相对中心的偏移，行优先，不含中心自己。
+RING = tuple((dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (dr, dc) != (0, 0))
+
+
+@dataclass(frozen=True, order=True)
+class Grid:
+    &quot;&quot;&quot;一个网格的题面。`pattern` 与 `RING` 一一对应，取值 ON / OFF / NONE。&quot;&quot;&quot;
+
+    center: Cell
+    lit: int
+    pattern: tuple[str, ...]
+
+    def ring(self) -&gt; tuple[tuple[Cell, str], ...]:
+        &quot;&quot;&quot;外环八个位置：(槽位, 该是什么)。&quot;&quot;&quot;
+        return tuple((self.center.shift(dr, dc), p) for (dr, dc), p in zip(RING, self.pattern))
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">board/tile.py</span></div><div class="one"><code>Tile</code> —— 一块<b>可涂瓦片的版面</b>：它在哪、边上带了哪几个记号。<b>不含颜色。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Tile` —— 一块**可涂瓦片的版面**：它在哪、边上带了哪几个记号。**不含颜色。**
+
+## 它是什么
+
+画面上一块 6x6 的方块，读成 3x3 个小格：四角与正中承载**底色**，
+四条边的中点是**记号位**——要么也是底色，要么是记号色。
+带记号的那条边指向那一侧的邻居（上边中点的记号指上面那一块，依此类推）。
+
+「整块单色」「四条边全带记号（旧册子叫它加号）」「只带上边一条」
+在这里是同一种东西，差别只在 `marks` 里有几个方向。
+
+## 为什么颜色不在这里（卡 03 那一刀：拆）
+
+一块瓦片有两半：**位置与记号一关之内从不变**，**底色每一步都可能变**。
+字段分离表上，合在一起的 `tiles` 分得开，但分得开的全是底色那一半；
+拆开之后位置与记号那一半和 `grids` / `palette` 一样只在换关时变。
+于是底色单独住进 `World.colors`（与 `World.tiles` 按下标对齐），
+这里只剩一关之内不动的那一半——**「走一步瓦片不会挪位、记号不会变」表示不出来**，
+不用每步去核。
+
+## 什么不是瓦片（表示不出来，不用检查）
+
+* 底色就是背景色的那种（空槽）——它不进 `World.tiles`；
+* 网格的中心（那是 `Grid`）；
+* 画面外。
+
+于是「记号指向空槽 / 出界」在这一层就是「那个方向的槽位上没有瓦片」，
+三种情形合成了一种，**因为规则从来不需要分开它们**（见 `analysis/tiles.txt`）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..lattice.cell import Cell
+
+# 记号方向：(行差, 列差)。上 / 下 / 左 / 右。
+UP, DOWN, LEFT, RIGHT = (-1, 0), (1, 0), (0, -1), (0, 1)
+DIRS = (UP, DOWN, LEFT, RIGHT)
+
+
+@dataclass(frozen=True, order=True)
+class Tile:
+    &quot;&quot;&quot;一块可涂瓦片的版面。`marks` 是记号指向的方向，按 `DIRS` 的顺序排好。&quot;&quot;&quot;
+
+    cell: Cell
+    marks: tuple[tuple[int, int], ...] = ()
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">lattice/__init__.py</span></div><div class="one"><b>位置：格阵与槽位。</b> 这一组里没有任何世界断言——</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**位置：格阵与槽位。** 这一组里没有任何世界断言——
+
+它只说「哪张格阵、第几行第几列」，不说那里有没有瓦片、是什么颜色。
+分成一个子文件夹的理由：**它是其余每一样东西的坐标系**，本身不会变，也不会被点。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .cell import Cell  # noqa: F401
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">lattice/cell.py</span></div><div class="one"><code>Cell</code> —— 一个<b>槽位</b>的坐标：属于哪一张格阵、第几行第几列。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`Cell` —— 一个**槽位**的坐标：属于哪一张格阵、第几行第几列。
+
+## 为什么要带「哪一张格阵」
+
+这一局没有全图共用的格点。同一关里几组网格的相位可以不一样
+（实测有一关左右两组网格的行相位差两个像素），所以「第几行第几列」
+**离开它的格阵就没有意义**。格阵在这里只是一个不透明的序号：
+只许判相等，不许比大小，不许跨关认人。
+
+## 判据 1：世界层不许出现像素
+
+一块瓦片占几个像素、相邻两块隔几个像素，都是**解析**的事。
+到了这一层，「相邻」就是行或列差一，而且只在同一张格阵里才谈得上。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, order=True)
+class Cell:
+    &quot;&quot;&quot;一个槽位。`lat` 是格阵序号（不透明），`row` / `col` 从 0 数起。&quot;&quot;&quot;
+
+    lat: int
+    row: int
+    col: int
+
+    def shift(self, dr: int, dc: int) -&gt; &quot;Cell&quot;:
+        &quot;&quot;&quot;同一张格阵里挪 (dr, dc) 格。挪到负数也照样给——那个槽位上自然什么都没有。&quot;&quot;&quot;
+        return Cell(self.lat, self.row + dr, self.col + dc)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">parse.py</span></div><div class="one">帧 → 世界。<b>全局唯一碰像素的地方。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;帧 → 世界。**全局唯一碰像素的地方。**
+
+上面每一层只认 `World` 的字段与 `Act`，读不到帧。
+
+## 怎么读（按结构，不按行号列号）
+
+1. **背景色** = 画面上最多的那个色（不取左上角：有的关左上角离图例很近）。
+2. **网格中心**：扫全部 6x6 窗口，找「3x3 个 2x2 小格、正中那一格与周围八格不同色、
+   周围八格取值都在图样码里」的那种。**没有全局格点**，一切从中心往外定位。
+3. **格阵**：每个中心的相位（行 mod 8，列 mod 8）定一张格阵；同相位的中心共用一张。
+   格阵的序号按相位排，只是不透明的名字。
+4. **槽位**：每张格阵上每个完整落在画面里的 6x6 槽位，读成四类之一：
+   中心 / 瓦片（底色不是背景）/ 空槽（整块背景色）/ 读不出（压在图例、方框线上）。
+5. **计数条**：最后一行。
+6. **调色板**：右上角一列 4x4 色块从上往下读；没有图例的关退回「清点瓦片与点亮色」。
+
+## 良构检查（对不上就抛：这一帧读不成世界）
+
+「同一个量的两种读法必须对得上」——对不上的时候，比某条规则判一次 FALSE 更早也更响：
+
+* **G1 计数条**：最后一行只有「未用」「已用」两色，且已用的那一段贴着最右端。
+  （接替旧册子 `bar_is_full_then_used`：它说的就是计数条这个读数的形状。）
+* **G2 图样 NONE ⇔ 那里没有可涂瓦片**：图样写 NONE 的位置恰好是外环上没有瓦片的位置
+  （出界、空槽、另一个网格的中心），写 ON / OFF 的位置恰好都有瓦片。
+  （接替旧册子 `pattern_three_marks_no_tile`：图样与版面是同一件事的两种读法。）
+* **G3 瓦片底色在调色板里**：每块可涂瓦片的底色、每个网格的点亮色都是调色板里的色。
+* **G4 记号不指向读不出的东西**：带记号的边指向的槽位，要么有瓦片、要么是中心、
+  要么是空槽 / 出界——指到「读不出」的槽位时，这一块的联动说不清，整帧不接手。
+* **G5 外环不许读不出**：网格外环八个位置都读得出是哪一类。
+
+**这些检查是拿全量语料核过才收进来的**（`analysis/parse_check.txt`），
+不是一次观察。一次观察写成良构检查，会让整批帧读不成世界——那看起来像解析坏了。
+
+## 按值认的地方（写在明处）
+
+* 图样码 {0: ON, 2: OFF, 3: NONE} 是按色号认的；记号色 6 也是。
+* 计数条的两色 12（未用）/ 11（已用）是按色号认的。
+全部语料上没错过，但它们是观察不是结构：换一局或换一关变了色号，这里会**抛**，不会静默读错
+（因为 G1 / 中心判据会先不成立）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import hashlib
+from collections import Counter
+
+from .act.act import CLICK, RESET, VOID, Act
+from .board.grid import NONE, OFF, ON, RING, Grid
+from .lattice.cell import Cell
+from .board.tile import DIRS, Tile
+from .world import World
+
+TILE, PITCH, SUB = 6, 8, 2          # 瓦片边长 / 相邻瓦片左上角的距离 / 小格边长（像素）
+PAT = {0: ON, 2: OFF, 3: NONE}      # 图样码 → 意义（按值认，见文件头）
+MARK = 6                            # 记号色（按值认）
+BAR_FULL, BAR_USED = 12, 11         # 计数条两色（按值认）
+LEGEND_W = 4                        # 图例色块边长
+EDGE = {(0, 1): (-1, 0), (2, 1): (1, 0), (1, 0): (0, -1), (1, 2): (0, 1)}   # 记号位 → 方向
+BASE_SUB = ((0, 0), (0, 2), (1, 1), (2, 0), (2, 2))                          # 承载底色的小格
+
+
+class ParseError(Exception):
+    &quot;&quot;&quot;这一帧读不成一个世界。**这是一条可判错的话**，不是一次异常处理。
+
+    这里只管抛，不管归类（「不是局面」还是「读不出来」由拿得到 meta 的读数那一层判）。
+    `code` 是哪一条检查没过，读数那一层按它分类计数。
+    &quot;&quot;&quot;
+
+    def __init__(self, code: str, msg: str):
+        super().__init__(f&quot;{code}: {msg}&quot;)
+        self.code = code
+
+
+# ---------------------------------------------------------------- 像素小工具（只在这个文件里）
+
+def _uniform(g, r, c, n):
+    if r &lt; 0 or c &lt; 0 or r + n &gt; len(g) or c + n &gt; len(g[0]):
+        return None
+    v = g[r][c]
+    for dr in range(n):
+        row = g[r + dr]
+        for dc in range(n):
+            if row[c + dc] != v:
+                return None
+    return v
+
+
+def _subgrid(g, t, l):
+    &quot;&quot;&quot;(t,l) 起的 6x6 读成 3x3 个 2x2 小格；有小格不单色（或越界）返回 None。&quot;&quot;&quot;
+    if t &lt; 0 or l &lt; 0 or t + TILE &gt; len(g) or l + TILE &gt; len(g[0]):
+        return None
+    out = []
+    for a in range(3):
+        row = []
+        for b in range(3):
+            v = _uniform(g, t + a * SUB, l + b * SUB, SUB)
+            if v is None:
+                return None
+            row.append(v)
+        out.append(row)
+    return out
+
+
+def _is_center(g, t, l):
+    p = _subgrid(g, t, l)
+    if p is None or p[1][1] in PAT:
+        return False
+    return all(p[i][j] in PAT for i in range(3) for j in range(3) if (i, j) != (1, 1))
+
+
+def _read_slot(g, t, l, bg):
+    &quot;&quot;&quot;一个槽位读成 (&#x27;tile&#x27;, base, marks) / (&#x27;empty&#x27;,) / (&#x27;junk&#x27;,)。中心另外认。&quot;&quot;&quot;
+    v = _uniform(g, t, l, TILE)
+    if v is not None:
+        return (&quot;empty&quot;,) if v == bg else (&quot;tile&quot;, v, ())
+    p = _subgrid(g, t, l)
+    if p is None:
+        return (&quot;junk&quot;,)
+    base = p[0][0]
+    if any(p[a][b] != base for a, b in BASE_SUB) or base == bg:
+        return (&quot;junk&quot;,)
+    marks = []
+    for (a, b), d in EDGE.items():
+        if p[a][b] == base:
+            continue
+        if p[a][b] != MARK:
+            return (&quot;junk&quot;,)
+        marks.append(d)
+    return (&quot;tile&quot;, base, tuple(d for d in DIRS if d in marks))
+
+
+# ---------------------------------------------------------------- 版面：中心、格阵、槽位
+
+def _layout(g):
+    &quot;&quot;&quot;返回 (背景色, 中心列表[(t,l)], 相位 → 格阵序号, 槽位表 {(lat,r,c): 读法}, 可用行数)。&quot;&quot;&quot;
+    H, W = len(g), len(g[0])
+    rows = H - 1                                        # 最后一行是计数条，不属于版面
+    bg = Counter(v for row in g[:rows] for v in row).most_common(1)[0][0]
+    area = g[:rows]
+    centers = [(t, l) for t in range(rows - TILE + 1) for l in range(W - TILE + 1)
+               if _is_center(area, t, l)]
+    phases = sorted({(t % PITCH, l % PITCH) for t, l in centers})
+    lat_of = {ph: i for i, ph in enumerate(phases)}
+    slots = {}
+    cset = set(centers)
+    for (pr, pc), k in lat_of.items():
+        for t in range(pr, rows - TILE + 1, PITCH):
+            for l in range(pc, W - TILE + 1, PITCH):
+                key = (k, t // PITCH, l // PITCH)
+                slots[key] = (&quot;center&quot;,) if (t, l) in cset else _read_slot(area, t, l, bg)
+    return bg, centers, lat_of, slots, rows
+
+
+def _bar(g):
+    row = g[-1]
+    if any(v not in (BAR_FULL, BAR_USED) for v in row):
+        raise ParseError(&quot;G1&quot;, &quot;计数条里出现了两色之外的颜色&quot;)
+    n = sum(1 for v in row if v == BAR_USED)
+    if any(v != BAR_USED for v in row[len(row) - n:]):
+        raise ParseError(&quot;G1&quot;, &quot;计数条已用的那一段没有贴着最右端&quot;)
+    return n
+
+
+def _palette(g, bg, rows, colors):
+    &quot;&quot;&quot;右上角图例从上往下；没有图例退回清点（那些关只有两色，顺序无所谓）。&quot;&quot;&quot;
+    top = g[0]
+    runs, i = [], 0
+    while i &lt; len(top):
+        if top[i] == bg:
+            i += 1
+            continue
+        j = i
+        while j &lt; len(top) and top[j] == top[i]:
+            j += 1
+        runs.append((i, j - i))
+        i = j
+    seq = []
+    if len(runs) == 1 and runs[0][1] == LEGEND_W:
+        c0, r = runs[0][0], 0
+        while r + LEGEND_W &lt;= rows:
+            v = _uniform(g, r, c0, LEGEND_W)
+            if v is None or v == bg:
+                break
+            seq.append(v)
+            r += LEGEND_W
+    if not seq:
+        seq = sorted(colors)
+    return tuple(seq)
+
+
+def parse(frame) -&gt; World:
+    &quot;&quot;&quot;一帧像素 → 一个 World。读不出来抛 `ParseError`。&quot;&quot;&quot;
+    g = frame
+    if not g or not g[0]:
+        raise ParseError(&quot;G0&quot;, &quot;空帧&quot;)
+    bar = _bar(g)
+    bg, centers, lat_of, slots, rows = _layout(g)
+    if not centers:
+        raise ParseError(&quot;G0&quot;, &quot;一个网格中心都没找到&quot;)
+
+    tiles, bases = [], []
+    for (k, r, c), s in sorted(slots.items()):
+        if s[0] == &quot;tile&quot;:
+            tiles.append(Tile(Cell(k, r, c), s[2]))
+            bases.append(s[1])
+
+    grids = []
+    for t, l in centers:
+        p = _subgrid(g, t, l)
+        k = lat_of[(t % PITCH, l % PITCH)]
+        cen = Cell(k, t // PITCH, l // PITCH)
+        pattern = tuple(PAT[p[1 + dr][1 + dc]] for dr, dc in RING)
+        grid = Grid(cen, p[1][1], pattern)
+        for cell, want in grid.ring():
+            s = slots.get((cell.lat, cell.row, cell.col), (&quot;off&quot;,))
+            if s[0] == &quot;junk&quot;:
+                raise ParseError(&quot;G5&quot;, f&quot;网格 {cen} 的外环位置 {cell} 读不出来&quot;)
+            has_tile = s[0] == &quot;tile&quot;
+            if (want == NONE) == has_tile:
+                raise ParseError(&quot;G2&quot;, f&quot;网格 {cen} 图样在 {cell} 写 {want}，版面上&quot;
+                                 + (&quot;有&quot; if has_tile else &quot;没有&quot;) + &quot;瓦片&quot;)
+        grids.append(grid)
+
+    for tl in tiles:
+        for dr, dc in tl.marks:
+            n = tl.cell.shift(dr, dc)
+            s = slots.get((n.lat, n.row, n.col), (&quot;off&quot;,))
+            if s[0] == &quot;junk&quot;:
+                raise ParseError(&quot;G4&quot;, f&quot;瓦片 {tl.cell} 的记号指向读不出来的槽位 {n}&quot;)
+
+    colors = set(bases) | {gr.lit for gr in grids}
+    palette = _palette(g, bg, rows, colors)
+    if len(palette) &lt; 2:
+        raise ParseError(&quot;G3&quot;, &quot;调色板少于两色&quot;)
+    bad = sorted(c for c in colors if c not in palette)
+    if bad:
+        raise ParseError(&quot;G3&quot;, f&quot;底色 / 点亮色 {bad} 不在调色板 {list(palette)} 里&quot;)
+
+    return World(palette=palette, tiles=tuple(tiles), grids=tuple(sorted(grids)),
+                 colors=tuple(bases), bar_used=bar,
+                 backdrop=_backdrop(g, rows, [px for (k, r, c), s in slots.items()
+                                              if s[0] in (&quot;tile&quot;, &quot;center&quot;)
+                                              for px in [_slot_px(lat_of, k, r, c)]]))
+
+
+def _slot_px(lat_of, k, r, c):
+    pr, pc = next(ph for ph, kk in lat_of.items() if kk == k)
+    return r * PITCH + pr, c * PITCH + pc
+
+
+def _backdrop(g, rows, covered_tl):
+    &quot;&quot;&quot;画面上**不归任何瓦片、中心、计数条**的那些像素，压成一个不透明的指纹。
+
+    它是「底板」：背景、空槽、图例、方框线……模型不逐格描述它们，
+    但「走一步它们一格不动」是一句能判错的话（卡 05 对账时新册拒绝集比旧册小了 9 个变异，
+    全是改在这些像素上的——旧册按像素判，新册的世界里原来没有它们）。
+    **只许判相等**：不许比大小、不许拆开读、不许跨关比。
+    &quot;&quot;&quot;
+    cov = set()
+    for t, l in covered_tl:
+        for dy in range(TILE):
+            for dx in range(TILE):
+                cov.add((t + dy, l + dx))
+    h = hashlib.sha1()
+    for r in range(rows):
+        h.update(bytes((255 if (r, c) in cov else v) for c, v in enumerate(g[r])))
+    return h.hexdigest()[:16]
+
+
+def parse_action(frame, action: str) -&gt; Act:
+    &quot;&quot;&quot;原始动作 → `Act`。点击坐标（x=列, y=行）落在哪个槽位要靠这一帧的格阵几何。
+
+    落在某个槽位的 6x6 之内（瓦片或中心）→ CLICK；落在所有这类槽位之外 → VOID。
+    这一帧读不成世界时照样抛 `ParseError`。
+    &quot;&quot;&quot;
+    name, _, coords = str(action).partition(&quot;:&quot;)
+    name = name.strip().upper()
+    if name == &quot;RESET&quot;:
+        return Act(RESET)
+    if name != &quot;ACTION6&quot;:
+        raise ParseError(&quot;A0&quot;, f&quot;没见过的动作 {action!r}&quot;)
+    x, y = (int(v) for v in coords.split(&quot;,&quot;))
+    g = frame
+    _, centers, lat_of, slots, _ = _layout(g)
+    hits = []
+    for (pr, pc), k in lat_of.items():
+        if y &lt; pr or x &lt; pc:
+            continue
+        r, c = (y - pr) // PITCH, (x - pc) // PITCH
+        if (y - pr) % PITCH &gt;= TILE or (x - pc) % PITCH &gt;= TILE:
+            continue
+        s = slots.get((k, (pr + r * PITCH) // PITCH, (pc + c * PITCH) // PITCH))
+        if s and s[0] in (&quot;tile&quot;, &quot;center&quot;):
+            hits.append(Cell(k, (pr + r * PITCH) // PITCH, (pc + c * PITCH) // PITCH))
+    if len(hits) &gt; 1:
+        raise ParseError(&quot;A1&quot;, f&quot;一下点击落在两张格阵的槽位上：{hits}&quot;)
+    return Act(CLICK, hits[0]) if hits else Act(VOID)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">world.py</span></div><div class="one"><code>World</code> —— 这一局一帧的<b>全部状态</b>。字段就是这一局的对象。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;`World` —— 这一局一帧的**全部状态**。字段就是这一局的对象。
+
+    palette   本关的调色板：有序的一串色号，点一下沿它前进一位
+    tiles     全部可涂瓦片的版面（位置、记号），按位置排好            —— 一关之内不变
+    grids     全部网格的题面（中心、点亮色、图样）                    —— 一关之内不变
+    colors    每块瓦片此刻的底色，与 `tiles` 按下标对齐               —— 每步可变
+    bar_used  计数条上已经用掉的格数                                  —— 每步可变
+    backdrop  底板：不归任何瓦片、中心、计数条的那些像素的不透明指纹  —— 一关之内不变
+              （卡 05 对账时补的：没有它，「背景上凭空多一个点」这种错新册拒不掉，旧册拒得掉）
+
+每个字段「为什么删不掉」写在 `analysis/&lt;字段&gt;.txt`；
+装置的消融读数写在 `analysis/字段-&lt;字段&gt;.txt`。
+
+**上游已经给的事实不进这里**：关卡号、游戏状态（进行中 / 通关）都从 `ctx` 读。
+**帧上读不出来的不进这里**：「这一关已经走了几步」读不出来
+（计数条的走法说明它不是已用格数的函数），所以它不是字段。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from .board.grid import Grid
+from .board.tile import Tile
+from .lattice.cell import Cell
+
+
+@dataclass(frozen=True)
+class World:
+    palette: tuple[int, ...]
+    tiles: tuple[Tile, ...]
+    grids: tuple[Grid, ...]
+    colors: tuple[int, ...]
+    bar_used: int
+    backdrop: str
+
+    def index_of(self, cell: Cell) -&gt; int | None:
+        &quot;&quot;&quot;那个槽位上是第几块瓦片；没有就 None。只是查表，不含判断。&quot;&quot;&quot;
+        for i, t in enumerate(self.tiles):
+            if t.cell == cell:
+                return i
+        return None
+
+    def color_at(self, cell: Cell) -&gt; int | None:
+        i = self.index_of(cell)
+        return None if i is None or i &gt;= len(self.colors) else self.colors[i]
+
+    def centers(self) -&gt; frozenset[Cell]:
+        return frozenset(g.center for g in self.grids)
+</code></pre></div></details></div><div class="group"><b>由对象算出来的量（derive/）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one"><b>复合概念</b>：由 <code>objects/</code> 里的对象算出来的量。输入是 <code>World</code>，不是帧。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**复合概念**：由 `objects/` 里的对象算出来的量。输入是 `World`，不是帧。
+
+    advance.py   调色板上前进一位           ← palette
+    links.py     点一块瓦片，牵动哪几块     ← tiles（位置 + 记号）
+    effect.py    点一下之后各块的底色       ← advance + links + colors
+    goal.py      一个网格的外环到齐了没有   ← grids + colors + tiles
+
+分开的理由（组合分解）：每一样都说得出**它由哪几个对象组合而来**；
+说不出来的，多半是一个没认出来的对象，那就该回 `objects/` 加字段。
+
+**这里的函数是规则共用的部件，不是规则。** 它们不判 TRUE / FALSE，
+也不在任何一条转移上开口；开口的是 `rule/` 下那几条。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">advance.py</span></div><div class="one">调色板上前进一位：<code>advance(palette, c)</code>。到头绕回第一个。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;调色板上前进一位：`advance(palette, c)`。到头绕回第一个。
+
+由 `World.palette` 组合而来。颜色不在调色板里返回 None（解析的良构检查 G3
+保证读得出来的世界里不会发生，这里照样不假设）。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+
+def advance(palette: tuple[int, ...], c: int) -&gt; int | None:
+    if c not in palette:
+        return None
+    return palette[(palette.index(c) + 1) % len(palette)]
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">effect.py</span></div><div class="one">点一下之后各块的底色：<code>colors_after(w, act)</code>。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;点一下之后各块的底色：`colors_after(w, act)`。
+
+由 `advance` + `moved_by` + `World.colors` 组合而来：被牵动的每一块各自前进一位，
+别的不动。动作不是点中一块瓦片（点空、点在中心上）→ 底色原样。
+
+**它不是一条规则。** 三条「一步怎么走」的规则各管这张表的一部分
+（被点那块 / 被记号牵动的那几块 / 其余的），各自去对观测；
+「什么算赢」那一条需要换关**之前**的那一刻，而换关那一步的下一帧已经是新盘，
+所以它用这张表算出那一刻。算法只有这一份。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+from .advance import advance
+from .links import moved_by
+
+
+def colors_after(w, act) -&gt; tuple[int, ...] | None:
+    &quot;&quot;&quot;点完之后的底色表（与 `w.tiles` 对齐）；有一块前进不了（不在调色板里）→ None。&quot;&quot;&quot;
+    cols = list(w.colors)
+    if act.kind != &quot;click&quot; or act.cell is None:
+        return tuple(cols)
+    for i in moved_by(w, act.cell):
+        n = advance(w.palette, cols[i])
+        if n is None:
+            return None
+        cols[i] = n
+    return tuple(cols)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">goal.py</span></div><div class="one">一个网格的外环<b>到齐了</b>没有：<code>grid_done(w, colors, g)</code>；全部到齐：<code>all_done(w, colors)</code>。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;一个网格的外环**到齐了**没有：`grid_done(w, colors, g)`；全部到齐：`all_done(w, colors)`。
+
+由 `World.grids`（题面）+ `World.tiles`（外环上是哪几块）+ 一张底色表组合而来：
+
+    图样写 ON 的位置    那块瓦片的底色 = 这个网格的点亮色
+    图样写 OFF 的位置   那几块瓦片的底色**彼此相同**，而且**不是**点亮色
+    图样写 NONE 的位置  那里没有瓦片（解析的 G2 保证），不管
+
+「OFF 那几块要彼此相同」是一句**可判错的话**，不是随手的写法：
+更弱的说法是「每块各自不是点亮色就行」。两种说法在两色的关上没有差别，
+只在三色的关上才分得开——那一关语料里能不能分开，读数写在 `analysis/goal.txt`。
+
+底色表单独传进来而不是直接读 `w.colors`：换关那一步要问的是**点完那一刻**
+到齐了没有，那张表由 `effect.colors_after` 算出来。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+
+def grid_done(w, colors, g) -&gt; bool:
+    off = set()
+    for cell, want in g.ring():
+        if want == &quot;none&quot;:
+            continue
+        i = w.index_of(cell)
+        if i is None:
+            return False
+        c = colors[i]
+        if want == &quot;on&quot;:
+            if c != g.lit:
+                return False
+        else:
+            if c == g.lit:
+                return False
+            off.add(c)
+    return len(off) &lt;= 1
+
+
+def all_done(w, colors) -&gt; bool:
+    return all(grid_done(w, colors, g) for g in w.grids)
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">links.py</span></div><div class="one">点一块瓦片，<b>牵动</b>哪几块：<code>moved_by(w, cell)</code>。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;点一块瓦片，**牵动**哪几块：`moved_by(w, cell)`。
+
+由 `World.tiles`（位置 + 记号）组合而来：被点那一块自己，外加它每个记号指向的
+那个槽位——**只在那里真有一块可涂瓦片时**。指向中心、空槽、出界的方向不牵动任何东西
+（在世界这一层，那三种都是「那个槽位上没有瓦片」，表示上就分不开，也不需要分开）。
+
+联动只走一步：被牵动的那几块自己的记号**不**再往下传。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+
+def moved_by(w, cell) -&gt; list[int]:
+    &quot;&quot;&quot;点 `cell` 会动哪几块瓦片（`World.tiles` 的下标，被点那块在最前）。点的不是瓦片 → 空表。&quot;&quot;&quot;
+    i = w.index_of(cell)
+    if i is None:
+        return []
+    out = [i]
+    for dr, dc in w.tiles[i].marks:
+        j = w.index_of(cell.shift(dr, dc))
+        if j is not None:
+            out.append(j)
+    return out
+</code></pre></div></details></div><div class="group"><b>规则层：世界怎么运转（rule/）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>规则层</b>。一条规则一个文件，按<b>它管什么</b>收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**规则层**。一条规则一个文件，按**它管什么**收进子文件夹。
+
+    rule/
+      step/      点一下之后，哪几块瓦片的底色怎么变
+      goal/      什么时候换关
+      meter/     计数条怎么走（世界对「又走了一步」的回应）
+      restart/   重开之后是什么局面
+      _scope.py  几条规则共用的「我不管」（有名字、可计数）
+
+分组**读目录**：住在哪个子文件夹就是哪一组，组的说明在那个 `__init__.py` 的 docstring 里。
+身份（定义 / 推论 / 不进模型）是另一个维度，写在每条规则的 `IDENTITY` 里，不拿来分组。
+
+## 一条规则长什么样（每条都要有）
+
+    CLAIM        一句人话：它主张什么
+    SCOPE_NOTE   论域：什么时候不管、为什么、不管的那些归谁
+    NOT_CLAIMED  明确不主张什么
+    HISTORY      改版史：一版一行
+    EVIDENCE     语料里的见证（seq，唯一键）
+    IDENTITY     在 Lean 那边落哪一种：definition / derived / unmodeled（后者带理由）
+    scope_(w, act, nw, ctx) -&gt; str | None    None = 我管；否则返回不管的**理由名**
+    assert_(w, act, nw, ctx) -&gt; bool         管的时候，观测对不对得上
+
+读的是**世界**（`objects.World`）与世界里的动作（`objects.Act`），不读帧。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">_scope.py</span></div><div class="one">几条规则共用的「我不管」。<b>只放论域，不放判断</b>：它只说「这一步归不归我」， 不说「这一步该变成什么样」。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;几条规则共用的「我不管」。**只放论域，不放判断**：它只说「这一步归不归我」，
+不说「这一步该变成什么样」。
+
+同一句「我不管」原来在册子里抄了五遍（换关那一步、重开那一步），抄写的版本会慢慢分叉，
+所以提上来，一处定义。
+&quot;&quot;&quot;
+from __future__ import annotations
+
+RESET = &quot;重开（下一帧是开局，是历史）&quot;
+NEW_BOARD = &quot;换关（下一帧已经是下一关的盘）&quot;
+
+
+def same_board(act, ctx) -&gt; str | None:
+    &quot;&quot;&quot;下一帧还是同一张盘吗。不是就返回理由名（这一步「一步怎么走」那几条不管）。
+
+    通关那一步（state 变 WIN）**下一帧仍是同一张盘**（实测：只多了被点那几块的变化），
+    所以它不在这里被排掉。
+    &quot;&quot;&quot;
+    if act.kind == &quot;reset&quot;:
+        return RESET
+    if ctx and ctx.get(&quot;mark&quot;) == &quot;new_board&quot;:
+        return NEW_BOARD
+    return None
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">goal/__init__.py</span></div><div class="one"><b>什么时候换关。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**什么时候换关。**
+
+只有一条：点完那一刻，全部网格的外环都到齐了 ⇔ 这一步换关。
+它不说点一下瓦片怎么变（那是 `step/`），只拿 `derive.effect` 算出的「点完那一刻」去问题面。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">goal/level_up_iff_all_done.py</span></div><div class="one">点完那一刻，<b>全部</b>网格的外环都到齐 ⇔ 这一步换关（通关那一步也算换关）。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;点完那一刻，**全部**网格的外环都到齐 ⇔ 这一步换关（通关那一步也算换关）。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.effect import colors_after
+from derive.goal import all_done
+
+CLAIM = (&quot;把这一下点击的效果算进去之后，若每一个网格的外环都到齐了&quot;
+         &quot;（ON 位置是点亮色，OFF 位置彼此同色且不是点亮色），这一步就换关；只要有一个没到齐，就不换关。&quot;)
+
+SCOPE_NOTE = (&quot;管每一下点击（点中瓦片、点空、点在中心上都算）。不管的只有重开&quot;
+              &quot;（理由「重开」：那一步的关卡号变化是重开造成的，不是凑齐造成的，归 `restart/`）。&quot;
+              &quot;换关那一步也管——它正是这条规则要判的那一类；它读的是**这一步之前**的世界加这一下点击，&quot;
+              &quot;从不读换关后那张新盘。&quot;)
+
+NOT_CLAIMED = (&quot;不说换关后下一关长什么样（那是历史，帧上读不出来）；&quot;
+               &quot;不说凑齐之后会不会锁住（不锁：旧册 matched_grid_is_locked 已撤册）。&quot;
+               &quot;不说 OFF 位置该是调色板里的**哪一个**色——只说它们彼此同色、且不是点亮色。&quot;)
+
+HISTORY = [
+    &quot;旧册 ring_matched_levels_up v1–v5 与 no_levelup_before_ring_matches v1–v6：同一个论域、同一个条件，&quot;
+    &quot;一条说「到齐 ⇒ 换关」，一条说「没到齐 ⇒ 不换关」。v1 死于只看 prev 的外环（凑齐的那一下本身就是换关那一步）；&quot;
+    &quot;之后点亮色从写死改成从画面读、熄灭色从写死改成清点、点击从互换改成循环前进、目标由共用瓦片一致性锁死。&quot;,
+    &quot;本版（合并，卡 05 的第一种正当理由）：两条单向蕴含拼成一个等价。&quot;
+    &quot;「目标色表」不再预先解出来（旧册要枚举 OFF 位置可能的色、要求解唯一，否则说不出话）——&quot;
+    &quot;改成直接问状态：OFF 位置彼此同色且不是点亮色。旧册说不出话的那种局面（解不唯一），这里照样说得出。&quot;,
+]
+
+# 见证用 seq（语料里唯一的键；tid 是内容哈希，两段语料里同一条转移会重号）。全部取自成绩单认证的那一段。
+EVIDENCE = [89, 92, 168]   # 没到齐不换关 / 到齐换关（第 0→1 关）/ 到齐通关
+IDENTITY = (&quot;definition&quot;, &quot;Rule/Goal/LevelUpIffAllDone.lean&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    if act.kind == &quot;reset&quot;:
+        return &quot;重开&quot;
+    if ctx is None:
+        return &quot;没有关卡号&quot;
+    return None
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    after = colors_after(w, act)
+    if after is None:
+        return False
+    up = ctx[&quot;level_next&quot;] != ctx[&quot;level_prev&quot;]
+    return all_done(w, after) == up
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">meter/__init__.py</span></div><div class="one"><b>计数条怎么走</b>：世界对「又走了一步」的回应。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**计数条怎么走**：世界对「又走了一步」的回应。
+
+两条都**不进模型**：计数条下一步长多少，不是这一帧读得出的任何东西的函数
+（同样读到已用 2 格，下一步可能还是 2、也可能变 3——取决于这一关已经走了几步，那是历史）。
+所以它们只在 Python 这一侧对着语料开口，在 Lean 那边写成明处的「不进模型」，带两个数。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">meter/bar_grows_slowly.py</span></div><div class="one">同一张盘上走一步，计数条已用格数只增不减，一步至多加 2 格。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;同一张盘上走一步，计数条已用格数只增不减，一步至多加 2 格。&quot;&quot;&quot;
+from __future__ import annotations
+
+from rule._scope import same_board
+
+CLAIM = &quot;同一张盘上走一步，计数条的已用格数不减少，且一步最多增加 2 格。&quot;
+
+SCOPE_NOTE = (&quot;管同一张盘上的每一步（含通关那一步）。不管的：重开、换关（下一帧是新盘，归 `bar_refills_on_new_board`）。&quot;)
+
+NOT_CLAIMED = (&quot;不说一步具体加几格：实测每关速率不同（有的关每步 2 格，有的关按 1,0,1,1,0,1… 走，&quot;
+               &quot;有的按 0,1,1,0 走），它像是「这一关已走步数 × 常数」取整，而「已走步数」帧上读不出来。&quot;
+               &quot;不说用完之后会怎样（语料里一次都没用完过）。&quot;)
+
+HISTORY = [
+    &quot;旧册 bar_eats_two：「每步正好吃 2 格」，被某关「六步只吃 4 格」打倒，拆成三条。&quot;,
+    &quot;旧册 bar_used_never_shrinks：拆出来的那一半，本版原样接替（读世界的 bar_used 字段）。&quot;,
+    &quot;旧册 bar_is_full_then_used（计数条只有两段、已用段贴右）：本版搬进解析，成了良构检查 G1。&quot;,
+]
+
+EVIDENCE = [89, 100, 168]   # 一步 +2 / 一步 +1 或 +0 的那一关 / 通关那一步 +0（seq，认证段）
+IDENTITY = (&quot;unmodeled&quot;, None,
+            &quot;下一步已用格数不是当前世界的函数（同一个已用格数之后可能 +0 也可能 +1，取决于本关已走几步，&quot;
+            &quot;那是历史、帧上读不出来）。写进 step 就得给世界加一位读不出来的信息。&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    return same_board(act, ctx)
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    return 0 &lt;= nw.bar_used - w.bar_used &lt;= 2
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">meter/bar_refills_on_new_board.py</span></div><div class="one">换到下一关（游戏没结束）时，计数条重新填满：已用格数回到 0。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;换到下一关（游戏没结束）时，计数条重新填满：已用格数回到 0。&quot;&quot;&quot;
+from __future__ import annotations
+
+CLAIM = &quot;换关、且游戏还没结束的那一步之后，计数条重新填满：已用格数是 0。&quot;
+
+SCOPE_NOTE = (&quot;只管换到新盘的那一步（语料标记 new_board）。不管的：同一张盘上的步（理由「同一张盘」，&quot;
+              &quot;归 `bar_grows_slowly`）；通关那一步（它不换盘，计数条原样，归 `bar_grows_slowly`）；重开。&quot;)
+
+NOT_CLAIMED = &quot;不说新一关的计数条速率是多少。&quot;
+
+HISTORY = [
+    &quot;旧册 bar_refills_on_levelup v1：「换关就重填」，死于通关那一步（没有下一关，计数条没重填）。&quot;,
+    &quot;旧册 v2：换关且游戏未结束才重填。本版原样接替，论域由语料标记给（上游事实），不从帧上猜。&quot;,
+]
+
+EVIDENCE = [92, 99, 113, 134, 155]   # 认证段里全部五次换关（seq）
+IDENTITY = (&quot;unmodeled&quot;, None,
+            &quot;它说的是换关之后那一张**新盘**上的读数；模型只描述同一张盘上的一步，新盘是历史&quot;
+            &quot;（下一关长什么样帧上读不出来）。&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    if act.kind == &quot;reset&quot;:
+        return &quot;重开&quot;
+    if not ctx or ctx.get(&quot;mark&quot;) != &quot;new_board&quot;:
+        return &quot;同一张盘&quot;
+    return None
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    return nw.bar_used == 0
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">restart/__init__.py</span></div><div class="one"><b>重开之后是什么局面。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**重开之后是什么局面。**
+
+只有一条，而且**不进模型**：「开局长什么样」不是当前状态的函数，它是历史。
+它在 Python 这一侧对着语料开口（语料给得出那一关的开局），在 Lean 那边写成明处的假设。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">restart/reset_returns_to_opening.py</span></div><div class="one">重开之后的局面，就是它回到的那一关在语料里第一次出现时的开局。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;重开之后的局面，就是它回到的那一关在语料里第一次出现时的开局。&quot;&quot;&quot;
+from __future__ import annotations
+
+CLAIM = &quot;重开（RESET）之后的世界，等于它回到的那一关在语料里第一次出现时的开局世界（逐字段相等）。&quot;
+
+SCOPE_NOTE = (&quot;只管 RESET 那一步。不管的：其余每一步（理由「不是重开」）；&quot;
+              &quot;语料里找不到那一关的开局（理由「没有开局可比」）。开局由语料给（`ctx[&#x27;opening&#x27;]`），&quot;
+              &quot;那是历史，所以这条规则**不进模型**。&quot;)
+
+NOT_CLAIMED = &quot;不说重开会不会清空计数条以外的任何「隐藏」量（世界里本来就没有隐藏量）。&quot;
+
+HISTORY = [
+    &quot;本版新立。旧册没有这一条：旧册在打局时从不重开（RESET 只出现在两段语料的接缝处）。&quot;
+    &quot;它把 PIPELINE 里「重来一次把局面放回开局」那条假设变成一句对语料开口的话。&quot;,
+]
+
+EVIDENCE = [88]   # 语料里唯一的一次重开：两段的接缝处，从通关画面回到第 0 关（seq）
+IDENTITY = (&quot;unmodeled&quot;, None,
+            &quot;「这一关的开局」不是当前状态的函数，是历史；硬塞一个字段进世界就是给模型加一位帧上读不出来的信息。&quot;
+            &quot;在 Lean 里它是每关定理那一层明写的假设。&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    if act.kind != &quot;reset&quot;:
+        return &quot;不是重开&quot;
+    if not ctx or ctx.get(&quot;opening&quot;) is None:
+        return &quot;没有开局可比&quot;
+    return None
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    return nw == ctx[&quot;opening&quot;]
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">step/__init__.py</span></div><div class="one"><b>点一下之后，哪几块瓦片的底色怎么变。</b></div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;**点一下之后，哪几块瓦片的底色怎么变。**
+
+三条论域天然错开，合起来正好覆盖全部瓦片：
+
+    click_advances_tile      被点那一块              ← 下界：它确实前进一位
+    marks_push_neighbours    被点那块的记号牵动的那几块 ← 下界：它们也确实前进一位
+    nothing_else_changes     其余每一块 + 版面与题面    ← 上界：一格不动
+
+它们只说底色，不说「算不算换关」（那是 `goal/`），也不说计数条（那是 `meter/`）。
+&quot;&quot;&quot;
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">step/click_advances_tile.py</span></div><div class="one">点中一块瓦片，它的底色沿本关调色板前进一位（到头绕回第一个）。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;点中一块瓦片，它的底色沿本关调色板前进一位（到头绕回第一个）。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.advance import advance
+from rule._scope import same_board
+
+CLAIM = &quot;点中一块可涂瓦片，它的底色沿本关调色板前进一位（到头绕回第一个）。&quot;
+
+SCOPE_NOTE = (&quot;只管「点中了一块可涂瓦片」的那一步。不管的：点空 / 点在网格中心上（理由「没点中瓦片」，&quot;
+              &quot;那些步归 `step/nothing_else_changes` —— 它主张全部瓦片一格不动）；&quot;
+              &quot;重开、换关（理由见 `rule/_scope.py`；换关那一步归 `goal/` 与 `meter/`）。&quot;
+              &quot;通关那一步照常管：下一帧仍是同一张盘。&quot;)
+
+NOT_CLAIMED = (&quot;不说被记号牵动的邻居（归 `marks_push_neighbours`），不说其余瓦片（归 `nothing_else_changes`），&quot;
+               &quot;不说点在不属于任何网格外环的瓦片上会怎样与点在外环上有什么不同——&quot;
+               &quot;它对所有可涂瓦片一视同仁（这一点语料分不开，见 `analysis/record.txt` 的「语料说不了的」）。&quot;)
+
+HISTORY = [
+    &quot;旧册 click_paints_tile：单向（9→8），被反方向的点击打倒。&quot;,
+    &quot;旧册 click_toggles_tile v1–v4：两色互换，被三色关里的一次 9→8 打倒（循环前进，不是二元互换）。&quot;,
+    &quot;旧册 click_cycles_palette v1–v3：沿图例循环前进；v2 从「整块颜色」改成「底色」（带记号的瓦片整块不单色）；&quot;
+    &quot;v3 换关免责补上帧上的一半。&quot;,
+    &quot;本版（重排）：读世界不读帧；「点在外环上」放宽成「点中任何一块可涂瓦片」——&quot;
+    &quot;世界这一层没有「外环瓦片」和「别的瓦片」之分，记号能牵动不属于任何外环的瓦片，&quot;
+    &quot;说明瓦片是一类东西。换关免责改由语料标记（上游事实）给，不再从帧上猜。&quot;,
+]
+
+EVIDENCE = [89, 114, 138]   # 两色关 / 三色关 / 带记号的瓦片（seq，认证段）
+IDENTITY = (&quot;definition&quot;, &quot;Rule/Step/ClickAdvancesTile.lean&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    r = same_board(act, ctx)
+    if r:
+        return r
+    if act.kind != &quot;click&quot; or w.index_of(act.cell) is None:
+        return &quot;没点中瓦片&quot;
+    return None
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    i = w.index_of(act.cell)
+    return nw.color_at(act.cell) == advance(w.palette, w.colors[i])
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">step/marks_push_neighbours.py</span></div><div class="one">被点那块每个记号指向的槽位上若有一块可涂瓦片，它的底色也前进一位；联动只走一步。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;被点那块每个记号指向的槽位上若有一块可涂瓦片，它的底色也前进一位；联动只走一步。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.advance import advance
+from derive.links import moved_by
+from rule._scope import same_board
+
+CLAIM = (&quot;点中一块带记号的瓦片时，它每个记号指向的那个槽位上若有一块可涂瓦片，那一块的底色也前进一位；&quot;
+         &quot;指向中心、空槽、出界的方向什么也不牵动；被牵动的那几块不再往下传。&quot;)
+
+SCOPE_NOTE = (&quot;只管「点中了一块**带记号**的瓦片、且至少一个记号指到了瓦片」的那一步。&quot;
+              &quot;不管的：没点中瓦片（归 `nothing_else_changes`）；点中的瓦片没有记号（理由「被点那块没有记号」，&quot;
+              &quot;那一步没有邻居可牵动，全部邻居归 `nothing_else_changes` 的上界）；&quot;
+              &quot;记号全都指向空处（理由「记号全指向空处」，同样归上界：那些方向一格不动）；重开、换关。&quot;)
+
+NOT_CLAIMED = (&quot;不说被点那一块自己（归 `click_advances_tile`）；不说记号指向空处时那里「一格不动」&quot;
+               &quot;——那一半是上界，归 `nothing_else_changes`；不说一块瓦片同时被两个记号指到时会怎样&quot;
+               &quot;（一次点击只有一块被点，它的四个方向互不相同，所以这在世界里表示不出来）。&quot;)
+
+HISTORY = [
+    &quot;旧册 plus_tile_cycles_neighbours：「加号瓦片牵动四个正交邻居」，被只带上边一条记号的瓦片打倒——&quot;
+    &quot;「加号」这个分类本身是错的抽象。&quot;,
+    &quot;旧册 mark_directs_linkage v1–v3：记号位指向哪边就牵动哪边；指向出界 / 空槽 / 中心那一方向无效；&quot;
+    &quot;v3 换关免责补上帧上的一半。&quot;,
+    &quot;本版（重排）：读世界不读帧；「指向出界 / 空槽 / 中心」三种在世界里都是「那个槽位上没有瓦片」，&quot;
+    &quot;规则从来不需要分开它们，所以合成一句；「一格不动」那半边交给上界那一条。&quot;,
+]
+
+EVIDENCE = [138, 160]   # 四条边全带记号 / 只带上边一条（seq，认证段）
+IDENTITY = (&quot;definition&quot;, &quot;Rule/Step/MarksPushNeighbours.lean&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    r = same_board(act, ctx)
+    if r:
+        return r
+    if act.kind != &quot;click&quot; or w.index_of(act.cell) is None:
+        return &quot;没点中瓦片&quot;
+    if not w.tiles[w.index_of(act.cell)].marks:
+        return &quot;被点那块没有记号&quot;
+    if len(moved_by(w, act.cell)) &lt; 2:
+        return &quot;记号全指向空处&quot;
+    return None
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    for j in moved_by(w, act.cell)[1:]:
+        cell = w.tiles[j].cell
+        if nw.color_at(cell) != advance(w.palette, w.colors[j]):
+            return False
+    return True
+</code></pre></div></details><details class="item"><summary><div class="top"><span class="name">step/nothing_else_changes.py</span></div><div class="one">一步之内，没被点、也没被记号牵动的瓦片一格不动；版面、题面、调色板也一格不动。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;一步之内，没被点、也没被记号牵动的瓦片一格不动；版面、题面、调色板也一格不动。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.links import moved_by
+from rule._scope import same_board
+
+CLAIM = (&quot;同一张盘上走一步：除了被点那块和它记号牵动的那几块，其余每块瓦片的底色不变；&quot;
+         &quot;瓦片的位置与记号、网格的题面、调色板、底板（其余全部像素）也都不变。&quot;
+         &quot;点空、点在网格中心上，全部瓦片一格不动。&quot;)
+
+SCOPE_NOTE = (&quot;管同一张盘上的每一步（含通关那一步：下一帧仍是同一张盘）。&quot;
+              &quot;不管的只有重开、换关两类（下一帧不是这张盘，理由见 `rule/_scope.py`；&quot;
+              &quot;它们分别归 `restart/` 与 `goal/`、`meter/`）。&quot;)
+
+NOT_CLAIMED = (&quot;不说被点那块与被牵动的那几块变成什么色（那是两条下界规则的事），&quot;
+               &quot;只说它们之外的一切不动。不说计数条（归 `meter/`）。&quot;)
+
+HISTORY = [
+    &quot;旧册 matched_grid_is_locked：「凑齐的网格外环一格不变」，被「把刚凑齐的瓦片再点一次照样翻回去」打倒。&quot;,
+    &quot;旧册 nothing_else_changes v1–v4：影响面从「被点那一块」放宽到「加号的四邻」、再到「记号指向的邻居」、&quot;
+    &quot;再收到「记号指向的**可涂**邻居」。&quot;,
+    &quot;本版（重排）：读世界不读帧；「版面与题面不变」原来藏在「别处像素一格不动」里，现在是明说的一句&quot;
+    &quot;（瓦片位置、记号、网格、调色板四样逐字相等）。它在 Lean 里**表示不出来**（那一半住在 `Board`，&quot;
+    &quot;`step` 碰不到），所以在那边它是推论，不是定义。&quot;,
+    &quot;本版第二刀（卡 05 对账）：新旧两册对着同一批变异，旧册拒掉而新册没拒的 9 个，&quot;
+    &quot;全是「背景上凭空多几个杂色点」——旧册逐像素判，新册的世界里没有这些像素。&quot;
+    &quot;补上底板指纹 `backdrop`，这一条连它一起核；重跑之后那 9 个回来了（读数见 analysis/book_compare.txt）。&quot;,
+]
+
+EVIDENCE = [89, 138, 160]   # 无记号 / 四边记号 / 单边记号（seq，认证段）
+IDENTITY = (&quot;derived&quot;, &quot;Derived/NothingElseChanges.lean&quot;,
+            &quot;版面 / 题面 / 调色板不变：Board 不是状态的字段，step 碰不到它，表示不出来；&quot;
+            &quot;其余瓦片底色不变：由 step 的定义推出，Derived 里证成定理。&quot;)
+
+
+def scope_(w, act, nw, ctx) -&gt; str | None:
+    return same_board(act, ctx)
+
+
+def assert_(w, act, nw, ctx) -&gt; bool:
+    if (nw.tiles, nw.grids, nw.palette, nw.backdrop) != (w.tiles, w.grids, w.palette, w.backdrop):
+        return False
+    moved = set(moved_by(w, act.cell)) if act.kind == &quot;click&quot; else set()
+    for i, c in enumerate(w.colors):
+        if i not in moved and nw.colors[i] != c:
+            return False
+    return True
+</code></pre></div></details></div></div></details><details class="apx" id="apx-lean"><summary>Lean 文件清单、逐关步数与源码</summary><div class="apxb"><div class="group"><b>逐关读数</b>（关号 0 起）</div><div class="tbox"><table class="t"><thead><tr><th>关</th><th>结论</th><th>核过的步数（各局口径见验收日志）</th><th>逐帧对上的步数</th></tr></thead><tbody><tr><td class="m">L0</td><td>走得通</td><td class="m"></td><td class="m">3</td></tr><tr><td class="m">L1</td><td>走得通</td><td class="m"></td><td class="m">6</td></tr><tr><td class="m">L2</td><td>走得通</td><td class="m"></td><td class="m">13</td></tr><tr><td class="m">L3</td><td>走得通</td><td class="m"></td><td class="m">20</td></tr><tr><td class="m">L4</td><td>走得通</td><td class="m"></td><td class="m">20</td></tr><tr><td class="m">L5</td><td>走得通</td><td class="m"></td><td class="m">12</td></tr></tbody></table></div><div class="group"><b>对象</b> · Obj/</div><div class="list"><details class="item" id="lean-Obj-Act-Act"><summary><div class="top"><span class="name">Obj/Act/Act.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Act —— 一个动作，换成世界里的话   （对应 `objects/act/act.py`）
+
+    click c   点中了槽位 c（上面可能是瓦片、可能是网格中心）
+    void      点在所有槽位之外
+
+**重开（RESET）不在这里。** 重开之后是哪一帧，模型说不出来（「开局长什么样」是历史），
+所以它不进模型——写成明处的假设，见 `Proof/Levels.lean` 与规则 `restart/reset_returns_to_opening`。
+-/
+
+import Obj.Lattice.Cell
+
+inductive Act where
+  | click (c : Cell)
+  | void
+deriving DecidableEq, Repr
+</code></pre></div></details><details class="item" id="lean-Obj-Board-Grid"><summary><div class="top"><span class="name">Obj/Board/Grid.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Grid —— 一个 3x3 网格的题面   （对应 `objects/board/grid.py`）
+
+中心在哪、点亮色是什么、中心图样怎么写。图样周围八格与外环八个位置一一对应：
+
+    on    外环那一块应当是点亮色
+    off   外环那几块彼此同色，而且不是点亮色
+    none  那里没有可涂瓦片
+
+外环本身不存在这里：外环上的瓦片就是 `Board.tiles` 里那几块，按位置认。
+两个网格共用的那块瓦片只有一份颜色——「共用瓦片两边一致」表示不出来会不一致。
+-/
+
+import Obj.Lattice.Cell
+
+inductive Code where
+  | on | off | none
+deriving DecidableEq, Repr
+
+structure Grid where
+  center  : Cell
+  lit     : Nat
+  pattern : List Code
+deriving DecidableEq, Repr
+
+/-- 外环八个位置相对中心的偏移，行优先、不含中心（与 `objects/board/grid.py` 的 `RING` 同序）。 -/
+def ringOffsets : List (Int × Int) :=
+  [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+
+/-- 外环八个位置：(槽位, 该是什么)。挪出格阵的位置给 `none`。 -/
+def Grid.ring (g : Grid) : List (Option Cell × Code) :=
+  (ringOffsets.map (fun d =&gt; g.center.move d.1 d.2)).zip g.pattern
+</code></pre></div></details><details class="item" id="lean-Obj-Board-Tile"><summary><div class="top"><span class="name">Obj/Board/Tile.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Tile —— 一块可涂瓦片的版面：在哪、带哪几个记号。**不含颜色**   （对应 `objects/board/tile.py`）
+
+一块瓦片有两半：位置与记号一关之内从不变，底色每一步都可能变。
+这里只放不变的那一半；底色住在 `World.colors`。
+于是「走一步瓦片不会挪位、记号不会变」**表示不出来**——`step` 碰不到这一半。
+
+空槽、出界、网格中心都不是 `Tile`。「记号指向空处」在这一层就是「那个槽位上没有瓦片」。
+-/
+
+import Obj.Lattice.Cell
+
+structure Tile where
+  cell  : Cell
+  marks : List Dir
+deriving DecidableEq, Repr
+</code></pre></div></details><details class="item" id="lean-Obj-Lattice-Cell"><summary><div class="top"><span class="name">Obj/Lattice/Cell.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Cell —— 一个槽位：哪张格阵、第几行、第几列   （对应 `objects/lattice/cell.py`）
+
+这一局没有全图共用的格点：同一关里几组网格的相位可以不同，所以「第几行第几列」
+离开它的格阵就没有意义。格阵在这里只是一个不透明的序号 `lat`：只许判相等。
+
+**世界层没有像素。** 一块瓦片占几个像素、相邻两块隔几个像素，是解析的事；
+到了这一层，「相邻」就是行或列差一，而且只在同一张格阵里才谈得上。
+
+这一份里只有定义，没有定理。
+
+**整套 Lean 不用命名空间**：装置的公理表探针（`ledger/lean_check.py`）按裸名 `#print axioms`、
+按裸名比对输出，命名空间里的定理它一条都认不到（装置事故，见 analysis/UNIFY-REPORT.md）。
+-/
+
+/-- 记号能指的四个方向。 -/
+inductive Dir where
+  | up | down | left | right
+deriving DecidableEq, Repr
+
+structure Cell where
+  lat : Nat
+  row : Nat
+  col : Nat
+deriving DecidableEq, Repr
+
+/-- 同一张格阵里往某个方向挪一格；挪出第 0 行 / 第 0 列就是「那里什么都没有」。 -/
+def Cell.shift (c : Cell) : Dir → Option Cell
+  | .up    =&gt; if c.row = 0 then none else some ⟨c.lat, c.row - 1, c.col⟩
+  | .down  =&gt; some ⟨c.lat, c.row + 1, c.col⟩
+  | .left  =&gt; if c.col = 0 then none else some ⟨c.lat, c.row, c.col - 1⟩
+  | .right =&gt; some ⟨c.lat, c.row, c.col + 1⟩
+
+/-- 挪 (dr, dc) 格（网格外环八个位置用）。 -/
+def Cell.move (c : Cell) (dr dc : Int) : Option Cell :=
+  if (c.row : Int) + dr &lt; 0 ∨ (c.col : Int) + dc &lt; 0 then none
+  else some ⟨c.lat, ((c.row : Int) + dr).toNat, ((c.col : Int) + dc).toNat⟩
+</code></pre></div></details><details class="item" id="lean-Obj-World"><summary><div class="top"><span class="name">Obj/World.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# World —— 一帧的全部状态   （对应 `objects/world.py`）
+
+分两半，**这一刀是整个模型最要紧的一处**：
+
+    Board   一关之内不变的那一半：调色板、瓦片版面、网格题面、底板
+    colors  每块瓦片此刻的底色（与 `Board.tiles` 按下标对齐）
+
+`step` 的签名是 `Board → List Nat → Act → List Nat`：它**拿不到也交不出**一个新的 `Board`。
+于是「走一步版面、题面、调色板、底板都不变」这句话**不用证，它表示不出来**。
+用一句「证不出来」换一句「说都说不出来」。
+
+`bar_used`（计数条）**不在这里**：它的下一步不是当前世界的函数（取决于本关已走几步，那是历史），
+对应的两条规则明说不进模型。`backdrop` 是底板指纹（Python 那边 16 位十六进制），这里存成自然数，只判相等。
+-/
+
+import Obj.Board.Tile
+import Obj.Board.Grid
+
+structure Board where
+  palette  : List Nat
+  tiles    : List Tile
+  grids    : List Grid
+  backdrop : Nat
+deriving DecidableEq, Repr
+
+structure World where
+  board  : Board
+  colors : List Nat
+deriving DecidableEq, Repr
+
+/-- 那个槽位上是第几块瓦片。只是查表。 -/
+def Board.indexOf (b : Board) (c : Cell) : Option Nat :=
+  b.tiles.findIdx? (fun t =&gt; t.cell == c)
+
+/-- 那个槽位上那块瓦片此刻的底色。 -/
+def World.colorAt (w : World) (c : Cell) : Option Nat :=
+  (w.board.indexOf c).bind (fun i =&gt; w.colors[i]?)
+</code></pre></div></details></div><div class="group"><b>规则</b> · Rule/</div><div class="list"><details class="item" id="lean-Rule-Goal-LevelUpIffAllDone"><summary><div class="top"><span class="name">Rule/Goal/LevelUpIffAllDone.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# 规则 level_up_iff_all_done —— **定义**   （对应 `rule/goal/level_up_iff_all_done.py`）
+
+点完那一刻，全部网格的外环都到齐 ⇔ 这一步换关。
+
+在模型里这就是 `isGoal` 的**定义**：一个**状态**性质（不是转移事件）。
+写成事件的话，没有任何一个状态是目标，「这个局面可不可做」就无从问起。
+
+一个网格到齐：
+    on  的位置   那块的底色 = 点亮色
+    off 的位置   那几块都有瓦片、彼此同色、而且不是点亮色
+    none 的位置  不管（解析的 G2 保证那里没有瓦片）
+-/
+
+import Obj.World
+
+def World.gridDone (w : World) (g : Grid) : Bool :=
+  let cols := g.ring.map (fun p =&gt; (p.1.bind w.colorAt, p.2))
+  let onsOk := cols.all (fun p =&gt; p.2 != .on || p.1 == some g.lit)
+  let offs := cols.filter (fun p =&gt; p.2 == .off)
+  let offCols := offs.filterMap (fun p =&gt; p.1)
+  onsOk &amp;&amp; offCols.length == offs.length
+    &amp;&amp; offCols.all (fun c =&gt; c != g.lit)
+    &amp;&amp; offCols.all (fun c =&gt; c == offCols.headD 0)
+
+/-- **赢**的定义：每一个网格都到齐。 -/
+def World.isGoal (w : World) : Bool :=
+  w.board.grids.all w.gridDone
+</code></pre></div></details><details class="item" id="lean-Rule-Step-ClickAdvancesTile"><summary><div class="top"><span class="name">Rule/Step/ClickAdvancesTile.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# 规则 click_advances_tile —— **定义**   （对应 `rule/step/click_advances_tile.py`）
+
+点中一块可涂瓦片，它的底色沿本关调色板前进一位（到头绕回第一个）。
+
+这里是两样定义：「沿调色板前进一位」是什么，和「点一下，被点的是哪一块」。
+它们不是待证的定理——`step` 就是照着它们写的，证它等于用它自己证它自己。
+Python 那一份（`derive/advance.py` + 那条规则）是**独立写的另一份**，
+两份的判决在 `Obs/Corpus.lean` 与 `verify.py` 里逐条对账。
+-/
+
+import Obj.World
+import Obj.Act.Act
+
+/-- 调色板上前进一位；到头绕回。颜色不在调色板里就原样（解析保证不会发生）。 -/
+def advance (pal : List Nat) (c : Nat) : Nat :=
+  match pal.idxOf? c with
+  | some i =&gt; pal.getD ((i + 1) % pal.length) c
+  | none   =&gt; c
+
+/-- 这一下点中了哪一块瓦片（下标）；点空、点在中心上 → 空表。 -/
+def Board.selfMoved (b : Board) : Act → List Nat
+  | .click c =&gt; (b.indexOf c).toList
+  | .void    =&gt; []
+</code></pre></div></details><details class="item" id="lean-Rule-Step-MarksPushNeighbours"><summary><div class="top"><span class="name">Rule/Step/MarksPushNeighbours.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# 规则 marks_push_neighbours —— **定义**   （对应 `rule/step/marks_push_neighbours.py`）
+
+点中一块带记号的瓦片时，它每个记号指向的那个槽位上若有一块可涂瓦片，那一块也前进一位；
+指向中心、空槽、出界的方向什么也不牵动；被牵动的那几块不再往下传。
+
+「指向空处」三种情形在这里是同一件事：`Cell.shift` 给 `none`，或者 `indexOf` 给 `none`。
+「只走一步」也不用另写：这里只看被点那一块自己的记号。
+-/
+
+import Obj.World
+import Obj.Act.Act
+
+/-- 被点那一块的记号牵动的那几块（下标）。 -/
+def Board.linked (b : Board) : Act → List Nat
+  | .click c =&gt;
+      match b.indexOf c with
+      | some i =&gt;
+          match b.tiles[i]? with
+          | some t =&gt; t.marks.filterMap (fun d =&gt; (c.shift d).bind b.indexOf)
+          | none   =&gt; []
+      | none =&gt; []
+  | .void =&gt; []
+</code></pre></div></details></div><div class="group"><b>推论</b> · Derived/</div><div class="list"><details class="item" id="lean-Derived-NothingElseChanges"><summary><div class="top"><span class="name">Derived/NothingElseChanges.lean</span><span class="chip c-lv">2 条定理</span></div><div class="top"><span class="chip c-mute" title="">board_fixed</span><span class="chip c-mute" title="">nothing_else_changes</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# 规则 nothing_else_changes —— **推论**，不是定义   （对应 `rule/step/nothing_else_changes.py`）
+
+Python 那一条说两件事：
+
+1. **版面、题面、调色板、底板一步之内不变。** 在这里它是 `rfl`——
+   `World.step` 把 `board` 原样放回去，`step` 的签名根本交不出一个新 `Board`。
+   这一半**表示不出来会错**，所以它不是一条要每帧去测的规则，是架构本身。
+2. **没被点、也没被记号牵动的瓦片底色不变。** 由 `step` 的定义推出（下面那条定理）。
+
+一条规则重排之后掉进 `Derived/`，说明它本来就不是一条独立的规则：
+它是另外两条规则（点中的那块 / 被牵动的那几块）加上「`step` 只动它们」的推论。
+-/
+
+import Obj.World
+import Step
+
+/-- 一半：版面不变。**它是 `rfl`**——那正是「表示不出来」的意思。 -/
+theorem board_fixed (w : World) (a : Act) : (w.step a).board = w.board := rfl
+
+/-- 另一半：不在「被点 + 被牵动」名单里的那块瓦片，走一步之后底色原样。 -/
+theorem nothing_else_changes (w : World) (a : Act) (i : Nat)
+    (h : (w.board.moved a).contains i = false) :
+    (w.step a).colors[i]? = w.colors[i]? := by
+  have h&#x27; : i ∉ w.board.moved a := by simpa using h
+  simp only [World.step, step, List.getElem?_mapIdx]
+  cases hc : w.colors[i]? with
+  | none =&gt; rfl
+  | some c =&gt; simp [h&#x27;]
+
+#print axioms board_fixed
+#print axioms nothing_else_changes
+</code></pre></div></details></div><div class="group"><b>观测</b> · Obs/</div><div class="list"><details class="item" id="lean-Obs-Check"><summary><div class="top"><span class="name">Obs/Check.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Check —— 判据层：两把尺子。**0 条定理**，尺子不自证。
+
+    agrees    一条转移对不对：从**观测到的那一帧**算一步，和看到的下一帧比
+    traceOk   一整条路对不对：只有开局是观测给的，**后面全是模型自己算的**
+
+一个「每步单独看都对、走两步就和现实分家」的模型，在 `agrees` 那里满分，在 `traceOk` 这里过不了。
+
+## 一条转移有三种（语料里的标记，上游给的事实）
+
+    same      同一张盘上走一步：算出来的下一帧要**逐字段**等于看到的（含 Board），而且**没有**到齐
+    win       通关那一步：下一帧仍是同一张盘，算出来的要等于看到的，而且**到齐了**
+    newBoard  换关那一步：下一帧已经是下一关的盘，**只判「到齐了」这一半**——新盘长什么样模型不说
+
+重开（RESET）不在这里：模型不描述它（见 `Obj/Act/Act.lean`）。
+它**不是没人核**——Python 那一侧的规则 `reset_returns_to_opening` 对它开口，
+这一侧 `Proof/Levels.lean` 里有一条 `restart_matches_opening` 把「重开 = 开局」对着观测核一次。
+-/
+
+import Obj.World
+import Step
+
+inductive Kind where
+  | same | win | newBoard | reset
+deriving DecidableEq, Repr
+
+/-- 一条转移判不判得过。`reset` 那一支不是「反正算它对」：它根本不进这一层（`Obs/Corpus.lean` 先筛掉并报条数）。 -/
+def agrees (k : Kind) (w : World) (a : Act) (o : World) : Bool :=
+  match k with
+  | .same     =&gt; w.step a == o &amp;&amp; !(w.step a).isGoal
+  | .win      =&gt; w.step a == o &amp;&amp; (w.step a).isGoal
+  | .newBoard =&gt; (w.step a).isGoal
+  | .reset    =&gt; false
+
+/-- 从 `w` 出发沿 `play` 走，每一步都和当时看到的那一帧比，而且**路上不许提前到齐**。
+    **下一轮喂进去的是模型自己算出来的 `w&#x27;`**，不是观测——错一步，后面全错。 -/
+def traceOk : World → List (Act × World) → Bool
+  | _, []             =&gt; true
+  | w, (a, o) :: rest =&gt;
+      let w&#x27; := w.step a
+      w&#x27; == o &amp;&amp; !w&#x27;.isGoal &amp;&amp; traceOk w&#x27; rest
+
+/-- **只给读数用**：第一处分家在第几步（`none` = 一处都没分家）。它是读数不是定理。 -/
+def firstSplit : World → List (Act × World) → Nat → Option Nat
+  | _, [],             _ =&gt; none
+  | w, (a, o) :: rest, i =&gt;
+      let w&#x27; := w.step a
+      if w&#x27; == o &amp;&amp; !w&#x27;.isGoal then firstSplit w&#x27; rest (i + 1) else some i
+</code></pre></div></details><details class="item" id="lean-Obs-Corpus"><summary><div class="top"><span class="name">Obs/Corpus.lean</span><span class="chip c-lv">2 条定理</span></div><div class="top"><span class="chip c-mute" title="">corpus_len</span><span class="chip c-mute" title="">corpus_agrees</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Corpus —— 逐条那一层（自动生成：`python lean2/export_corpus.py`，不要手改）
+
+全部 168 步里，模型描述的 167 步（筛掉 RESET 1 步：模型不描述重开，见 `Obs/Check.lean`）。
+每一步都从**观测到的那一帧**起算一步，和看到的下一帧比。三种：
+同一张盘 155 / 通关 2 / 换关 10（换关只判「点完到齐了」那一半，新盘长什么样模型不说）。
+
+`#eval` 那一行是读数（求值器），`corpus_agrees` 是结论（内核）。
+-/
+
+import Obs.Replay
+
+def corpusCases : List Obs := steps.filter (fun o =&gt; o.kind != .reset)
+
+def corpusVerdict (o : Obs) : Bool :=
+  match o.act with
+  | some a =&gt; agrees o.kind o.before a o.after
+  | none   =&gt; false
+
+/-- 筛完之后到底有几条。**切歪了会是空表，而空表让下面那条平凡为真。** -/
+theorem corpus_len : (corpusCases.map Obs.before : List World).length = 167 := by decide +kernel
+
+/-- **模型面对全部 167 条真实转移：一条都没被驳倒。** 走内核。 -/
+theorem corpus_agrees :
+    corpusCases.all (fun o =&gt; match o.act with
+      | some a =&gt; agrees o.kind (o.before : World) a o.after
+      | none   =&gt; false) = true := by decide +kernel
+
+#print axioms corpus_len
+#print axioms corpus_agrees
+
+/- 读数：每一条的判决（`verify.py` 拿它和 Python 规则那一侧逐条对账）。
+   第一次生成时 `corpus_len` 用的是普通 `decide`，爆了 maxRecDepth——Lean 报一行错照常往下编，
+   公理表里当场多出 `sorryAx`，而同一份文件里这一行 `#eval` 照样打出满绿的读数。所以现在两条都走 `+kernel`。 -/
+#eval &quot;CORPUS &quot; ++ toString (corpusCases.map (fun o =&gt; (o.seq, corpusVerdict o)))
+</code></pre></div></details><details class="item" id="lean-Obs-Replay"><summary><div class="top"><span class="name">Obs/Replay.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Replay —— 整条轨迹，**只存这一份**（自动生成：`python lean2/export_replay.py`，不要手改）
+
+语料：runs/ft09-0907-0044/transitions.jsonl，168 行转移（两段，成绩单认证的是第 1 段），盘去重后 6 张。
+逐条那一层（`Obs/Corpus.lean`）和每关那一层（`Proof/Levels.lean`）都从这里切，**按 `seq` 切**（唯一键）。
+
+口径：这一局一帧读得全，「这一帧读到的盘」与「整关并起来的盘」是同一张（生成器逐关核过）。
+过关那一步的下一帧是下一关的盘，单独存在 `bNext`，不并进本关。
+-/
+
+import Obs.Check
+
+structure Obs where
+  seq   : Nat
+  seg   : Nat
+  lvl   : Nat
+  kind  : Kind
+  bPrev : Nat
+  cPrev : List Nat
+  act   : Option Act
+  bNext : Nat
+  cNext : List Nat
+deriving Repr
+
+
+/-- 每一帧读到的版面，去重后 6 张。 -/
+def boards : List Board := [
+  { palette := [8, 9],
+    tiles := [⟨⟨0, 0, 0⟩, []⟩, ⟨⟨0, 0, 1⟩, []⟩, ⟨⟨0, 0, 2⟩, []⟩, ⟨⟨0, 1, 0⟩, []⟩, ⟨⟨0, 1, 2⟩, []⟩, ⟨⟨0, 2, 0⟩, []⟩, ⟨⟨0, 2, 1⟩, []⟩, ⟨⟨0, 2, 2⟩, []⟩, ⟨⟨1, 0, 4⟩, []⟩, ⟨⟨1, 0, 5⟩, []⟩, ⟨⟨1, 0, 6⟩, []⟩, ⟨⟨1, 1, 4⟩, []⟩, ⟨⟨1, 1, 6⟩, []⟩, ⟨⟨1, 2, 4⟩, []⟩, ⟨⟨1, 2, 5⟩, []⟩, ⟨⟨1, 2, 6⟩, []⟩, ⟨⟨2, 4, 0⟩, []⟩, ⟨⟨2, 4, 1⟩, []⟩, ⟨⟨2, 4, 2⟩, []⟩, ⟨⟨2, 4, 4⟩, []⟩, ⟨⟨2, 4, 5⟩, []⟩, ⟨⟨2, 4, 6⟩, []⟩, ⟨⟨2, 5, 0⟩, []⟩, ⟨⟨2, 5, 2⟩, []⟩, ⟨⟨2, 5, 4⟩, []⟩, ⟨⟨2, 5, 6⟩, []⟩, ⟨⟨2, 6, 0⟩, []⟩, ⟨⟨2, 6, 1⟩, []⟩, ⟨⟨2, 6, 2⟩, []⟩, ⟨⟨2, 6, 4⟩, []⟩, ⟨⟨2, 6, 5⟩, []⟩, ⟨⟨2, 6, 6⟩, []⟩],
+    grids := [⟨⟨0, 1, 1⟩, 8, [.off, .on, .off, .on, .off, .off, .on, .on]⟩, ⟨⟨1, 1, 5⟩, 8, [.off, .on, .off, .on, .on, .off, .on, .off]⟩, ⟨⟨2, 5, 1⟩, 8, [.on, .off, .off, .on, .on, .off, .off, .on]⟩, ⟨⟨2, 5, 5⟩, 8, [.on, .off, .off, .on, .on, .on, .off, .off]⟩],
+    backdrop := 0xd4db395191cf33d0 },
+  { palette := [9, 12],
+    tiles := [⟨⟨0, 1, 2⟩, []⟩, ⟨⟨0, 1, 3⟩, []⟩, ⟨⟨0, 1, 4⟩, []⟩, ⟨⟨0, 2, 2⟩, []⟩, ⟨⟨0, 2, 4⟩, []⟩, ⟨⟨0, 3, 2⟩, []⟩, ⟨⟨0, 3, 3⟩, []⟩, ⟨⟨0, 3, 4⟩, []⟩, ⟨⟨0, 4, 2⟩, []⟩, ⟨⟨0, 4, 4⟩, []⟩, ⟨⟨0, 5, 2⟩, []⟩, ⟨⟨0, 5, 3⟩, []⟩, ⟨⟨0, 5, 4⟩, []⟩],
+    grids := [⟨⟨0, 2, 3⟩, 12, [.on, .off, .off, .on, .on, .on, .off, .on]⟩, ⟨⟨0, 4, 3⟩, 12, [.on, .off, .on, .off, .off, .on, .on, .off]⟩],
+    backdrop := 0xad1789d9e35b7be0 },
+  { palette := [8, 12],
+    tiles := [⟨⟨0, 0, 2⟩, []⟩, ⟨⟨0, 0, 3⟩, []⟩, ⟨⟨0, 0, 4⟩, []⟩, ⟨⟨0, 1, 2⟩, []⟩, ⟨⟨0, 1, 4⟩, []⟩, ⟨⟨0, 2, 1⟩, []⟩, ⟨⟨0, 2, 2⟩, []⟩, ⟨⟨0, 2, 3⟩, []⟩, ⟨⟨0, 2, 4⟩, []⟩, ⟨⟨0, 2, 5⟩, []⟩, ⟨⟨0, 3, 1⟩, []⟩, ⟨⟨0, 3, 3⟩, []⟩, ⟨⟨0, 3, 5⟩, []⟩, ⟨⟨0, 4, 1⟩, []⟩, ⟨⟨0, 4, 2⟩, []⟩, ⟨⟨0, 4, 3⟩, []⟩, ⟨⟨0, 4, 4⟩, []⟩, ⟨⟨0, 4, 5⟩, []⟩, ⟨⟨0, 5, 2⟩, []⟩, ⟨⟨0, 5, 4⟩, []⟩, ⟨⟨0, 6, 2⟩, []⟩, ⟨⟨0, 6, 3⟩, []⟩, ⟨⟨0, 6, 4⟩, []⟩],
+    grids := [⟨⟨0, 1, 3⟩, 12, [.on, .on, .on, .on, .off, .off, .on, .off]⟩, ⟨⟨0, 3, 2⟩, 8, [.off, .on, .off, .off, .on, .on, .on, .off]⟩, ⟨⟨0, 3, 4⟩, 8, [.off, .on, .on, .on, .off, .off, .on, .off]⟩, ⟨⟨0, 5, 3⟩, 12, [.off, .on, .off, .on, .off, .on, .on, .on]⟩],
+    backdrop := 0x6382e26af32683f5 },
+  { palette := [9, 8, 12],
+    tiles := [⟨⟨0, 1, 1⟩, []⟩, ⟨⟨0, 1, 2⟩, []⟩, ⟨⟨0, 1, 3⟩, []⟩, ⟨⟨0, 1, 4⟩, []⟩, ⟨⟨0, 1, 5⟩, []⟩, ⟨⟨0, 2, 1⟩, []⟩, ⟨⟨0, 2, 3⟩, []⟩, ⟨⟨0, 2, 5⟩, []⟩, ⟨⟨0, 3, 1⟩, []⟩, ⟨⟨0, 3, 2⟩, []⟩, ⟨⟨0, 3, 3⟩, []⟩, ⟨⟨0, 3, 4⟩, []⟩, ⟨⟨0, 3, 5⟩, []⟩, ⟨⟨0, 4, 2⟩, []⟩, ⟨⟨0, 4, 4⟩, []⟩, ⟨⟨0, 5, 2⟩, []⟩, ⟨⟨0, 5, 3⟩, []⟩, ⟨⟨0, 5, 4⟩, []⟩],
+    grids := [⟨⟨0, 2, 2⟩, 12, [.off, .on, .off, .off, .off, .off, .on, .off]⟩, ⟨⟨0, 2, 4⟩, 9, [.off, .on, .off, .off, .off, .off, .off, .on]⟩, ⟨⟨0, 4, 3⟩, 12, [.on, .off, .off, .off, .off, .on, .on, .on]⟩],
+    backdrop := 0x7b61e35723149727 },
+  { palette := [14, 15],
+    tiles := [⟨⟨0, 0, 2⟩, []⟩, ⟨⟨0, 0, 3⟩, []⟩, ⟨⟨0, 1, 1⟩, []⟩, ⟨⟨0, 1, 2⟩, [.up, .down, .left, .right]⟩, ⟨⟨0, 1, 3⟩, []⟩, ⟨⟨0, 2, 0⟩, []⟩, ⟨⟨0, 2, 1⟩, []⟩, ⟨⟨0, 2, 2⟩, []⟩, ⟨⟨0, 2, 3⟩, []⟩, ⟨⟨0, 2, 4⟩, []⟩, ⟨⟨0, 2, 5⟩, []⟩, ⟨⟨0, 2, 6⟩, []⟩, ⟨⟨0, 3, 1⟩, []⟩, ⟨⟨0, 3, 2⟩, [.up, .down, .left, .right]⟩, ⟨⟨0, 3, 3⟩, []⟩, ⟨⟨0, 3, 5⟩, []⟩, ⟨⟨0, 4, 0⟩, []⟩, ⟨⟨0, 4, 1⟩, []⟩, ⟨⟨0, 4, 3⟩, []⟩, ⟨⟨0, 4, 4⟩, []⟩, ⟨⟨0, 4, 5⟩, []⟩, ⟨⟨0, 4, 6⟩, []⟩, ⟨⟨0, 5, 1⟩, []⟩, ⟨⟨0, 5, 3⟩, []⟩, ⟨⟨0, 5, 4⟩, [.up, .down, .left, .right]⟩, ⟨⟨0, 5, 5⟩, []⟩, ⟨⟨0, 6, 1⟩, []⟩, ⟨⟨0, 6, 2⟩, []⟩, ⟨⟨0, 6, 3⟩, []⟩, ⟨⟨0, 6, 4⟩, []⟩],
+    grids := [⟨⟨0, 0, 1⟩, 14, [.none, .none, .none, .none, .on, .none, .on, .off]⟩, ⟨⟨0, 1, 4⟩, 15, [.on, .none, .none, .off, .none, .on, .off, .on]⟩, ⟨⟨0, 3, 0⟩, 15, [.none, .off, .on, .none, .off, .none, .off, .on]⟩, ⟨⟨0, 3, 4⟩, 14, [.off, .on, .off, .on, .on, .off, .on, .off]⟩, ⟨⟨0, 3, 6⟩, 14, [.off, .on, .none, .on, .none, .off, .on, .none]⟩, ⟨⟨0, 4, 2⟩, 14, [.on, .off, .on, .off, .off, .on, .none, .on]⟩, ⟨⟨0, 5, 2⟩, 14, [.off, .none, .off, .on, .on, .off, .on, .off]⟩, ⟨⟨0, 6, 5⟩, 14, [.off, .on, .none, .on, .none, .none, .none, .none]⟩],
+    backdrop := 0xfa05e0d1e145d41f },
+  { palette := [11, 14],
+    tiles := [⟨⟨0, 0, 0⟩, [.up]⟩, ⟨⟨0, 1, 0⟩, [.up]⟩, ⟨⟨0, 1, 1⟩, [.up]⟩, ⟨⟨0, 1, 2⟩, [.up]⟩, ⟨⟨0, 1, 3⟩, [.up]⟩, ⟨⟨0, 1, 4⟩, [.up]⟩, ⟨⟨0, 1, 5⟩, [.up]⟩, ⟨⟨0, 2, 1⟩, [.up]⟩, ⟨⟨0, 2, 2⟩, [.up]⟩, ⟨⟨0, 2, 3⟩, [.up]⟩, ⟨⟨0, 2, 5⟩, [.up]⟩, ⟨⟨0, 3, 1⟩, [.up]⟩, ⟨⟨0, 3, 3⟩, [.up]⟩, ⟨⟨0, 3, 4⟩, [.up]⟩, ⟨⟨0, 3, 5⟩, [.up]⟩, ⟨⟨0, 4, 1⟩, [.up]⟩, ⟨⟨0, 4, 2⟩, [.up]⟩, ⟨⟨0, 4, 3⟩, [.up]⟩, ⟨⟨0, 4, 4⟩, [.up]⟩, ⟨⟨0, 4, 5⟩, [.up]⟩, ⟨⟨0, 4, 6⟩, [.up]⟩, ⟨⟨0, 5, 6⟩, [.up]⟩],
+    grids := [⟨⟨0, 0, 1⟩, 14, [.none, .none, .none, .off, .none, .on, .on, .off]⟩, ⟨⟨0, 2, 4⟩, 14, [.off, .on, .off, .on, .on, .on, .on, .off]⟩, ⟨⟨0, 3, 2⟩, 14, [.off, .on, .on, .on, .on, .off, .on, .off]⟩, ⟨⟨0, 5, 5⟩, 14, [.off, .on, .on, .none, .off, .none, .none, .none]⟩],
+    backdrop := 0x8d0b9b8ea94f971f }]
+
+/-- 整条轨迹，168 步（含 RESET 那一步：它的 `act` 是 `none`，kind 是 `.reset`）。 -/
+def steps : List Obs := [
+  ⟨1, 0, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 9, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 4, 4⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9]⟩,
+  ⟨2, 0, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 6, 6⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 8]⟩,
+  ⟨3, 0, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 8], some (.click ⟨2, 5, 4⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 9, 9, 9, 8, 9, 9, 8]⟩,
+  ⟨4, 0, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 9, 9, 9, 8, 9, 9, 8], some (.click ⟨2, 5, 6⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 8, 9, 9, 8, 9, 9, 8]⟩,
+  ⟨5, 0, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 8, 9, 9, 8, 9, 9, 8], some (.click ⟨2, 6, 6⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 8, 9, 9, 8, 9, 9, 9]⟩,
+  ⟨6, 0, 0, .newBoard, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 8, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 6, 4⟩), 1, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨7, 0, 1, .same, 1, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 1, [12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨8, 0, 1, .same, 1, [12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 2⟩), 1, [12, 9, 9, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨9, 0, 1, .same, 1, [12, 9, 9, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 4⟩), 1, [12, 9, 9, 12, 12, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨10, 0, 1, .same, 1, [12, 9, 9, 12, 12, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 2⟩), 1, [12, 9, 9, 12, 12, 12, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨11, 0, 1, .same, 1, [12, 9, 9, 12, 12, 12, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 4⟩), 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 9, 9, 9]⟩,
+  ⟨12, 0, 1, .same, 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 9, 9, 9], some (.click ⟨0, 5, 2⟩), 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 12, 9, 9]⟩,
+  ⟨13, 0, 1, .newBoard, 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 12, 9, 9], some (.click ⟨0, 5, 3⟩), 2, [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨14, 0, 2, .same, 2, [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 2⟩), 2, [12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨15, 0, 2, .same, 2, [12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 3⟩), 2, [12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨16, 0, 2, .same, 2, [12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 4⟩), 2, [12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨17, 0, 2, .same, 2, [12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 1, 2⟩), 2, [12, 12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨18, 0, 2, .same, 2, [12, 12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 2, 3⟩), 2, [12, 12, 12, 12, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨19, 0, 2, .same, 2, [12, 12, 12, 12, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 2⟩), 2, [8, 12, 12, 12, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨20, 0, 2, .same, 2, [8, 12, 12, 12, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 2⟩), 2, [12, 12, 12, 12, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨21, 0, 2, .same, 2, [12, 12, 12, 12, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 2, 1⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨22, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 3, 1⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨23, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 3, 5⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨24, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 4, 5⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 12, 8, 8, 8, 8, 8]⟩,
+  ⟨25, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 12, 8, 8, 8, 8, 8], some (.click ⟨0, 4, 3⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8]⟩,
+  ⟨26, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8], some (.click ⟨0, 5, 2⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 8, 8, 8]⟩,
+  ⟨27, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 8, 8, 8], some (.click ⟨0, 6, 2⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 8, 8]⟩,
+  ⟨28, 0, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 8, 8], some (.click ⟨0, 6, 3⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 12, 8]⟩,
+  ⟨29, 0, 2, .newBoard, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 12, 8], some (.click ⟨0, 6, 4⟩), 3, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨30, 0, 3, .same, 3, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [9, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨31, 0, 3, .same, 3, [9, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [9, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨32, 0, 3, .same, 3, [9, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨33, 0, 3, .same, 3, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 1⟩), 3, [8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨34, 0, 3, .same, 3, [8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨35, 0, 3, .same, 3, [8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [8, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨36, 0, 3, .same, 3, [8, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 3⟩), 3, [8, 12, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨37, 0, 3, .same, 3, [8, 12, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 5⟩), 3, [8, 12, 8, 9, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨38, 0, 3, .same, 3, [8, 12, 8, 9, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 1⟩), 3, [8, 12, 8, 9, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨39, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨40, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 5⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨41, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 1⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨42, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨43, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨44, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨45, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 4⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨46, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 4, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 9, 9, 9, 9]⟩,
+  ⟨47, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 9, 9, 9, 9], some (.click ⟨0, 4, 4⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 9, 9, 9]⟩,
+  ⟨48, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 9, 9, 9], some (.click ⟨0, 5, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 8, 9, 9]⟩,
+  ⟨49, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 8, 9, 9], some (.click ⟨0, 5, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 9, 9]⟩,
+  ⟨50, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 9, 9], some (.click ⟨0, 5, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 8, 9]⟩,
+  ⟨51, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 8, 9], some (.click ⟨0, 5, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 9]⟩,
+  ⟨52, 0, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 9], some (.click ⟨0, 5, 4⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 8]⟩,
+  ⟨53, 0, 3, .newBoard, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 8], some (.click ⟨0, 5, 4⟩), 4, [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨54, 0, 4, .same, 4, [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 1, 2⟩), 4, [15, 14, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨55, 0, 4, .same, 4, [15, 14, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 0, 3⟩), 4, [15, 15, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨56, 0, 4, .same, 4, [15, 15, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 3, 2⟩), 4, [15, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨57, 0, 4, .same, 4, [15, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 0, 2⟩), 4, [14, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨58, 0, 4, .same, 4, [14, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 1, 1⟩), 4, [14, 15, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨59, 0, 4, .same, 4, [14, 15, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 1, 3⟩), 4, [14, 15, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨60, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 2, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨61, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 2, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨62, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 2, 5⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨63, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 3, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨64, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 3, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨65, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨66, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨67, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 4⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨68, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 5⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨69, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 5, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨70, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 5, 4⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 15]⟩,
+  ⟨71, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 15], some (.click ⟨0, 5, 5⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 15]⟩,
+  ⟨72, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 15], some (.click ⟨0, 6, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 14, 15]⟩,
+  ⟨73, 0, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 14, 15], some (.click ⟨0, 6, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 15, 15]⟩,
+  ⟨74, 0, 4, .newBoard, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 15, 15], some (.click ⟨0, 6, 4⟩), 5, [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨75, 0, 5, .same, 5, [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 3⟩), 5, [11, 11, 11, 11, 11, 11, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨76, 0, 5, .same, 5, [11, 11, 11, 11, 11, 11, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 1, 4⟩), 5, [11, 11, 11, 11, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨77, 0, 5, .same, 5, [11, 11, 11, 11, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 0, 0⟩), 5, [14, 11, 11, 11, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨78, 0, 5, .same, 5, [14, 11, 11, 11, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 1, 0⟩), 5, [11, 14, 11, 11, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨79, 0, 5, .same, 5, [11, 14, 11, 11, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 1, 2⟩), 5, [11, 14, 11, 14, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨80, 0, 5, .same, 5, [11, 14, 11, 14, 11, 14, 11, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 2, 1⟩), 5, [11, 14, 14, 14, 11, 14, 11, 14, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨81, 0, 5, .same, 5, [11, 14, 14, 14, 11, 14, 11, 14, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 2, 2⟩), 5, [11, 14, 14, 11, 11, 14, 11, 14, 14, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨82, 0, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 14, 14, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 1⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨83, 0, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 4⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨84, 0, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 5⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨85, 0, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 4, 2⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 14, 11, 11, 11, 11, 11]⟩,
+  ⟨86, 0, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 14, 11, 11, 11, 11, 11], some (.click ⟨0, 4, 5⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 11, 11]⟩,
+  ⟨87, 0, 5, .win, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 11, 11], some (.click ⟨0, 4, 6⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11]⟩,
+  ⟨88, 1, 6, .reset, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11], none, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 9, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9]⟩,
+  ⟨89, 1, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 9, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 4, 4⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9]⟩,
+  ⟨90, 1, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 9, 9, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 5, 4⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 9, 9, 9, 8, 9, 9, 9]⟩,
+  ⟨91, 1, 0, .same, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 9, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 5, 6⟩), 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 8, 9, 9, 8, 9, 9, 9]⟩,
+  ⟨92, 1, 0, .newBoard, 0, [9, 8, 9, 8, 9, 9, 8, 8, 9, 8, 9, 8, 8, 9, 8, 9, 8, 9, 9, 8, 9, 9, 8, 8, 8, 8, 9, 9, 8, 9, 9, 9], some (.click ⟨2, 6, 4⟩), 1, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨93, 1, 1, .same, 1, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 1, [12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨94, 1, 1, .same, 1, [12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 2⟩), 1, [12, 9, 9, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨95, 1, 1, .same, 1, [12, 9, 9, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 4⟩), 1, [12, 9, 9, 12, 12, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨96, 1, 1, .same, 1, [12, 9, 9, 12, 12, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 2⟩), 1, [12, 9, 9, 12, 12, 12, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨97, 1, 1, .same, 1, [12, 9, 9, 12, 12, 12, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 4⟩), 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 9, 9, 9]⟩,
+  ⟨98, 1, 1, .same, 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 9, 9, 9], some (.click ⟨0, 5, 2⟩), 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 12, 9, 9]⟩,
+  ⟨99, 1, 1, .newBoard, 1, [12, 9, 9, 12, 12, 12, 9, 12, 9, 9, 12, 9, 9], some (.click ⟨0, 5, 3⟩), 2, [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨100, 1, 2, .same, 2, [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 2⟩), 2, [12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨101, 1, 2, .same, 2, [12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 3⟩), 2, [12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨102, 1, 2, .same, 2, [12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 0, 4⟩), 2, [12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨103, 1, 2, .same, 2, [12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 1, 2⟩), 2, [12, 12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨104, 1, 2, .same, 2, [12, 12, 12, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 2, 1⟩), 2, [12, 12, 12, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨105, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 2, 3⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨106, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 3, 1⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨107, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 3, 5⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨108, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 4, 3⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8]⟩,
+  ⟨109, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8], some (.click ⟨0, 4, 5⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8]⟩,
+  ⟨110, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 8, 8, 8], some (.click ⟨0, 5, 2⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 8, 8, 8]⟩,
+  ⟨111, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 8, 8, 8], some (.click ⟨0, 6, 2⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 8, 8]⟩,
+  ⟨112, 1, 2, .same, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 8, 8], some (.click ⟨0, 6, 3⟩), 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 12, 8]⟩,
+  ⟨113, 1, 2, .newBoard, 2, [12, 12, 12, 12, 8, 12, 8, 12, 8, 8, 12, 8, 12, 8, 8, 12, 8, 12, 12, 8, 12, 12, 8], some (.click ⟨0, 6, 4⟩), 3, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨114, 1, 3, .same, 3, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 1⟩), 3, [8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨115, 1, 3, .same, 3, [8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨116, 1, 3, .same, 3, [8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 2⟩), 3, [8, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨117, 1, 3, .same, 3, [8, 12, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 3⟩), 3, [8, 12, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨118, 1, 3, .same, 3, [8, 12, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 1, 5⟩), 3, [8, 12, 8, 9, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨119, 1, 3, .same, 3, [8, 12, 8, 9, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 1⟩), 3, [8, 12, 8, 9, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨120, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨121, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 2, 5⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨122, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 1⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨123, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨124, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 9, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨125, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 9, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 9, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨126, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 9, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 3, 4⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 9, 9, 9, 9, 9]⟩,
+  ⟨127, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 9, 9, 9, 9, 9], some (.click ⟨0, 4, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 9, 9, 9, 9]⟩,
+  ⟨128, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 9, 9, 9, 9], some (.click ⟨0, 4, 4⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 9, 9, 9]⟩,
+  ⟨129, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 9, 9, 9], some (.click ⟨0, 5, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 8, 9, 9]⟩,
+  ⟨130, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 8, 9, 9], some (.click ⟨0, 5, 2⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 9, 9]⟩,
+  ⟨131, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 9, 9], some (.click ⟨0, 5, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 8, 9]⟩,
+  ⟨132, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 8, 9], some (.click ⟨0, 5, 3⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 9]⟩,
+  ⟨133, 1, 3, .same, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 9], some (.click ⟨0, 5, 4⟩), 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 8]⟩,
+  ⟨134, 1, 3, .newBoard, 3, [8, 12, 8, 9, 8, 8, 8, 8, 8, 12, 8, 8, 9, 8, 8, 12, 12, 8], some (.click ⟨0, 5, 4⟩), 4, [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨135, 1, 4, .same, 4, [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 0, 2⟩), 4, [15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨136, 1, 4, .same, 4, [15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 0, 3⟩), 4, [15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨137, 1, 4, .same, 4, [15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 1, 1⟩), 4, [15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨138, 1, 4, .same, 4, [15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 1, 2⟩), 4, [14, 15, 14, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨139, 1, 4, .same, 4, [14, 15, 14, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 1, 3⟩), 4, [14, 15, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨140, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 2, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨141, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 2, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨142, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 2, 5⟩), 4, [14, 15, 14, 15, 14, 14, 15, 15, 15, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨143, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 15, 15, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 3, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 15, 15, 14, 15, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨144, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 15, 15, 14, 15, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 3, 2⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨145, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 3, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨146, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨147, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨148, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 4⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨149, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 4, 5⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨150, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 5, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14]⟩,
+  ⟨151, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 15, 15, 14, 14, 15, 14, 14, 14, 14, 14, 14], some (.click ⟨0, 5, 4⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 15]⟩,
+  ⟨152, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 15, 14, 14, 14, 15], some (.click ⟨0, 5, 5⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 15]⟩,
+  ⟨153, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 14, 14, 14, 15], some (.click ⟨0, 6, 1⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 14, 15]⟩,
+  ⟨154, 1, 4, .same, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 14, 15], some (.click ⟨0, 6, 3⟩), 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 15, 15]⟩,
+  ⟨155, 1, 4, .newBoard, 4, [14, 15, 14, 15, 14, 14, 15, 14, 15, 14, 15, 14, 14, 15, 14, 14, 14, 15, 15, 14, 15, 14, 14, 14, 15, 14, 15, 14, 15, 15], some (.click ⟨0, 6, 4⟩), 5, [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨156, 1, 5, .same, 5, [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 0, 0⟩), 5, [14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨157, 1, 5, .same, 5, [14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 1, 0⟩), 5, [11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨158, 1, 5, .same, 5, [11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 1, 2⟩), 5, [11, 14, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨159, 1, 5, .same, 5, [11, 14, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 1, 4⟩), 5, [11, 14, 11, 14, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨160, 1, 5, .same, 5, [11, 14, 11, 14, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 2, 1⟩), 5, [11, 14, 14, 14, 11, 14, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨161, 1, 5, .same, 5, [11, 14, 14, 14, 11, 14, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 2, 2⟩), 5, [11, 14, 14, 11, 11, 14, 11, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨162, 1, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 1⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨163, 1, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 11, 11, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 3⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨164, 1, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 4⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨165, 1, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 3, 5⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11]⟩,
+  ⟨166, 1, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11], some (.click ⟨0, 4, 2⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 14, 11, 11, 11, 11, 11]⟩,
+  ⟨167, 1, 5, .same, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 14, 11, 14, 11, 11, 11, 11, 11], some (.click ⟨0, 4, 5⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 11, 11]⟩,
+  ⟨168, 1, 5, .win, 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 11, 11], some (.click ⟨0, 4, 6⟩), 5, [11, 14, 14, 11, 11, 14, 11, 11, 14, 14, 14, 14, 14, 14, 11, 11, 14, 11, 11, 14, 14, 11]⟩]
+
+
+def emptyBoard : Board := ⟨[], [], [], 0⟩
+def boardAt (i : Nat) : Board := boards.getD i emptyBoard
+
+def Obs.before (o : Obs) : World := ⟨boardAt o.bPrev, o.cPrev⟩
+def Obs.after  (o : Obs) : World := ⟨boardAt o.bNext, o.cNext⟩
+
+/-- 越界给一个空步。越界本身是 bug；空步在任何判据下都会立刻露馅（它的 `act` 是 `none`）。 -/
+def dummy : Obs := ⟨0, 0, 0, .reset, 0, [], none, 0, []⟩
+
+/-- 按 **seq** 取。不按下标取：下标会随筛掉的条数整体错位，取到另一条真转移而不报错。 -/
+def bySeq (n : Nat) : Obs := (steps.find? (fun o =&gt; o.seq == n)).getD dummy
+
+/-- 从 seq `want` 那一条起连着取 `len` 条，做成 (动作, 看到的下一帧)。
+    取不到就是空表——**空表会让 `traceOk` 平凡为真**，所以每一段另配一条 `_len` 定理。 -/
+def playFrom (want len : Nat) : List (Act × World) :=
+  ((steps.dropWhile (fun o =&gt; o.seq != want)).take len).map (fun o =&gt; (o.act.getD .void, o.after))
+
+#eval &quot;REPLAY steps=&quot; ++ toString steps.length ++ &quot; boards=&quot; ++ toString boards.length
+</code></pre></div></details></div><div class="group"><b>要证的东西</b> · Proof/</div><div class="list"><details class="item" id="lean-Proof-Keys"><summary><div class="top"><span class="name">Proof/Keys.lean</span><span class="chip c-lv">18 条定理</span></div><div class="top"><span class="chip c-mute" title="">step_color</span><span class="chip c-mute" title="">advance_ne</span><span class="chip c-mute" title="">key_keep</span><span class="chip c-mute" title="">key_no_goal</span><span class="chip c-mute" title="">key_no_win</span><span class="chip c-mute" title="">unsolvable_by_key</span><span class="chip c-mute" title="">scene0_key</span><span class="chip c-mute" title="">scene0_unsolvable</span><span class="chip c-mute" title="">scene1_winnable</span><span class="chip c-mute" title="">scene1_closed_at_start</span><span class="chip c-mute" title="">scene1_not_key</span><span class="chip c-mute" title="">on_color</span><span class="chip c-mute" title="">key2_no_goal</span><span class="chip c-mute" title="">unsolvable_by_key2</span><span class="chip c-mute" title="">scene2_unsolvable</span><span class="chip c-mute" title="">scene3_winnable</span><span class="chip c-mute" title="">scene3_closed_at_start</span><span class="chip c-mute" title="">scene3_not_key2</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Keys —— 「不可做」的钥匙，每把配三条防线
+
+这一局语料里六关都走通了，**没有任何一关被宣告不可做**。这一份不是在给某一关下结论，
+是在证明这套模型**说得出**「做不了」——而且说的时候有防线，不是对谁都说不可做。
+
+## 钥匙一：调色板造不出点亮色
+
+某个网格的点亮色**不在**本关调色板里，而它外环上有一块 ON 位置的瓦片此刻不是点亮色
+⇒ 那块瓦片永远变不成点亮色（点一下只会沿调色板前进，造不出调色板外的色）⇒ 永远到不了。
+
+它不是「挡住了」（这一局没有任何阻挡）：它是一个**守恒的性质**——「这块不是点亮色」每走一步都还成立。
+证明对动作串做归纳（骨架 `unsolvable_of_invariant`），**不枚举任何状态**，与盘面大小无关。
+
+## 三条防线（`scene1`：一张只差一处的盘）
+
+    scene1_winnable        调色板里补上点亮色，那张盘点一下就赢
+    scene1_closed_at_start 而且不是开局就已经赢了
+    scene1_not_key         而且钥匙在那张盘上**前提真的不满足**（点亮色在调色板里）——
+                           钥匙套不上去是因为那张盘不是那种盘，不是因为我没找到证明
+
+## 边界写在明处
+
+`step` 没有重开那一支（重开不进模型），所以 `scene0_unsolvable` 的准确意思是
+**「只靠点击、不经过重开，就到不了」**。
+-/
+
+import Obj.World
+import Step
+import Proof.Reachable
+
+
+/-- 一步之后第 i 块的底色：在「被动」名单里就前进一位，否则原样。 -/
+theorem step_color (w : World) (a : Act) (i : Nat) :
+    (w.step a).colors[i]? =
+      w.colors[i]?.map (fun c =&gt; if (w.board.moved a).contains i then advance w.board.palette c else c) := by
+  simp only [World.step, step, List.getElem?_mapIdx]
+
+/-- 调色板外的色，在这个世界的调色板上前进一位也到不了它。 -/
+theorem advance_ne (w : World) (c lit : Nat) (hlit : lit ∉ w.board.palette) (hc : c ≠ lit) :
+    advance w.board.palette c ≠ lit := by
+  unfold advance
+  split
+  · rw [List.getD_eq_getElem?_getD]
+    cases h : w.board.palette[(_ + 1) % w.board.palette.length]? with
+    | none =&gt; simpa using hc
+    | some x =&gt;
+      simp only [Option.getD_some]
+      intro hx
+      exact hlit (hx ▸ List.mem_of_getElem? h)
+  · exact hc
+
+/-- 钥匙一的不变量：网格 `g` 在盘上、点亮色不在调色板里、外环有一块 ON 位置的瓦片此刻不是点亮色。 -/
+def Key (g : Grid) (w : World) : Prop :=
+  g ∈ w.board.grids ∧ g.lit ∉ w.board.palette ∧
+    ∃ p ∈ g.ring, p.2 = .on ∧ ∃ c, p.1.bind w.colorAt = some c ∧ c ≠ g.lit
+
+theorem key_keep (g : Grid) : ∀ w a, Act.legal w a = true → Key g w → Key g (w.step a) := by
+  intro w a _ ⟨hg, hlit, p, hp, hon, c, hc, hne⟩
+  refine ⟨hg, hlit, p, hp, hon, ?_⟩
+  cases hp1 : p.1 with
+  | none =&gt; simp [hp1] at hc
+  | some cell =&gt;
+    simp only [hp1, Option.bind_some, World.colorAt] at hc ⊢
+    cases hi : w.board.indexOf cell with
+    | none =&gt; simp [hi] at hc
+    | some i =&gt;
+      simp only [hi, Option.bind_some] at hc
+      have hb : (w.step a).board = w.board := rfl
+      simp only [hb, hi, Option.bind_some, step_color, hc, Option.map_some]
+      split
+      · exact ⟨_, rfl, advance_ne w _ _ hlit hne⟩
+      · exact ⟨_, rfl, hne⟩
+
+theorem key_no_goal (g : Grid) (w : World) (h : Key g w) : w.isGoal = false := by
+  obtain ⟨hg, _, p, hp, hon, c, hc, hne⟩ := h
+  have hdone : w.gridDone g = false := by
+    simp only [World.gridDone, Bool.and_eq_false_iff]
+    left; left; left
+    rw [List.all_eq_false]
+    refine ⟨(p.1.bind w.colorAt, p.2), List.mem_map.mpr ⟨p, hp, rfl⟩, ?_⟩
+    simp [hon, hc, hne]
+  simp only [World.isGoal, List.all_eq_false]
+  exact ⟨g, hg, by simp [hdone]⟩
+
+theorem key_no_win (g : Grid) : ∀ w a, Act.legal w a = true → Key g w → (w.step a).isGoal = false :=
+  fun w a hl h =&gt; key_no_goal g (w.step a) (key_keep g w a hl h)
+
+/-- **钥匙一挂上骨架**：满足它的局面，只靠点击怎么走都到不了。 -/
+theorem unsolvable_by_key (g : Grid) (w : World) (h : Key g w) : Unsolvable w :=
+  unsolvable_of_invariant (Key g) (key_keep g) (key_no_win g) w h
+
+/-! ## 教学盘：一张做不了的，一张只差一处、做得了的 -/
+
+/-- 一个网格，中心在 (0,1,1)，外环只有正上方那一格有瓦片（ON），点亮色 3。 -/
+def g0 : Grid := ⟨⟨0, 1, 1⟩, 3, [.none, .on, .none, .none, .none, .none, .none, .none]⟩
+
+/-- 调色板 [1, 2]：**造不出 3**。 -/
+def scene0 : World := ⟨⟨[1, 2], [⟨⟨0, 0, 1⟩, []⟩], [g0], 0⟩, [1]⟩
+
+/-- 只差一处：调色板换成 [1, 3]。 -/
+def scene1 : World := ⟨⟨[1, 3], [⟨⟨0, 0, 1⟩, []⟩], [g0], 0⟩, [1]⟩
+
+theorem scene0_key : Key g0 (scene0 : World) := by
+  refine ⟨by decide, by decide, (some ⟨0, 0, 1⟩, .on), by decide, rfl, 1, by decide, by decide⟩
+
+/-- **scene0 做不了**（只靠点击、不经过重开）。 -/
+theorem scene0_unsolvable : Unsolvable (scene0 : World) := unsolvable_by_key g0 scene0 scene0_key
+
+/-- 防线一：只差一处的那张盘，点一下就赢。 -/
+theorem scene1_winnable : Winnable (scene1 : World) := ⟨[.click ⟨0, 0, 1⟩], by decide, by decide⟩
+
+/-- 防线二：而且不是开局就已经赢了。 -/
+theorem scene1_closed_at_start : (scene1 : World).isGoal = false := by decide
+
+/-- 防线三：钥匙在那张盘上**前提真的不满足**（点亮色 3 在调色板里）。 -/
+theorem scene1_not_key : ¬ Key g0 (scene1 : World) := by
+  intro ⟨_, h, _⟩
+  exact h (by decide)
+
+/-! ## 钥匙二：题面自相矛盾
+
+两个网格共用一块外环瓦片，两边都在那个位置写 ON，而两个网格的点亮色不同
+⇒ 那块瓦片要同时是两个色 ⇒ 永远到不了。
+
+理由和钥匙一**真的不同**：钥匙一是「调色板造不出」（一个守恒的性质，每一步都要证它还成立），
+钥匙二是「题面本身要求矛盾」——调色板里两个色都有，点多少下都没用。
+它的不变量只看版面，而版面一步之内不变（`board_fixed` 那一条的道理），所以「每步保持」是一行。 -/
+
+/-- 一个网格到齐了，它外环上写 ON 的那一格就一定是点亮色。 -/
+theorem on_color (w : World) (g : Grid) (cell : Cell)
+    (hmem : (some cell, Code.on) ∈ g.ring) (hd : w.gridDone g = true) :
+    w.colorAt cell = some g.lit := by
+  simp only [World.gridDone, Bool.and_eq_true] at hd
+  obtain ⟨⟨⟨hon, _⟩, _⟩, _⟩ := hd
+  rw [List.all_eq_true] at hon
+  have := hon _ (List.mem_map.mpr ⟨_, hmem, rfl⟩)
+  simpa using this
+
+def Key2 (g1 g2 : Grid) (cell : Cell) (w : World) : Prop :=
+  g1 ∈ w.board.grids ∧ g2 ∈ w.board.grids ∧ (some cell, Code.on) ∈ g1.ring ∧
+    (some cell, Code.on) ∈ g2.ring ∧ g1.lit ≠ g2.lit
+
+theorem key2_no_goal (g1 g2 : Grid) (cell : Cell) (w : World) (h : Key2 g1 g2 cell w) :
+    w.isGoal = false := by
+  obtain ⟨h1, h2, m1, m2, hne⟩ := h
+  cases hg : w.isGoal with
+  | false =&gt; rfl
+  | true =&gt;
+    simp only [World.isGoal, List.all_eq_true] at hg
+    have c1 := on_color w g1 cell m1 (hg g1 h1)
+    have c2 := on_color w g2 cell m2 (hg g2 h2)
+    rw [c1] at c2
+    exact absurd (Option.some.inj c2) hne
+
+/-- **钥匙二挂上骨架。** 每步保持只有一行：版面一步之内不变。 -/
+theorem unsolvable_by_key2 (g1 g2 : Grid) (cell : Cell) (w : World) (h : Key2 g1 g2 cell w) :
+    Unsolvable w :=
+  unsolvable_of_invariant (Key2 g1 g2 cell) (fun _ _ _ h =&gt; h)
+    (fun w a _ h =&gt; key2_no_goal g1 g2 cell (w.step a) h) w h
+
+/-- 两个网格左右相邻，共用中间那一格 (0,1,2)：左边点亮色 1，右边点亮色 2，两边都在那一格写 ON。 -/
+def gl : Grid := ⟨⟨0, 1, 1⟩, 1, [.none, .none, .none, .none, .on, .none, .none, .none]⟩
+def gr2 : Grid := ⟨⟨0, 1, 3⟩, 2, [.none, .none, .none, .on, .none, .none, .none, .none]⟩
+def gr1 : Grid := ⟨⟨0, 1, 3⟩, 1, [.none, .none, .none, .on, .none, .none, .none, .none]⟩
+
+def scene2 : World := ⟨⟨[1, 2], [⟨⟨0, 1, 2⟩, []⟩], [gl, gr2], 0⟩, [2]⟩
+/-- 只差一处：右边那个网格的点亮色也是 1。 -/
+def scene3 : World := ⟨⟨[1, 2], [⟨⟨0, 1, 2⟩, []⟩], [gl, gr1], 0⟩, [2]⟩
+
+theorem scene2_unsolvable : Unsolvable (scene2 : World) :=
+  unsolvable_by_key2 gl gr2 ⟨0, 1, 2⟩ scene2 ⟨by decide, by decide, by decide, by decide, by decide⟩
+
+theorem scene3_winnable : Winnable (scene3 : World) := ⟨[.click ⟨0, 1, 2⟩], by decide, by decide⟩
+theorem scene3_closed_at_start : (scene3 : World).isGoal = false := by decide
+theorem scene3_not_key2 : ¬ Key2 gl gr1 ⟨0, 1, 2⟩ (scene3 : World) := by
+  intro ⟨_, _, _, _, h⟩
+  exact h rfl
+
+#print axioms on_color
+#print axioms key2_no_goal
+#print axioms unsolvable_by_key2
+#print axioms scene2_unsolvable
+#print axioms scene3_winnable
+#print axioms scene3_closed_at_start
+#print axioms scene3_not_key2
+
+#print axioms step_color
+#print axioms advance_ne
+#print axioms key_keep
+#print axioms key_no_goal
+#print axioms key_no_win
+#print axioms unsolvable_by_key
+#print axioms scene0_key
+#print axioms scene0_unsolvable
+#print axioms scene1_winnable
+#print axioms scene1_closed_at_start
+#print axioms scene1_not_key
+</code></pre></div></details><details class="item" id="lean-Proof-Levels"><summary><div class="top"><span class="name">Proof/Levels.lean</span><span class="chip c-lv">25 条定理</span></div><div class="top"><span class="chip c-mute" title="">L0_len</span><span class="chip c-mute" title="">L0_trace</span><span class="chip c-mute" title="">L0_winnable</span><span class="chip c-mute" title="">L0_not_goal_at_start</span><span class="chip c-mute" title="">L1_len</span><span class="chip c-mute" title="">L1_trace</span><span class="chip c-mute" title="">L1_winnable</span><span class="chip c-mute" title="">L1_not_goal_at_start</span><span class="chip c-mute" title="">L2_len</span><span class="chip c-mute" title="">L2_trace</span><span class="chip c-mute" title="">L2_winnable</span><span class="chip c-mute" title="">L2_not_goal_at_start</span><span class="chip c-mute" title="">L3_len</span><span class="chip c-mute" title="">L3_trace</span><span class="chip c-mute" title="">L3_winnable</span><span class="chip c-mute" title="">L3_not_goal_at_start</span><span class="chip c-mute" title="">L4_len</span><span class="chip c-mute" title="">L4_trace</span><span class="chip c-mute" title="">L4_winnable</span><span class="chip c-mute" title="">L4_not_goal_at_start</span><span class="chip c-mute" title="">L5_len</span><span class="chip c-mute" title="">L5_trace</span><span class="chip c-mute" title="">L5_winnable</span><span class="chip c-mute" title="">L5_not_goal_at_start</span><span class="chip c-mute" title="">restart_matches_opening</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Levels —— 每一关一条定理（自动生成：`python lean2/export_levels.py`，不要手改）
+
+只用成绩单认证的那一段（seq 88..168）。每关：`_len` / `_trace` / `_winnable` / `_not_goal_at_start`。
+只有开局那一帧是观测给的，后面全是模型自己算的。
+
+    关   开局 seq   逐帧核过的步数   + 过关那一脚
+    L0   seq 89              3          + 1
+    L1   seq 93              6          + 1
+    L2   seq 100            13          + 1
+    L3   seq 114            20          + 1
+    L4   seq 135            20          + 1
+    L5   seq 156            12          + 1
+
+**这一局没有任何一关被宣告不可做**：六关都有 `_winnable`（真人走通的那条路就是见证）。
+`Unsolvable` 在 `Proof/Reachable.lean`，准确的意思是「只靠点击、不经过重开就到不了」。
+
+**一条明写的假设**：重开把局面放回开局。它不进模型；每关的路都没被重开切开，所以每关的定理用不上它。
+`restart_matches_opening` 给它一次被驳倒的机会——**没红不构成证明**（只有一次，且是从通关画面重开）。
+-/
+
+import Obj.World
+import Obs.Replay
+import Proof.Reachable
+
+/-- 第 0 关的真实开局（认证段 seq 89 那一帧，从语料读出来的）。 -/
+def L0_start : World := (bySeq 89).before
+
+/-- 开局到过关前一步，3 步。过关那一脚（seq 92）不在这里：它的下一帧是下一关的盘。 -/
+def L0_play : List (Act × World) := playFrom 89 3
+
+def L0_winAct : Act := (bySeq 92).act.getD .void
+
+theorem L0_len : (L0_play : List (Act × World)).length = 3 := by decide +kernel
+
+/-- **模型沿着这条路一步不差**，路上没有提前到齐。 -/
+theorem L0_trace : traceOk (L0_start : World) L0_play = true := by decide +kernel
+
+/-- **这一关走得通。** 见证：那 3 步再加过关那一脚，每一下都合法。 -/
+theorem L0_winnable : Winnable (L0_start : World) :=
+  ⟨L0_play.map Prod.fst ++ [L0_winAct], by decide +kernel, by decide +kernel⟩
+
+/-- 而且不是开局就已经到齐。 -/
+theorem L0_not_goal_at_start : (L0_start : World).isGoal = false := by decide +kernel
+
+#print axioms L0_len
+#print axioms L0_trace
+#print axioms L0_winnable
+#print axioms L0_not_goal_at_start
+
+/-- 第 1 关的真实开局（认证段 seq 93 那一帧，从语料读出来的）。 -/
+def L1_start : World := (bySeq 93).before
+
+/-- 开局到过关前一步，6 步。过关那一脚（seq 99）不在这里：它的下一帧是下一关的盘。 -/
+def L1_play : List (Act × World) := playFrom 93 6
+
+def L1_winAct : Act := (bySeq 99).act.getD .void
+
+theorem L1_len : (L1_play : List (Act × World)).length = 6 := by decide +kernel
+
+/-- **模型沿着这条路一步不差**，路上没有提前到齐。 -/
+theorem L1_trace : traceOk (L1_start : World) L1_play = true := by decide +kernel
+
+/-- **这一关走得通。** 见证：那 6 步再加过关那一脚，每一下都合法。 -/
+theorem L1_winnable : Winnable (L1_start : World) :=
+  ⟨L1_play.map Prod.fst ++ [L1_winAct], by decide +kernel, by decide +kernel⟩
+
+/-- 而且不是开局就已经到齐。 -/
+theorem L1_not_goal_at_start : (L1_start : World).isGoal = false := by decide +kernel
+
+#print axioms L1_len
+#print axioms L1_trace
+#print axioms L1_winnable
+#print axioms L1_not_goal_at_start
+
+/-- 第 2 关的真实开局（认证段 seq 100 那一帧，从语料读出来的）。 -/
+def L2_start : World := (bySeq 100).before
+
+/-- 开局到过关前一步，13 步。过关那一脚（seq 113）不在这里：它的下一帧是下一关的盘。 -/
+def L2_play : List (Act × World) := playFrom 100 13
+
+def L2_winAct : Act := (bySeq 113).act.getD .void
+
+theorem L2_len : (L2_play : List (Act × World)).length = 13 := by decide +kernel
+
+/-- **模型沿着这条路一步不差**，路上没有提前到齐。 -/
+theorem L2_trace : traceOk (L2_start : World) L2_play = true := by decide +kernel
+
+/-- **这一关走得通。** 见证：那 13 步再加过关那一脚，每一下都合法。 -/
+theorem L2_winnable : Winnable (L2_start : World) :=
+  ⟨L2_play.map Prod.fst ++ [L2_winAct], by decide +kernel, by decide +kernel⟩
+
+/-- 而且不是开局就已经到齐。 -/
+theorem L2_not_goal_at_start : (L2_start : World).isGoal = false := by decide +kernel
+
+#print axioms L2_len
+#print axioms L2_trace
+#print axioms L2_winnable
+#print axioms L2_not_goal_at_start
+
+/-- 第 3 关的真实开局（认证段 seq 114 那一帧，从语料读出来的）。 -/
+def L3_start : World := (bySeq 114).before
+
+/-- 开局到过关前一步，20 步。过关那一脚（seq 134）不在这里：它的下一帧是下一关的盘。 -/
+def L3_play : List (Act × World) := playFrom 114 20
+
+def L3_winAct : Act := (bySeq 134).act.getD .void
+
+theorem L3_len : (L3_play : List (Act × World)).length = 20 := by decide +kernel
+
+/-- **模型沿着这条路一步不差**，路上没有提前到齐。 -/
+theorem L3_trace : traceOk (L3_start : World) L3_play = true := by decide +kernel
+
+/-- **这一关走得通。** 见证：那 20 步再加过关那一脚，每一下都合法。 -/
+theorem L3_winnable : Winnable (L3_start : World) :=
+  ⟨L3_play.map Prod.fst ++ [L3_winAct], by decide +kernel, by decide +kernel⟩
+
+/-- 而且不是开局就已经到齐。 -/
+theorem L3_not_goal_at_start : (L3_start : World).isGoal = false := by decide +kernel
+
+#print axioms L3_len
+#print axioms L3_trace
+#print axioms L3_winnable
+#print axioms L3_not_goal_at_start
+
+/-- 第 4 关的真实开局（认证段 seq 135 那一帧，从语料读出来的）。 -/
+def L4_start : World := (bySeq 135).before
+
+/-- 开局到过关前一步，20 步。过关那一脚（seq 155）不在这里：它的下一帧是下一关的盘。 -/
+def L4_play : List (Act × World) := playFrom 135 20
+
+def L4_winAct : Act := (bySeq 155).act.getD .void
+
+theorem L4_len : (L4_play : List (Act × World)).length = 20 := by decide +kernel
+
+/-- **模型沿着这条路一步不差**，路上没有提前到齐。 -/
+theorem L4_trace : traceOk (L4_start : World) L4_play = true := by decide +kernel
+
+/-- **这一关走得通。** 见证：那 20 步再加过关那一脚，每一下都合法。 -/
+theorem L4_winnable : Winnable (L4_start : World) :=
+  ⟨L4_play.map Prod.fst ++ [L4_winAct], by decide +kernel, by decide +kernel⟩
+
+/-- 而且不是开局就已经到齐。 -/
+theorem L4_not_goal_at_start : (L4_start : World).isGoal = false := by decide +kernel
+
+#print axioms L4_len
+#print axioms L4_trace
+#print axioms L4_winnable
+#print axioms L4_not_goal_at_start
+
+/-- 第 5 关的真实开局（认证段 seq 156 那一帧，从语料读出来的）。 -/
+def L5_start : World := (bySeq 156).before
+
+/-- 开局到过关前一步，12 步。过关那一脚（seq 168）不在这里：它的下一帧是通关画面（同一张盘）。 -/
+def L5_play : List (Act × World) := playFrom 156 12
+
+def L5_winAct : Act := (bySeq 168).act.getD .void
+
+theorem L5_len : (L5_play : List (Act × World)).length = 12 := by decide +kernel
+
+/-- **模型沿着这条路一步不差**，路上没有提前到齐。 -/
+theorem L5_trace : traceOk (L5_start : World) L5_play = true := by decide +kernel
+
+/-- **这一关走得通。** 见证：那 12 步再加过关那一脚，每一下都合法。 -/
+theorem L5_winnable : Winnable (L5_start : World) :=
+  ⟨L5_play.map Prod.fst ++ [L5_winAct], by decide +kernel, by decide +kernel⟩
+
+/-- 而且不是开局就已经到齐。 -/
+theorem L5_not_goal_at_start : (L5_start : World).isGoal = false := by decide +kernel
+
+#print axioms L5_len
+#print axioms L5_trace
+#print axioms L5_winnable
+#print axioms L5_not_goal_at_start
+
+/-- 「重开把局面放回开局」的**唯一一次被驳倒的机会**：seq 88 重开之后那一帧 = 语料第一帧（seq 1）。 -/
+theorem restart_matches_opening : ((bySeq 88).after : World) = (bySeq 1).before := by decide +kernel
+
+#print axioms restart_matches_opening
+</code></pre></div></details><details class="item" id="lean-Proof-Reachable"><summary><div class="top"><span class="name">Proof/Reachable.lean</span><span class="chip c-lv">3 条定理</span></div><div class="top"><span class="chip c-mute" title="">legal_step</span><span class="chip c-mute" title="">unsolvable_of_invariant</span><span class="chip c-mute" title="">not_both</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Reachable —— 这个局面做不做得了
+
+    everGoal w as    从 w 起照着 as 走，途中有没有哪一刻到齐过
+    Winnable w    := ∃ as, everGoal w as = true
+    Unsolvable w  := ∀ as, (每一下合法) → everGoal w as = false
+
+## 合法的一步
+
+这一局唯一的动作是点一下。模型里的 `Act.click c` 可以点任何槽位，**但点空、点在中心上
+在模型里什么也不动**（`step` 只动 `moved` 里的那几块），所以不需要另外把动作限死：
+一步不可能「跨过」任何东西——这一局没有位移。`legal` 仍然写出来，给骨架用：
+点的必须是这张盘上的一块瓦片（这是这一局真有的那一种动作）。
+
+## 骨架：不变量 ⇒ 不可做
+
+全文唯一做归纳的地方，与盘面大小、动作串长短都无关，**不枚举任何状态**。
+
+## 「不经过重开就赢不了」
+
+`step` 没有重开那一支（重开不进模型），所以 `Unsolvable` 的准确意思是
+**「只靠点击、不经过重开，就赢不了」**。这一局语料里每一关都走通了（`Proof/Levels.lean`），
+这里没有任何一关被宣告不可做；骨架留着，是给「一个具体局面为什么做不了」用的。
+-/
+
+import Obj.World
+import Step
+
+def everGoal (w : World) : List Act → Bool
+  | []      =&gt; false
+  | a :: as =&gt; (w.step a).isGoal || everGoal (w.step a) as
+
+def Act.legal (w : World) : Act → Bool
+  | .click c =&gt; (w.board.indexOf c).isSome
+  | .void    =&gt; false
+
+def Winnable (w : World) : Prop :=
+  ∃ as : List Act, as.all (Act.legal w) = true ∧ everGoal w as = true
+
+def Unsolvable (w : World) : Prop :=
+  ∀ as : List Act, as.all (Act.legal w) = true → everGoal w as = false
+
+/-- 一步之内版面不变，所以「合法」这件事走一步之后照样成立（它只看版面）。 -/
+theorem legal_step (w : World) (a b : Act) : Act.legal (w.step a) b = Act.legal w b := by
+  cases b &lt;;&gt; rfl
+
+/-- **骨架**：Φ 每走一步都还成立（`hkeep`），满足 Φ 的局面这一步不可能到齐（`hwin`）
+    ⇒ 从满足 Φ 的局面出发，**任何**合法动作串都到不了。 -/
+theorem unsolvable_of_invariant (P : World → Prop)
+    (hkeep : ∀ w a, Act.legal w a = true → P w → P (w.step a))
+    (hwin : ∀ w a, Act.legal w a = true → P w → (w.step a).isGoal = false) :
+    ∀ w, P w → Unsolvable w := by
+  intro w hp as
+  induction as generalizing w with
+  | nil =&gt; intro _; rfl
+  | cons a t ih =&gt;
+    intro hall
+    simp only [List.all_cons, Bool.and_eq_true] at hall
+    obtain ⟨ha, hrest⟩ := hall
+    simp only [everGoal, hwin w a ha hp, Bool.false_or]
+    apply ih (w.step a) (hkeep w a ha hp)
+    rw [List.all_eq_true] at hrest ⊢
+    intro b hb
+    rw [legal_step]
+    exact hrest b hb
+
+/-- 两句话不能同时成立（`Levels` 那一层据此说「有 `_winnable` 就不会有 `_unsolvable`」）。 -/
+theorem not_both (w : World) (hw : Winnable w) (hu : Unsolvable w) : False := by
+  obtain ⟨as, hl, h⟩ := hw
+  rw [hu as hl] at h
+  exact Bool.false_ne_true h
+
+#print axioms legal_step
+#print axioms unsolvable_of_invariant
+#print axioms not_both
+</code></pre></div></details></div><div class="group"><b>装配与破坏测试</b> · 根目录</div><div class="list"><details class="item" id="lean-Broken"><summary><div class="top"><span class="name">Broken.lean</span><span class="chip c-gap">破坏测试 · 应当编不过</span></div><div class="top"><span class="chip c-mute" title="">scene0_one_click_wins</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Broken —— **这一份应当编不过**，而且只在标记那一行红
+
+一套证明如果什么都证得出来，那它一条也没证。验收对这一份的要求是两句：
+编不过（退出码非 0），而且错误只落在带「这一行应当红」记号的那一行（取文件里最后一处记号）。
+
+挑的是一条和现有主张**正面冲突**的：`Proof/Keys.lean` 证了 scene0 只靠点击到不了
+（调色板造不出点亮色），这里偏说点一下就到了。两者必有一错，`decide` 当场算出来是这一条错。
+-/
+
+import Proof.Keys
+
+theorem scene0_one_click_wins : everGoal scene0 [.click ⟨0, 0, 1⟩] = true := by
+  decide      -- ← 这一行应当红
+</code></pre></div></details><details class="item" id="lean-Step"><summary><div class="top"><span class="name">Step.lean</span><span class="chip c-mute">只有定义</span></div></summary><div class="body"><pre><code class="language-lean">/-
+# Step —— 一步怎么走：**只做分发，0 条定理**
+
+被点那一块（`selfMoved`，规则 click_advances_tile）和它记号牵动的那几块
+（`linked`，规则 marks_push_neighbours）各自沿调色板前进一位，别的原样。
+
+签名里没有新的 `Board`：一步之内版面、题面、调色板、底板**表示不出来**会变。
+
+## 规则的身份表（`verify.py` 逐条机械核，和 `rule/` 目录对账）
+
+    click_advances_tile        定义      Rule/Step/ClickAdvancesTile.lean
+    marks_push_neighbours      定义      Rule/Step/MarksPushNeighbours.lean
+    level_up_iff_all_done      定义      Rule/Goal/LevelUpIffAllDone.lean（`World.isGoal`）
+    nothing_else_changes       推论      Derived/NothingElseChanges.lean
+    bar_grows_slowly           不进模型  计数条下一步不是当前世界的函数（本关已走几步是历史）
+    bar_refills_on_new_board   不进模型  说的是换关后那张新盘，新盘是历史
+    reset_returns_to_opening   不进模型  「开局长什么样」是历史；在 Levels 那一层是明写的假设
+-/
+
+import Obj.World
+import Obj.Act.Act
+import Rule.Step.ClickAdvancesTile
+import Rule.Step.MarksPushNeighbours
+import Rule.Goal.LevelUpIffAllDone
+
+def Board.moved (b : Board) (a : Act) : List Nat := b.selfMoved a ++ b.linked a
+
+def step (b : Board) (s : List Nat) (a : Act) : List Nat :=
+  s.mapIdx (fun i c =&gt; if (b.moved a).contains i then advance b.palette c else c)
+
+def World.step (w : World) (a : Act) : World := ⟨w.board, _root_.step w.board w.colors a⟩
+</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>ft09 · 统一到对象-规则-形式化-前端框架（第 0~12 步，归档除外）</h1>
+<p>日期 2026-09-24。所有读数都是本会话真实跑出来的；命令都在 <code>ledger/games/ft09/</code> 下跑（除注明）。
+全链重跑顺序见 <code>web/share.html</code> 那一页，也就是：
+<code>parse_check.py → run_rules.py --reverse → compare_books.py → field_witness.py → lean2/verify.py → lean2/reverse.py → web/export.py → web/pages.py → web/bundle.py → web/check_no_logic.py</code>。</p>
+<h2>第 0 步 · 语料</h2>
+<pre><code>$ python ledger/trace_source.py ft09          （仓库根）
+ft09    ft09-20260907           ft09-0907-0044        100.06/6         167
+$ python corpus.py
+认领：封存局 ft09-20260907  run=ft09-0907-0044  分 100.0  通关 6/6  轨迹 runs/ft09-0907-0044/transitions.jsonl  168 行
+段 0  guid=8945aec0…  seq 1..87（87 行）   到过第 6 关  成绩单认证：否  逐关步数 [6, 7, 16, 24, 21, 13]
+段 1  guid=22ad2c44…  seq 88..168（81 行） 到过第 6 关  成绩单认证：是  逐关步数 [4, 7, 14, 21, 21, 13]  成绩单 [4, 7, 14, 21, 21, 13]
+标记： {None: 157, 'new_board': 10, 'reset': 1}  通关步： 2
+</code></pre>
+<p>与任务书一致（168 行）。<strong>语料有两段</strong>，两段都打到 WIN，只有段 1 被成绩单认证；逐关步数与 <code>level_actions</code> 对上。
+<code>step</code> 有 1 处重号（RESET 与前一步同为 87）⇒ 全链切片用 <code>seq</code>。tid 是内容哈希（编号同内容异 0 / 内容同编号异 0 / 重号 28）；
+旧册 31 个 EVIDENCE 全命中，但只说明内容重叠，且大多落在未认证的段 0——新册 EVIDENCE 全取认证段，<code>run_rules.py</code> 机械核（见证必须是它在认证段里判对的步）。
+全部 168 行入语料；不接手的带标记（<code>reset</code> 1、<code>new_board</code> 10），条数进 <code>analysis/readings.json</code> 与页面。</p>
+<h2>判据 1 · 解析：<strong>绿</strong>，(b) = 0</h2>
+<pre><code>$ python parse_check.py
+解析验收（全量语料：168 行转移 → 336 帧，去重后 135 张不同的帧）
+(a) 不是局面：0 帧
+(b) 是局面却读不出：0 帧
+动作解析：click 167  reset 1
+</code></pre>
+<p>提出过又被证伪的 (a) 判据：「通关那一帧不是局面」——两帧 WIN 画面都读得出、仍是同一张盘。
+良构检查 G1（计数条形状，接替旧 <code>bar_is_full_then_used</code>）、G2（图样 NONE ⇔ 无瓦片，接替旧 <code>pattern_three_marks_no_tile</code>）、G3–G5、G0：
+反向测试一里逐条故意弄坏一帧，<strong>8/8 按预期</strong>。其中一条是新发现：<strong>G3 在没有图例的关恒真</strong>（调色板就是清点出来的），
+第一次在第 0 关上弄坏它没红，改到有图例的关才红；现在两种都列出（后者作为对照应当读得出）。</p>
+<h2>判据 2 · 规则：<strong>绿</strong>，7 条判错全 0，无人区 0</h2>
+<pre><code>$ python run_rules.py --reverse
+规则读数：168 行转移（去重后 140 条不同的转移；两段语料，成绩单认证的是第 1 段）
+规则                            组         |scope|    去重     N     C   E   U
+level_up_iff_all_done         goal          167   139     1   167   0   0
+bar_grows_slowly              meter         157   131    11   157   0   0
+bar_refills_on_new_board      meter          10     8   158    10   0   0
+reset_returns_to_opening      restart         1     1   167     1   0   0
+click_advances_tile           step          157   131    11   157   0   0
+marks_push_neighbours         step           20    17   148    20   0   0
+nothing_else_changes          step          157   131    11   157   0   0
+无人区：0 条
+problems：0
+</code></pre>
+<p>没有 N=0（|scope|=0）的规则。旧册 9 条 → 新册 7 条 + 2 条良构检查（<strong>推倒重排</strong>，理由写在 <code>analysis/record.txt</code> 第 2 轮）；
+<code>ring_matched_levels_up</code> + <code>no_levelup_before_ring_matches</code> 合成一个等价。
+新旧两册对同一批语料与同一批 120 个变异（<code>compare_books.py</code>）：无人区 0/0、判错 0/0、拒掉 116 / <strong>118</strong>、旧拒新不拒 <strong>0</strong>。
+（第一次跑旧拒新不拒 <strong>9</strong>：全是「背景上凭空多几个点」，新册世界里没有背景像素 ⇒ 回对象层加了 <code>backdrop</code> 字段，9 个回来了。）
+「这批语料说不了的」（0 次）：点空、点在网格中心上、点在不属于任何外环的瓦片上、计数条用满、关内重开。</p>
+<h2>判据 3 · 反向测试：<strong>绿</strong></h2>
+<ul>
+<li>源码突变体 16 个（每个另起进程，先核补丁打上了）：<strong>种子 M00 红</strong>；空改动 M14 不红；12 个红（含种子）；
+  没红 3 个均给出入口：M06（OFF 不要求同色）、M08（OFF 可以是点亮色）——语料里能分开它们的局面实测 <strong>0 个</strong>（<code>goal_separation</code>：M06 0、M08 0）；
+  M15（底板不读）——真实转移上底板从不变，只在变异上起作用。M01/M05 只在三色那一关红（两色时前进 = 后退）。</li>
+<li>每条规则一个「只有它拒」的手造见证：<strong>7/7 按预期</strong>（补足装置变异里「独家 0」的 3 条：bar_grows_slowly、marks_push_neighbours、reset_returns_to_opening——
+  后者是因为装置从 801 个候选里抽 120 个，seq 88 的 4 个一个没抽到，实测）。</li>
+<li>装置 <code>criteria_run</code>：字段消融 6 个字段 0 个「一字没变」；变异 120 个拒掉 118（对象层读不出 17）。</li>
+<li>Lean 这一层（<code>python lean2/reverse.py</code>）：9 个，<strong>种子红</strong>、空改动不红、2 个判据自检（塞 sorry、换 native_decide）都被装置公理表抓到；
+  M03（OFF 不要求同色）Corpus/Levels 都不红，只有钥匙二的教学盘红——与 Python 侧 M06 同一结论。problems 0。</li>
+<li>前端：<code>check_no_logic.py --selftest</code> 往 site.js 拷贝里塞 <code>isGoal(...)</code>，当场红。</li>
+</ul>
+<h2>判据 4 · 对象：<strong>绿</strong>，6 个字段都有见证</h2>
+<p>World = <code>palette / tiles / grids / colors / bar_used / backdrop</code>（Cell、Tile、Grid、Act 各一个文件，按 lattice/ board/ act/ 分组）。</p>
+<pre><code>$ python field_witness.py
+  palette    真实转移   seq 7     click_advances_tile：TRUE → 抹掉后 FALSE
+  tiles      真实转移   seq 7     click_advances_tile：TRUE → 抹掉后 FALSE
+  grids      真实转移   seq 13    level_up_iff_all_done：TRUE → 抹掉后 FALSE
+  colors     真实转移   seq 1     click_advances_tile：TRUE → 抹掉后 FALSE
+  bar_used   变异       seq 95（回到了别处）    bar_grows_slowly：FALSE → 抹掉后 TRUE
+  backdrop   变异       seq 91（改了会变的格）  nothing_else_changes：FALSE → 抹掉后 TRUE
+</code></pre>
+<p>分离表（<code>ledger/field_split.py</code>）只有 colors、bar_used 单独分得开；palette/tiles/grids/backdrop 一关之内不变、换关时同变 ⇒ 表必然找不到——
+每个字段的四句分析在 <code>analysis/&lt;字段&gt;.txt</code>，卡 03 / 卡 06 两栏在 <code>record.txt</code>。卡 03 动了一刀（拆：tiles → tiles + colors），卡 06 加了 backdrop，不合并（没有规则总是一起读它们）。
+bar_used 两个真实转移上的见证缺位是「扰动太温柔」（装置常量取第一帧的 0）——写在 bar_used.txt。</p>
+<h2>判据 5 · Lean：<strong>绿</strong>，50 条定理，6 关都有 <code>_trace</code> + <code>_winnable</code></h2>
+<pre><code>$ python lean2/verify.py
+lean：工具链 leanprover--lean4---v4.34.0（绕开 elan shim）；按拓扑序编 16 份，编不过 0 份
+lean_check：可信基：50/50 条定理跑过 `#print axioms`，干净（只有 propext / Classical.choice / Quot.sound）
+L0 3+1 / L1 6+1 / L2 13+1 / L3 20+1 / L4 20+1 / L5 12+1 步（逐帧核过 + 过关那一脚；合计 80 = 成绩单 80 步）
+身份：定义 3（ClickAdvancesTile / MarksPushNeighbours / LevelUpIffAllDone）· 推论 1（Derived/NothingElseChanges）·
+      不进模型 3（bar_grows_slowly 论域 157/驳倒 0；bar_refills_on_new_board 10/0；reset_returns_to_opening 1/0）
+破坏测试：rc=1，错误行 [14]，标记行 14
+逐条对账：Lean 167 条 / Python 167 条，对不上 0，Lean 判错 0
+定理 50 条（不含破坏测试）  problems 0  gaps 3
+</code></pre>
+<p><code>Step.lean</code> 与 <code>Obs/Check.lean</code> 0 条定理；观测只存一份 <code>Obs/Replay.lean</code>（168 步、6 张盘），Corpus 与 Levels 都按 seq 从它切，每段配 <code>_len</code>。
+<code>corpus_agrees</code>（167 条，<code>decide +kernel</code>）走内核。另有 <code>Proof/Keys.lean</code> 两把理由不同的「不可做」钥匙（调色板造不出点亮色 / 题面自相矛盾），
+各配三条防线（只差一处的盘 winnable、closed_at_start、not_key），<code>unsolvable_of_invariant</code> 对动作串归纳、不枚举。
+「这一关走不通」一条都没写——六关都走通了。<code>Unsolvable</code> 的边界「只靠点击、不经过重开」写在 Reachable、Keys、页面三处。</p>
+<h2>判据 6 · 前端：<strong>绿</strong></h2>
+<pre><code>$ python web/export.py   → 写出 web/data/site.js：168 步、6 张盘、7 条规则、17 份 Lean、8 段
+$ python web/pages.py    → 生成了 51 页
+$ python web/bundle.py   → 打包了 51 页到 web/dist/，合计 1.77 MB
+$ python web/check_no_logic.py → 渲染侧干净；7 个世界算法入口各 1 次；死链 0 处；结论：干净
+</code></pre>
+<p>export 读 <code>analysis/readings.json</code>、<code>lean2/readings.json</code>、<code>lean2/reverse.json</code> 等，读不到或 problems≠0 就停。
+页面：首页（先讲游戏，配图取真实语料 seq 89/138/168）/ 回放 168 步 / 对象（按目录分组 + 6 个字段页）/ 规则 7 页 /
+形式化（结论表在最前、身份表、Levels 按关、Keys 按钥匙拆段）/ 凭什么信 / 怎么给别人看；缺口横幅在每一页最上面。
+<strong>待跑</strong>：没有在浏览器里实际点开看过（只做了机械检查：内联、死链、禁用词）。</p>
+<h2>gaps（明写的缺口）</h2>
+<ol>
+<li>逐条对账在真实语料上两边都是满绿；「判错那一侧也一致」只由 Lean 反向测试间接证明（Lean 突变体的 #eval false 条数会与 Python 对不上），没有做两边同时变异的对账。</li>
+<li>「重开把局面放回开局」不进模型：语料只有 1 次重开且从通关画面重开；<code>restart_matches_opening</code> 与规则都没驳倒——不构成证明。</li>
+<li>这批语料说不了的：点空、点中心、点非外环瓦片、计数条用满、关内重开，各 0 次。</li>
+<li>按值认的地方：图样码 {0,2,3}、记号色 6、计数条 12/11——全语料没错过，是观察不是结构（parse.py 文件头写明）。</li>
+</ol>
+<h2>工作区产物</h2>
+<p><code>objects/ derive/ rule/ analysis/ lean2/ web/</code>，驱动脚本 <code>corpus.py parse_check.py run_rules.py compare_books.py field_witness.py</code>；
+临时件在 <code>runs/_wb-ft09/</code>。<code>concepts/</code> 与 <code>formal/</code> 未改动。未跑任何 git 写命令。</p></div></details><script>(function(){function o(){var h=location.hash.slice(1);if(!h)return;var e=document.getElementById(h);while(e){if(e.tagName==="DETAILS")e.open=true;e=e.parentElement;}}window.addEventListener("hashchange",o);o();document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(){setTimeout(o,0);});});})();</script><footer>由仓库 <code>b6e01449</code> 自动生成 · 2026-09-25 · <a href="https://github.com/Ephemeral6/harness-v04">源码仓库</a> · <a href="https://arcprize.org/replay/22ad2c44-13eb-4fc0-9e30-d1c27641b190" target="_blank" rel="noopener">ARC Prize 官方通关记录</a></footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  hljs.registerLanguage('lean', function(h){
+    return {name:'Lean', keywords:{
+      keyword:'theorem lemma def abbrev structure inductive instance class where deriving namespace section end open import variable fun match with if then else let in have show from by at do return example noncomputable private protected partial mutual termination_by decreasing_by',
+      built_in:'decide rfl simp omega exact intro intros cases induction constructor apply refine unfold Nat List Bool Prop Type Option Fin Int',
+      literal:'true false none some'},
+      contains:[h.COMMENT('--','$'), h.COMMENT('/-','-/'), h.QUOTE_STRING_MODE, h.C_NUMBER_MODE]};
+  });
+  document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){ try{ hljs.highlightElement(el); }catch(e){} });
+})();
+</script>
+</body></html>

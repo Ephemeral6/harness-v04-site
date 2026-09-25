@@ -1,0 +1,69 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · 作废.dragged_off_board_refuses</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>作废.dragged_off_board_refuses</h1>
+<p><b>读数</b>：开口 2 行（去重 1）· 判对 <span class=ok>2</span> · 判错 <span class="mut">0</span>
+ · 读不清 0 · 闭嘴 2616</p>
+<p><b>它说什么</b>：被拖着走的条，落点的帽只要有一格出了盘，整步作废。</p><p><b>什么时候不管</b>：只管模型把作废记在这一条名下的步。</p>
+<p><b>明确不主张</b>：不主张正在伸的条自己出盘会怎样——那是允许的（自由端出盘，只画露出的那一截）。</p>
+<details><summary>闭嘴的理由与条数</summary><ul><li>2445 · 模型预测这一步不作废</li><li>65 · 作废了，但是别的原因（归 作废.landing_blocked_refuses）</li><li>63 · 不是关内步</li><li>22 · 作废了，但是别的原因（归 作废.fixed_blocks_refuses）</li><li>10 · 作废了，但是别的原因（归 作废.too_short_refuses）</li><li>7 · 作废了，但是别的原因（归 作废.rotation_blocked_refuses）</li><li>4 · 作废了，但是别的原因（归 作废.wall_onto_target_refuses）</li></ul></details>
+<details><summary>改版史</summary><ul><li>v1 新立（名为 pushed_off_board_refuses）。原型模拟器上 seq 490 红：色 9 伸，把第 0 行的色 11 顶到第 -3 行，世界整步作废。</li><li>v2 第 2 轮撤掉「顶开」之后改名：重跑发现 490（与同形的 650）本来就是「拖」——</li><li>   色 11 的帽挂在色 9 的自由端上，原型模拟器把它记成了「顶」。这一条的 2 次都是被拖的条帽出盘。</li></ul></details>
+<details><summary>专门弄坏它的突变体</summary><ul><li>M9 被拖出盘也照走：红</li></ul></details>
+<details open><summary>它的 Lean（定义：Rule/Refuse/DraggedOffBoard.lean）</summary><pre>/-
+# Rule/Refuse/DraggedOffBoard —— 定义（对应 `rule/作废/dragged_off_board_refuses.py`）
+
+被拖着走的条，落点的帽只要有一格出了盘，整步作废。
+-/
+
+import Rule.Stretch.Mark
+
+namespace Game
+
+def draggedOffBoard (marks : List (Bar × Mark)) : Bool :=
+  marks.any (fun
+    | (b, .moved d) =&gt; !(b.shift d).cap.onBoard
+    | _ =&gt; false)
+
+end Game
+</pre></details><details><summary>Python 源码</summary><pre>&quot;&quot;&quot;被拖着走的条，帽会出盘 ⇒ 整步作废。&quot;&quot;&quot;
+from __future__ import annotations
+
+from derive.shape import cap_cells
+from objects.geometry.grid import inside
+from rule._common import refusal_scope, unchanged
+
+CLAIM = &quot;被拖着走的条，落点的帽只要有一格出了盘，整步作废。&quot;
+SCOPE_NOTE = &quot;只管模型把作废记在这一条名下的步。&quot;
+NOT_CLAIMED = &quot;不主张正在伸的条自己出盘会怎样——那是允许的（自由端出盘，只画露出的那一截）。&quot;
+HISTORY = [
+    &quot;v1 新立（名为 pushed_off_board_refuses）。原型模拟器上 seq 490 红：色 9 伸，把第 0 行的色 11 顶到第 -3 行，世界整步作废。&quot;,
+    &quot;v2 第 2 轮撤掉「顶开」之后改名：重跑发现 490（与同形的 650）本来就是「拖」——&quot;,
+    &quot;   色 11 的帽挂在色 9 的自由端上，原型模拟器把它记成了「顶」。这一条的 2 次都是被拖的条帽出盘。&quot;,
+]
+EVIDENCE = [490]
+ME = &quot;作废.dragged_off_board_refuses&quot;
+
+
+def refuses(m) -&gt; bool:
+    return any(not inside(*p) for j in m.movedb for p in cap_cells(m.nb[j]))
+
+
+def scope_(w, action, ctx=None):
+    return refusal_scope(w, action, ME, ctx)
+
+
+def assert_(w, action, nw, ctx=None) -&gt; bool:
+    return unchanged(w, nw)
+</pre></details></div></main></body></html>

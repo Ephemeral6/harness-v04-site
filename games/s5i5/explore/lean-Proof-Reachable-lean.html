@@ -1,0 +1,59 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>s5i5 · Proof/Reachable.lean</title><style>
+:root{--bg:#fbfaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#ffffff;--line:#e3e1dc;--acc:#0b63c9;--bad:#c62828;--ok:#2e7d32;--gap:#fff3cd}
+@media (prefers-color-scheme: dark){:root{--bg:#141416;--fg:#ececec;--mut:#9a9aa0;--card:#1d1d20;--line:#333338;--acc:#6aa9ff;--bad:#ff6b6b;--ok:#7bd88f;--gap:#3a3218}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none}header b{margin-right:8px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.gap{background:var(--gap)}h1{font-size:22px}h2{font-size:18px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;font-size:14px}
+pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.45 ui-monospace,Consolas,monospace;background:rgba(127,127,127,.08);padding:10px;border-radius:8px;overflow-x:auto}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok);font-weight:600}.mut{color:var(--mut)}
+canvas{image-rendering:pixelated;border:1px solid var(--line);max-width:100%;height:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}select,button,input{font:inherit}
+.kw{color:#b0409c}.cm{color:#6b8e23}
+</style></head><body><header><b>s5i5</b><a href="index.html">这是什么游戏</a> <a href="replay.html">回放</a> <a href="objects.html">对象</a> <a href="rules.html">规则</a> <a href="formal.html">形式化</a> <a href="share.html">怎么给别人看</a></header><main><div class=card><h1>Proof/Reachable.lean</h1><p></p><details><summary>公理表（2 条）</summary><ul><li><code>Game.unsolvable_of_invariant</code>：propext</li><li><code>Game.not_both</code>：propext</li></ul></details><pre>/-
+# Proof/Reachable —— 这个**局面**做不做得了：骨架（模板 `ledger/templates/lean/Reachable.lean` 原样搬）
+
+## 本局用到了哪一半
+
+**只用到「走得通」那一半**：八关在认证段里都通过了，每一关的 `_winnable` 由真实走法当见证
+（`Proof/Levels.lean`）。**没有一关宣告「走不通」**，所以这里没有钥匙、没有防线——
+写了也没有局面可以套。骨架那一条留着，并且证出来：它和本局无关，但它说明「走不通」
+在这套定义下是**可以被严格说出来的**，而且和盘面多大、动作串多长无关。
+
+## 那半句要写在明处
+
+`everGoal` 在模型说不出话（RESET）的一支返回 `false`。所以下面的 `Unsolvable` 准确的意思是
+**「不经过 RESET 就赢不了」**——`∀ as` 这个形状一个字都看不出来，所以写在这里。
+-/
+
+import Obs.Check
+
+namespace Game
+
+/-- 骨架：一个每走一步都保持、而且和赢面矛盾的性质 Φ，挡住一切动作串。
+    **全文唯一做归纳的地方**，不枚举任何状态。 -/
+theorem unsolvable_of_invariant (P : World → Prop)
+    (hkeep : ∀ w w&#x27; a, P w → after w a = some w&#x27; → P w&#x27;)
+    (hgoal : ∀ w, P w → isGoal w = false) :
+    ∀ (w : World), P w → ∀ (as : List Act), everGoal w as = false := by
+  intro w hp as
+  induction as generalizing w with
+  | nil =&gt; simp [everGoal, hgoal w hp]
+  | cons a t ih =&gt;
+    simp only [everGoal, hgoal w hp, Bool.false_or]
+    cases h : after w a with
+    | none =&gt; rfl
+    | some w&#x27; =&gt; exact ih w&#x27; (hkeep w w&#x27; a hp h)
+
+/-- 两句话不能同时成立。 -/
+theorem not_both (w : World) (h1 : Winnable w) (h2 : Unsolvable w) : False := by
+  obtain ⟨as, has⟩ := h1
+  have := h2 as
+  rw [has] at this
+  exact Bool.noConfusion this
+
+end Game
+</pre></div></main></body></html>
