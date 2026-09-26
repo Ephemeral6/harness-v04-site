@@ -1,0 +1,68 @@
+/* 不可解局展示页：只补台架站点 CSS 里没有的东西（棋盘、证书条目头、可玩控件）。
+ * 颜色一律用台架的 CSS 变量，浅/深两套跟着台架的 token 走，这里不定义任何颜色值。 */
+
+/* ---- 首页 */
+.genhead{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-start;margin-bottom:14px}
+.genhead .prose{flex:1 1 380px}
+.genhead .prose p{margin:0 0 10px}
+figure.goal figcaption{font-size:12.5px;color:var(--muted);margin-top:4px}
+.rule h3.inst{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rule h3.inst code{font-family:var(--mono);font-size:15px;font-weight:500}
+.rule{scroll-margin-top:72px}
+.rule:target{border-color:var(--accent)}
+.bdw{max-width:100%;overflow-x:auto}
+svg.bd{display:block;max-width:100%;height:auto}
+svg.bd rect.tile{fill:var(--panel);stroke:var(--frame);stroke-width:1}
+svg.bd rect.home{fill:var(--accent-soft);stroke:var(--frame);stroke-width:1}
+svg.bd rect.blank{fill:var(--sunk);stroke:var(--frame);stroke-width:1;stroke-dasharray:3 3}
+svg.bd text{font-family:var(--mono);font-size:12px;fill:var(--ink)}
+
+/* ---- 证明页：定理条目头 */
+.decl{margin:10px 0 14px;scroll-margin-top:72px;max-width:100%}
+.decl:target pre{border-color:var(--accent)}
+.dh{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-bottom:6px;font-size:13.5px}
+.dh code{font-family:var(--mono);font-weight:500}
+.dh .ax{font-size:12.5px;color:var(--alive)} .dh .ax.bad{color:var(--dead)}
+h3.sec code{font-family:var(--mono);font-size:.92em;font-weight:500}
+
+/* ---- 可玩页 */
+.play{display:grid;grid-template-columns:190px minmax(0,1fr) 230px;gap:16px;margin-top:22px;align-items:start}
+.pick-list{display:grid;gap:6px}
+.pick{display:grid;text-align:left;background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--frame);
+      border-radius:6px;padding:6px 10px;color:var(--ink);cursor:pointer;font:inherit}
+.pick.alive{border-left-color:var(--alive)} .pick.dead{border-left-color:var(--dead)}
+.pick[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pick .n{font-family:var(--mono);font-size:14px} .pick .v{font-size:12px;color:var(--muted)}
+.stage{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;min-width:0}
+.stage-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pname{font-family:var(--mono);font-size:19px;margin:0;font-weight:500}
+.pclaim{font-weight:500;margin:6px 0 12px}
+.boardrow{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.boardbox{flex:1 1 260px;max-width:520px;min-width:0}
+.grid{display:grid;gap:4px}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--frame);
+      background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:clamp(12px,2.6vw,18px);padding:0;min-width:0}
+button.cell{cursor:default}
+button.cell[aria-label^="把"]{cursor:pointer;border-color:var(--accent)}
+.cell.home{background:var(--accent-soft);color:var(--accent)}
+.cell.blank{background:var(--sunk);border-style:dashed}
+.grid.small{gap:2px;width:140px}
+.grid.small .cell{font-size:10px;border-radius:3px}
+.goalbox figcaption{font-size:12.5px;color:var(--muted);margin-top:4px}
+.pad,.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pad button,.tools button{font:inherit;font-size:14px;padding:7px 12px;border-radius:7px;border:1px solid var(--rule);
+      background:var(--panel);color:var(--ink);cursor:pointer}
+.tools button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.pad button:disabled{opacity:.45;cursor:not-allowed}
+.msg{margin:14px 0 6px;padding:10px 12px;border-radius:6px;background:var(--sunk);font-size:14.5px}
+.msg.ok{background:var(--alive-soft);color:var(--alive)} .msg.bad{background:var(--dead-soft);color:var(--dead)}
+.log{font-family:var(--mono);font-size:13px;word-break:break-all;color:var(--muted);margin:0}
+.log .k{font-family:var(--sans);font-size:12px}
+.meters{display:grid;gap:8px}
+.meters .m{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;display:grid}
+.meters .m span{font-size:12.5px;color:var(--muted)}
+.meters .m b{font-family:var(--mono);font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}
+.certbox{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;font-size:13.5px}
+.certbox p{margin:0 0 6px}
+@media (max-width:900px){.play{grid-template-columns:1fr}.pick-list{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+  .meters{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.certbox{grid-column:1/-1}}
