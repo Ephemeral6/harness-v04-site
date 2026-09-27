@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>自己走一局 · 不可解局 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>方法册导读 · 程序化世界模型</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"><style>
 :root{
   --ground:#F2F4F6; --panel:#FFFFFF; --sunk:#E9EDF1; --ink:#15202B; --muted:#5A6774; --rule:#D6DDE3; --frame:#9AA6B2;
   --accent:#2A5CAA; --accent-soft:#E2EAF6; --on-accent:#FFFFFF;
@@ -143,7 +143,97 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><link rel="stylesheet" href="assets/showcase.css"><header class="bar"><div class="in"><a class="brand" href="../index.html">程序化世界模型</a><nav><a href="../index.html" class="">各局</a><a href="../method.html" class="">方法册</a><a href="../infeasibility/index.html" class="on">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← 不可解局</a></div><h1>自己走一局</h1><p class="lede">点空格旁边的数字把它推进空格，或者用方向键 / 下面的按钮移动空格。右侧实时显示 Φ 和势函数：走多少步都可以看 Φ 有没有变过、势一步最多降多少——这正是证书用到的两条性质。这里的走法是第三份独立实现，生成页面时与 Python 世界逐条比对过（43932 条转移全部一致，<a href="proof.html#parity">读数</a>）。</p><div class="play"><div class="pick-list" id="p-pick" aria-label="选择实例"></div><div class="stage"><div class="stage-top"><h3 id="p-name" class="pname">…</h3><span class="chip c-lv" id="p-gen"></span></div><p class="pclaim" id="p-claim"></p><div class="boardrow"><div id="p-board" class="boardbox"></div><figure class="goalbox"><div id="p-goal"></div><figcaption>终局</figcaption></figure></div><div class="pad" role="group" aria-label="移动空格"><button type="button" data-dir="up">空格 ↑</button><button type="button" data-dir="left">空格 ←</button><button type="button" data-dir="down">空格 ↓</button><button type="button" data-dir="right">空格 →</button></div><div class="tools"><button type="button" id="p-undo">撤销</button><button type="button" id="p-reset">重来</button><button type="button" id="p-walk">随机走 200 步</button><button type="button" id="p-demo" class="primary"></button></div><p class="msg" id="p-msg" aria-live="polite"></p><p class="log"><span class="k">走过</span> <span id="p-log"></span></p></div><aside class="meters"><div class="m"><span>步数 / 预算</span><b><span id="p-steps">0</span> / <span id="p-budget">—</span></b></div><div class="m"><span>剩余预算</span><b id="p-left">—</b></div><div class="m"><span>Φ 当前 / 终局</span><b><span id="p-phi">—</span> / <span id="p-phigoal">—</span></b></div><div class="m"><span>Φ 变过几次</span><b id="p-phiflips">0</b></div><div class="m"><span id="p-potlabel">势</span><b id="p-pot">—</b></div><div class="m"><span>势单步最大下降</span><b id="p-maxdrop">—</b></div><div class="certbox"><p id="p-cert"></p><p>定理 <a id="p-thm" href="proof.html"></a></p></div></aside></div><p class="note" style="margin-top:14px">C6 的势是证书里那张距离表（只覆盖终局所在的连通块，其余盘面显示「表外」）；C7 的势是曼哈顿距离和 h。势 ≤ 剩余预算时证书挡不住，但这不等于一定走得到。</p><script src="assets/world.js"></script><script src="assets/data.js"></script><script src="assets/play.js"></script><footer>由论文仓库 <code>55f3945</code> 的 <code>showcase/build.py</code> 自动生成 · 2026-09-27 · 页面上的数字全部从盘上读数现取</footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</style><link rel="stylesheet" href="assets/showcase.css"><header class="bar"><div class="in"><a class="brand" href="../index.html">程序化世界模型</a><nav><a href="../index.html" class="">各局</a><a href="../method.html" class="">方法册</a><a href="../infeasibility/method-guide.html" class="on">方法册导读</a><a href="../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow">方法册 · 导读</div>
+<h1>方法册导读</h1>
+<p class="lede">方法册是 agent 在各局之间带着走的方法记忆，全文一千多行，写给 agent 逐条对照用。
+这一页是写给人看的缩写：只挑最要紧的十二条，每条讲清一件事、为什么、翻车时长什么样。它不面面俱到，
+细节、例外和各种「面孔」都在<a href="../method.html">全文</a>里；agent 读的也是全文，不是这一页。</p>
+
+<h2 id="what">先说它是什么</h2>
+<div class="prose">
+<p><b>它记的是做法，不是答案。</b>某一局里哪个物件在哪、某个常数是几，属于那一局自己的概念册；
+写进方法册，下一局就等于拿着答案开局，而「从空册子起手」是这个台架的全部意义。</p>
+<p><b>它只记失败的形状。</b>一条方法值钱的是「什么条件下会翻车、翻车长什么样、怎么自检」，
+不是当初在哪一局翻的车。所以条目里没有局名、没有读数。</p>
+<p><b>几个词。</b>agent 把对世界的每条理解写成一条<b>概念</b>：一段能对任意一步给出「对 / 错 / 不表态」的代码。
+装置拿它没见过的步子去考它：<b>N</b> 是它表了态的步数，<b>S</b> 是其中判对的比例，<b>C</b> 是表态的步数占能考的步数的比例。
+判错一次，这条概念就被卡住，必须改。<b>scope</b> 是概念自己声明的适用范围，范围外它不表态。</p>
+</div>
+
+<h2 id="core">十二条</h2>
+<div class="rules">
+
+<article class="rule"><h3>1. 先问它管多宽</h3>
+<p>写下任何一条规律，先问它是本关成立，还是跨关也成立。换关之后，不沿用上一关量出来的任何常数，
+也不沿用「这个世界里有哪几类东西」：进新关第一件事，是在第一帧上重新清点一遍。</p>
+<p class="from">翻车的样子：过关那一步，一整批概念一起倒，因为它们都默认了跨关；或者新关里多了一类没人认识的物件，规划器把它当空地。</p></article>
+
+<article class="rule"><h3>2. 主动去撞，别等证据上门</h3>
+<p>「怎样才算过关」「什么情况下会死」这类规律，平时很少被检验，因为你很少走到那个状态。要专门设计动作去撞。
+两条规律给出相反预测的那一步，最值得走：结果怎样都能学到东西。两种解释在现有数据上都对时，别挑更顺眼的那个，
+去造一个让它们分岔的局面。</p>
+<p class="from">翻车的样子：一条关于终止条件的概念挂了很久，从没判错过，也从没真正开过口。</p></article>
+
+<article class="rule"><h3>3. 「按了」不等于「生效了」</h3>
+<p>一个动作至少有三种结局：生效、被接受但没效果、根本没被接受。下「这个动作没用」的结论之前，先问两句：
+局面摆到它的前提上了吗？换一个局面还是这样吗？判一条概念死刑之前，还要先确认它说的那个动作真的发生了。</p>
+<p class="from">翻车的样子：计数器之类的概念被一再推翻，而推翻的地方从不告诉你真正的原因。</p></article>
+
+<article class="rule"><h3>4. 一条概念只说一件事</h3>
+<p>「A 且 B」写在一起，倒的时候你不知道倒的是哪一半，只好连活着的那一半一起撤掉。
+「如果 A 就 B」要检查 A 的每一种取值都被判过；「所有的 X」要按性质认，不许按已知的几样枚举——
+下一种 X 出现那天，枚举不会报错，只会悄悄给出对你有利的错判。能写成白名单的，不写黑名单。</p></article>
+
+<article class="rule"><h3>5. 每个写死的数字，都是下一关的反例</h3>
+<p>概念里出现一个整数，问一句：它能从这一帧读出来吗？能读出来就现算；读不出来的，只押它的形状（「只减不增」「从一端连续」），
+不押它的大小。两三个数据点能穿过无数条曲线，拿它们外推第四个是在碰运气。</p>
+<p class="from">翻车的样子：模型从头到尾是对的，死的是被当成世界常数的那一个整数。</p></article>
+
+<article class="rule"><h3>6. 沉默比判错危险</h3>
+<p>判错会被卡住、会被逼着改；不表态什么都不会发生，分数照样满分。所以报一条判据要报四个数：说中、误报、漏报、闭嘴，
+而不是一个 S。尤其要看它在哪里闭嘴：成片闭嘴的地方，往往正是它该开口的关键位置。
+靠「某种颜色少了几格」认事件的判据，会被遮挡从两个方向骗过；能说清「是哪一格被碰到了」的定位判据才可靠。</p>
+<p class="from">翻车的样子：一条满分的概念，在玩家压住目标的那一整段里一次都没开过口。</p></article>
+
+<article class="rule"><h3>7. 考卷会越考越薄</h3>
+<p>沿着已经走过的路线再走一遍，产生不了新的考题：同样的一步在语料里已经有了。要给一条概念加考题，
+就得走进一个没到过的局面。概念自己的立论证据不算考题，所以只放真正推出结论的那几条，别把所有支持它的步子都塞进去——
+那等于入册那一刻就把考卷清空了。</p></article>
+
+<article class="rule"><h3>8. 改到第三版还在挨打，就撤掉重写</h3>
+<p>多半是问题问错了，不是没修对。反过来两种改法也要警惕：把适用范围越缩越窄，分数会越来越好看，而剩下能考的步子只有个位数；
+把范围放宽时，断言的强度必须降回证据真正支持的那一档。</p></article>
+
+<article class="rule"><h3>9. 不自己批准自己</h3>
+<p>自己写的概念、自己写的探针脚本、别人交回来的审计，都要用一条不经过它们本身的独立通路复核。
+脚本里每一个读出 0 的地方，先喂一个已知不是 0 的样本进去，确认它会报非零；构造出来的 0 长得和否证一模一样。
+审计员报的事实主张也一样要复核：接受和驳回都要有各自的数字。</p></article>
+
+<article class="rule"><h3>10. 「无解」的举证门槛高一个量级</h3>
+<p>「按我现在的规则无解」首先是对规则的反例，不是对关卡的判决。说无解之前：把支撑这个结论的每一根支柱列出来，
+逐条问是量过的还是推广来的，推广来的先去撞；搜索报零时，说清是搜完了还是撞了上限；
+还有没解释的现象就不许声明无解——那是「世界在这里做了件大事而你没看懂」的收据。</p></article>
+
+<article class="rule"><h3>11. 决策只看刚读到的观测和脚本输出</h3>
+<p>不看计划，不看自己手写的转述。上一批动作走偏之后，下一批要从实际状态出发，而且要逐步对账：
+实际落点和押注写的不一样，就当场查为什么。能从脚本复制的，永远不手打；一个数字第一次拿来做决定之前，
+先在一个已经知道答案的时刻对一下表。</p>
+<p class="from">翻车的样子：手写押注时少算了一步，整串动作顺移一格，一路撞墙直到预算耗尽。</p></article>
+
+<article class="rule"><h3>12. 装置不是世界</h3>
+<p>会话会过期，请求会超时重发，装置在某些状态下根本不把动作转给世界。这些是装置的边界，不是世界的规律，
+不能写成概念。分界很简单：世界至少回了一条转移，才算世界的回答。</p></article>
+
+</div>
+
+<h2 id="more">全文里还有什么</h2>
+<div class="prose">
+<p>这一页省掉的主题，全文都有展开：一条概念的「检查」和「预测」两半如何对齐；多步预测为什么会越推越偏；
+共用的词汇函数错了为什么没有分数替它报警；反向测试里「没变红」的几种假象；坐标、单位、分量顺序这些约定怎样悄悄读反；
+以及和装置打交道的操作经验（会话过期、重试、命令转义）。</p>
+<p><a href="../method.html">读方法册全文 →</a></p>
+</div>
+<footer>由论文仓库 <code>01c7e0e</code> 的 <code>showcase/build.py</code> 自动生成 · 2026-09-27 · 页面上的数字全部从盘上读数现取</footer></main><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script>
 (function(){
   if (!window.hljs) return;
