@@ -64,5 +64,15 @@ button.cell[aria-label^="把"]{cursor:pointer;border-color:var(--accent)}
 .meters .m b{font-family:var(--mono);font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}
 .certbox{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;font-size:13.5px}
 .certbox p{margin:0 0 6px}
+.pick-list.tk-picks{grid-template-columns:repeat(4,1fr);gap:4px}
+.tk-picks .pick{padding:5px 0;text-align:center;justify-content:center}
+.tk-picks .pick .n{font-size:12.5px}
+@media (max-width:900px){.pick-list.tk-picks{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}}
+.tk-group{grid-column:1/-1;font-size:12.5px;color:var(--muted);margin-top:8px}
+.tk-group:first-child{margin-top:0}
+.tk-canvas-box{margin-top:10px;max-width:512px}
+.tk-canvas-box canvas{display:block;width:100%;height:auto;aspect-ratio:1;image-rendering:pixelated;cursor:crosshair;border-radius:4px}
+.certbox summary{cursor:pointer;font-weight:500}
+.certbox code{font-family:var(--mono);font-size:12.5px;word-break:break-all}
 @media (max-width:900px){.play{grid-template-columns:1fr}.pick-list{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
   .meters{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.certbox{grid-column:1/-1}}
