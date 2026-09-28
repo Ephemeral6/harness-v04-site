@@ -20,6 +20,7 @@
     g.levels = DATA.levels.filter(function (l) { return l.group === g.group; });
     g.name = g.levels.length ? g.levels[0].genLabel : g.code;
   });
+  GAMES = GAMES.filter(function (g) { return g.levels.length; });   // 构建只发布了哪几版，就只有哪几台
 
   var game = null, lv = 0, st = null, canvas, ctx;
   function $(id) { return document.getElementById(id); }
@@ -173,6 +174,7 @@
     });
     $("g-prev").addEventListener("click", function () { step(-1); });
     $("g-next").addEventListener("click", function () { step(1); });
+    if (GAMES.length < 2) $("g-prev").parentNode.hidden = true;
     $("c-share").addEventListener("click", function () {
       try { navigator.clipboard.writeText(location.href); } catch (e) { /* 剪贴板不可用就算了 */ }
     });
