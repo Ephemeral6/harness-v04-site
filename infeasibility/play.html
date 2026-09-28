@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>不可解局 · 游戏机</title>
+<link rel="stylesheet" href="assets/arcplay.css">
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html" aria-label="回到不可解局首页"><span class="mk-a">UNSOLV</span><span class="mk-sq" aria-hidden="true"><i></i><i></i></span><br><span class="mk-b">ABLE</span></a>
+  <nav class="links"><a href="index.html">液槽世界</a><a href="method-guide.html">方法册导读</a><a href="../index.html">台架首页</a></nav>
+</header>
+
+<main>
+  <!-- 列表视图：ALL GAMES -->
+  <section id="v-list" hidden>
+    <div class="crumb"><span>ALL GAMES</span></div>
+    <div class="crumb dim">DATASET: 液槽世界 · 不可解局</div>
+    <h1 class="list-h">三版构造，每版一台机器</h1>
+    <p class="list-p">每道测试关都有一个孪生：一个可赢，一个在这份世界实现里不可赢，两者只差一处。
+      HELP 里写的是完整规则（对称闩版的闩当年没有写进发给作答方的说明）。先自己玩，判断它打不打得通，再去看揭晓。</p>
+    <div class="games" id="games"></div>
+  </section>
+
+  <!-- 游戏视图 -->
+  <section id="v-game" hidden>
+    <div class="bar">
+      <div>
+        <div class="crumb"><a href="#">ALL GAMES</a> <span class="sep">|</span> <span id="g-crumb">GAME</span></div>
+        <div class="crumb dim" id="g-dataset">DATASET</div>
+      </div>
+      <div class="pn"><button type="button" id="g-prev">Previous</button><button type="button" id="g-next">Next</button></div>
+    </div>
+
+    <div class="console" id="console">
+      <div class="c-top">
+        <span class="chip" id="c-code">----</span>
+        <button type="button" class="chip icon" id="c-share" title="复制本关链接" aria-label="复制本关链接">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M5 5l3-3 3 3M3 9v4h10V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <span class="chip lv" id="c-level">LEVEL 1 / 1</span>
+      </div>
+      <div class="bezel">
+        <div class="screen" id="screen">
+          <canvas id="c-canvas" aria-label="液槽盘面，点击像素操作"></canvas>
+          <div class="ov" id="ov-start">
+            <div class="ov-mark">UNSOLV<b>■■</b><br>ABLE</div>
+            <div class="ov-title" id="ov-start-title">GAME</div>
+            <button type="button" class="big" id="b-start">START</button>
+            <div class="ov-hint">Press Start to Play</div>
+          </div>
+          <div class="ov" id="ov-end" hidden>
+            <div class="ov-title" id="ov-end-title">GAME OVER</div>
+            <div class="ov-hint" id="ov-end-sub"></div>
+            <div class="ov-row">
+              <button type="button" class="big sm" id="b-retry">RESET</button>
+              <button type="button" class="big sm" id="b-nextlv">NEXT</button>
+            </div>
+          </div>
+          <div class="ov panel" id="ov-help" hidden>
+            <div class="ov-title">HELP</div>
+            <div class="help-body" id="help-body"></div>
+            <button type="button" class="big sm" data-close>BACK</button>
+          </div>
+          <div class="ov panel" id="ov-select" hidden>
+            <div class="ov-title">SELECT LEVEL</div>
+            <div class="sel-grid" id="sel-grid"></div>
+            <button type="button" class="big sm" data-close>BACK</button>
+          </div>
+        </div>
+      </div>
+      <div class="c-ctrl">
+        <div class="dpad" aria-hidden="true">
+          <span class="d up"></span><span class="d lf"></span><span class="d rt"></span><span class="d dn"></span>
+        </div>
+        <div class="acts">
+          <div class="act off"><span>SPACEBAR</span><i></i></div>
+          <div class="act on" id="a-click"><span>☝ CLICK</span><i></i></div>
+          <div class="act off"><span>↶ UNDO (Z)</span><i></i></div>
+        </div>
+        <div class="sys">
+          <label>RESET <button type="button" id="b-reset" aria-label="RESET（R）"></button></label>
+          <label>HELP <button type="button" id="b-help" aria-label="HELP（H）"></button></label>
+          <label>SELECT <button type="button" id="b-select" aria-label="SELECT（S）"></button></label>
+        </div>
+        <span class="grip" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <div class="stat" aria-live="polite">
+      <span>已点 <b id="s-used">0</b> / 预算 <b id="s-budget">—</b></span>
+      <span>松开的闩 <b id="s-fine">—</b></span>
+      <span id="s-msg"></span>
+    </div>
+    <details class="reveal" id="reveal-box"><summary>揭晓：真值与证书（想先自己判断就别点开）</summary><div id="reveal"></div></details>
+    <p class="foot">这台机器上的走法与 <a href="index.html">液槽世界页</a> 是同一份 JS，生成站点时与 Python 参考模型逐条比对过。
+      方向键、空格、撤销在这个世界里没有用处，所以是灰的；键盘：R 重开，H 帮助，S 选关。</p>
+  </section>
+</main>
+
+<script src="assets/tanks_data.js"></script>
+<script src="assets/tanks.js"></script>
+<script src="assets/arcplay.js"></script>
+</body>
+</html>
