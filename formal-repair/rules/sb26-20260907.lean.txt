@@ -1,0 +1,475 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/sb26-20260907/_lib.py ; why=原数据段只有嵌套读序/面板序的长度且按 WORLD.json 排除 box_box_*、nested_order_n 不比；补了 panel_code、nested_code（色序列编码）、frame8_box（色 8 结构外接框）、slot_board（目标位所属的板），让 stepRules 算出全部变化字段、submit_matches_panel 写成双向的色序列相等
+-- 由 world/formalize.py 生成于 2026-09-28T21:09:10+08:00；局 sb26；基于 run ['sb26-0907-1213']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 516 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 2026-09-28 修复：19 条在册概念逐条译成 Rule（沿用 2026-09-07 原版的译法并收紧）。
+-- 数据段用补了读数的 _lib 重新生成（panel_code / nested_code 色序列编码、frame8_box 色 8 结构外接框、
+-- slot_board 目标位所属的板），keyEq 比较全部变化字段，没有任何排除。
+-- 读数一律用 Nat 位运算（GMP 加速的 >>> &&& ||| ^^^ log2），不逐格扫 4096 位、不用 Int 的 2^k。
+-- guard = 概念 assert_ 不返回 NA 的条件；effect = 概念 apply 的下一状态，全部是整态相等
+-- （place/swap 之后 box_box 与嵌套读序由 recomp 重算：box_box = frame8_box ∪ 色 8 料的外接框；
+-- 嵌套读序按 _lib.nested_order 的读法在 slot_board 上走；slot_order 不数指路环，环落位时恰 -1）。
+-- submit_matches_panel 按概念原文写成双向：色序列相等 ⇔ 过关。
+-- step = 换关表（worldRows，8 条，全部是交件过关/终局）优先，否则 stepRules；isGoal = level = 8。
+
+-- ---- 位掩码读数（Nat 位运算）----
+
+def bitIx (r c : Int) : Nat := (r * 64 + c).toNat
+
+-- 格 (r,c) 是否在集合里
+def has (m : Int) (r c : Int) : Bool := inGrid r c && (m.toNat >>> bitIx r c) % 2 == 1
+
+def setB (m : Int) (r c : Int) : Int :=
+  if !inGrid r c || has m r c then m else Int.ofNat (m.toNat ||| 2 ^ bitIx r c)
+
+def clrB (m : Int) (r c : Int) : Int :=
+  if has m r c then Int.ofNat (m.toNat - 2 ^ bitIx r c) else m
+
+def popAux : Nat → Nat → Nat
+  | 0, _ => 0
+  | n + 1, m => if m == 0 then 0 else 1 + popAux n (m &&& (m - 1))
+
+-- 集合元素个数（每次消掉最低位，迭代次数 = 元素个数）
+def popCnt (m : Nat) : Nat := popAux 4097 m
+
+-- 两集合对称差的元素个数
+def pc (a b : Int) : Nat := popCnt (a.toNat ^^^ b.toNat)
+
+-- 最低位格的下标
+def lowIx (m : Nat) : Nat := Nat.log2 (m ^^^ (m &&& (m - 1)))
+
+-- 计数条上方（棋盘一侧）的所有格：行 < bar_row
+def boardMask (s : State) : Nat := 2 ^ (s.bar_row * 64).toNat - 1
+
+def selOf (s : State) : Option (Int × Int) :=
+  match s.selected_r, s.selected_c with
+  | some r, some c => some (r, c)
+  | _, _ => none
+
+def hitIn (m : Int) (offs : List (Int × Int)) (r c : Int) : Option (Int × Int) :=
+  match offs with
+  | [] => none
+  | (dr, dc) :: rest =>
+    if has m (r - dr) (c - dc) then some (r - dr, c - dc) else hitIn m rest r c
+
+-- 点击命中 4x4 料（扫描序：dr 0..3 外层、dc 0..3 内层）
+def OFF4 : List (Int × Int) :=
+  [(0,0),(0,1),(0,2),(0,3),(1,0),(1,1),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3),(3,0),(3,1),(3,2),(3,3)]
+
+-- 6x6 近旁命中框（料外扩一圈）
+def OFF6 : List (Int × Int) :=
+  [(-1,-1),(-1,0),(-1,1),(-1,2),(-1,3),(-1,4),
+   (0,-1),(0,0),(0,1),(0,2),(0,3),(0,4),
+   (1,-1),(1,0),(1,1),(1,2),(1,3),(1,4),
+   (2,-1),(2,0),(2,1),(2,2),(2,3),(2,4),
+   (3,-1),(3,0),(3,1),(3,2),(3,3),(3,4),
+   (4,-1),(4,0),(4,1),(4,2),(4,3),(4,4)]
+
+-- 2x2 空位标记命中
+def OFFH : List (Int × Int) := [(0,0),(0,1),(1,0),(1,1)]
+
+def pieceHit4 (s : State) (r c : Int) : Option (Int × Int) := hitIn s.pieces_m OFF4 r c
+def pieceNear (s : State) (r c : Int) : Option (Int × Int) := hitIn s.pieces_m OFF6 r c
+def brickNear (s : State) (r c : Int) : Option (Int × Int) := hitIn s.bricks_m OFF6 r c
+def holeNear (s : State) (r c : Int) : Option (Int × Int) := hitIn s.holes_m OFFH r c
+
+def brickColAt (s : State) (r c : Int) : Option Int :=
+  if has s.bricks_m_c6 r c then some 6
+  else if has s.bricks_m_c8 r c then some 8
+  else if has s.bricks_m_c9 r c then some 9
+  else if has s.bricks_m_c11 r c then some 11
+  else if has s.bricks_m_c12 r c then some 12
+  else if has s.bricks_m_c14 r c then some 14
+  else if has s.bricks_m_c15 r c then some 15
+  else none
+
+-- 指路环的 key 是环中心
+def linkColAt (s : State) (r c : Int) : Option Int :=
+  if has s.link_rings_m_c8 r c then some 8
+  else if has s.link_rings_m_c9 r c then some 9
+  else if has s.link_rings_m_c12 r c then some 12
+  else if has s.link_rings_m_c14 r c then some 14
+  else none
+
+def noPieceOnBoard (s : State) : Bool := (s.pieces_m.toNat &&& boardMask s) == 0
+
+def onBoardPieces (s : State) : Nat := popCnt (s.pieces_m.toNat &&& boardMask s)
+
+-- 料的 key：砖 = 4x4 左上；环 = 环中心 - (1,1)（下标 -65），故料掩码 = 砖掩码 ∪ 环掩码右移 65 位
+def piecesMask (bm lm : Int) : Int := Int.ofNat (bm.toNat ||| (lm.toNat >>> 65))
+
+def colAtIx (s : State) (k : Nat) : Option Int :=
+  brickColAt s ((k / 64 : Nat) : Int) ((k % 64 : Nat) : Int)
+
+-- 棋盘一侧恰好两块砖时，按 (行,列) 升序的颜色对；否则不读
+def boxOrderOf (n : State) : Option Int × Option Int :=
+  let ob := n.bricks_m.toNat &&& boardMask n
+  if popCnt ob == 2 then (colAtIx n (lowIx ob), colAtIx n (lowIx (ob &&& (ob - 1))))
+  else (none, none)
+
+-- 集合里全部格的下标，升序（= 先行后列的阅读顺序）
+def bitsAux : Nat → Nat → List Nat
+  | 0, _ => []
+  | f + 1, m => if m == 0 then [] else lowIx m :: bitsAux f (m &&& (m - 1))
+
+def bitsOf (m : Int) : List Nat := bitsAux 4097 m.toNat
+
+def rowOf (k : Nat) : Int := ((k / 64 : Nat) : Int)
+def colOf (k : Nat) : Int := ((k % 64 : Nat) : Int)
+
+-- box_box：色 8 结构（frame8_box，关内不动）与色 8 料（砖占 4x4、指路环外圈 4x4）的外接框取并
+def boxBoxOf (n : State) : Int × Int × Int × Int :=
+  let ext : List (Int × Int) :=
+    (bitsOf n.bricks_m_c8).map (fun k => (rowOf k, colOf k))
+    ++ (bitsOf n.link_rings_m_c8).map (fun k => (rowOf k - 1, colOf k - 1))
+  ext.foldl (fun b p => (min b.1 p.1, max b.2.1 (p.1 + 3), min b.2.2.1 p.2, max b.2.2.2 (p.2 + 3)))
+    (n.frame8_box_0, n.frame8_box_1, n.frame8_box_2, n.frame8_box_3)
+
+-- ---- 嵌套读序（nested_order）----
+-- 板 = slot_board 按框色分的目标位集合（关内不动）；位上的东西：指路环（环心 = 位）/ 砖（左上 = 位 -(1,1)）/ 空位
+
+def boardsOf (s : State) : List (Nat × Int) :=
+  [(8, s.slot_board_m_c8), (9, s.slot_board_m_c9), (12, s.slot_board_m_c12), (14, s.slot_board_m_c14)].filter
+    (fun b => b.2 != 0)
+
+-- 位 k 上的东西 -> (种类, 色)：种类 2 = 指路环，1 = 砖，0 = 空位（色记 16）
+def slotItem (s : State) (k : Nat) : Nat × Nat :=
+  match linkColAt s (rowOf k) (colOf k) with
+  | some v => (2, v.toNat)
+  | none =>
+    match brickColAt s (rowOf k - 1) (colOf k - 1) with
+    | some v => (1, v.toNat)
+    | none => (0, 16)
+
+def boardSlots (bs : List (Nat × Int)) (key : Nat) : List Nat :=
+  match bs.find? (fun b => b.1 == key) with
+  | some b => bitsOf b.2
+  | none => []
+
+-- 从板 key 起按位读；遇环先整块读它指的板，指回当前路径上的板时原地停。返回 (读出的色, 途中进入过的板)
+def emitB (s : State) (bs : List (Nat × Int)) : Nat → List Nat → Nat → Option (List Nat × List Nat)
+  | 0, _, _ => none
+  | f + 1, path, key =>
+    (boardSlots bs key).foldl (fun acc k =>
+      match acc with
+      | none => none
+      | some (out, reached) =>
+        let it := slotItem s k
+        if it.1 == 2 then
+          if !(bs.any (fun b => b.1 == it.2)) then none
+          else if path.contains it.2 then some (out, reached)
+          else
+            match emitB s bs f (it.2 :: path) it.2 with
+            | none => none
+            | some (o2, r2) => some (out ++ o2, reached ++ (it.2 :: r2))
+        else some (out ++ [it.2], reached)) (some ([], []))
+
+def nestedOf (s : State) : Option (List Nat) :=
+  let bs := boardsOf s
+  if bs.isEmpty then none
+  else
+    let pointed : List Nat :=
+      (bs.flatMap (fun b => bitsOf b.2)).filterMap (fun k =>
+        let it := slotItem s k
+        if it.1 == 2 then some it.2 else none)
+    let roots := bs.filter (fun b => !(pointed.contains b.1))
+    if roots.length > 1 then none
+    else
+      -- 起读板：唯一没被环指到的板；都被指到时取第一个位最靠左上的那块
+      let root : Nat :=
+        match roots with
+        | r :: _ => r.1
+        | [] => (bs.foldl (fun (best : Option (Nat × Nat)) b =>
+                  let k := lowIx b.2.toNat
+                  match best with
+                  | some (bk, bc) => if k < bk then some (k, b.1) else some (bk, bc)
+                  | none => some (k, b.1)) none).elim 0 (fun p => p.2)
+      match emitB s bs (bs.length + 1) [root] root with
+      | none => none
+      | some (out, reached) =>
+        if bs.all (fun b => b.1 == root || reached.contains b.1) then some out else none
+
+def seqCode (xs : List Nat) : Int := Int.ofNat (xs.foldl (fun c v => c * 32 + v) 1)
+
+def recomp (n : State) : State :=
+  let bo := boxOrderOf n
+  let bb := boxBoxOf n
+  let no := nestedOf n
+  { n with pieces_m := piecesMask n.bricks_m n.link_rings_m,
+           pieces_n := n.bricks_n + n.link_rings_n,
+           box_order_r := bo.1, box_order_c := bo.2,
+           box_box_0 := bb.1, box_box_1 := bb.2.1, box_box_2 := bb.2.2.1, box_box_3 := bb.2.2.2,
+           nested_code := no.map seqCode,
+           nested_order_n := no.map (fun o => Int.ofNat o.length) }
+
+def clearSel (s : State) : State :=
+  { s with selected_r := none, selected_c := none,
+           ring_box_0 := none, ring_box_1 := none,
+           ring_box_2 := none, ring_box_3 := none }
+
+def selectAt (s : State) (t l : Int) : State :=
+  { s with selected_r := some t, selected_c := some l,
+           ring_box_0 := some (t - 1), ring_box_1 := some (t + 4),
+           ring_box_2 := some (l - 1), ring_box_3 := some (l + 4) }
+
+-- ---- 各概念的预测器（返回 none = 这条概念不管这一步）----
+
+-- pick：空手点在料的 4x4 上 → 套选中环，其余整帧不变
+def pickNext (s : State) (x y : Nat) : Option State :=
+  match selOf s with
+  | some _ => none
+  | none =>
+    match pieceHit4 s (y : Int) (x : Int) with
+    | none => none
+    | some (t, l) => some (selectAt s t l)
+
+-- place：有选中料、点在 2x2 标记上 → 料搬到标记处（砖左上 = 标记 -1，环心 = 标记），原地留标记，环灭，used+1
+def placeNext (s : State) (x y : Nat) : Option State :=
+  match selOf s with
+  | none => none
+  | some sel =>
+    if !has s.pieces_m sel.1 sel.2 then none
+    else
+      match holeNear s (y : Int) (x : Int) with
+      | none => none
+      | some hole =>
+        let n0 : State := clearSel { s with used := s.used + 1 }
+        let n1 : State :=
+          { n0 with holes_m := setB (clrB n0.holes_m hole.1 hole.2) (sel.1 + 1) (sel.2 + 1) }
+        if has s.bricks_m sel.1 sel.2 then
+          let col : Option Int := brickColAt s sel.1 sel.2
+          let mv (m : Int) : Int := setB (clrB m sel.1 sel.2) (hole.1 - 1) (hole.2 - 1)
+          some (recomp
+            { n1 with bricks_m := mv n1.bricks_m,
+                      bricks_m_c6 := if col == some 6 then mv n1.bricks_m_c6 else n1.bricks_m_c6,
+                      bricks_m_c8 := if col == some 8 then mv n1.bricks_m_c8 else n1.bricks_m_c8,
+                      bricks_m_c9 := if col == some 9 then mv n1.bricks_m_c9 else n1.bricks_m_c9,
+                      bricks_m_c11 := if col == some 11 then mv n1.bricks_m_c11 else n1.bricks_m_c11,
+                      bricks_m_c12 := if col == some 12 then mv n1.bricks_m_c12 else n1.bricks_m_c12,
+                      bricks_m_c14 := if col == some 14 then mv n1.bricks_m_c14 else n1.bricks_m_c14,
+                      bricks_m_c15 := if col == some 15 then mv n1.bricks_m_c15 else n1.bricks_m_c15 })
+        else
+          let ctr : Int × Int := (sel.1 + 1, sel.2 + 1)
+          let col : Option Int := linkColAt s ctr.1 ctr.2
+          let mv (m : Int) : Int := setB (clrB m ctr.1 ctr.2) hole.1 hole.2
+          some (recomp
+            { n1 with link_rings_m := mv n1.link_rings_m,
+                      link_rings_m_c8 := if col == some 8 then mv n1.link_rings_m_c8 else n1.link_rings_m_c8,
+                      link_rings_m_c9 := if col == some 9 then mv n1.link_rings_m_c9 else n1.link_rings_m_c9,
+                      link_rings_m_c12 := if col == some 12 then mv n1.link_rings_m_c12 else n1.link_rings_m_c12,
+                      link_rings_m_c14 := if col == some 14 then mv n1.link_rings_m_c14 else n1.link_rings_m_c14,
+                      slot_order_n := n1.slot_order_n - 1 })
+
+-- unpick：点被选中的那块砖（6x6 命中框）→ 免费取消选中
+def unpickNext (s : State) (x y : Nat) : Option State :=
+  match selOf s with
+  | none => none
+  | some sel =>
+    if !has s.bricks_m sel.1 sel.2 then none
+    else
+      match brickNear s (y : Int) (x : Int) with
+      | some tgt => if tgt == sel then some (clearSel s) else none
+      | none => none
+
+-- swap：棋盘一侧两砖原地对调颜色，环灭，used+1（同色时两次搬移互相抵消）
+def swapColor (m : Int) (p q : Int × Int) (c1 c2 k : Option Int) : Int :=
+  let m1 := if c1 == k then setB (clrB m p.1 p.2) q.1 q.2 else m
+  if c2 == k then setB (clrB m1 q.1 q.2) p.1 p.2 else m1
+
+def swapNext (s : State) (x y : Nat) : Option State :=
+  match selOf s with
+  | none => none
+  | some sel =>
+    if !has s.bricks_m sel.1 sel.2 then none
+    else
+      match brickNear s (y : Int) (x : Int) with
+      | none => none
+      | some tgt =>
+        if tgt == sel then none
+        else if !(sel.1 < s.bar_row) || !(tgt.1 < s.bar_row) then none
+        else
+          let c1 : Option Int := brickColAt s sel.1 sel.2
+          let c2 : Option Int := brickColAt s tgt.1 tgt.2
+          some (recomp { (clearSel { s with used := s.used + 1 }) with
+                bricks_m_c6 := swapColor s.bricks_m_c6 sel tgt c1 c2 (some 6),
+                bricks_m_c8 := swapColor s.bricks_m_c8 sel tgt c1 c2 (some 8),
+                bricks_m_c9 := swapColor s.bricks_m_c9 sel tgt c1 c2 (some 9),
+                bricks_m_c11 := swapColor s.bricks_m_c11 sel tgt c1 c2 (some 11),
+                bricks_m_c12 := swapColor s.bricks_m_c12 sel tgt c1 c2 (some 12),
+                bricks_m_c14 := swapColor s.bricks_m_c14 sel tgt c1 c2 (some 14),
+                bricks_m_c15 := swapColor s.bricks_m_c15 sel tgt c1 c2 (some 15) })
+
+-- reselect_free：料架一侧点另一块砖 → 选中环挪过去，免费
+def reselectNext (s : State) (x y : Nat) : Option State :=
+  match selOf s with
+  | none => none
+  | some sel =>
+    if !has s.bricks_m sel.1 sel.2 then none
+    else
+      match brickNear s (y : Int) (x : Int) with
+      | none => none
+      | some tgt =>
+        if tgt == sel then none
+        else if sel.1 < s.bar_row || tgt.1 < s.bar_row then none
+        else some (selectAt s tgt.1 tgt.2)
+
+-- reject_void：点空处（6x6 内无料、2x2 内无标记）→ 整帧不变
+def rejectNext (s : State) (x y : Nat) : Option State :=
+  if (pieceNear s (y : Int) (x : Int)).isSome || (holeNear s (y : Int) (x : Int)).isSome then none
+  else some s
+
+-- empty_hand_no_drop：空手点标记 → 整帧不变
+def emptyHandNext (s : State) (x y : Nat) : Option State :=
+  if (selOf s).isNone && (holeNear s (y : Int) (x : Int)).isSome then some s else none
+
+-- action5_costs：没过关的 a5 → used+1、撤选中环，其余整帧不变
+def a5Next (s : State) : State :=
+  clearSel { s with used := s.used + 1 }
+
+-- ---- effect 比较器 ----
+
+-- 预测器给出整态：全等
+def genEffect (f : State → Nat → Nat → Option State) (s : State) (a : Act) (s' : State) : Bool :=
+  match a with
+  | Act.a6 x y => match f s x y with | some n => s' == n | none => false
+  | _ => false
+
+
+-- undo_rewinds 的两个非平凡形状（撤搬砖 / 撤换色）
+def linksSame (s s' : State) : Bool :=
+  s'.link_rings_m == s.link_rings_m && s'.link_rings_n == s.link_rings_n
+  && s'.link_rings_m_c8 == s.link_rings_m_c8 && s'.link_rings_m_c9 == s.link_rings_m_c9
+  && s'.link_rings_m_c12 == s.link_rings_m_c12 && s'.link_rings_m_c14 == s.link_rings_m_c14
+
+def undoXors (s s' : State) : List Nat :=
+  [pc s.bricks_m_c6 s'.bricks_m_c6, pc s.bricks_m_c8 s'.bricks_m_c8,
+   pc s.bricks_m_c9 s'.bricks_m_c9, pc s.bricks_m_c11 s'.bricks_m_c11,
+   pc s.bricks_m_c12 s'.bricks_m_c12, pc s.bricks_m_c14 s'.bricks_m_c14,
+   pc s.bricks_m_c15 s'.bricks_m_c15]
+
+def undoShape1 (s s' : State) : Bool :=
+  linksSame s s' && s'.bricks_n == s.bricks_n && s'.holes_n == s.holes_n
+  && s'.selected_r == none
+  && pc s.bricks_m s'.bricks_m == 2 && pc s.holes_m s'.holes_m == 2
+  && (undoXors s s').count 2 == 1 && (undoXors s s').all (fun v => v == 0 || v == 2)
+
+def undoShape2 (s s' : State) : Bool :=
+  s'.bricks_m == s.bricks_m && s'.bricks_n == s.bricks_n
+  && s'.holes_m == s.holes_m && s'.holes_n == s.holes_n
+  && s'.selected_r == none && linksSame s s'
+  && (undoXors s s').count 2 == 2 && (undoXors s s').all (fun v => v == 0 || v == 2)
+
+def isA6 (s : State) (a : Act) (f : State → Nat → Nat → Option State) : Bool :=
+  match a with
+  | Act.a6 x y => (f s x y).isSome
+  | _ => false
+
+-- ---- 19 条 Rule ----
+
+def rules : List Rule :=
+  [ { name := "action5_costs",          -- 没过关的 a5：used+1、撤环、其余整帧不变
+      guard := fun s a => a == Act.a5 && s.used < 64
+      effect := fun s _ s' => s.level != s'.level || s' == a5Next s }
+  , { name := "bar_monotone",           -- 非 RESET 时同关内计数条每步 0 或 +1
+      guard := fun _ a => a != Act.reset
+      effect := fun s _ s' => s.level != s'.level || (0 <= s'.used - s.used && s'.used - s.used <= 1) }
+  , { name := "bar_shape",              -- 计数条在行 53，已用格 0..64
+      guard := fun _ _ => true
+      effect := fun _ _ s' => s'.bar_row == 53 && 0 <= s'.used && s'.used <= 64 }
+  , { name := "bricks_conserved",       -- 同关内砖色多重集守恒：每色个数不变
+      guard := fun _ _ => true
+      effect := fun s _ s' =>
+        s.level != s'.level
+        || (s'.bricks_n == s.bricks_n
+            && popCnt s.bricks_m_c6.toNat == popCnt s'.bricks_m_c6.toNat
+            && popCnt s.bricks_m_c8.toNat == popCnt s'.bricks_m_c8.toNat
+            && popCnt s.bricks_m_c9.toNat == popCnt s'.bricks_m_c9.toNat
+            && popCnt s.bricks_m_c11.toNat == popCnt s'.bricks_m_c11.toNat
+            && popCnt s.bricks_m_c12.toNat == popCnt s'.bricks_m_c12.toNat
+            && popCnt s.bricks_m_c14.toNat == popCnt s'.bricks_m_c14.toNat
+            && popCnt s.bricks_m_c15.toNat == popCnt s'.bricks_m_c15.toNat) }
+  , { name := "empty_hand_no_drop",     -- 空手点标记：整帧不变
+      guard := fun s a => isA6 s a emptyHandNext
+      effect := genEffect emptyHandNext }
+  , { name := "levelup_only_by_submit", -- 关卡只被 a5 推进
+      guard := fun _ a => a != Act.a5
+      effect := fun s _ s' => s'.level <= s.level }
+  , { name := "levelup_resets_bar",     -- 换关（且不是终局 WIN 帧）后计数条清零
+      guard := fun _ _ => true
+      effect := fun s _ s' => s.level == s'.level || s'.level == 8 || s'.used == 0 }
+  , { name := "panel_frozen",           -- 同关内面板不变
+      guard := fun _ _ => true
+      effect := fun s _ s' =>
+        s.level != s'.level
+        || (s'.panel_bbox_0 == s.panel_bbox_0 && s'.panel_bbox_1 == s.panel_bbox_1
+            && s'.panel_bbox_2 == s.panel_bbox_2 && s'.panel_bbox_3 == s.panel_bbox_3
+            && s'.panel_order_n == s.panel_order_n && s'.panel_code == s.panel_code) }
+  , { name := "pick",
+      guard := fun s a => isA6 s a pickNext
+      effect := genEffect pickNext }
+  , { name := "place",
+      guard := fun s a => isA6 s a placeNext
+      effect := genEffect placeNext }
+  , { name := "recard_resets_all",      -- RESET 且关卡倒退 → 整局回第 0 关、计数条清零、板上无料
+      guard := fun _ a => a == Act.reset
+      effect := fun s _ s' =>
+        s'.level >= s.level
+        || (s'.level == 0 && s'.used == 0 && noPieceOnBoard s'
+            && (s'.boards_n == 0 || s'.pieces_n - onBoardPieces s' == s'.slot_order_n)) }
+  , { name := "reject_void",
+      guard := fun s a => isA6 s a rejectNext
+      effect := genEffect rejectNext }
+  , { name := "reselect_free",
+      guard := fun s a => isA6 s a reselectNext
+      effect := genEffect reselectNext }
+  , { name := "reset_refills",          -- RESET 且关卡不倒退 → 本关重铺：清零、板上无料、料架料数 = 目标位数
+      guard := fun _ a => a == Act.reset
+      effect := fun s _ s' =>
+        s'.level < s.level
+        || (s'.level == s.level && s'.used == 0 && noPieceOnBoard s'
+            && (s'.boards_n == 0 || s'.pieces_n - onBoardPieces s' == s'.slot_order_n)) }
+  , { name := "submit_matches_panel",   -- a5：嵌套读序的色序列 = 面板色序列 ⇔ 过关（双向）
+      guard := fun s a => a == Act.a5 && s.nested_code.isSome
+      effect := fun s _ s' => (s.nested_code == some s.panel_code) == (s.level != s'.level) }
+  , { name := "swap",
+      guard := fun s a => isA6 s a swapNext
+      effect := genEffect swapNext }
+  , { name := "undo_free",              -- a7 不花计数条
+      guard := fun _ a => a == Act.a7
+      effect := fun s _ s' => s'.used == s.used }
+  , { name := "undo_rewinds",           -- 空手 a7：整帧不变 / 撤搬砖 / 撤换色
+      guard := fun s a => a == Act.a7 && (selOf s).isNone
+      effect := fun s _ s' => s' == s || undoShape1 s s' || undoShape2 s s' }
+  , { name := "unpick",
+      guard := fun s a => isA6 s a unpickNext
+      effect := genEffect unpickNext }
+  ]
+
+-- ---- stepRules：关卡内每一步由概念的预测器算出 ----
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match a with
+  | Act.a6 x y =>
+    (pickNext s x y).orElse (fun _ => placeNext s x y)
+      |>.orElse (fun _ => unpickNext s x y)
+      |>.orElse (fun _ => swapNext s x y)
+      |>.orElse (fun _ => reselectNext s x y)
+      |>.orElse (fun _ => emptyHandNext s x y)
+      |>.orElse (fun _ => rejectNext s x y)
+  | Act.a5 => if s.used < 64 then some (a5Next s) else none
+  | _ => none
+
+-- 换关表优先（只含交件过关/终局的 8 行），查不到交给 stepRules
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+def isGoal (s : State) : Bool := s.level == 8
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel

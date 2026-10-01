@@ -1,0 +1,415 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/ft09-20260907/_lib.py ; why=补逐格读数（瓦片底色/记号/目标、网格槽位、调色板）与隐藏状态 h_clicks、每关常数 k_bar_*，让 stepRules 真算出点击、联动、计数条与换关判定
+-- 由 world/formalize.py 生成于 2026-09-29T13:43:22+08:00；局 ft09；基于 run ['_exp-smoke-ft09', 'ft09-0907-0044']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 356 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复（2026-09-28）：数据段按 meta/repair-20260928/lib/ft09-20260907/_lib.py 重新生成，补了逐格读数
+--   tiles_0..31   每块可涂瓦片一个编码：位置 (top,left)、在不在网格里、记号方向、底色（只有看得见的原语）；
+--   grid_slots_0..7 每个网格：左上瓦片位置、点亮色、外环 8 个位置的「图样取值 × slot_kind」；
+--   mid_color_bits 各网格点亮色集合；legend_code 图例颜色序列；
+--   h_clicks      本关已生效点击次数（隐藏状态，判据修订 R1.1）；
+--   k_bar_num / k_bar_den 每关计数条速率（每关常数，反推依据写在 _lib.py 的 LEVEL_CONST 上）。
+-- stepRules 由这些字段真算出点击后的换色、记号联动、计数条与两个派生清点；
+-- 目标色（图样 0 处涂点亮色、2 处涂调色板另一色、共用瓦片两边一致）与「会不会换关」在下面 ringTargets 里求解。
+-- 换关那一步（新关卡布局是游戏内容）走 step 里的查表，其余一步不查。
+
+-- ---------- 瓦片编码 ----------
+structure Tile where
+  t : Nat          -- 左上角行
+  l : Nat          -- 左上角列
+  ing : Bool       -- 是不是某个网格外环上的瓦片（否则只是被记号牵动的邻居）
+  marks : Nat      -- 记号位：上 1、下 2、左 4、右 8
+  base : Nat       -- 当前底色
+deriving Repr, DecidableEq
+
+def decTile (c : Int) : Tile :=
+  let n := c.toNat
+  { base := n % 16, marks := n / 16 % 16, ing := n / 256 % 2 == 1,
+    l := n / 512 % 64, t := n / 32768 }
+
+def encTile (d : Tile) : Int :=
+  Int.ofNat (((((d.t * 64 + d.l) * 2 + (if d.ing then 1 else 0)) * 16 + d.marks) * 16) + d.base)
+
+def tileCodes (s : State) : List Int :=
+  [s.tiles_0, s.tiles_1, s.tiles_2, s.tiles_3, s.tiles_4, s.tiles_5, s.tiles_6, s.tiles_7,
+   s.tiles_8, s.tiles_9, s.tiles_10, s.tiles_11, s.tiles_12, s.tiles_13, s.tiles_14, s.tiles_15,
+   s.tiles_16, s.tiles_17, s.tiles_18, s.tiles_19, s.tiles_20, s.tiles_21, s.tiles_22, s.tiles_23,
+   s.tiles_24, s.tiles_25, s.tiles_26, s.tiles_27, s.tiles_28, s.tiles_29, s.tiles_30, s.tiles_31]
+
+def tileList (s : State) : List Tile := ((tileCodes s).filter (fun c => c != 0)).map decTile
+
+-- 把瓦片表写回 32 个定长槽（余位补 0，与读数函数的补位一致）
+def setTiles (s : State) (l : List Int) : State :=
+  { s with
+    tiles_0 := l.getD 0 0, tiles_1 := l.getD 1 0, tiles_2 := l.getD 2 0, tiles_3 := l.getD 3 0,
+    tiles_4 := l.getD 4 0, tiles_5 := l.getD 5 0, tiles_6 := l.getD 6 0, tiles_7 := l.getD 7 0,
+    tiles_8 := l.getD 8 0, tiles_9 := l.getD 9 0, tiles_10 := l.getD 10 0, tiles_11 := l.getD 11 0,
+    tiles_12 := l.getD 12 0, tiles_13 := l.getD 13 0, tiles_14 := l.getD 14 0, tiles_15 := l.getD 15 0,
+    tiles_16 := l.getD 16 0, tiles_17 := l.getD 17 0, tiles_18 := l.getD 18 0, tiles_19 := l.getD 19 0,
+    tiles_20 := l.getD 20 0, tiles_21 := l.getD 21 0, tiles_22 := l.getD 22 0, tiles_23 := l.getD 23 0,
+    tiles_24 := l.getD 24 0, tiles_25 := l.getD 25 0, tiles_26 := l.getD 26 0, tiles_27 := l.getD 27 0,
+    tiles_28 := l.getD 28 0, tiles_29 := l.getD 29 0, tiles_30 := l.getD 30 0, tiles_31 := l.getD 31 0 }
+
+def tileAt (tl : List Tile) (t l : Nat) : Option Tile := tl.find? (fun d => d.t == t && d.l == l)
+
+-- 瓦片除底色以外的部分（位置、网格归属、记号、目标）
+def skeleton (d : Tile) : Tile := { d with base := 0 }
+
+-- ---------- 调色板 ----------
+def digits16 : Nat → Nat → List Nat
+  | 0, _ => []
+  | fuel + 1, n => if n == 0 then [] else (n % 16) :: digits16 fuel (n / 16)
+
+def hasBit (m k : Nat) : Bool := m / 2 ^ k % 2 == 1
+
+-- 清点（_lib.grid_palette_colors）：各网格点亮色 ∪ 网格外环瓦片底色，按色号排序
+def gridSet (s : State) (tl : List Tile) : List Nat :=
+  (List.range 16).filter (fun c => hasBit s.mid_color_bits.toNat c || tl.any (fun d => d.ing && d.base == c))
+
+-- 本关调色板（_lib.palette_seq）：有图例用图例从上到下，没有就退回清点
+def palette (s : State) (tl : List Tile) : List Nat :=
+  match digits16 8 s.legend_code.toNat with
+  | [] => gridSet s tl
+  | lg => lg
+
+def nextAux (first c : Nat) : List Nat → Option Nat
+  | [] => none
+  | [a] => if a == c then some first else none
+  | a :: b :: rest => if a == c then some b else nextAux first c (b :: rest)
+
+-- 沿调色板前进一位，到头绕回（click_cycles_palette）
+def nextColor (pal : List Nat) (c : Nat) : Option Nat :=
+  match pal with
+  | [] => none
+  | f :: _ => nextAux f c pal
+
+-- 生成器把「恰好两个元素的有序表」铺成 _r/_c 两个字段，其余情形两个都是 none
+def pairOf (xs : List Nat) : Option Int × Option Int :=
+  match xs with
+  | [a, b] => (some (Int.ofNat a), some (Int.ofNat b))
+  | _ => (none, none)
+
+-- ---------- 点击 ----------
+def TILE : Nat := 6
+def GRID_SPAN : Nat := 22      -- 3 块瓦片 + 2 条缝：6 + 2 + 6 + 2 + 6
+
+def inBox (t l x y : Nat) : Bool := t ≤ y && y < t + TILE && l ≤ x && x < l + TILE
+
+-- 点中的是哪块网格外环瓦片（x=列, y=行）
+def hitTile (tl : List Tile) (x y : Nat) : Option Tile := tl.find? (fun d => d.ing && inBox d.t d.l x y)
+
+-- 第 0 关有色 4 方框圈住一个网格（active_origin）：其余网格是示例，点上去一格不动、计数条也不走
+-- （run _exp-smoke-ft09 seq 1、2、4、5、6）。没有方框的关，所有网格都可点。
+def inActive (s : State) (x y : Nat) : Bool :=
+  match s.active_origin_r, s.active_origin_c with
+  | some r, some c => r ≤ (y : Int) && (y : Int) < r + GRID_SPAN && c ≤ (x : Int) && (x : Int) < c + GRID_SPAN
+  | _, _ => true
+
+-- 被点瓦片 h 这一下会推动 d 吗：d 就是 h，或 d 在 h 某个记号指向的物理相邻位置（相距 8 像素）。联动只走一步。
+-- 瓦片表按「看得见」收录（网格外环可涂瓦片 + 与之相邻、画面内、非中心、底色非背景的块），与记号无关；
+-- 所以记号指向出界、空槽（背景色）、别的网格中心时，那个位置上本就没有表里的瓦片，这里推不到任何东西。
+-- 「那个方向一格不动」这半句另由 mark_directs_linkage 的 effect 在下一状态上核（markFrozenOk）：
+-- 能核的只有「那里没长出瓦片」和「被指的网格中心图样不变」，空槽与出界处的像素状态里没有，核不到。
+def affects (h d : Tile) : Bool :=
+  (d.t == h.t && d.l == h.l)
+  || (hasBit h.marks 0 && d.t + 8 == h.t && d.l == h.l)
+  || (hasBit h.marks 1 && d.t == h.t + 8 && d.l == h.l)
+  || (hasBit h.marks 2 && d.l + 8 == h.l && d.t == h.t)
+  || (hasBit h.marks 3 && d.l == h.l + 8 && d.t == h.t)
+
+def advance (pal : List Nat) (h : Tile) (d : Tile) : Option Tile :=
+  if affects h d then (nextColor pal d.base).map (fun b => { d with base := b }) else some d
+
+def allSome : List (Option Tile) → Option (List Tile)
+  | [] => some []
+  | none :: _ => none
+  | some d :: rest => (allSome rest).map (d :: ·)
+
+-- 点击之后的瓦片表：点空返回 none（没观测过，不猜）；方框外的示例网格原样不动
+def afterTiles (s : State) (x y : Nat) : Option (List Tile) :=
+  let tl := tileList s
+  match hitTile tl x y with
+  | none => none
+  | some h => if inActive s x y then allSome (tl.map (advance (palette s tl) h)) else some tl
+
+-- ---------- 目标色：从中心图样求解（ring_matched_levels_up 的几何内容）----------
+structure Grid where
+  r : Int              -- 左上瓦片行
+  c : Int              -- 左上瓦片列
+  mid : Nat            -- 点亮色（中心图样正中那格）
+  codes : List Nat     -- 外环 8 个位置的图样取值，按行列序
+deriving Repr, DecidableEq
+
+def decGrid (g : Int) : Grid :=
+  let n := g.toNat
+  let hi := n / 32 ^ 8
+  let pos := hi / 16
+  { mid := hi % 16, r := Int.ofNat (pos / 128) - 16, c := Int.ofNat (pos % 128) - 16,
+    codes := (List.range 8).map (fun k => n / 32 ^ k % 32 / 8) }
+
+def gridList (s : State) : List Grid :=
+  ([s.grid_slots_0, s.grid_slots_1, s.grid_slots_2, s.grid_slots_3,
+    s.grid_slots_4, s.grid_slots_5, s.grid_slots_6, s.grid_slots_7].filter (fun g => g != 0)).map decGrid
+
+def PAT_MID : Nat := 0     -- 该位置应涂本网格点亮色
+def PAT_OTHER : Nat := 2   -- 该位置应涂调色板里别的某一色（同一网格统一一个）
+def PAT_NONE : Nat := 3    -- 该位置没有可涂瓦片，没有目标
+
+-- 外环第 k 个位置（跳过中心）在网格里的 (行, 列)
+def slotIJ (k : Nat) : Nat × Nat :=
+  if k < 3 then (0, k) else if k == 3 then (1, 0) else if k == 4 then (1, 2) else (2, k - 5)
+
+-- 一条要求：物理位置 (r, c) 上的瓦片，按第 gi 个网格的图样该涂点亮色（on）还是「另一色」
+structure Want where
+  r : Int
+  c : Int
+  gi : Nat
+  on : Bool
+
+def wantsOf (gi : Nat) (g : Grid) : List Want :=
+  ((List.range 8).zip g.codes).filterMap (fun p =>
+    if p.2 == PAT_NONE then none
+    else some { r := g.r + 8 * Int.ofNat (slotIJ p.1).1, c := g.c + 8 * Int.ofNat (slotIJ p.1).2,
+                gi := gi, on := p.2 == PAT_MID })
+
+def product : List (List Nat) → List (List Nat)
+  | [] => [[]]
+  | xs :: rest => xs.flatMap (fun v => (product rest).map (v :: ·))
+
+-- 给每个网格选定「另一色」x 之后，一条要求的颜色
+def wantColor (mids x : List Nat) (w : Want) : Nat := if w.on then mids.getD w.gi 0 else x.getD w.gi 0
+
+-- 共用瓦片两边一致：同一物理位置上的所有要求颜色相同
+def sharedAgree (ws : List Want) (mids x : List Nat) : Bool :=
+  ws.all (fun w => match ws.find? (fun v => v.r == w.r && v.c == w.c) with
+    | some v => wantColor mids x v == wantColor mids x w
+    | none => true)
+
+-- 目标色表 [(行, 列, 色)]：图样取值只许 0/2/3、点亮色要在调色板里；
+-- 每个网格的「另一色」在调色板除点亮色之外的颜色里挑，组合里恰好一种满足共用瓦片一致才算定死，否则说不出话（none）
+def ringTargets (gs : List Grid) (pal : List Nat) : Option (List (Int × Int × Nat)) :=
+  if gs.isEmpty || !gs.all (fun g => pal.contains g.mid && g.codes.all (fun v => v == PAT_MID || v == PAT_OTHER || v == PAT_NONE))
+  then none
+  else
+    let mids := gs.map (·.mid)
+    let ws := ((List.range gs.length).zip gs).flatMap (fun p => wantsOf p.1 p.2)
+    let cands := gs.map (fun g => pal.filter (fun v => v != g.mid))
+    match ws, (product cands).filter (sharedAgree ws mids) with
+    | [], _ => none
+    | _, [x] => some (ws.map (fun w => (w.r, w.c, wantColor mids x w)))
+    | _, _ => none
+
+def allOpt : List (Option Bool) → Option Bool
+  | [] => some true
+  | none :: _ => none
+  | some b :: rest => (allOpt rest).map (b && ·)
+
+-- 目标到齐（_lib.all_matched_after_click）：每个目标位置上都读得到瓦片、且底色等于目标色
+def targetsMet (ts : List (Int × Int × Nat)) (tl : List Tile) : Option Bool :=
+  allOpt (ts.map (fun p => (tl.find? (fun d => (d.t : Int) == p.1 && (d.l : Int) == p.2.1)).map (fun d => d.base == p.2.2)))
+
+-- 这一下点击之后是否所有网格都到齐（目标按点击前的画面求解）
+def matchedWith (s : State) (tl' : List Tile) : Option Bool :=
+  (ringTargets (gridList s) (palette s (tileList s))).bind (fun ts => targetsMet ts tl')
+
+def matchedAfter (s : State) (a : Act) : Option Bool :=
+  match a with
+  | Act.a6 x y => (afterTiles s x y).bind (matchedWith s)
+  | _ => none
+
+def isClick (a : Act) : Bool :=
+  match a with
+  | Act.a6 _ _ => true
+  | _ => false
+
+-- ---------- 计数条 ----------
+def BAR_W : Nat := 64          -- 计数条 = 最后一行，全宽
+def BAR_FULL : Int := 12
+def BAR_USED : Int := 11
+
+-- Python round() 的半数取偶：num/den 恰为 .5 时取偶数那一边
+def roundHalfEven (num den : Nat) : Nat :=
+  let q := num / den
+  let r := num % den
+  if 2 * r > den then q + 1 else if 2 * r == den then q + q % 2 else q
+
+-- 已用 u 格时最后一行的游程清点（_lib.bar_runs，生成器按 (色, 长度) 排序后拆成两槽）
+def withBar (s : State) (u : Nat) : State :=
+  if u == 0 then
+    { s with bar_used := 0, bar_runs_n := 1, bar_runs_0_r := BAR_FULL, bar_runs_0_c := Int.ofNat BAR_W,
+             bar_runs_1_r := none, bar_runs_1_c := none }
+  else if u ≥ BAR_W then
+    { s with bar_used := Int.ofNat BAR_W, bar_runs_n := 1, bar_runs_0_r := BAR_USED, bar_runs_0_c := Int.ofNat BAR_W,
+             bar_runs_1_r := none, bar_runs_1_c := none }
+  else
+    { s with bar_used := Int.ofNat u, bar_runs_n := 2, bar_runs_0_r := BAR_USED, bar_runs_0_c := Int.ofNat u,
+             bar_runs_1_r := some BAR_FULL, bar_runs_1_c := some (Int.ofNat (BAR_W - u)) }
+
+-- bar_is_full_then_used 能在这份状态上核的部分：只有「未用」「已用」两色、至多两段，已用格数与游程一致。
+-- （左右次序在生成器按色号排序拆槽时已经丢了，这半句问不出来。）
+def barShapeOk (s : State) : Bool :=
+  match s.bar_runs_n, s.bar_runs_1_r, s.bar_runs_1_c with
+  | 1, none, none => (s.bar_runs_0_r == BAR_FULL && s.bar_used == 0)
+                      || (s.bar_runs_0_r == BAR_USED && s.bar_used == s.bar_runs_0_c)
+  | 2, some r1, some c1 => s.bar_runs_0_r == BAR_USED && r1 == BAR_FULL && s.bar_used == s.bar_runs_0_c
+                            && s.bar_runs_0_c + c1 == Int.ofNat BAR_W
+  | _, _, _ => false
+
+-- ---------- 一步 ----------
+def clickStep (s : State) (x y : Nat) : Option State :=
+  let tl := tileList s
+  match hitTile tl x y with
+  | none => none
+  | some h =>
+    if !inActive s x y then some s
+    else match allSome (tl.map (advance (palette s tl) h)), s.k_bar_num, s.k_bar_den with
+      | some tl', some num, some den =>
+        -- 凑齐目标的那一下会换关、整屏重画：新布局规则说不出，交给查表
+        if matchedWith s tl' != some false then none
+        else
+          let c := s.h_clicks + 1
+          let s1 := withBar { setTiles s (tl'.map encTile) with h_clicks := c }
+                      (roundHalfEven (c.toNat * num.toNat) den.toNat)
+          let g := pairOf (gridSet s1 tl')
+          let p := pairOf (palette s1 tl')
+          some { s1 with grid_palette_colors_r := g.1, grid_palette_colors_c := g.2,
+                         palette_seq_r := p.1, palette_seq_c := p.2 }
+      | _, _, _ => none
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match a with
+  | Act.a6 x y => clickStep s x y
+  | _ => none
+
+-- ---------- 各条概念 ----------
+-- 点中的、生效的那块瓦片（方框外的示例网格不算）
+def hitLive (s : State) (a : Act) : Option Tile :=
+  match a with
+  | Act.a6 x y => if inActive s x y then hitTile (tileList s) x y else none
+  | _ => none
+
+-- h 的各个记号指向的物理位置（上、下、左、右相距 8 像素；可以出界）
+def markTargets (h : Tile) : List (Int × Int) :=
+  let t : Int := h.t
+  let l : Int := h.l
+  (if hasBit h.marks 0 then [(t - 8, l)] else []) ++ (if hasBit h.marks 1 then [(t + 8, l)] else [])
+  ++ (if hasBit h.marks 2 then [(t, l - 8)] else []) ++ (if hasBit h.marks 3 then [(t, l + 8)] else [])
+
+def tileHere (tl : List Tile) (p : Int × Int) : Bool := tl.any (fun d => (d.t : Int) == p.1 && (d.l : Int) == p.2)
+
+-- mark_directs_linkage 的另一半：记号指向的位置上点击前没有可涂瓦片（出界 / 空槽 / 别的网格中心）时，
+-- 那个方向无效——点击后那里也没长出瓦片，且若那里是某个网格的中心，该网格（位置、点亮色、图样）原样不变。
+def markFrozenOk (s s' : State) (h : Tile) : Bool :=
+  (markTargets h).all (fun p =>
+    tileHere (tileList s) p
+    || (!tileHere (tileList s') p
+        && (gridList s).all (fun g => !(g.r + 8 == p.1 && g.c + 8 == p.2) || (gridList s').contains g)))
+
+-- nothing_else_changes：除底色外瓦片表逐块相同（位置、归属、记号都不动），且这一步不推的瓦片底色不变。
+-- 只在读数层面核（瓦片表、网格槽位、图例、方框等读数不变），不逐像素核「别处一格不动」。
+def othersKept (s s' : State) (h : Option Tile) : Bool :=
+  let tl := tileList s
+  let tl' := tileList s'
+  tl.length == tl'.length
+  && (tl.zip tl').all (fun p => skeleton p.1 == skeleton p.2
+        && (match h with
+            | some hh => affects hh p.1 || p.1.base == p.2.base
+            | none => p.1.base == p.2.base))
+
+-- 画面上除瓦片底色与计数条之外的读数都不动
+def fixedEq (a b : State) : Bool :=
+  a.active_origin_c == b.active_origin_c && a.active_origin_r == b.active_origin_r && a.bg == b.bg
+  && a.centers_m == b.centers_m && a.centers_n == b.centers_n
+  && a.frame_bbox_0 == b.frame_bbox_0 && a.frame_bbox_1 == b.frame_bbox_1
+  && a.frame_bbox_2 == b.frame_bbox_2 && a.frame_bbox_3 == b.frame_bbox_3
+  && a.grid_slots_0 == b.grid_slots_0 && a.grid_slots_1 == b.grid_slots_1 && a.grid_slots_2 == b.grid_slots_2
+  && a.grid_slots_3 == b.grid_slots_3 && a.grid_slots_4 == b.grid_slots_4 && a.grid_slots_5 == b.grid_slots_5
+  && a.grid_slots_6 == b.grid_slots_6 && a.grid_slots_7 == b.grid_slots_7
+  && a.legend_code == b.legend_code && a.legend_col == b.legend_col
+  && a.legend_colors_c == b.legend_colors_c && a.legend_colors_r == b.legend_colors_r
+  && a.mid_color_bits == b.mid_color_bits && a.tile_grids_m == b.tile_grids_m && a.tile_grids_n == b.tile_grids_n
+
+-- pattern_three_marks_no_tile：每个网格外环 8 个位置，图样取值只在 {0,2,3} 里，
+-- 且取值 3 恰好落在出界(1)/空槽(2)/别的网格中心(3) 上
+def slotOk (v : Nat) : Bool :=
+  let code := v / 8
+  let kind := v % 8
+  (code == 0 || code == 2 || code == 3) && ((code == 3) == (kind == 1 || kind == 2 || kind == 3))
+
+def gridOk (g : Int) : Bool :=
+  g == 0 || (List.range 8).all (fun k => slotOk (g.toNat / 32 ^ k % 32))
+
+def slotsOk (s : State) : Bool :=
+  [s.grid_slots_0, s.grid_slots_1, s.grid_slots_2, s.grid_slots_3,
+   s.grid_slots_4, s.grid_slots_5, s.grid_slots_6, s.grid_slots_7].all gridOk
+
+def LAST_LEVEL : Int := 5      -- 本局 6 关（0..5），打完第 5 关即 WIN（MANIFEST win_levels = 6）
+def WIN_LEVEL : Int := 6
+
+-- 带坐标点击、且点击后目标没到齐（这一步不换关）
+def stays (s : State) (a : Act) : Bool := isClick a && matchedAfter s a == some false
+
+def rules : List Rule := [
+  { name := "bar_is_full_then_used",
+    guard := fun _ _ => true,
+    effect := fun s _ s' => barShapeOk s && barShapeOk s' },
+  { name := "bar_refills_on_levelup",
+    -- 换关且不是通关的那一步：计数条回到 0
+    guard := fun s a => isClick a && matchedAfter s a == some true && s.level < LAST_LEVEL,
+    effect := fun s _ s' => s'.level == s.level + 1 && s'.bar_used == 0 && s'.bar_runs_n == 1 },
+  { name := "bar_used_never_shrinks",
+    guard := fun s a => stays s a,
+    effect := fun s _ s' => 0 ≤ s'.bar_used - s.bar_used && s'.bar_used - s.bar_used ≤ 2 },
+  { name := "click_cycles_palette",
+    guard := fun s a => stays s a && (match hitLive s a with
+      | some h => (nextColor (palette s (tileList s)) h.base).isSome
+      | none => false),
+    effect := fun s a s' => match hitLive s a with
+      | some h => (tileAt (tileList s') h.t h.l).map (·.base) == nextColor (palette s (tileList s)) h.base
+      | none => false },
+  { name := "mark_directs_linkage",
+    guard := fun s a => stays s a && (match hitLive s a with
+      | some h => h.marks != 0
+      | none => false),
+    effect := fun s a s' => match hitLive s a with
+      | some h => markFrozenOk s s' h
+          && (tileList s).all (fun d => (d.t == h.t && d.l == h.l) || !affects h d
+          || (tileAt (tileList s') d.t d.l).map (·.base) == nextColor (palette s (tileList s)) d.base)
+      | none => false },
+  { name := "no_levelup_before_ring_matches",
+    guard := fun s a => stays s a,
+    effect := fun s _ s' => s'.level == s.level },
+  { name := "nothing_else_changes",
+    guard := fun s a => stays s a,
+    effect := fun s a s' => fixedEq s s' && othersKept s s' (hitLive s a) },
+  { name := "pattern_three_marks_no_tile",
+    guard := fun _ _ => true,
+    effect := fun s _ s' => slotsOk s && slotsOk s' },
+  { name := "ring_matched_levels_up",
+    guard := fun s a => isClick a && matchedAfter s a == some true,
+    effect := fun s _ s' => s'.level == s.level + 1 }
+]
+
+def step (s : State) (a : Act) : Option State :=
+  match worldRows.find? (fun w => keyEq w.s s && w.a == a) with
+  | some w => some w.s'
+  | none => stepRules s a
+
+def isGoal (s : State) : Bool := s.level == WIN_LEVEL
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。用 native_decide：语料几百条，kernel 上 decide 太慢；代价是多依赖 Lean.ofReduceBool 这条公理。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))
+

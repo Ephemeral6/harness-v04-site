@@ -1,0 +1,395 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/ar25-20260920/_lib.py ; why=补逐块读数（目标/物件/镜像/带的块集合、轴、被选中的是哪条轴）与每关常数（计数带填充色、各件物件块数），让 stepRules 真算出关卡内每一步；路线改取整局（--full-route）
+set_option maxRecDepth 100000
+-- 由 world/formalize.py 生成于 2026-09-29T14:29:24+08:00；局 ar25；基于 run ['ar25-0914-0115', 'ar25-0920-0548']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 585 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+/-
+ar25 的规则（修复版，2026-09-29）。
+
+抽象状态里的新读数（全部是单帧像素的感知原语，见 lib 的 tg / pc / gh / bv / axes / sel_line）：
+  tg_m 目标块、pc_m 色5 物件块（各片的并集）、gh_m 色4 镜像块、bv_m 色10 带的可见块、
+  axes_r / axes_c 帧上读出的两条轴（横轴 k 编成 k，竖轴 k 编成 32+k，空位 -1；生成器把定长二元组按 _r/_c 展开），
+  sel_line 带标记的是哪条轴（物件为 -1）。k_fill（计数带填充色）、k_sizes（本关各件物件的块数位集）是每关常数。
+
+Lean 这边做的事：
+  ① 从帧读数还原「世界」：目标、物件并集、轴、被选中的那件（带 = 整条线减目标；物件 = 标记块在色5 层里的八邻连通片）；
+  ② 推一步（ACTION1-4）：物件整体平移、带换到相邻那条线；横带左右走 / 竖带上下走 / 出盘 = 无效，盘面与计数都不动；
+  ③ 点选（ACTION6）：点中块是色5（不在目标上）就选那片物件，是色10 就选那条轴；点在空地上什么都不变；
+  ④ 画回帧：镜像 = 物件在轴生成的反射群下的像（盘内、减物件本体），带的可见块 = 线 − 目标 − 物件 − 镜像，
+     标记 = 被选中那件 − 目标；再按原 lib 的 read 语义（连通片跨目标、标记恰好指认一件 / 粘连切割 / 零标记）读回 selected 等；
+  ⑤ 过关：推完之后目标全被物件或镜像盖住 ⇔ 换关（level_clear 在全语料上双向检验；换关后的新布局查表）。
+模型不预测的情形（stepRules 返回 none）：
+  · 帧读不清被选中那件的边界——**唯一判据是 k_sizes**：标记所在那片（色5 层八邻闭包，零标记时取读数的 selected）的块数不属于本关任何一件的块数就弃权。
+    没有另外的「与别的物件八邻相接」几何判定（那片本身就是八邻闭包，这种判定恒不成立，已删）。去掉 k_sizes 判据时恰有 3 行由 none 变错（0914 seq 431、498、714）。
+  · 推完物件会与别的物件八邻相接或重叠（push 里的 touch）；点在压着目标的物件块 / 镜像 / 目标 / 两轴交叉点上（语料里没见过）；ACTION7（撤销方向由历史决定）；RESET。
+  · 按去重语料（457 行）计：stepRules 返回 none 的共 27 行（推动 18、点击 1、ACTION7 3、RESET 5），全在 run 0914，全不在路线上。
+公示（审计 2026-09-29 指出，照实写在这里）：
+  · 物件推到盘边被挡的分支（edgeM）数据里从未测到：删掉它 consistent 与 faithful 仍成立。带推出盘、横带左右推 / 竖带上下推的无效在语料里测到过。
+  · ACTION5 在去重语料里只有 1 行（act5_inert 与 counter_tick 的 ACTION5 分支各命中这 1 行）；计数 +1 是按数据写的，
+    与概念 counter_tick 原文「盘面不变则 +0」相反（原文用整帧比较，而计数带本身在帧里，那句话是循环的）。
+  · act1–act4 四条 effect 相同、只差方向参数；概念的 sel_move 落点主张几乎被「下一帧全部读数等于 stepRules」吸收，独立信息很少。
+-/
+
+def ROW0 : Nat := 2 ^ 21 - 1
+def rowM (k : Nat) : Nat := ROW0 <<< (32 * k)
+def COL0 : Nat := (List.range 21).foldl (fun acc r => acc ||| (1 <<< (32 * r))) 0
+def colM (k : Nat) : Nat := COL0 <<< k
+def BOARD : Nat := (List.range 21).foldl (fun acc r => acc ||| rowM r) 0
+def andNot (a b : Nat) : Nat := a ^^^ (a &&& b)
+def lineCells (c : Nat) : Nat := if Nat.blt c 32 then rowM c else colM (c - 32)
+def lowBit (x : Nat) : Nat := x - (x &&& (x - 1))
+def atLeast2 (x : Nat) : Bool := x != 0 && (x &&& (x - 1)) != 0
+def popF : Nat → Nat → Nat
+  | 0, _ => 0
+  | f + 1, x => if x == 0 then 0 else 1 + popF f (x &&& (x - 1))
+def pop (x : Nat) : Nat := popF 512 x
+def ipop (x : Nat) : Int := Int.ofNat (pop x)
+
+/-- 八邻膨胀一步，限制在 nodes 里（步长 32 > 21，越过行尾的位落在第 21–31 列，被 nodes 滤掉）。 -/
+def dil8 (x nodes : Nat) : Nat :=
+  (x ||| (x <<< 1) ||| (x >>> 1) ||| (x <<< 32) ||| (x >>> 32) ||| (x <<< 33) ||| (x >>> 33)
+    ||| (x <<< 31) ||| (x >>> 31)) &&& nodes
+def floodF : Nat → Nat → Nat → Nat
+  | 0, x, _ => x
+  | f + 1, x, nodes => if (dil8 x nodes ||| x) == x then x else floodF f (dil8 x nodes ||| x) nodes
+def flood (seed nodes : Nat) : Nat := floodF 450 seed nodes
+def touches (a b : Nat) : Bool := (dil8 a BOARD &&& b) != 0
+
+/-- 色5 的连通片（原 lib 的 comp：八邻、允许跨过目标块）。 -/
+def compsF : Nat → Nat → Nat → Nat → List Nat
+  | 0, _, _, _ => []
+  | f + 1, left, P, nodes =>
+    if left == 0 then [] else
+      (flood (lowBit left) nodes &&& P) :: compsF f (andNot left (flood (lowBit left) nodes &&& P)) P nodes
+def comps (P T : Nat) : List Nat := compsF 64 P P ((P ||| T) &&& BOARD)
+
+/-- 关于横轴 k 的镜像：行 r 去行 2k−r，出盘的丢掉。 -/
+def reflRow (m k : Nat) : Nat :=
+  (List.range 21).foldl (fun acc r =>
+    if Nat.ble r (2 * k) && Nat.blt (2 * k - r) 21
+    then acc ||| (((m >>> (32 * r)) &&& ROW0) <<< (32 * (2 * k - r))) else acc) 0
+/-- 关于竖轴 k 的镜像：列 c 去列 2k−c。 -/
+def reflCol (m k : Nat) : Nat :=
+  (List.range 21).foldl (fun acc c =>
+    if Nat.ble c (2 * k) && Nat.blt (2 * k - c) 21 then
+      acc ||| (if Nat.ble c (2 * k - c) then (m &&& colM c) <<< (2 * k - c - c) else (m &&& colM c) >>> (c - (2 * k - c)))
+    else acc) 0
+/-- 轴生成的反射群（不含恒等）作用在 P 上的像：每条轴一个镜像，一横一竖再加绕交点的点对称。 -/
+def images (P : Nat) (ls : List Nat) : Nat :=
+  let rs := ls.filter (fun l => Nat.blt l 32)
+  let cs := (ls.filter (fun l => !Nat.blt l 32)).map (· - 32)
+  rs.foldl (fun acc k => acc ||| reflRow P k) 0
+    ||| cs.foldl (fun acc k => acc ||| reflCol P k) 0
+    ||| rs.foldl (fun acc k => cs.foldl (fun acc2 j => acc2 ||| reflCol (reflRow P k) j) acc) 0
+def bandAll (ls : List Nat) : Nat := ls.foldl (fun acc l => acc ||| lineCells l) 0
+def covers (T P : Nat) (ls : List Nat) : Bool := T != 0 && andNot T (P ||| images P ls) == 0
+
+/-- 原 lib 的 band_lines：线上每块都是带/目标/物件/镜像、且至少两块带的行列；色10 有落在线外的就读不出（none）。 -/
+def lineOK (ok bv m : Nat) : Bool := (ok &&& m) == m && atLeast2 (bv &&& m)
+def detect (bv ok : Nat) : Option (List Nat) :=
+  let ls := (List.range 21).filter (fun k => lineOK ok bv (rowM k))
+    ++ ((List.range 21).filter (fun k => lineOK ok bv (colM k))).map (· + 32)
+  if andNot bv (bandAll ls) == 0 then some ls else none
+
+structure Obj where
+  band : Bool
+  code : Nat
+  cells : Nat
+
+/-- 原 lib 的 read 认「谁被选中」：标记恰好等于某件东西露在目标外的块 → 那件；标记是某片物件的真子集 → 粘连切割，取标记块；
+    零标记 → 恰有一件东西没有露在目标外的可见块时取它；其余读不出。 -/
+def readSel (T P BV M : Nat) (ls : List Nat) : Option Obj :=
+  let objs : List Obj := ls.map (fun l => ⟨true, l, andNot (lineCells l) T⟩) ++ (comps P T).map (fun c => ⟨false, 0, c⟩)
+  match objs.filter (fun o => M != 0 && M == andNot o.cells T) with
+  | [o] => some o
+  | _ :: _ :: _ => none
+  | [] =>
+    if M != 0 then
+      match objs.filter (fun o => !o.band && andNot M o.cells == 0 && M != o.cells) with
+      | [_] => some ⟨false, 0, M⟩
+      | _ => none
+    else
+      match objs.filter (fun o => if o.band then andNot (andNot (o.cells &&& BV) M) T == 0 else andNot (andNot o.cells M) T == 0) with
+      | [o] => some o
+      | _ => none
+
+def foldRows (G : Nat) : Nat := (List.range 21).foldl (fun acc r => acc ||| ((G >>> (32 * r)) &&& ROW0)) 0
+def meR (G : Nat) : Option Int := if G == 0 then none else some (Int.ofNat (Nat.log2 (lowBit G) / 32 * 3))
+def meC (G : Nat) : Option Int := if G == 0 then none else some (Int.ofNat (Nat.log2 (lowBit (foldRows G)) * 3))
+
+def tgN (s : State) : Nat := s.tg_m.toNat
+def pcN (s : State) : Nat := s.pc_m.toNat
+def ghN (s : State) : Nat := s.gh_m.toNat
+def bvN (s : State) : Nat := s.bv_m.toNat
+def mvN (s : State) : Nat := s.movers_m.toNat
+def axesOf (s : State) : List Nat :=
+  [s.axes_r, s.axes_c].filterMap (fun v => if 0 ≤ v then some v.toNat else none)
+def fillFor (s : State) (cnt : Int) : Option Int := if 0 < cnt then some s.k_fill else none
+
+/-- 世界 → 帧上的全部读数。关卡常数（level、k_*）与 solid_n 照抄 s。 -/
+def render (s : State) (T P : Nat) (ls : List Nat) (sc : Nat) (cnt : Int) : Option State :=
+  let G := andNot (images P ls) P
+  let BV := andNot (andNot (andNot (bandAll ls) T) P) G
+  let M := andNot sc T
+  match detect BV (BV ||| T ||| P ||| G) with
+  | none => none
+  | some dl =>
+    let base : State := { s with
+      tg_m := Int.ofNat T, tg_n := ipop T, pc_m := Int.ofNat P, pc_n := ipop P,
+      gh_m := Int.ofNat G, gh_n := ipop G, bv_m := Int.ofNat BV, bv_n := ipop BV,
+      movers_m := Int.ofNat M, movers_n := ipop M, me_r := meR G, me_c := meC G,
+      pieces_n := Int.ofNat (comps P T).length, counter := cnt, fill_color := fillFor s cnt,
+      band_lines_n := Int.ofNat dl.length,
+      axes_r := (dl.head?.map Int.ofNat).getD (-1), axes_c := ((dl.drop 1).head?.map Int.ofNat).getD (-1) }
+    match readSel T P BV M dl with
+    | none => some { base with read_n := none, selected_m := none, selected_n := none, sel_line := none }
+    | some o => some { base with read_n := some 3, selected_m := some (Int.ofNat o.cells), selected_n := some (ipop o.cells),
+                                 sel_line := some (if o.band then Int.ofNat o.code else -1) }
+
+/-- 被选中那件在世界里占的块、是不是带、带的编码。带 = 整条线减目标（被物件/镜像盖住的照样算）；
+    物件 = 标记块在色5 层里的八邻连通片（不跨目标）；零标记（整片压在目标上）取读数里的 selected。 -/
+def selWorld (s : State) : Option (Nat × Bool × Nat) :=
+  match s.sel_line, s.selected_m with
+  | some sl, some sm =>
+    if 0 ≤ sl then some (andNot (lineCells sl.toNat) (tgN s), true, sl.toNat)
+    else if mvN s != 0 then some (flood (mvN s) (pcN s &&& BOARD), false, 0)
+    else some (sm.toNat, false, 0)
+  | _, _ => none
+
+def sizeOK (s : State) (sc : Nat) : Bool := ((s.k_sizes.toNat >>> pop sc) &&& 1) == 1
+
+/-- 这一帧读得清：被选中的是带，或被选中那片物件的块数是本关某件物件的块数（k_sizes，粘连弃权的唯一判据）；
+    且把还原出的世界画回去逐字段等于这一帧。 -/
+def clean (s : State) : Bool :=
+  match selWorld s with
+  | none => false
+  | some (sc, isBand, _) =>
+    (isBand || sizeOK s sc) &&
+    (match render s (tgN s) (pcN s) (axesOf s) sc s.counter with
+     | some r => keyEq r s
+     | none => false)
+
+/-- 方向：1 上 2 下 3 左 4 右。 -/
+def shiftD (m d : Nat) : Nat := match d with | 1 => m >>> 32 | 2 => m <<< 32 | 3 => m >>> 1 | _ => m <<< 1
+def edgeM (d : Nat) : Nat := match d with | 1 => rowM 0 | 2 => rowM 20 | 3 => colM 0 | _ => colM 20
+def isVert (d : Nat) : Bool := d == 1 || d == 2
+def isNeg (d : Nat) : Bool := d == 1 || d == 3
+
+inductive Push where
+  | blocked
+  | moved (P : Nat) (ls : List Nat) (sc : Nat) (touch : Bool)
+
+/-- 推一步（读不清时 none）。带：横带只能上下走、竖带只能左右走，另一向无效；走出盘无效。物件：整体平移，出盘无效。 -/
+def push (s : State) (d : Nat) : Option Push :=
+  if !clean s then none else
+  match selWorld s with
+  | none => none
+  | some (sc, isBand, code) =>
+    if isBand then
+      let isRow := Nat.blt code 32
+      let k := if isRow then code else code - 32
+      if isRow != isVert d then some .blocked
+      else if (isNeg d && k == 0) || (!isNeg d && k == 20) then some .blocked
+      else
+        let nl := (if isNeg d then k - 1 else k + 1) + (if isRow then 0 else 32)
+        some (.moved (pcN s) ((axesOf s).map (fun l => if l == code then nl else l)) (andNot (lineCells nl) (tgN s)) false)
+    else
+      if (sc &&& edgeM d) != 0 then some .blocked
+      else some (.moved (andNot (pcN s) sc ||| shiftD sc d) (axesOf s) (shiftD sc d) (touches (shiftD sc d) (andNot (pcN s) sc)))
+
+/-- 这一推会不会盖满全部目标（= 换关）。 -/
+def clears (s : State) (d : Nat) : Bool :=
+  match push s d with
+  | some (.moved P ls _ _) => covers (tgN s) P ls
+  | _ => false
+
+def pushStep (s : State) (d : Nat) : Option State :=
+  match push s d with
+  | none => none
+  | some .blocked => some s
+  | some (.moved P ls sc t) => if t then none else render s (tgN s) P ls sc (s.counter + 1)
+
+/-- ACTION6 点中的块：色10 可见块 → 含它的那条轴；色5 且不在目标上 → 那片物件（色5 层八邻连通）；空地 → 不变。 -/
+def click (s : State) (x y : Nat) : Option State :=
+  if !(Nat.blt (y / 3) 21 && Nat.blt (x / 3) 21) then none else
+  let bit := 1 <<< (32 * (y / 3) + x / 3)
+  if (bvN s &&& bit) != 0 then
+    match (axesOf s).filter (fun l => (lineCells l &&& bit) != 0) with
+    | [l] => render s (tgN s) (pcN s) (axesOf s) (andNot (lineCells l) (tgN s)) s.counter
+    | _ => none
+  else if (pcN s &&& bit) != 0 then
+    if (tgN s &&& bit) != 0 then none
+    else render s (tgN s) (pcN s) (axesOf s) (flood bit (pcN s &&& BOARD)) s.counter
+  else if ((ghN s ||| tgN s) &&& bit) != 0 then none
+  else some s
+
+def stepRules (s : State) (a : Act) : Option State :=
+  if !clean s then none else
+  match a with
+  | .a1 => pushStep s 1
+  | .a2 => pushStep s 2
+  | .a3 => pushStep s 3
+  | .a4 => pushStep s 4
+  | .a5 => some { s with counter := s.counter + 1, fill_color := fillFor s (s.counter + 1) }
+  | .a6 x y => click s x y
+  | _ => none
+
+def dirOf (a : Act) : Nat := match a with | .a1 => 1 | .a2 => 2 | .a3 => 3 | .a4 => 4 | _ => 0
+
+/-- 概念 sel_move：被选中那件（读数里的 selected）朝 d 走一步该占的块；带换线后按新线重算占位；说不准 none。 -/
+def selMove (s : State) (d : Nat) : Option Int :=
+  match s.sel_line, s.selected_m with
+  | some sl, some sm =>
+    if 0 ≤ sl then
+      let code := sl.toNat
+      let isRow := Nat.blt code 32
+      let k := if isRow then code else code - 32
+      if isRow != isVert d || (isNeg d && k == 0) || (!isNeg d && k == 20) then none
+      else some (Int.ofNat (andNot (lineCells ((if isNeg d then k - 1 else k + 1) + (if isRow then 0 else 32))) (tgN s)))
+    else if (sm.toNat &&& edgeM d) != 0 then none else some (Int.ofNat (shiftD sm.toNat d))
+  | _, _ => none
+
+/-- ACTION1–4 的共同写法：不换关的一推，下一帧的全部读数等于 stepRules 算的；
+    并且（概念原话）被选中那件东西在世界里要么原地不动、要么恰好落在朝 d 推一步的位置（物件平移、带换线后按新线重算占位）。
+    注：概念 assert_ 在粘连时用「落点全在色5 里」放行、否则 NA，本身从不判 FALSE；这里改用世界层的被选中那件来说同一句话，
+    读不清的帧（粘连）由 guard 里的 stepRules 排除。 -/
+def pushGuard (d : Nat) (s : State) (a : Act) : Bool :=
+  dirOf a == d && (stepRules s a).isSome && !clears s d
+def pushEffect (d : Nat) (s : State) (a : Act) (s' : State) : Bool :=
+  (match stepRules s a with | some p => keyEq p s' | none => false) &&
+  (match selWorld s, selWorld s' with
+   | some (c0, _, _), some (c1, _, _) =>
+     c1 == c0 || (match push s d with | some (.moved _ _ sc _) => c1 == sc | _ => false)
+   | _, _ => false)
+
+def act1_up : Rule := { name := "act1_up", guard := pushGuard 1, effect := pushEffect 1 }
+def act2_down : Rule := { name := "act2_down", guard := pushGuard 2, effect := pushEffect 2 }
+def act3_mover_left : Rule := { name := "act3_mover_left", guard := pushGuard 3, effect := pushEffect 3 }
+def act4_mover_right : Rule := { name := "act4_mover_right", guard := pushGuard 4, effect := pushEffect 4 }
+
+/-- ACTION5：色4、色5、色11 的块集合一格不变。 -/
+def act5_inert : Rule := {
+  name := "act5_inert",
+  guard := fun _ a => match a with | .a5 => true | _ => false,
+  effect := fun s _ s' => s'.pc_m == s.pc_m && s'.gh_m == s.gh_m && s'.tg_m == s.tg_m }
+
+/-- 概念 _clicked：点中块只有一种非底色非标记色，色5 → 包含它的那片（read 的连通片，跨目标）；色10 → 含它的唯一一条轴。 -/
+def clicked (s : State) (x y : Nat) : Option Nat :=
+  if !(Nat.blt (y / 3) 21 && Nat.blt (x / 3) 21) then none else
+  let bit := 1 <<< (32 * (y / 3) + x / 3)
+  if (pcN s &&& bit) != 0 && (tgN s &&& bit) == 0 then
+    match (comps (pcN s) (tgN s)).filter (fun c => (c &&& bit) != 0) with
+    | [c] => some c
+    | _ => none
+  else if (bvN s &&& bit) != 0 then
+    match (axesOf s).filter (fun l => (lineCells l &&& bit) != 0) with
+    | [l] => some (andNot (lineCells l) (tgN s))
+    | _ => none
+  else none
+
+def act6_select : Rule := {
+  name := "act6_select",
+  guard := fun s a => match a with
+    | .a6 x y => (clicked s x y).isSome && (stepRules s a).isSome
+    | _ => false,
+  effect := fun s a s' => match a with
+    | .a6 x y =>
+      s'.tg_m == s.tg_m && s'.pc_m == s.pc_m && s'.gh_m == s.gh_m &&
+      s'.selected_m == (clicked s x y).map Int.ofNat &&
+      (match stepRules s a with | some p => keyEq p s' | none => false)
+    | _ => false }
+
+/-- ACTION7：被选中那件要么不动，要么落在四个方向之一按推动算法算出的地方（方向由历史决定，这里不定）；读不出下一帧的 selected 时不管。 -/
+def act7_undo_step : Rule := {
+  name := "act7_undo_step",
+  guard := fun s a => match a with | .a7 => s.selected_m.isSome | _ => false,
+  effect := fun s _ s' => s'.selected_m == none || s'.selected_m == s.selected_m ||
+    [1, 2, 3, 4].any (fun d => s'.selected_m == selMove s d) }
+
+/-- 带的可见块 = 各轴上的全部块 − 目标 − 物件 − 镜像（下一帧，含换关后的第一帧）。 -/
+def band_is_line : Rule := {
+  name := "band_is_line",
+  guard := fun _ a => match a with | .other => false | _ => true,
+  effect := fun _ _ s' => s'.bv_m == 0 ||
+    bvN s' == andNot (andNot (andNot (bandAll (axesOf s')) (tgN s')) (pcN s')) (ghN s') }
+
+/-- 镜像块 = 物件在轴生成的反射群下落在盘内的像，减去物件本体。 -/
+def mirror : Rule := {
+  name := "mirror",
+  guard := fun _ a => match a with | .other => false | _ => true,
+  effect := fun _ _ s' => s'.pc_m == 0 || axesOf s' == [] || ghN s' == andNot (images (pcN s') (axesOf s')) (pcN s') }
+
+/-- 帧 = 状态的渲染：各层互不重叠地叠放（镜像不占物件的块、带的可见块不在物件/镜像/目标上），
+    标记 = 被选中那件露在目标外的块，镜像外接框左上角 = me。read 读不出时不管。 -/
+def frame_is_render : Rule := {
+  name := "frame_is_render",
+  guard := fun _ a => match a with | .other => false | _ => true,
+  effect := fun _ _ s' =>
+    (ghN s' &&& pcN s') == 0 && (bvN s' &&& (pcN s' ||| ghN s' ||| tgN s')) == 0 &&
+    s'.me_r == meR (ghN s') && s'.me_c == meC (ghN s') &&
+    (match s'.read_n, s'.selected_m with
+     | some _, some sm => mvN s' == andNot sm.toNat (tgN s')
+     | _, _ => true) }
+
+/-- 过关：一次有效推动之后目标全被物件或镜像盖住，当且仅当这一步换关。 -/
+def level_clear : Rule := {
+  name := "level_clear",
+  guard := fun s a => dirOf a != 0 && (match push s (dirOf a) with | some (.moved _ _ _ _) => true | _ => false),
+  effect := fun s a s' => (s'.level != s.level) == clears s (dirOf a) }
+
+/-- 镜像与目标叠在一起：目标不消失（关卡内目标层不变），镜像落在目标上的块同时属于色4 层和色11 层。 -/
+def overlap_render : Rule := {
+  name := "overlap_render",
+  guard := fun _ a => match a with | .other => false | _ => true,
+  effect := fun s _ s' => s'.level != s.level ||
+    (s'.tg_m == s.tg_m &&
+     andNot (andNot (images (pcN s') (axesOf s')) (pcN s') &&& tgN s') (ghN s' &&& tgN s') == 0) }
+
+/-- 标记指认恰好一件东西：有标记时它要么恰好等于某件东西露在目标外的块，要么是某片物件的真子集。 -/
+def one_selected : Rule := {
+  name := "one_selected",
+  guard := fun _ a => match a with | .other => false | _ => true,
+  effect := fun _ _ s' => s'.movers_m == 0 || (readSel (tgN s') (pcN s') (bvN s') (mvN s') (axesOf s')).isSome }
+
+/-- 计数带：有效推动与 ACTION5 +1，被阻挡的推 +0，ACTION6/7 不动；换关那一步不管（清零后另起）。计数大于 0 时填充色是本关的 k_fill。 -/
+def counter_tick : Rule := {
+  name := "counter_tick",
+  guard := fun s a => match a with
+    | .a1 | .a2 | .a3 | .a4 => !clears s (dirOf a)
+    | .a5 | .a6 _ _ | .a7 => true
+    | _ => false,
+  effect := fun s a s' =>
+    s'.fill_color == fillFor s s'.counter &&
+    (match a with
+     | .a6 _ _ | .a7 => s'.counter == s.counter
+     | .a5 => s'.counter == s.counter + 1
+     | _ =>
+       let same := s'.pc_m == s.pc_m && s'.gh_m == s.gh_m && s'.bv_m == s.bv_m && s'.movers_m == s.movers_m
+       s'.counter == s.counter + (if same then 0 else 1)) }
+
+def rules : List Rule :=
+  [act1_up, act2_down, act3_mover_left, act4_mover_right, act5_inert, act6_select, act7_undo_step,
+   band_is_line, counter_tick, frame_is_render, level_clear, mirror, one_selected, overlap_render]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+/-- 目标：8 关全通（WIN 帧的 level 是 8）。 -/
+def isGoal (s : State) : Bool := s.level == 8
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。内核证明（decide +kernel），不依赖 ofReduceBool。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))
+

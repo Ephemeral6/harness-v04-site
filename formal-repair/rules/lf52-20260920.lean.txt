@@ -1,0 +1,918 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/lf52-20260920/_lib.py ; why=原数据段只有计数与聚合量、写不出下一步；换成格点相位+格点掩码的格集合读数 + 本关动作历史隐藏量 + 每关世界初值，stepRules 从关首重放整关世界
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+-- 由 world/formalize.py 生成于 2026-10-01T18:13:56+08:00；局 lf52；基于 run ['lf52-0915-2239', 'lf52-0920-0508']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 3033 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- lf52（孔明棋 + 轨道滑车 + 跟车镜头）。整体做法（修复 2026-09-29 起，2026-10-01 接手改写渲染与判跳的算法）：
+--   状态里只有：这一帧的视口读数（格点相位 phase + 11x11 屏幕格点掩码，与原 _lib 格集合读数逐帧一一对应）、
+--   本关世界初值 k_*（LEVEL_CONST）、本关动作历史 h_hist（玩家输入，13 位一个码）。
+--   stepRules 每一步都从关首用 k_* 建世界，把 h_hist 与这一步的动作依次重放（落子、吃子、选中、推车、
+--   镜头跟车/钉位/翻页、撤销栈、判死圆盘），再把世界按镜头渲染成视口读数。
+--   规律全部写在下面的 Lean 里；_lib 只提供这一帧看得见的格集合、每关初值与输入记录。
+--   重放时世界的可变部分编成一个自然数（encW/decW），每步先求成字面量（forceN）：同一局面 + 同一输入在内核里只算一次。
+/-
+================ 公示（修复 2026-09-29 ～ 10-01；草稿与脚本全在 meta/repair-20260928/_scratch/lf52-20260920/） ================
+【编译】本机 20 GB 上限内编不完：整份（两条定理 + 诊断）在 mu03 上编译 rc=0，约 650 s、峰值 RSS 约 37 GB，两条定理公理只 [propext]。
+  单独 faithful 在本机 -M20000 下 473 s 撞 20 GB 上限失败（x2/full.out）。内核开销的大头：每步从关首重放（前缀按字面量缓存）、
+  判死的推车 BFS（第 5 关一次探 1870 个车局面）、每步渲染。
+【读数】_lib 副本的格集合读数（holes/pegs/rings/steps/stones/greys/carts）在状态里编成「帧格点相位 phase + 11x11 屏幕格点掩码 *_vm」。
+  全部 11842 帧所有格集合同一相位、格点下标 ≤ 10（q_phase.py）；上一版字段 *_pk 由新字段逐帧算回 0 处不符（derive_proof2.py），
+  更早的原读数（holes() 等集合、jumpable/cart/all_jumps/any_jump 等）由 *_pk 决定的证明见 derive_proof.py（按新状态分组、组内唯一）。
+  selected / disc / background / world_open 原样。只换编码，读法一字未改；换编码只为内核能按行移位渲染。
+【R1 隐藏量】h_hist = 本关动作输入记录（ACTION1..4→1..4，ACTION7→5，ACTION6:x,y→6+64y+x，其余→4102，13 位一个）。
+  hidden_step 只读动作串，不看帧、不推演任何后果；生成器在 run 开头 / RESET / 换关后清零。它不是「按模型推演的潜在状态」，
+  潜在状态例外的三条件照样给读数：① 世界的全部规律（落子吃子、选中、推车、镜头、撤销栈、判死圆盘）只写在下面的 Lean 里；
+  ② 改错实验（Lean 侧，mk_mut.py / run_mut3.py → mut_results3.txt）：在规则段副本里改错一处、对语料 2839 条关内转移与路线 895 条关内步
+     做整步比对（keyEq），不符条数（基线 8 / 0）：镜头跟车步长一律 6：125 / 36；子进钉位车镜头不跳：736 / 244；不翻页：250 / 220；
+     翻页不看剩子数：335 / 73；从不冒圆盘：253 / 1；判死不做推车搜索：166 / 86；方向键只有推动车才压撤销栈：232 / 0；
+     点击命中框不放宽 1 像素：9 / 0（只比基线多 1 条，0915 seq 2635）；行 0 孔不认：44 / 36。9 种改错语料上全部抓到，路线上抓到 7 种。
+     手核一例：第 2 关跟车步长实为 8，改成 6 后路线自第一次跟车推动（seq 2708）起该关余下 36 步全错，与第 2 关路线步数相符。
+  ③ 只有 h_hist 在变、可见读数前后完全相同的关内转移：语料 1030 / 2839，路线 31 / 895（这些步只靠「渲染结果不变」被检验）。
+【stepRules 整步不符】语料关内转移 2839 条中 8 条整步对不上：0915 run seq 2636–2642（第 0 关，选中 / 环读数）与 seq 4712（第 2 关）。
+  原因未查清（读不出说不出）；这 8 条不在路线上，各条概念规则在这 8 条上照常成立（consistent 不对它们断言整步）。
+-- （主会话按复审更正：原因审计已查明，是对 stepRules 的两个反例）
+--   ① seq 2636（2637–2642 是级联）：第 0 关有选中时点在墙上（y=29，像素色 5），游戏什么都没发生，模型判「点空白即取消选中」。
+--      全语料「有选中且点空」只有 3 条：2196、2585 取消选中，2636 不取消；2196 也点在色 5 上，像素色分不开。这条律不在任何定理里。
+--   ② seq 4712（第 2 关）：跳执行后剩下的子由色 14 整体变色 2（_lib.pegs 记的第 2 关死局信号），模型却预测冒圆盘；
+--      它被 click_ring_jumps 的 calmJump（落点列 < 50；此处落点列 60）让开。「死局冒圆盘」律随关而异，模型没建这个差别。
+-- （主会话按复审补）stepRules 不读输入状态的可见字段，只用 k_* 加 h_hist 从关首重放：step 是「本关输入史 → 画面」的函数，不是画面上的状态机。
+--   consistent 里真用到 stepRules 的只有 cart_moves_iff_rail_ahead（1107 条）与 action7_undoes_one_move（91 条）；点击类的镜头钉位与翻页
+--   只由 faithful 路线覆盖。全语料 2839 条整步只在 #eval 诊断里核过（8 条不符即上述两个反例），不在定理里——加一条全语料整步规则要改代码、
+--   须在 mu03 重编，本轮未做。
+【每关常数 LEVEL_CONST 事后取值统计】（q_kstats.py，按路线 run 逐关重放，记每个世界格第一次进入视口的步）
+  L0 孔33/子5 全在首帧。L1 孔25 子5 轨19 车1 全在首帧。L2 孔47（首帧24，后露23，最晚第16步）子14（8/6）轨14 车2 首帧。
+  L3 孔60（22/38，最晚30）子6（3/3）踏板12（2/10）轨18（7/11）车3（首帧1，后露2，最晚27）钉位2。
+  L4 孔35（10/25，最晚88）子6（2/4）踏板5（1/4）轨53（26/27）车3（2/1，最晚88）钉位1。
+  L5 孔63（35/28，最晚94）子7（3/4）石1 踏板3（0/3）轨24（3/21）车3（2/1）钉位1。
+  L6 孔20（9/11，最晚189）子2（1/1）石1 踏板12（6/6）轨59（23/36）车6（首帧1，后露5，最晚189）。
+  L7 孔50（42/8，最晚41）子2 灰4（2/2）踏板5 轨22（12/10）车5（1/4，最晚42）钉位2。
+  L8 孔63（28/35，最晚38）子3（2/1）灰6（4/2）踏板5（0/5）轨15（4/11）车1 钉位1。
+  L9 孔27 子2 灰5 全在首帧；轨36（32 首帧，4 格从未进视口：车从视口下沿外开上来，由车的首见轨迹推定）；车8（4/4，最晚第4步）。
+  视口外的板面没人能动，格的内容取首次露面那一帧；首帧看不见的车，初位由正向集合模拟反推（sim_infer2.py）。
+  镜头钉位（车屏幕偏移）取自该车第一次装子之后的帧；镜头界 lo/hi 取两个 run 实际到过的镜头范围；第 2 关跟车步长 8、「任一载子车都跟」标志。
+【拟合常数唯一性】后露车的初位不唯一：第 6 关右区 6 组初位都与全部观测相容，取其一，路线结果不变（交回里已列）；其余后露车的相容集未逐一公示。
+  镜头界：只在真被卡住的那一侧由数据钉死；从未卡住的一侧取到过的极值，换更宽的值不改变任何观测（未逐边核）。镜像统计镜头被界卡住 184 次（q_cover.txt）。
+-- （主会话按复审补，审计逐边放宽后看该关整步不符数）
+--   被钉住：L2 loY/loX/hiY；L4 loY/hiY/hiX；L5 loY/hiY；L6 hiX；L7 loX/hiX。
+--   没被钉住（放宽后不符数不变）：L2 hiX=24；L3 hiY=42、hiX=54；L4 loX=−18；L5 hiX=106；L7 hiY=30；L8 hiX=104；L9 各侧放宽前后都是 0，不算钉住。
+--   后露车初位不唯一不止第 6 关：第 3 关车 2（初位 253）另有 250、251、252 三个替代位整步不符同为 0；第 4–9 关其余后露车未逐一核（第 6 关「6 组相容」审计未复现，超时）。
+--   第 6–9 关的 477 条关内步全是路线步，非路线的关内行（1944 条，全在 0915 run）只在 L0–L5——L6–L9 的常数是在路线帧上反推的，没有留出验证。
+--   改错实验都改在规则代码上，没有对 LEVEL_CONST（车初位、轨）做改错；「载子车不判死」短路改掉后语料 / 路线不符数不变（数据钉不住）。
+【未走到的分支】（q_cover.py，镜像按 Lean 分支逐关重放两个 run）推车链 fuel 用尽 0 次、车顶到世界边界 0 次；灰团跳进 / 跳出车 0 次；
+  灰团跳引起镜头移动 0 次；钉位车 + 「任一载子车都跟」同时成立 0 次；撤销空栈 1 次。这些分支是猜的，未检验。
+【与概念原文出入】click_stuck_peg_deselects 只在该子四周两格都在视口内时断言（概念是「落点在视口外不表态」）；
+  click_ring_jumps / jump_over_step_captures_nothing / grey_jumps_and_eats_nothing / stone_moves_when_no_peg_selected 只断言镜头不动的跳
+  （起落都不在车里、落点在第 50 列前），冒圆盘那一步不断言；keys_clear_selection_iff_board_moved 以「车或孔或相位读数变了」当「盘面动了」，
+  盘上有石子时不断言（与概念同）；disc_only_at_the_killing_move / no_disc_on_already_dead_position 用视口里的合法跳判活，不扣车；
+  cart_moves_iff_rail_ahead 与 action7_undoes_one_move 不在视口上判，而是用整世界重放的 stepRules 比对车/孔/相位读数或整步；
+  loaded_cart_column_pinned 照概念写死第 4 关列 30、第 5 关列 28。判死多一条「车里有子就不判死」的短路（为内核耗时；镜像统计 26 次跳后无世界跳但车里有子）。
+-- （主会话按复审补，比原文弱的两条）levelup_needs_capture_jump 丢了「非终局则换盘」半句；
+--   levelup_is_two_peg_capture 的「过关 ⇒ 视口恰好 2 颗子」方向被 guard 吞掉，只剩形状检验。
+【没写成规则的概念（20 条）】counter_advance（计数条不是状态读数，只间接进入行 0 孔的渲染）；click_select_price_counts_jumps、
+  click_jump_price_counts_jumps（价目是像素差格数，状态里没有像素差）；board_replaced_iff_last_peg、board_swap_needs_board_almost_empty、
+  empty_board_rolls_in_from_east（换盘就是换关，换关那一步查表，新盘布局是游戏内容）；camera_frozen_without_loaded_cart、camera_pins_loaded_cart、
+  loaded_cart_row_pinned、loaded_cart_peg_offset_shifts_by_key、pan_is_one_stride_rigid、pan_opposes_key_axis、pegs_scroll_with_the_board
+  （镜头规律写进了 stepRules 的世界模型，由 faithful 与 cart_moves_iff_rail_ahead 整体检验，没有单列成规则）；
+  cart_slides_one_stride、cart_body_travels_intact、adjacent_carts_never_split_along_axis、vacated_cart_cell_is_rail、vacated_cart_cell_holds_nothing、
+  keys_dont_push_free_stones（推车规律同上，在 stepRules 里；腾出格的轨画法不在读数里）；disc_only_on_dead_position（判死写在 stepRules 的 BFS 里，
+  圆盘读数只有有无，规则侧用 disc_only_at_the_killing_move / no_disc_on_already_dead_position 两条）。
+【路线】905 步（从第 0 关到 WIN），其中 10 步换关查表（worldRows 10 行，全是换关），其余 895 步由 stepRules 算出。
+================================================================================================================
+-/
+
+-- ---------- 编码 ----------
+/-- 把 x 求成字面量再交给 k（内核里参数是惰性的；不先求值，缓存的键每次都不一样）。 -/
+def forceN (x : Nat) (k : Nat → α) : α := match x with | 0 => k 0 | n + 1 => k (n + 1)
+
+def histLen (h : Nat) : Nat := if h == 0 then 0 else (Nat.log2 h + 13) / 13
+
+def actCode : Act → Nat
+  | Act.a1 => 1 | Act.a2 => 2 | Act.a3 => 3 | Act.a4 => 4 | Act.a7 => 5
+  | Act.a6 x y => 6 + 64 * y + x
+  | _ => 4102
+
+/-- 位掩码里所有置位的下标（升序）。 -/
+def bitsOf (m : Nat) : List Nat :=
+  let rec go : Nat → Nat → List Nat
+    | 0, _ => []
+    | fuel + 1, x => if x == 0 then [] else
+        let b := Nat.log2 (x ^^^ (x - 1))
+        b :: go fuel (x - 2 ^ b)
+  go 400 m
+
+def popc (m : Nat) : Nat := (bitsOf m).length
+
+def andNot (a b : Nat) : Nat := a ^^^ (a &&& b)
+
+-- ---------- 世界 ----------
+structure Cart where
+  idx : Nat
+  cont : Nat          -- 0 空 1 子 2 石 3 灰 4 踏板
+  pin : Bool          -- 有没有镜头钉位
+  py : Int
+  px : Int
+deriving DecidableEq, Repr
+
+structure Snap where
+  P : Nat
+  S : Nat
+  G : Nat
+  carts : List Cart
+  cy : Int
+  cx : Int
+  sel : Option Nat
+  follow : Option Nat
+  disc : Bool
+
+structure Wd where
+  oy : Int
+  ox : Int
+  R : Nat
+  C : Nat
+  H : Nat
+  RL : Nat
+  ST : Nat
+  P : Nat
+  S : Nat
+  G : Nat
+  carts : List Cart
+  loY : Int
+  loX : Int
+  hiY : Int
+  hiX : Int
+  gain : Int
+  fall : Bool
+  cy : Int
+  cx : Int
+  sel : Option Nat
+  follow : Option Nat
+  disc : Bool
+  stack : List Snap
+  opn : Bool
+  pend : Bool         -- 刚跳完、世界里没有跳、车里也没子：圆盘要不要冒，等下一次用到时再做 BFS 定
+
+def field11 (v s : Nat) : Int := (((v >>> s) % 2048 : Nat) : Int) - 512
+
+def decodeCarts (v : Nat) : List Cart :=
+  let rec go : Nat → Nat → List Cart
+    | 0, _ => []
+    | fuel + 1, w => if w == 0 then [] else
+        let e := w % 2 ^ 31
+        { idx := e % 2048, cont := (e >>> 11) % 8, pin := (e >>> 14) % 2 == 1,
+          py := (((e >>> 15) % 256 : Nat) : Int) - 64, px := (((e >>> 23) % 128 : Nat) : Int) - 64 } :: go fuel (w >>> 31)
+  go 20 v
+
+/-- 关首世界：几何、孔、轨、踏板、子/石/灰、车、镜头界、开门标记，全由本关初值 k_* 给出。 -/
+def initK (g H RL ST P S G kc c op : Nat) : Wd :=
+  { oy := field11 g 0, ox := field11 g 11, R := (g >>> 22) % 256, C := (g >>> 30) % 256,
+    H := H, RL := RL, ST := ST, P := P, S := S, G := G,
+    carts := decodeCarts kc,
+    loY := field11 c 0, loX := field11 c 11, hiY := field11 c 22, hiX := field11 c 33,
+    gain := ((c >>> 44) % 16 : Nat), fall := (c >>> 48) % 2 == 1,
+    cy := 0, cx := 0, sel := none, follow := none, disc := false, stack := [], opn := op == 1, pend := false }
+
+def initW (s : State) : Wd :=
+  initK s.k_geom.toNat s.k_holes.toNat s.k_rails.toNat s.k_steps.toNat s.k_pegs.toNat s.k_stones.toNat
+    s.k_greys.toNat s.k_carts.toNat s.k_cam.toNat s.k_open.toNat
+
+def bitN (m i : Nat) : Bool := Nat.testBit m i
+
+def cartAt (cs : List Cart) (i : Nat) : Option Nat :=
+  let rec go : List Cart → Nat → Option Nat
+    | [], _ => none
+    | c :: rest, k => if c.idx == i then some k else go rest (k + 1)
+  go cs 0
+
+def noCart : Cart := { idx := 0, cont := 0, pin := false, py := 0, px := 0 }
+
+/-- 格 i 沿方向 d（1 上 2 下 3 左 4 右）的邻格。 -/
+def nb (w : Wd) (i d : Nat) : Option Nat :=
+  let r := i / w.C
+  let c := i % w.C
+  match d with
+  | 1 => if r ≥ 1 then some (i - w.C) else none
+  | 2 => if r + 1 < w.R then some (i + w.C) else none
+  | 3 => if c ≥ 1 then some (i - 1) else none
+  | _ => if c + 1 < w.C then some (i + 1) else none
+
+def contOf (w : Wd) (i : Nat) : Nat :=
+  match cartAt w.carts i with
+  | some k => (w.carts.getD k noCart).cont
+  | none => if bitN w.ST i then 4 else if bitN w.P i then 1 else if bitN w.S i then 2 else if bitN w.G i then 3 else 0
+
+def isHole (w : Wd) (i : Nat) : Bool :=
+  match cartAt w.carts i with
+  | some k => (w.carts.getD k noCart).cont != 4
+  | none => bitN w.H i
+
+/-- 合法跳的落点：跨过相邻的可跨物（子/石/灰/踏板），落在空孔（含空车腔）上。 -/
+def jumpsFrom (w : Wd) (i : Nat) : List Nat :=
+  let c := contOf w i
+  if c == 0 || c == 4 then [] else
+  [1, 3, 4, 2].filterMap fun d =>
+    match nb w i d with
+    | none => none
+    | some o => match nb w o d with
+      | none => none
+      | some t => if contOf w o != 0 && isHole w t && contOf w t == 0 then some t else none
+
+def setCont (w : Wd) (i c : Nat) : Wd :=
+  match cartAt w.carts i with
+  | some k => { w with carts := w.carts.set k { (w.carts.getD k noCart) with cont := c } }
+  | none =>
+    let m := 1 <<< i
+    let P := andNot w.P m
+    let S := andNot w.S m
+    let G := andNot w.G m
+    { w with P := if c == 1 then P ||| m else P, S := if c == 2 then S ||| m else S, G := if c == 3 then G ||| m else G }
+
+def nbRC (R C i d : Nat) : Option Nat :=
+  match d with
+  | 1 => if i ≥ C then some (i - C) else none
+  | 2 => if i + C < R * C then some (i + C) else none
+  | 3 => if i % C ≥ 1 then some (i - 1) else none
+  | _ => if i % C + 1 < C then some (i + 1) else none
+
+/-- 车沿 d 能不能走：前方一格是轨，或者停着一辆自己走得动的车（车队顶着走）。车占位是位掩码 occ。 -/
+def freeFast (R C RL occ d : Nat) : Nat → Nat → Bool
+  | 0, _ => false
+  | fuel + 1, i =>
+    match nbRC R C i d with
+    | none => false
+    | some t => if Nat.testBit occ t then freeFast R C RL occ d fuel t else Nat.testBit RL t
+
+def cartMask (cs : List Cart) (p : Cart → Bool) : Nat :=
+  cs.foldl (fun m c => if p c then m ||| (1 <<< c.idx) else m) 0
+
+def moveCarts (w : Wd) (d : Nat) : Wd × List Bool :=
+  let occ := cartMask w.carts (fun _ => true)
+  let n := w.carts.length + 1
+  let R := w.R
+  let C := w.C
+  let RL := w.RL
+  let res := w.carts.map fun c =>
+    if freeFast R C RL occ d n c.idx then
+      match nbRC R C c.idx d with
+      | some t => ({ c with idx := t }, true)
+      | none => (c, false)
+    else (c, false)
+  ({ w with carts := res.map (·.1) }, res.map (·.2))
+
+def clampI (v lo hi : Int) : Int := if v < lo then lo else if v > hi then hi else v
+
+def wpix (w : Wd) (i : Nat) : Int × Int := (w.oy + 6 * ((i / w.C : Nat) : Int), w.ox + 6 * ((i % w.C : Nat) : Int))
+
+def snapOf (w : Wd) : Snap := { P := w.P, S := w.S, G := w.G, carts := w.carts, cy := w.cy, cx := w.cx, sel := w.sel, follow := w.follow, disc := w.disc }
+
+def restoreW (w : Wd) (s : Snap) : Wd :=
+  { w with P := s.P, S := s.S, G := s.G, carts := s.carts, cy := s.cy, cx := s.cx, sel := s.sel, follow := s.follow, disc := s.disc }
+
+/-- 列掩码：每行里列号满足 p 的位，铺满 R 行。 -/
+def colsMask (R C : Nat) (p : Nat → Bool) : Nat :=
+  let row := (List.range C).foldl (fun m c => if p c then m ||| (1 <<< c) else m) 0
+  (List.range R).foldl (fun m r => m ||| (row <<< (r * C))) 0
+
+/-- 世界里还有没有任何合法跳（子、石、灰都算起跳者）。与 jumpsFrom 同一条规律，按四个方向整盘移位一次判完：
+    起点是可跳物、中间格非空（子/石/灰/踏板）、落点是空孔（含空车腔）。 -/
+def awjCore (colL colR : Nat) (w : Wd) : Bool :=
+  let C := w.C
+  let cm := cartMask w.carts (fun _ => true)
+  let stF := andNot w.ST cm
+  let piece := andNot (w.P ||| w.S ||| w.G) (w.ST ||| cm) ||| cartMask w.carts (fun c => c.cont == 1 || c.cont == 2 || c.cont == 3)
+  let nz := piece ||| stF ||| cartMask w.carts (·.cont == 4)
+  let em := andNot (andNot w.H cm) (w.ST ||| w.P ||| w.S ||| w.G) ||| cartMask w.carts (·.cont == 0)
+  (piece &&& colL &&& (nz >>> 1) &&& (em >>> 2)) != 0 ||
+  (piece &&& colR &&& (nz <<< 1) &&& (em <<< 2)) != 0 ||
+  (piece &&& (nz >>> C) &&& (em >>> (2 * C))) != 0 ||
+  (piece &&& (nz <<< C) &&& (em <<< (2 * C))) != 0
+
+def anyWorldJump (w : Wd) : Bool :=
+  awjCore (colsMask w.R w.C (fun c => c + 3 ≤ w.C)) (colsMask w.R w.C (fun c => c ≥ 2)) w
+
+-- ---------- 判死：车局面 BFS ----------
+/-- 车局面 = 各辆车所在格（每辆 11 位）；车里装的东西推车时不变，取自 w.carts。 -/
+def confKey (cs : List Cart) : Nat := cs.foldr (fun c acc => acc * 2048 + c.idx) 0
+
+def decPos : List Cart → Nat → List Cart
+  | [], _ => []
+  | c :: rest, v => { c with idx := v % 2048 } :: decPos rest (v >>> 11)
+
+/-- 合并两个升序表，同值只留一个。 -/
+def mergeN : Nat → List Nat → List Nat → List Nat
+  | 0, a, b => a ++ b
+  | _ + 1, [], b => b
+  | _ + 1, a, [] => a
+  | f + 1, x :: xs, y :: ys =>
+    if x < y then x :: mergeN f xs (y :: ys) else if y < x then y :: mergeN f (x :: xs) ys else x :: mergeN f xs ys
+
+def splitAlt : List α → List α × List α
+  | [] => ([], [])
+  | [x] => ([x], [])
+  | x :: y :: rest => let r := splitAlt rest; (x :: r.1, y :: r.2)
+
+def msortN : Nat → List Nat → List Nat
+  | 0, l => l
+  | _ + 1, [] => []
+  | _ + 1, [x] => [x]
+  | f + 1, l => let p := splitAlt l; mergeN (l.length + 1) (msortN f p.1) (msortN f p.2)
+
+/-- 升序表 a 里去掉出现在升序表 b 里的项。 -/
+def diffN : Nat → List Nat → List Nat → List Nat
+  | 0, a, _ => a
+  | _ + 1, [], _ => []
+  | _ + 1, a, [] => a
+  | f + 1, x :: xs, y :: ys =>
+    if x < y then x :: diffN f xs (y :: ys)
+    else if y < x then diffN f (x :: xs) ys
+    else diffN f xs (y :: ys)
+
+/-- 推车能否造出一跳：从当前车局面出发，按四个方向键对全体车做宽度优先搜索（车一起动），
+    任一可达局面下世界里有合法跳即为「活」。每层：生成、排序去重、减去已访问（都是升序表归并）。 -/
+def bfsLive (w : Wd) (colL colR : Nat) : Nat → List Nat → List Nat → Bool
+  | 0, _, _ => true
+  | _ + 1, [], _ => false
+  | fuel + 1, front, seen =>
+    if front.any (fun key => awjCore colL colR { w with carts := decPos w.carts key }) then true else
+    let cand := front.foldl (fun acc key =>
+      let w1 := { w with carts := decPos w.carts key }
+      [1, 2, 3, 4].foldl (fun acc2 d => confKey (moveCarts w1 d).1.carts :: acc2) acc) []
+    let srt := msortN 30 cand
+    let fresh := diffN (srt.length + seen.length + 1) srt seen
+    bfsLive w colL colR fuel fresh (mergeN (seen.length + fresh.length + 1) seen fresh)
+
+/-- 判死（圆盘）：世界里没有任何合法跳，车里也没有子，且推车造不出跳。
+    「车里有子就不判死」是为内核耗时加的短路（交回公示）。 -/
+def maybeDead (w : Wd) : Bool := !anyWorldJump w && !(w.carts.any (·.cont == 1))
+
+/-- 圆盘的定夺推迟到下一次用到这个世界时（下一个动作之前、或渲染之前）；中间世界没变，结果与立即定夺相同。 -/
+def resolveW (w : Wd) : Wd :=
+  if w.pend then
+    let colL := colsMask w.R w.C (fun c => c + 3 ≤ w.C)
+    let colR := colsMask w.R w.C (fun c => c ≥ 2)
+    { w with pend := false, disc := !bfsLive w colL colR 400 [confKey w.carts] [confKey w.carts] }
+  else w
+
+-- ---------- 渲染（屏幕格点：相位 (py, px)，格 (i, j) 在屏幕 (py+6i, px+6j)，掩码第 i*11+j 位） ----------
+def visPos (w : Wd) (i : Nat) : Option (Int × Int) :=
+  let p := wpix w i
+  let y := p.1 - w.cy
+  let x := p.2 - w.cx
+  if w.disc && y + 3 ≥ 51 && x ≤ 12 && x + 3 ≥ 1 then none
+  else if 0 ≤ y && y ≤ 60 && 0 ≤ x && x ≤ 60 then some (y, x) else none
+
+structure Out where
+  phase : Int
+  holes : Nat
+  pegs : Nat
+  stones : Nat
+  greys : Nat
+  steps : Nat
+  carts : Nat
+  rings : Nat
+  sel : Option (Int × Int)
+  disc : Bool
+  opn : Bool
+
+/-- 视口几何：相位、世界行列到屏幕格点的偏移、看得见的格点行列数。 -/
+structure VG where
+  py : Int
+  px : Int
+  dr : Int
+  dc : Int
+  nR : Nat
+  nC : Nat
+
+def vgOf (w : Wd) : VG :=
+  let sy := w.oy - w.cy
+  let sx := w.ox - w.cx
+  let py := sy % 6
+  let px := sx % 6
+  { py := py, px := px, dr := (py - sy) / 6, dc := (px - sx) / 6,
+    nR := ((60 - py) / 6 + 1).toNat, nC := ((60 - px) / 6 + 1).toNat }
+
+/-- 屏幕格点坐标 (y, x) 的掩码位。 -/
+def vbit (g : VG) (y x : Int) : Nat := 1 <<< (((y - g.py) / 6).toNat * 11 + ((x - g.px) / 6).toNat)
+
+/-- 世界掩码 M 在视口里的那一块，搬到屏幕格点掩码上。 -/
+def viewMask (w : Wd) (g : VG) (M : Nat) : Nat :=
+  let full := (1 <<< w.C) - 1
+  let keep := (1 <<< g.nC) - 1
+  (List.range g.nR).foldl (fun acc (i : Nat) =>
+    let r : Int := (i : Int) + g.dr
+    if 0 ≤ r && r < (w.R : Int) then
+      let row := (M >>> (r.toNat * w.C)) &&& full
+      let sl := (if g.dc ≥ 0 then row >>> g.dc.toNat else row <<< (-g.dc).toNat) &&& keep
+      acc ||| (sl <<< (11 * i))
+    else acc) 0
+
+/-- 屏幕格点上被圆盘盖住的格（屏幕行 y+3 ≥ 51、列 x ≤ 12）。 -/
+def discMask (g : VG) : Nat :=
+  let cols := (List.range 11).foldl (fun m (j : Nat) => if g.px + 6 * (j : Int) ≤ 12 then m ||| (1 <<< j) else m) 0
+  (List.range 11).foldl (fun m (i : Nat) => if g.py + 6 * (i : Int) + 3 ≥ 51 then m ||| (cols <<< (11 * i)) else m) 0
+
+structure Masks where
+  cart : Nat
+  hs : Nat      -- 看得见的孔：板孔（非踏板、非车位）+ 非踏板车的车腔
+  peg : Nat
+  sto : Nat
+  gry : Nat
+  stp : Nat
+  brd : Nat     -- 板孔（非踏板、非车位）
+
+def masks (w : Wd) : Masks :=
+  let cm := cartMask w.carts (fun _ => true)
+  let k := fun (v : Nat) => cartMask w.carts (·.cont == v)
+  let free := fun (m : Nat) => andNot m cm
+  { cart := cm,
+    hs := free (andNot w.H w.ST) ||| cartMask w.carts (·.cont != 4),
+    peg := free (andNot w.P w.ST) ||| k 1,
+    sto := free (andNot (andNot w.S w.ST) w.P) ||| k 2,
+    gry := free (andNot (andNot (andNot w.G w.ST) w.P) w.S) ||| k 3,
+    stp := free w.ST ||| k 4,
+    brd := free (andNot w.H w.ST) }
+
+/-- 行 0 的孔（计数条下面）：候选 = 行 0 的板孔、屏幕列 x+3 < 点亮数；种子 = 正下方一格是看得见的孔；再沿左右相邻闭包。 -/
+def row0Bits (cand seed : Nat) : Nat :=
+  let rec grow : Nat → Nat → Nat
+    | 0, f => f
+    | fuel + 1, f =>
+      let f2 := cand &&& (f ||| (f <<< 1) ||| (f >>> 1))
+      if f2 == f then f else grow fuel f2
+  grow 12 (cand &&& seed)
+
+/-- 屏幕行 y ≥ 1 的格点（相位 py = 0 时去掉第 0 行，它是计数条那一行）。 -/
+def body (g : VG) : Nat := if g.py == 0 then andNot ((1 <<< 121) - 1) 2047 else (1 <<< 121) - 1
+
+/-- 视口里看得见的子数（屏幕行 ≥ 1，圆盘盖住的不算）。 -/
+def visPegCount (w : Wd) : Nat :=
+  let g := vgOf w
+  let d := if w.disc then discMask g else 0
+  popc (andNot (viewMask w g (masks w).peg &&& body g) d)
+
+def render (w : Wd) (n : Nat) : Out :=
+  let nlit : Int := if n ≥ 64 then 64 else n
+  let g := vgOf w
+  let m := masks w
+  let d := if w.disc then discMask g else 0
+  let v := fun (M : Nat) => andNot (viewMask w g M) d
+  let bd := body g
+  let hv := v m.hs
+  let row0 := if g.py == 0 then
+      let lit := (List.range 11).foldl (fun a (j : Nat) => if g.px + 6 * (j : Int) + 3 < nlit then a ||| (1 <<< j) else a) 0
+      row0Bits (viewMask w g m.brd &&& 2047 &&& lit) ((viewMask w g m.hs >>> 11) &&& 2047)
+    else 0
+  let rings := match w.sel with
+    | none => 0
+    | some s => (jumpsFrom w s).foldl (fun a t => match visPos w t with
+      | some p => if p.1 ≥ 1 then a ||| vbit g p.1 p.2 else a
+      | none => a) 0
+  let oh := (hv &&& bd) ||| row0
+  let op := v (m.hs &&& m.peg) &&& bd
+  let os := v (m.hs &&& m.sto) &&& bd
+  let og := v (m.hs &&& m.gry) &&& bd
+  let ot := v m.stp &&& bd
+  let oc := v m.cart
+  let sel := w.sel.bind (visPos w)
+  let ph : Int := if (oh ||| op ||| os ||| og ||| ot ||| oc ||| rings) == 0 && sel.isNone then -1 else g.py * 6 + g.px
+  { phase := ph, holes := oh, pegs := op, stones := os, greys := og, steps := ot, carts := oc, rings := rings,
+    sel := sel, disc := w.disc, opn := w.opn || w.disc }
+
+-- ---------- 一个动作 ----------
+/-- 点击命中：格的 4x4 孔（或踏板、车腔）向上、向左各放宽 1 像素的 5x5 框。 -/
+def hitCell (w : Wd) (Y X : Int) : Option Nat :=
+  let dy := Y + 1 - w.oy
+  let dx := X + 1 - w.ox
+  if dy < 0 || dx < 0 || dy % 6 > 4 || dx % 6 > 4 then none else
+  let r := (dy / 6).toNat
+  let c := (dx / 6).toNat
+  if r ≥ w.R || c ≥ w.C then none else
+  let i := r * w.C + c
+  if bitN w.H i || bitN w.ST i || (cartAt w.carts i).isSome then some i else none
+
+def dirTo (w : Wd) (src dst : Nat) : Nat :=
+  ([1, 2, 3, 4].find? fun d => match nb w src d with
+    | some o => nb w o d == some dst
+    | none => false).getD 0
+
+def page (w : Wd) : Wd := { w with cx := clampI (w.cx + 44) w.loX w.hiX }
+
+/-- 起跳。子跳过子就吃掉它；跨石、灰、踏板什么都不吃；石、灰起跳一概不吃。
+    镜头：子从板上跳进有钉位的车，镜头跳到「车 - 钉位」并从此跟这辆车；子从被跟的车里跳出、或落点在视口第 50 列以后，
+    且视口里只剩 ≤1 颗子时，镜头向右翻 44（撞界即停）。 -/
+def doJump (w0 : Wd) (src dst : Nat) : Wd :=
+  let w := { w0 with stack := snapOf w0 :: w0.stack }
+  let mv := contOf w src
+  let ov := (nb w src (dirTo w src dst)).getD src
+  let w := setCont (setCont w src 0) dst mv
+  let w := { w with sel := none }
+  if mv != 1 then
+    if (cartAt w.carts dst).isNone && (wpix w dst).2 - w.cx ≥ 50 && visPegCount w ≤ 1 then page w else w
+  else
+    let w := if contOf w ov == 1 then setCont w ov 0 else w
+    let w := match cartAt w.carts dst with
+      | some di =>
+        let cd := w.carts.getD di noCart
+        let w := { w with follow := if cd.pin || w.fall then some di else none }
+        if (cartAt w.carts src).isNone && cd.pin then
+          let p := wpix w cd.idx
+          { w with cy := clampI (p.1 - cd.py) w.loY w.hiY, cx := clampI (p.2 - cd.px) w.loX w.hiX }
+        else w
+      | none =>
+        let si := cartAt w0.carts src
+        let was := si.isSome && si == w.follow
+        let w := if si.isSome then { w with follow := none } else w
+        if ((wpix w dst).2 - w.cx ≥ 50 || was) && visPegCount w ≤ 1 then page w else w
+    { w with pend := maybeDead w }
+
+def keyDelta (d : Nat) : Int × Int :=
+  match d with | 1 => (-6, 0) | 2 => (6, 0) | 3 => (0, -6) | _ => (0, 6)
+
+/-- 圆盘在场时点在它的方框里（y 50..61、x 1..12）：本关重来。 -/
+def discHit (w : Wd) (code : Nat) : Bool :=
+  code ≥ 6 && code != 4102 && 50 ≤ (code - 6) / 64 && (code - 6) / 64 ≤ 61 && 1 ≤ (code - 6) % 64 && (code - 6) % 64 ≤ 12 && w.disc
+
+def stepW0 (k : Wd) (w : Wd) (code : Nat) : Wd :=
+  if 1 ≤ code && code ≤ 4 then
+    let w1 := { w with stack := snapOf w :: w.stack }
+    let (w2, mv) := moveCarts w1 code
+    let w3 := if mv.any id then { w2 with sel := none } else w2
+    match w3.follow with
+    | some f => if mv.getD f false then
+        let dd := keyDelta code
+        { w3 with cy := clampI (w3.cy + dd.1 * w3.gain / 6) w3.loY w3.hiY, cx := clampI (w3.cx + dd.2 * w3.gain / 6) w3.loX w3.hiX }
+      else w3
+    | none => w3
+  else if code == 5 then
+    match w.stack with
+    | s :: rest => { restoreW w s with stack := rest }
+    | [] => w
+  else if code ≥ 6 && code != 4102 then
+    let y : Int := ((code - 6) / 64 : Nat)
+    let x : Int := ((code - 6) % 64 : Nat)
+    if discHit w code then k
+    else match hitCell w (y + w.cy) (x + w.cx) with
+      | none => { w with sel := none }
+      | some hit =>
+        match w.sel with
+        | some s => if (jumpsFrom w s).contains hit then doJump w s hit
+          else if hit == s then w
+          else
+            let c := contOf w hit
+            if c == 1 || c == 2 || c == 3 then { w with sel := if (jumpsFrom w hit).isEmpty then none else some hit }
+            else if c == 4 || (cartAt w.carts hit).isSome then { w with sel := none } else w
+        | none =>
+          let c := contOf w hit
+          if c == 1 || c == 2 || c == 3 then { w with sel := if (jumpsFrom w hit).isEmpty then none else some hit }
+          else w
+  else w
+
+-- ---------- 重放：世界编成一个自然数 ----------
+-- 规律全在上面的 stepW0 / doJump / resolveW 里；这里只是把世界的可变部分编成一个自然数，好让同一局面、同一输入只算一次。
+
+def optEnc : Option Nat → Nat
+  | none => 0
+  | some i => i + 1
+
+def optDec (v : Nat) : Option Nat := if v == 0 then none else some (v - 1)
+
+/-- 低 40 位：待定、圆盘、镜头 y/x（+512）、选中格（+1）、被跟的车（+1）；往上每辆车 14 位（格 11 位 + 内容 3 位）；再往上 P、S、G 各 R*C 位。 -/
+def encW (w : Wd) : Nat :=
+  let W := w.R * w.C
+  let cs := w.carts.foldr (fun c acc => (acc <<< 14) + c.idx + 2048 * c.cont) 0
+  (if w.pend then 1 else 0) + (if w.disc then 2 else 0) + 4 * (w.cy + 512).toNat + 8192 * (w.cx + 512).toNat
+    + (optEnc w.sel <<< 24) + (optEnc w.follow <<< 35)
+    + ((cs + ((w.P + ((w.S + (w.G <<< W)) <<< W)) <<< (14 * w.carts.length))) <<< 40)
+
+def decCarts : List Cart → Nat → List Cart
+  | [], _ => []
+  | c :: rest, v => { c with idx := v % 2048, cont := (v >>> 11) % 8 } :: decCarts rest (v >>> 14)
+
+/-- encW 的逆：静态部分（几何、孔、轨、踏板、车的钉位、镜头界）取自 k。 -/
+def decW (k : Wd) (x : Nat) : Wd :=
+  let W := k.R * k.C
+  let cs := x >>> 40
+  let rest := cs >>> (14 * k.carts.length)
+  let mW := (1 <<< W) - 1
+  { k with pend := x % 2 == 1, disc := (x >>> 1) % 2 == 1,
+           cy := (((x >>> 2) % 2048 : Nat) : Int) - 512, cx := (((x >>> 13) % 2048 : Nat) : Int) - 512,
+           sel := optDec ((x >>> 24) % 2048), follow := optDec ((x >>> 35) % 32),
+           carts := decCarts k.carts cs, P := rest &&& mW, S := (rest >>> W) &&& mW, G := rest >>> (2 * W), stack := [] }
+
+/-- 本关静态初值打成一个数：开门位、几何（40 位）、镜头界（50 位）、车（640 位）、孔、轨、踏板（各 R*C 位）。 -/
+def packK (s : State) : Nat :=
+  let g := s.k_geom.toNat
+  let W := ((g >>> 22) % 256) * ((g >>> 30) % 256)
+  s.k_open.toNat + 2 * (g + ((s.k_cam.toNat + ((s.k_carts.toNat
+    + ((s.k_holes.toNat + ((s.k_rails.toNat + (s.k_steps.toNat <<< W)) <<< W)) <<< 640)) <<< 50)) <<< 40))
+
+def kOf (K : Nat) : Wd :=
+  let g := (K >>> 1) % 2 ^ 40
+  let W := ((g >>> 22) % 256) * ((g >>> 30) % 256)
+  let rest := K >>> 731
+  let mW := (1 <<< W) - 1
+  initK g (rest &&& mW) ((rest >>> W) &&& mW) (rest >>> (2 * W)) 0 0 0 ((K >>> 91) % 2 ^ 640) ((K >>> 41) % 2 ^ 50) (K % 2)
+
+/-- 判死定夺（见 resolveW），作用在局面数上。 -/
+def resolveN (k : Wd) (x : Nat) : Nat :=
+  if x % 2 == 0 then x else encW (resolveW (decW k x))
+
+/-- 一个非撤销输入作用在（已定夺的）局面数 x 上，结果也先定夺好。返回 新局面数 * 4 + 压栈位 + 2 * 重来位。 -/
+def stepX (K x0 x code : Nat) : Nat :=
+  let k := kOf K
+  let w := decW k x
+  if discHit w code then x0 * 4 + 2 else
+  let w2 := stepW0 (decW k x0) w code
+  resolveN k (encW w2) * 4 + (if w2.stack.isEmpty then 0 else 1)
+
+/-- 一个局面数占的位数（encW 的上界）。 -/
+def slotW (k : Wd) : Nat := 40 + 14 * k.carts.length + 3 * (k.R * k.C)
+
+/-- 一个输入作用在「局面 + 撤销栈」数 Z 上：Z = 当前局面 + 栈 << B，栈 = 栈顶 + 其余 << B（0 为空栈）。
+    撤销弹出栈顶（栈空则原地）；方向键与起跳把作用前的局面压栈；点圆盘重来回到关首、栈清空。 -/
+def stepZ (K x0 Z code : Nat) : Nat :=
+  let B := slotW (kOf K)
+  let x := Z &&& ((1 <<< B) - 1)
+  let st := Z >>> B
+  if code == 5 then (if st == 0 then x else st) else
+  let r := stepX K x0 x code
+  if r % 4 ≥ 2 then r / 4
+  else if r % 2 == 1 then r / 4 + ((x + (st <<< B)) <<< B)
+  else r / 4 + (st <<< B)
+
+/-- 从关首重放输入历史 h（f = h 的码数，13 位一个）：先重放去掉最后一个码的前缀，再作用最后一个码。
+    前缀与结果都先求成字面量，所以每个前缀在内核里只算一次，逐步重放整关是线性的。 -/
+def replayH (K x0 : Nat) : Nat → Nat → Nat
+  | 0, _ => x0
+  | f + 1, h =>
+    let sh := 13 * f
+    forceN (h >>> sh) fun c => forceN (h &&& ((1 <<< sh) - 1)) fun h0 =>
+    forceN (replayH K x0 f h0) fun Z => stepZ K x0 Z c
+
+def mkState (s : State) (o : Out) (h : Nat) : State :=
+  { s with phase := o.phase, holes_vm := o.holes, pegs_vm := o.pegs, stones_vm := o.stones, greys_vm := o.greys,
+           steps_vm := o.steps, carts_vm := o.carts, rings_vm := o.rings,
+           selected_r := o.sel.map (·.1), selected_c := o.sel.map (·.2),
+           disc_r := if o.disc then some 55 else none, disc_c := if o.disc then some 6 else none,
+           world_open := o.opn, h_hist := h }
+
+/-- 关内一步：从关首重放本关全部输入再加这一步，渲染出下一帧的读数。 -/
+def stepRules (s : State) (a : Act) : Option State :=
+  forceN (packK s) fun K =>
+  forceN (encW (initW s)) fun x0 =>
+  let h := s.h_hist.toNat
+  let h' := h + actCode a * 2 ^ (13 * histLen h)
+  let k := kOf K
+  forceN (replayH K x0 (histLen h + 1) h') fun Z =>
+  some (mkState s (render (decW k (Z % 2 ^ slotW k)) (histLen h + 1)) h')
+
+-- ---------- 规则 ----------
+def hitsSel (s : State) (a : Act) : Bool :=
+  match a, s.selected_r, s.selected_c with
+  | Act.a6 x y, some r, some c => r - 1 ≤ (y : Int) && (y : Int) ≤ r + 3 && c - 1 ≤ (x : Int) && (x : Int) ≤ c + 3
+  | _, _, _ => false
+
+def sameView (s s' : State) : Bool :=
+  s.phase == s'.phase && s.holes_vm == s'.holes_vm && s.pegs_vm == s'.pegs_vm && s.stones_vm == s'.stones_vm &&
+  s.greys_vm == s'.greys_vm && s.steps_vm == s'.steps_vm && s.carts_vm == s'.carts_vm && s.rings_vm == s'.rings_vm &&
+  s.selected_r == s'.selected_r && s.selected_c == s'.selected_c && s.disc_r == s'.disc_r
+
+/-- 视口世界：这一帧看得见的格集合直接当一张 11x11 的世界（格点就是屏幕格点，镜头 (0,0)），
+    规则用与 stepRules 同一批规律函数（jumpsFrom / hitCell / contOf …）在它上面复核概念。 -/
+def localW (s : State) : Option Wd :=
+  if s.phase < 0 then none else
+  let py := s.phase / 6
+  let px := s.phase % 6
+  let cm := s.carts_vm.toNat
+  let pg := s.pegs_vm.toNat
+  let sn := s.stones_vm.toNat
+  let gr := s.greys_vm.toNat
+  let st := s.steps_vm.toNat
+  let kind := fun (i : Nat) =>
+    if bitN pg i then 1 else if bitN sn i then 2 else if bitN gr i then 3 else if bitN st i then 4 else 0
+  let carts := (bitsOf cm).map fun i => ({ idx := i, cont := kind i, pin := false, py := 0, px := 0 } : Cart)
+  some { oy := py, ox := px, R := 11, C := 11, H := andNot s.holes_vm.toNat cm, RL := 0, ST := andNot st cm,
+         P := andNot pg cm, S := andNot sn cm, G := andNot gr cm, carts := carts,
+         loY := 0, loX := 0, hiY := 0, hiX := 0, gain := 6, fall := false, cy := 0, cx := 0,
+         sel := (match s.selected_r, s.selected_c with
+           | some r, some c => some (((r - py) / 6).toNat * 11 + ((c - px) / 6).toNat) | _, _ => none),
+         follow := none, disc := false, stack := [], opn := false, pend := false }
+
+def clickYX : Act → Option (Int × Int)
+  | Act.a6 x y => some ((y : Int), (x : Int))
+  | _ => none
+
+/-- 这一步点中视口世界里的哪一格（与 stepRules 同一个命中框）。 -/
+def clickHit (s : State) (a : Act) : Option (Wd × Nat) :=
+  match localW s, clickYX a with
+  | some w, some (y, x) => (hitCell w y x).map (fun i => (w, i))
+  | _, _ => none
+
+/-- 视口世界里格 i 的合法落点画成的环（屏幕行 ≥ 1 的才看得见）。 -/
+def ringsOf (w : Wd) (i : Nat) : Nat :=
+  (jumpsFrom w i).foldl (fun a t => match visPos w t with
+    | some p => if p.1 ≥ 1 then a ||| (1 <<< t) else a
+    | none => a) 0
+
+def samePieces (s s' : State) : Bool :=
+  s.phase == s'.phase && s.holes_vm == s'.holes_vm && s.pegs_vm == s'.pegs_vm && s.stones_vm == s'.stones_vm &&
+  s.greys_vm == s'.greys_vm && s.steps_vm == s'.steps_vm && s.carts_vm == s'.carts_vm
+
+def selIs (s' : State) (v : Option (Int × Int)) : Bool :=
+  s'.selected_r == v.map (·.1) && s'.selected_c == v.map (·.2)
+
+/-- 点中的是可跳物、且它在视口里有合法跳。 -/
+def selectable (w : Wd) (i : Nat) : Bool :=
+  let c := contOf w i
+  (c == 1 || c == 2 || c == 3) && !(jumpsFrom w i).isEmpty
+
+/-- 起跳：有选中物、点中的是它的一个落点。 -/
+def jumpClick (s : State) (a : Act) : Option (Wd × Nat × Nat) :=
+  match clickHit s a with
+  | some (w, t) => match w.sel with
+    | some src => if (jumpsFrom w src).contains t then some (w, src, t) else none
+    | none => none
+  | none => none
+
+/-- 这一跳不会动镜头：落点、起点都不是车腔，落点在第 50 列以前。 -/
+def calmJump (w : Wd) (src t : Nat) : Bool :=
+  (cartAt w.carts t).isNone && (cartAt w.carts src).isNone && (match visPos w t with | some v => v.2 < 50 | none => false)
+
+/-- 按规律算这一跳后的视口：起点清空、落点长出起跳者，子跳过子才吃。 -/
+def afterJump (w : Wd) (src t : Nat) : Wd :=
+  let mv := contOf w src
+  let ov := (nb w src (dirTo w src t)).getD src
+  let w2 := setCont (setCont w src 0) t mv
+  let w2 := if mv == 1 && contOf w ov == 1 then setCont w2 ov 0 else w2
+  { w2 with sel := none }
+
+def viewMatches (w : Wd) (s' : State) : Bool :=
+  let o := render w 0
+  o.pegs == s'.pegs_vm.toNat && o.stones == s'.stones_vm.toNat && o.greys == s'.greys_vm.toNat &&
+  o.steps == s'.steps_vm.toNat && o.carts == s'.carts_vm.toNat && s'.rings_vm == 0 && s'.selected_r == none
+
+def isKey : Act → Bool
+  | Act.a1 | Act.a2 | Act.a3 | Act.a4 => true
+  | _ => false
+
+def discBox (s : State) (a : Act) : Bool :=
+  s.disc_r.isSome && (match clickYX a with | some (y, x) => 50 ≤ y && y ≤ 61 && 1 ≤ x && x ≤ 12 | none => false)
+
+/-- 视口里装着子的车腔的屏幕列。 -/
+def loadedCols (s : State) : List Int :=
+  (bitsOf (s.carts_vm.toNat &&& s.pegs_vm.toNat)).map fun i => s.phase % 6 + 6 * ((i % 11 : Nat) : Int)
+
+def anyVisJump (s : State) : Bool :=
+  match localW s with
+  | some w => anyWorldJump w
+  | none => false
+
+def rules : List Rule := [
+  { name := "click_selected_peg_noop"
+    -- 再点一次已选中的那一个：什么都不变。
+    guard := fun s a => hitsSel s a && !discBox s a
+    effect := fun s _ s' => s'.level != s.level || sameView s s' },
+  { name := "click_selects_peg"
+    -- 没有选中时点一个有合法跳的可跳物：它被选中，环恰好画在它看得见的合法落点上，棋面不动。
+    guard := fun s a => s.selected_r.isNone && !discBox s a && (match clickHit s a with | some (w, i) => selectable w i | none => false)
+    effect := fun s a s' => s'.level != s.level || (match clickHit s a with
+      | some (w, i) => samePieces s s' && selIs s' (visPos w i) && s'.rings_vm.toNat == ringsOf w i
+      | none => false) },
+  { name := "click_switches_selection"
+    -- 已有选中时点另一个有合法跳的可跳物（不是环）：选中与环整个搬过去。
+    guard := fun s a => s.selected_r.isSome && !hitsSel s a && (jumpClick s a).isNone && !discBox s a &&
+      (match clickHit s a with | some (w, i) => selectable w i | none => false)
+    effect := fun s a s' => s'.level != s.level || (match clickHit s a with
+      | some (w, i) => samePieces s s' && selIs s' (visPos w i) && s'.rings_vm.toNat == ringsOf w i
+      | none => false) },
+  { name := "click_stuck_peg_deselects"
+    -- 点一个没有合法跳的子（它四周两格都在视口里，看得全）：选中与环清掉，棋面不动。
+    guard := fun s a => !hitsSel s a && (jumpClick s a).isNone && !discBox s a && (match clickHit s a with
+      | some (w, i) => contOf w i == 1 && (jumpsFrom w i).isEmpty &&
+          (match visPos w i with | some v => 13 ≤ v.1 && v.1 ≤ 48 && 12 ≤ v.2 && v.2 ≤ 48 | none => false)
+      | none => false)
+    effect := fun s _ s' => s'.level != s.level || (samePieces s s' && s'.selected_r == none && s'.rings_vm == 0) },
+  { name := "click_ring_jumps"
+    -- 选中的是子、点中它的一个环：起点清空、落点长出子、被跨的若是子就吃掉；选中与环清掉。
+    -- 只在镜头不会动的跳上断言（起落都不在车里、落点在第 50 列以前）；冒圆盘那一步不断言（圆盘会盖住左下角）。
+    guard := fun s a => (match jumpClick s a with
+      | some (w, src, t) => contOf w src == 1 && calmJump w src t
+      | none => false)
+    effect := fun s a s' => s'.level != s.level || s'.disc_r.isSome || (match jumpClick s a with
+      | some (w, src, t) => viewMatches (afterJump w src t) s'
+      | none => false) },
+  { name := "jump_over_step_captures_nothing"
+    -- 子跨过踏板、石子或灰团：什么都不吃，只有起跳的子挪两格。
+    guard := fun s a => (match jumpClick s a with
+      | some (w, src, t) => contOf w src == 1 && calmJump w src t &&
+          (let o := contOf w ((nb w src (dirTo w src t)).getD src); o == 2 || o == 3 || o == 4)
+      | none => false)
+    effect := fun s a s' => s'.level != s.level || s'.disc_r.isSome || (match jumpClick s a with
+      | some (w, src, t) => s'.pegs_vm.toNat == (render (afterJump w src t) 0).pegs &&
+          popc s'.pegs_vm.toNat == popc s.pegs_vm.toNat &&
+          s'.stones_vm == s.stones_vm && s'.greys_vm == s.greys_vm && s'.steps_vm == s.steps_vm
+      | none => false) },
+  { name := "grey_jumps_and_eats_nothing"
+    -- 选中的是灰团：灰团照子的跳法挪过去，盘上什么都不被吃。
+    guard := fun s a => (match jumpClick s a with
+      | some (w, src, t) => contOf w src == 3 && calmJump w src t
+      | none => false)
+    effect := fun s a s' => s'.level != s.level || (match jumpClick s a with
+      | some (w, src, t) => viewMatches (afterJump w src t) s' && s'.pegs_vm == s.pegs_vm
+      | none => false) },
+  { name := "stone_moves_when_no_peg_selected"
+    -- 选中的是石子：动的是石子，子一颗不少、不挪，被跨的原样留着。
+    guard := fun s a => (match jumpClick s a with
+      | some (w, src, t) => contOf w src == 2 && calmJump w src t
+      | none => false)
+    effect := fun s a s' => s'.level != s.level || (match jumpClick s a with
+      | some (w, src, t) => viewMatches (afterJump w src t) s' && s'.pegs_vm == s.pegs_vm
+      | none => false) },
+  { name := "click_dead_hole_inert"
+    -- 点一个空的板孔（不是车腔、不是环）：整帧读数不动，连选中与环都留着。
+    guard := fun s a => (jumpClick s a).isNone && !discBox s a && (match clickHit s a with
+      | some (w, i) => bitN w.H i && contOf w i == 0 && (cartAt w.carts i).isNone
+      | none => false)
+    effect := fun s _ s' => s'.level != s.level || sameView s s' },
+  { name := "click_step_inert"
+    -- 点在踏板上：没有选中时什么都不变；有选中时只清掉选中与环。
+    guard := fun s a => !discBox s a && (match clickHit s a with
+      | some (w, i) => contOf w i == 4
+      | none => false)
+    effect := fun s _ s' => s'.level != s.level || (samePieces s s' && s'.selected_r == none && s'.rings_vm == 0) },
+  { name := "click_outside_board"
+    -- 没有选中时点在任何孔、踏板、车腔的命中框之外：什么都不变。
+    guard := fun s a => s.selected_r.isNone && !discBox s a && (clickYX a).isSome && (clickHit s a).isNone
+    effect := fun s _ s' => s'.level != s.level || sameView s s' },
+  { name := "non_click_keys_inert"
+    -- 视口前后都没有车时，方向键只推计数条，读数一格不动。
+    guard := fun s a => isKey a && s.carts_vm == 0
+    effect := fun s _ s' => s'.level != s.level || s'.carts_vm != 0 || sameView s s' },
+  { name := "keys_clear_selection_iff_board_moved"
+    -- 方向键推动了车（车读数变了）就清掉选中与环；什么都没动则原样留着。
+    guard := fun s a => isKey a && s.selected_r.isSome && s.stones_vm == 0
+    effect := fun s _ s' => s'.level != s.level ||
+      (if s'.carts_vm != s.carts_vm || s'.holes_vm != s.holes_vm || s'.phase != s.phase then s'.selected_r == none && s'.rings_vm == 0
+       else s'.selected_r == s.selected_r && s'.rings_vm == s.rings_vm) },
+  { name := "disc_click_consumes"
+    -- 点在圆盘上：圆盘消失。
+    guard := fun s a => discBox s a
+    effect := fun _ _ s' => s'.disc_r == none },
+  { name := "disc_only_at_the_killing_move"
+    -- 圆盘从无到有的那一步，前一帧视口里必定还有合法跳。
+    guard := fun s _ => s.disc_r.isNone
+    effect := fun s _ s' => s'.level != s.level || s'.disc_r.isNone || anyVisJump s },
+  { name := "no_disc_on_already_dead_position"
+    -- 前一帧视口里已经一跳都没有：这一步不会冒圆盘。
+    guard := fun s _ => s.disc_r.isNone && !anyVisJump s
+    effect := fun s _ s' => s'.level != s.level || s'.disc_r.isNone },
+  { name := "levelup_needs_capture_jump"
+    -- 过关只由一次起跳引起：点之前有选中物，点的正是它的一个落点。
+    guard := fun s _ => s.level < 10
+    effect := fun s a s' => s'.level != s.level + 1 || (jumpClick s a).isSome },
+  { name := "levelup_is_two_peg_capture"
+    -- 过关那一步：视口里恰好剩 2 颗子，被点中的落点正是其中一颗跨过另一颗。
+    guard := fun s a => popc s.pegs_vm.toNat == 2 && (jumpClick s a).isSome
+    effect := fun s a s' => s'.level != s.level + 1 || (match jumpClick s a with
+      | some (w, src, t) => contOf w src == 1 && contOf w ((nb w src (dirTo w src t)).getD src) == 1
+      | none => false) },
+  { name := "loaded_cart_column_pinned"
+    -- 第 4、5 关：视口里恰好一辆载子车时，它的内腔屏幕列是常数（第 4 关 30、第 5 关 28）。
+    guard := fun s _ => (s.level == 4 || s.level == 5) && (loadedCols s).length == 1
+    effect := fun s _ s' => loadedCols s == [if s.level == 4 then 30 else 28] &&
+      (s'.level != s.level || (loadedCols s').length != 1 || loadedCols s' == [if s.level == 4 then 30 else 28]) },
+  { name := "action7_undoes_one_move"
+    -- 撤销：退回撤销栈顶（每次方向键、每次起跳各压一格）。整个世界用 stepRules 从关首重放后比对全部读数。
+    guard := fun s a => a == Act.a7 && s.level < 10
+    effect := fun s a s' => s'.level != s.level || (match stepRules s a with | some p => keyEq p s' | none => false) },
+  { name := "cart_moves_iff_rail_ahead"
+    -- 方向键：每辆车前方一格是轨（或一辆自己走得动的车）就走一格；镜头跟钉位车走。整个世界用 stepRules 重放后比对车与孔的读数。
+    guard := fun s a => isKey a && s.level ≥ 1 && s.level < 10
+    effect := fun s a s' => s'.level != s.level || (match stepRules s a with
+      | some p => p.carts_vm == s'.carts_vm && p.holes_vm == s'.holes_vm && p.phase == s'.phase
+      | none => false) }
+]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+def isGoal (s : State) : Bool := s.level ≥ 10
+-- ==== 规则段 END ====
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。用 native_decide：语料几百条，kernel 上 decide 太慢；代价是多依赖 Lean.ofReduceBool 这条公理。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))
+

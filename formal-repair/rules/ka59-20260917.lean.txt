@@ -1,0 +1,518 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/ka59-20260917/_lib.py ; why=原数据段只有计数、聚合掩码与被操纵物体的包围盒，写不出别的物体与门带下一步在哪（原文件 1705 行查表）；补了 objs / bare / gates（每个物体、裸物体、门带的位置尺寸色码层数）、band（色15）、lit（亮着的边）、frame4（露着的框壁），隐藏量 h_n（本关动作数，预算条由它算）与 h_gd（门带上次看见的朝向），每关常数 k_T / k_gd / k_wall（框壁布局）；原读数中 14 个退出状态（证明见 _scratch/ka59-20260917/p_retire.py）
+-- 由 world/formalize.py 生成于 2026-09-29T17:10:40+08:00；局 ka59；基于 run ['ka59-0915-1722']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+-- （数据段 1863 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复版规则段（meta/repair-20260928，2026-09-29）。
+-- 读数只给这一帧看得见的原语（见 lib 副本文件末尾说明）：
+--   objs_*  带壳物体（左上角、核心尺寸、核心色码）；bare_*  裸物体（左上角、高宽、形状位图）；
+--   gates_* 门带（左上角、高宽、看得见的朝向、色12 层数）；walls_m 色2∪色15；band_m 色15；lit 被操纵物体亮着的边；budget；
+--   frame4 露在外面的框壁（色4，去掉带壳物体的色4 核心）。
+-- 隐藏量：h_n 本关动作数（预算条由它和每关常数 k_T 算）；h_gd 每条门带上一次在像素上看见的朝向。
+-- 每关常数：k_T 预算步数；k_gd 开局门带朝向（开局整条色13 的带子要靠它）；k_wall 本关框壁布局（含被盖住的壁格）。
+-- 下面的走法、推法、连锁让位、滑出色15、门带数拍子与归零扫击、接触高亮、点击换选中、预算条、露出的框壁、过关判据，
+-- 全在 Lean 里从这些原语算。换关由 level_solved 解释「什么时候换」；换关那一步的新关卡整屏布局查 worldRows。
+-- 没写成规则的概念：budget_zero_gameover（要 GAME_OVER 这个局面状态，生成器不把 meta.state 放进抽象状态，
+--   本修复也没补这个读数，因此没写）。
+--
+-- 公示（证明力的边界）：
+--   · 13 条规则里，core_step / push_shove / bare_pushed / gate_pushed / gate_tick / gate_strike / gate_idle_strike /
+--     click_selects 的 effect 是同一个 stepRules 在不同字段上的投影。它们合起来的证明力是「这一个单体模拟器在语料上
+--     无反例」，不是每条概念各自被单独检验。push_kick、gate_end、contact_face、level_solved、budget_tick 的 effect
+--     另写（仍共用 kick / maskP 等原语）。
+--   · gate_strike 的射程 STRIKE = 3 与够得着的空隙 REACH（< 3 个格位）是拟合的裸常数：语料里空隙 0/1/2 格位的共 7 次
+--     全被扫走，空隙 4 格位的 1 次没动，空隙正好 3 格位的从没出现 —— 「够得着 3」与「够得着 4」分不开；扫人的带子全是
+--     6 层的，射程 3、CELL、层数÷2 也分不开。
+--   · gate_idle_strike 在去重语料上 guard 只命中 2 条：seq 3580（概念 EVIDENCE 那条）与路线上的 seq 4001（同一步带子
+--     先被推走再归零）。被扫的都是裸物体，带壳物体被闲置扫击 0 次。
+--   · 连锁让位只在 step 821/826（即 seq 851/856）那一对局面上发生（同一对局面在 3 次整局里重复：seq 851/856、1058/1063、3239/3244），
+--     都是 1 级、让 1 个格位；2 级连锁、让位途中撞墙 0 次。
+--   · 第 1、3 关的 k_T 只定到 {127, 128}（第 1 关最大 n = 127、第 3 关 65）；按本文件的 bar 公式两者对每个 n 都给同一根条
+--     （t127.py 枚举 n = 0..199 无一不同），所以永远分不开，取 128。
+--   · 语料从没走到的分支（sim.py --cov 插桩实数，全语料 3928 条关内转移）：makeWay 让位途中撞 stop / 出画面 0 次；
+--     chain 第 2 级 0 次；kick / 扫击在压带滑行中撞 stop 0 次；推手同时贴着 2 个以上物体 0 次；带壳物体被闲置扫击 0 次；
+--     门带朝向为 0（slices 落到宽）0 次、朝右长的门带 0 次（slices 取宽的 100 次全是朝左）；归零的带子朝向取自开局常数 0 次。
+--     这些分支是照概念写的，未经检验。
+--   · （主会话按复审补注）k_wall 取「全关露出框壁之并」：第 0、1、2、3、5、6 关里 Lean 用到的壁格此前都已露出过（3846 步 0 例外）；
+--     **第 4 关 (27,51)(28,51)(29,51) 三格被门带盖着，只在 seq 3863 露出一次**，此前 82 步（246 格·步）Lean 在 frame4 里用到它们，
+--     这些断言不可证伪——与 bp35 的 k_map 同类（关卡布局常数取自后续帧）。过关判定 solves 不用 k_wall，不受影响。
+--   · （主会话按复审补注）level_solved 里「这一步前被物体盖着的格」一项是概念原文就有的（NOTE v2），去掉它 31 次升关全部判错；
+--     把它收窄成「盖着且属于布局壁」在语料上结果完全不变（31 升关、0 误报），两种写法数据分不开；物体刚挪开的格被当壁放行的局面语料未见。
+--   · （主会话按复审补注）h_gd 的改错实验（行级，全语料 / 路线）：M1 记忆反向 114/40 行错、可见字段抓到 111/38；
+--     M2 忘记记忆退回 k_gd 117/42 行错、只抓到 19/10（242 次「记忆被用到」事件中 30 次）——h_gd 在多数步上与开局常数 k_gd 冗余，
+--     它的必要性只由约 19 行（路线 10 行）支撑；M3 点击不计数 1738/1940（约 90%）。只靠自己比对的步数全语料 6、路线 4。
+
+-- ---------- 一个会动的东西 ----------
+/-- 带壳物体 / 裸物体 / 门带。pat = 0 表示实心长方形，否则是 h×w 的形状位图（格 (i,j) 占第 i*w+j 位）。 -/
+structure Pc where
+  r : Int
+  c : Int
+  h : Nat
+  w : Nat
+  pat : Nat
+  code : Nat      -- 带壳物体的核心色码：0 被操纵 / 1 色5 / 2 色4；裸物体 3；门带 4
+  d : Nat         -- 门带：这一步用的朝向（看得见的 > 记住的 > 开局常数）
+  kn : Nat        -- 门带：看得见的或记住的朝向（0 = 从没看见过）
+  f : Nat         -- 门带：色12 层数
+  wrap : Bool     -- 门带：这一步归零
+deriving BEq, Repr
+
+def pc0 : Pc := ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, false⟩
+
+-- ---------- 解码 ----------
+def decObj (v : Int) : Pc :=
+  let n := v.toNat
+  let pos := n / 64
+  ⟨Int.ofNat (pos / 64), Int.ofNat (pos % 64), 3 * ((n / 16) % 4), 3 * ((n / 4) % 4), 0, n % 4, 0, 0, 0, false⟩
+
+def decBare (v : Int) : Pc :=
+  let n := v.toNat
+  let rest := n >>> 81
+  let pos := rest / 256
+  ⟨Int.ofNat (pos / 64), Int.ofNat (pos % 64), (rest / 16) % 16, rest % 16, n &&& ((1 <<< 81) - 1), 3, 0, 0, 0, false⟩
+
+def decGate (v : Int) : Pc :=
+  let n := v.toNat
+  let pos := n >>> 21
+  ⟨Int.ofNat (pos / 64), Int.ofNat (pos % 64), (n / 32768) % 64, (n / 512) % 64, 0, 4, (n / 64) % 8, 0, n % 64, false⟩
+
+def present (xs : List Int) : List Int := xs.filter (fun v => v ≥ 0)
+def objsOf (s : State) : List Pc := (present [s.objs_0, s.objs_1, s.objs_2, s.objs_3]).map decObj
+def baresOf (s : State) : List Pc := (present [s.bare_0, s.bare_1, s.bare_2]).map decBare
+
+def dig3 (v : Nat) (i : Nat) : Nat := (v >>> (3 * i)) &&& 7
+
+/-- 门带：朝向 = 看得见的，否则记住的（h_gd），否则本关开局常数（k_gd，按开局槽位）。 -/
+def gatesOf (s : State) (gdk : Nat) : List Pc :=
+  let raw := present [s.gates_0, s.gates_1, s.gates_2]
+  (List.range raw.length).zip raw |>.map fun iv =>
+    let g := decGate iv.2
+    let kn := if g.d != 0 then g.d else dig3 s.h_gd.toNat iv.1
+    { g with kn := kn, d := if kn != 0 then kn else dig3 gdk iv.1 }
+
+-- ---------- 格子掩码（第 r*64+c 位；棋盘 63 行 64 列） ----------
+def ones (k : Nat) : Nat := (1 <<< k) - 1
+/-- h 行、每行最低位一个 1。 -/
+def rep (h : Nat) : Nat := ((1 <<< (64 * h)) - 1) / ((1 <<< 64) - 1)
+
+def patRows (pat w : Nat) : Nat → Nat
+  | 0 => 0
+  | i + 1 => patRows pat w i ||| (((pat >>> (i * w)) &&& ones w) <<< (64 * i))
+
+def maskP (p : Pc) : Nat :=
+  let body := if p.pat == 0 then ones p.w * rep p.h else patRows p.pat p.w p.h
+  body <<< (p.r * 64 + p.c).toNat
+
+def inb (p : Pc) : Bool := 0 ≤ p.r && 0 ≤ p.c && p.r + p.h ≤ 63 && p.c + p.w ≤ 64
+
+/-- 朝 d 挪 k 格（1上 2下 3左 4右）。 -/
+def mvk (k : Int) (p : Pc) (d : Nat) : Pc :=
+  if d == 1 then { p with r := p.r - k } else if d == 2 then { p with r := p.r + k }
+  else if d == 3 then { p with c := p.c - k } else if d == 4 then { p with c := p.c + k } else p
+
+/-- 一个格位 = 3 格。 -/
+def mv (p : Pc) (d : Nat) : Pc := mvk 3 p d
+
+/-- 包围盒朝 d 外侧紧贴的一排（出画面的不要；第 63 行是预算条，不算棋盘）。 -/
+def stripM (p : Pc) (d : Nat) : Nat :=
+  if d == 1 then (if p.r ≥ 1 then ones p.w <<< ((p.r - 1) * 64 + p.c).toNat else 0)
+  else if d == 2 then (if p.r + p.h ≤ 62 then ones p.w <<< ((p.r + p.h) * 64 + p.c).toNat else 0)
+  else if d == 3 then (if p.c ≥ 1 then rep p.h <<< (p.r * 64 + p.c - 1).toNat else 0)
+  else (if p.c + p.w ≤ 63 then rep p.h <<< (p.r * 64 + p.c + p.w).toNat else 0)
+
+def minus (a b : Nat) : Nat := a ^^^ (a &&& b)
+
+/-- 朝 d 迈一个格位：出画面，或新占的格子里有 stop 色。 -/
+def aheadBlocked (p : Pc) (d stop : Nat) : Bool :=
+  let q := mv p d
+  !inb q || minus (maskP q) (maskP p) &&& stop != 0
+
+-- ---------- 推法（push_kick / push_shove / bare_pushed / gate_pushed / gate_strike 共用） ----------
+def KICK : Nat := 5
+def STRIKE : Nat := 3
+def REACH : Int := 9      -- 扫击够得着的空隙：3 个格位以内
+
+def kickN (d stop : Nat) : Nat → Pc → Pc
+  | 0, p => p
+  | k + 1, p => if aheadBlocked p d stop then p else kickN d stop k (mv p d)
+
+/-- 落点压着色15 就接着同向滑，直到完全离开带子（途中撞色2 / 画面边就停）。 -/
+def slide (d stop band : Nat) : Nat → Pc → Pc
+  | 0, p => p
+  | k + 1, p => if maskP p &&& band == 0 then p else if aheadBlocked p d stop then p else slide d stop band k (mv p d)
+
+/-- 被推（或被扫）的东西：同向走至多 k 个格位，撞色2 / 画面边即停；落点压带就滑出带子。 -/
+def kick (d stop band k : Nat) (p : Pc) : Pc := slide d stop band 25 (kickN d stop k p)
+
+/-- 落点压到的东西朝同向让开：让到不重叠、自己也不压带为止（撞墙就停）。 -/
+def makeWay (d stop band land : Nat) : Nat → Pc → Pc
+  | 0, p => p
+  | k + 1, p =>
+    let m := maskP p
+    if m &&& land == 0 && m &&& band == 0 then p
+    else if aheadBlocked p d stop then p else makeWay d stop band land k (mv p d)
+
+/-- 连锁让位：队列里每个刚落地的东西，压到谁谁就让开，让开的再进队。 -/
+def chain (d stop band : Nat) : Nat → List Nat → List Pc → List Pc
+  | 0, _, ps => ps
+  | _ + 1, [], ps => ps
+  | k + 1, src :: q, ps =>
+    let land := maskP (ps.getD src pc0)
+    let st := (List.range ps.length).foldl (fun (acc : List Pc × List Nat) j =>
+      if j == src then acc else
+      let pj := acc.1.getD j pc0
+      if maskP pj &&& land != 0 then (acc.1.set j (makeWay d stop band land 25 pj), acc.2 ++ [j]) else acc) (ps, q)
+    chain d stop band k st.2 st.1
+
+/-- 贴着推手那一排的东西按 kick 走，再连锁让位。others 是被操纵物体之外的带壳物体与裸物体。 -/
+def pushPieces (d stop band out : Nat) (others : List Pc) : List Pc :=
+  let idx := List.range others.length
+  let hit := idx.filter (fun j => maskP (others.getD j pc0) &&& out != 0)
+  let kicked := hit.foldl (fun (ps : List Pc) j => ps.set j (kick d stop band KICK (ps.getD j pc0))) others
+  chain d stop band 40 hit kicked
+
+-- ---------- 门带：数拍子、扫击 ----------
+def slices (g : Pc) : Nat := if g.d == 1 || g.d == 2 then g.h else g.w
+
+/-- 每个方向动作长一层；差一层就长满时归零。 -/
+def tick (g : Pc) : Pc :=
+  if g.f + 1 ≥ slices g then { g with f := 0, wrap := true } else { g with f := g.f + 1, wrap := false }
+
+def lowRow (m : Nat) : Nat := Nat.log2 (m ^^^ (m &&& (m - 1))) / 64
+def highRow (m : Nat) : Nat := Nat.log2 m / 64
+
+/-- 一片格子在第 r0.. 行的 h 行里，按列压成一行。 -/
+def colsOf (m : Nat) (r0 : Nat) : Nat → Nat
+  | 0 => 0
+  | i + 1 => colsOf m r0 i ||| ((m >>> (64 * (r0 + i))) &&& ones 64)
+
+def rectM (r0 r1 c0 c1 : Int) : Nat :=
+  if r1 < r0 || c1 < c0 then 0 else (ones (c1 - c0 + 1).toNat * rep (r1 - r0 + 1).toNat) <<< (r0 * 64 + c0).toNat
+
+/-- 这东西在归零带子长过去那一头的前方、空隙不到 3 个格位、中间没有色2/色15 隔着。
+    loose：只看和带子重叠的那几列（横带则那几行）上的格子（gate_idle_strike 的读法；对长方形两种读法一样）。 -/
+def frontClear (g p : Pc) (walls : Nat) (loose : Bool) : Bool :=
+  let gr1 := g.r + g.h - 1
+  let gc1 := g.c + g.w - 1
+  let pr1 := p.r + p.h - 1
+  let pc1 := p.c + p.w - 1
+  if g.d == 1 || g.d == 2 then
+    if pc1 < g.c || p.c > gc1 then false else
+    let a := max g.c p.c
+    let b := min gc1 pc1
+    let m := if loose then maskP p &&& ((ones (b - a + 1).toNat <<< a.toNat) * rep 63) else 0
+    if loose && m == 0 then false else
+    let lo : Int := if loose then Int.ofNat (lowRow m) else p.r
+    let hi : Int := if loose then Int.ofNat (highRow m) else pr1
+    let front := if g.d == 2 then lo > gr1 else hi < g.r
+    let gap := if g.d == 2 then p.r - gr1 - 1 else g.r - pr1 - 1
+    let btw := if g.d == 2 then rectM (gr1 + 1) (p.r - 1) a b else rectM (pr1 + 1) (g.r - 1) a b
+    front && gap < REACH && btw &&& walls == 0
+  else
+    if pr1 < g.r || p.r > gr1 then false else
+    let a := max g.r p.r
+    let b := min gr1 pr1
+    let m := if loose then colsOf (maskP p &&& (ones (64 * (b - a + 1).toNat) <<< (64 * a.toNat))) p.r.toNat p.h else 0
+    if loose && m == 0 then false else
+    let lo : Int := if loose then Int.ofNat (Nat.log2 (m ^^^ (m &&& (m - 1)))) else p.c
+    let hi : Int := if loose then Int.ofNat (Nat.log2 m) else pc1
+    let front := if g.d == 4 then lo > gc1 else hi < g.c
+    let gap := if g.d == 4 then p.c - gc1 - 1 else g.c - pc1 - 1
+    let btw := if g.d == 4 then rectM a b (gc1 + 1) (p.c - 1) else rectM a b (pc1 + 1) (g.c - 1)
+    front && gap < REACH && btw &&& walls == 0
+
+/-- 归零的带子把前方够得着的东西朝带子长的方向扫 3 个格位（同一条推法）。先被操纵物体，再别的带壳物体，再裸物体。 -/
+def strikeAll (stop band walls : Nat) (gs : List Pc) (sel : Pc) (os bs : List Pc) : Pc × List Pc × List Pc :=
+  gs.foldl (fun (acc : Pc × List Pc × List Pc) g =>
+    if !g.wrap then acc else
+    let hitP := fun (p : Pc) (loose : Bool) => if frontClear g p walls loose then kick g.d stop band STRIKE p else p
+    (hitP acc.1 false, acc.2.1.map (fun p => hitP p true), acc.2.2.map (fun p => hitP p true))) (sel, os, bs)
+
+-- ---------- 接触高亮 ----------
+def litOf (sel : Pc) (occ : Nat) : Nat :=
+  (if stripM sel 1 &&& occ != 0 then 1 else 0) + (if stripM sel 2 &&& occ != 0 then 2 else 0)
+  + (if stripM sel 3 &&& occ != 0 then 4 else 0) + (if stripM sel 4 &&& occ != 0 then 8 else 0)
+
+def occOf (ps : List Pc) : Nat := ps.foldl (fun m p => m ||| maskP p) 0
+
+-- ---------- 编码回状态 ----------
+def encObj (p : Pc) : Int := (((p.r * 64 + p.c) * 4 + Int.ofNat (p.h / 3)) * 4 + Int.ofNat (p.w / 3)) * 4 + Int.ofNat p.code
+def encBare (p : Pc) : Int := Int.ofNat ((((((p.r * 64 + p.c).toNat * 16 + p.h) * 16 + p.w)) <<< 81) ||| p.pat)
+def encGate (g : Pc) : Int :=
+  Int.ofNat ((((((g.r * 64 + g.c).toNat * 64 + g.h) * 64 + g.w) * 8 + (if g.f == 0 then 0 else g.d)) * 64 + g.f))
+
+def insI (x : Int) : List Int → List Int
+  | [] => [x]
+  | y :: ys => if x ≤ y then x :: y :: ys else y :: insI x ys
+def sortI : List Int → List Int
+  | [] => []
+  | x :: xs => insI x (sortI xs)
+def insG (x : Int × Nat) : List (Int × Nat) → List (Int × Nat)
+  | [] => [x]
+  | y :: ys => if x.1 ≤ y.1 then x :: y :: ys else y :: insG x ys
+def sortG : List (Int × Nat) → List (Int × Nat)
+  | [] => []
+  | x :: xs => insG x (sortG xs)
+def padI (xs : List Int) (i : Nat) : Int := xs.getD i (-1)
+
+/-- 预算条：本关第 n 个动作之后剩 64 - round_half_up(64n/T) 格，扣完为 0。 -/
+def bar (n T : Nat) : Nat := 64 - (128 * n + T) / (2 * T)
+
+def dirOf : Act → Nat
+  | Act.a1 => 1
+  | Act.a2 => 2
+  | Act.a3 => 3
+  | Act.a4 => 4
+  | _ => 0
+
+def clickOf : Act → Option (Int × Int)
+  | Act.a6 x y => some (Int.ofNat y, Int.ofNat x)
+  | _ => none
+
+def hasCellP (p : Pc) (y x : Int) : Bool := p.r ≤ y && y < p.r + p.h && p.c ≤ x && x < p.c + p.w
+
+/-- 一步之后的全部东西：(被操纵物体, 其余带壳物体, 裸物体, 门带)。 -/
+structure Scene where
+  sel : Pc
+  os : List Pc
+  bs : List Pc
+  gs : List Pc
+
+def sceneOf (s : State) (gdk : Nat) : Option Scene :=
+  let objs := objsOf s
+  match objs.find? (fun p => p.code == 0) with
+  | none => none
+  | some sel => some ⟨sel, objs.filter (fun p => p.code != 0), baresOf s, gatesOf s gdk⟩
+
+/-- 点击（click_selects）：点中别的带壳物体就换它当被操纵的，原来那个核心变色4；点在空处 / 自己 / 裸物体上都不换。 -/
+def doClick (sc : Scene) (y x : Int) : Scene :=
+  match sc.os.find? (fun p => hasCellP p y x) with
+  | none => sc
+  | some q => ⟨{ q with code := 0 }, sc.os.map (fun p => if p == q then { sc.sel with code := 2 } else p), sc.bs, sc.gs⟩
+
+/-- 方向动作的前半：贴着东西就推（自己不动），否则挪一个格位（扫到色2/色15 或出画面就不动）。 -/
+def movePhase (sc : Scene) (d walls band : Nat) : Scene :=
+  let stop := minus walls band
+  let out := stripM sc.sel d
+  let occ := occOf (sc.os ++ sc.bs ++ sc.gs)
+  if out &&& occ != 0 then
+    let ps := pushPieces d stop band out (sc.os ++ sc.bs)
+    ⟨sc.sel, ps.take sc.os.length, ps.drop sc.os.length,
+     sc.gs.map (fun g => if maskP g &&& out != 0 then kick d stop band KICK g else g)⟩
+  else
+    let q := mv sc.sel d
+    ⟨if inb q && minus (maskP q) (maskP sc.sel) &&& walls == 0 then q else sc.sel, sc.os, sc.bs, sc.gs⟩
+
+/-- 方向动作：前半（推或挪）之后，门带数拍子，再归零扫击。 -/
+def doDir (sc : Scene) (d walls band : Nat) : Scene :=
+  let stop := minus walls band
+  let moved := movePhase sc d walls band
+  let gs := moved.gs.map tick
+  let st := strikeAll stop band walls gs moved.sel moved.os moved.bs
+  ⟨st.1, st.2.1, st.2.2, gs⟩
+
+def gdkOf (s : State) : Nat := (s.k_gd.getD 0).toNat
+
+/-- 动作之后的全部东西（点击或方向动作；别的动作 none）。 -/
+def nextScene (s : State) (a : Act) : Option Scene :=
+  match sceneOf s (gdkOf s) with
+  | none => none
+  | some sc =>
+    match clickOf a with
+    | some yx => some (doClick sc yx.1 yx.2)
+    | none => if dirOf a == 0 then none else some (doDir sc (dirOf a) s.walls_m.toNat s.band_m.toNat)
+
+/-- 被带壳物体 / 裸物体 / 门带盖着的格。 -/
+def coverOf (sc : Scene) : Nat := occOf (sc.sel :: sc.os ++ sc.bs ++ sc.gs)
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match s.k_T, s.k_wall, nextScene s a with
+  | some T, some wall, some sc' =>
+      let isClick := (clickOf a).isSome
+      let ov := sortI ((sc'.sel :: sc'.os).map encObj)
+      let bv := sortI (sc'.bs.map encBare)
+      let gv := sortG (sc'.gs.map (fun g => (encGate g, if isClick then g.kn else g.d)))
+      let gd := (List.range gv.length).foldl (fun acc i => acc ||| (((gv.getD i (0, 0)).2) <<< (3 * i))) 0
+      let n := s.h_n.toNat + 1
+      some { s with
+        objs_0 := padI ov 0, objs_1 := padI ov 1, objs_2 := padI ov 2, objs_3 := padI ov 3,
+        bare_0 := padI bv 0, bare_1 := padI bv 1, bare_2 := padI bv 2,
+        gates_0 := padI (gv.map Prod.fst) 0, gates_1 := padI (gv.map Prod.fst) 1, gates_2 := padI (gv.map Prod.fst) 2,
+        h_gd := Int.ofNat gd, h_n := Int.ofNat n,
+        lit := Int.ofNat (litOf sc'.sel (occOf (sc'.os ++ sc'.bs ++ sc'.gs))),
+        budget := Int.ofNat (bar n T.toNat),
+        frame4 := Int.ofNat (minus wall.toNat (coverOf sc')) }
+  | _, _, _ => none
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+-- ---------- 过关（level_solved） ----------
+/-- 一片格子紧贴外侧的一圈（4-邻域）都在棋盘内、且都在 ok 里。 -/
+def seatedP (p : Pc) (ok : Nat) : Bool :=
+  let m := maskP p
+  1 ≤ p.r && 1 ≤ p.c && p.r + p.h ≤ 62 && p.c + p.w ≤ 63 &&
+    minus (minus ((m <<< 1) ||| (m >>> 1) ||| (m <<< 64) ||| (m >>> 64)) m) ok == 0
+
+/-- 这一步之后每个物体（带壳 + 裸）都嵌在框里：紧贴的一圈全是框壁（这一帧露着的色4）、门格，或这一步前被物体盖着的格。 -/
+def solves (s : State) (a : Act) : Bool :=
+  match sceneOf s (gdkOf s), nextScene s a with
+  | some sc, some sc' =>
+    let ok := s.frame4.toNat ||| occOf sc.gs ||| occOf (sc.sel :: sc.os ++ sc.bs)
+    (sc'.sel :: sc'.os ++ sc'.bs).all (fun p => seatedP p ok)
+  | _, _ => false
+
+-- ---------- 概念规则（guard = 概念 SCOPE 管这一步；effect = 概念的断言，由上面同一套原语算） ----------
+
+def selEnc (s : State) : List Int := (present [s.objs_0, s.objs_1, s.objs_2, s.objs_3]).filter (fun v => v % 4 == 0)
+def objsV (s : State) : List Int := present [s.objs_0, s.objs_1, s.objs_2, s.objs_3]
+def bareV (s : State) : List Int := present [s.bare_0, s.bare_1, s.bare_2]
+def gatesV (s : State) : List Int := present [s.gates_0, s.gates_1, s.gates_2]
+def sameLevel (s t : State) : Bool := s.level == t.level
+
+/-- 这一步被操纵物体朝 d 那一排贴着别的东西（带壳物体 / 裸物体 / 门带）。 -/
+def touches (s : State) (d : Nat) (withGates : Bool) : Bool :=
+  match sceneOf s (gdkOf s) with
+  | none => false
+  | some sc => stripM sc.sel d &&& occOf (sc.os ++ sc.bs ++ (if withGates then sc.gs else [])) != 0
+
+def touchesGate (s : State) (d : Nat) : Bool :=
+  match sceneOf s (gdkOf s) with
+  | none => false
+  | some sc => stripM sc.sel d &&& occOf sc.gs != 0
+
+/-- 这一步有门带归零、而且（动作生效之后的）被操纵物体在它（推完之后的位置）扫得到的地方。 -/
+def selStruck (s : State) (d : Nat) : Bool :=
+  match sceneOf s (gdkOf s) with
+  | none => false
+  | some sc =>
+    let m := movePhase sc d s.walls_m.toNat s.band_m.toNat
+    d != 0 && (m.gs.map tick).any (fun g => g.wrap && frontClear g m.sel s.walls_m.toNat false)
+
+/-- 这一步有门带归零、（推完之后）正前方有别的（没被操纵的）东西够得着。 -/
+def idleStruck (s : State) (d : Nat) : Bool :=
+  match sceneOf s (gdkOf s) with
+  | none => false
+  | some sc =>
+    let m := movePhase sc d s.walls_m.toNat s.band_m.toNat
+    d != 0 && (m.gs.map tick).any (fun g => g.wrap && (m.os ++ m.bs).any (fun p => frontClear g p s.walls_m.toNat true))
+
+def anyWrap (s : State) : Bool := (gatesOf s (gdkOf s)).any (fun g => (tick g).wrap)
+
+def rules : List Rule := [
+  -- core_step：方向动作、没贴着东西、没被归零的带子扫到 → 被操纵物体挪一个格位或不动，落点由 stepRules 定死
+  { name := "core_step",
+    guard := fun s a => dirOf a != 0 && !touches s (dirOf a) true && !selStruck s (dirOf a),
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => selEnc p == selEnc t
+      | none => false },
+  -- push_kick：贴着带壳物体 / 裸物体推 → 紧贴推手的那些按「走 5 格位、撞色2 停、压带滑出」落地，且都在下一帧的表里
+  { name := "push_kick",
+    guard := fun s a => dirOf a != 0 && touches s (dirOf a) false && !anyWrap s,
+    effect := fun s a t => !sameLevel s t ||
+      match sceneOf s (gdkOf s) with
+      | none => false
+      | some sc =>
+        let d := dirOf a
+        let out := stripM sc.sel d
+        let stop := minus s.walls_m.toNat s.band_m.toNat
+        let vs := (sc.os ++ sc.bs).filter (fun p => maskP p &&& out != 0)
+        vs.all (fun p => let q := kick d stop s.band_m.toNat KICK p
+          (if p.code == 3 then bareV t else objsV t).contains (if p.code == 3 then encBare q else encObj q)) },
+  -- push_shove：同上，整张表（被压到的挨个让开）= 下一帧的带壳物体表与裸物体表；推手自己不动
+  { name := "push_shove",
+    guard := fun s a => dirOf a != 0 && touches s (dirOf a) false && !anyWrap s,
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => objsV p == objsV t && bareV p == bareV t && selEnc s == selEnc t
+      | none => false },
+  -- bare_pushed：有裸物体、方向动作、这一步没有带子归零 → 裸物体只在被推时按推法走，否则不动
+  { name := "bare_pushed",
+    guard := fun s a => dirOf a != 0 && !(bareV s).isEmpty && !anyWrap s,
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => bareV p == bareV t
+      | none => false },
+  -- gate_pushed：被操纵物体贴着门带发方向动作 → 自己不动，门带按同一条推法走
+  { name := "gate_pushed",
+    guard := fun s a => dirOf a != 0 && touchesGate s (dirOf a),
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => gatesV p == gatesV t && selEnc s == selEnc t
+      | none => false },
+  -- gate_tick：每个方向动作每条门带长一层、差一层就长满时归零；点击时一格不变（位置由推法定）
+  { name := "gate_tick",
+    guard := fun s a => (dirOf a != 0 || (clickOf a).isSome) && !(gatesV s).isEmpty,
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => gatesV p == gatesV t && p.h_gd == t.h_gd
+      | none => false },
+  -- gate_end：一条带子没挪、前后都看得出朝向时，朝向不变
+  { name := "gate_end",
+    guard := fun s a => a != Act.reset && !(gatesV s).isEmpty,
+    effect := fun s _ t => !sameLevel s t ||
+      ((gatesV s).map decGate).all (fun g => ((gatesV t).map decGate).all (fun g' =>
+        !(g.r == g'.r && g.c == g'.c && g.h == g'.h && g.w == g'.w && g.d != 0 && g'.d != 0) || g.d == g'.d)) },
+  -- gate_strike：归零那一步、动作生效后正对着带子的被操纵物体，再被朝带子长的方向扫 3 个格位
+  { name := "gate_strike",
+    guard := fun s a => dirOf a != 0 && selStruck s (dirOf a),
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => selEnc p == selEnc t
+      | none => false },
+  -- gate_idle_strike：归零那一步、正前方没被操纵的东西也被扫 3 个格位（扫击不挑对象，只挑位置）
+  { name := "gate_idle_strike",
+    guard := fun s a => dirOf a != 0 && idleStruck s (dirOf a),
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => objsV p == objsV t && bareV p == bareV t
+      | none => false },
+  -- contact_face：被操纵物体的一条边亮着，当且仅当那一排外侧紧贴着带壳物体 / 裸物体 / 门带（前后两帧都成立）
+  { name := "contact_face",
+    guard := fun _ _ => true,
+    effect := fun s _ t =>
+      (match sceneOf s (gdkOf s) with
+        | some sc => s.lit == Int.ofNat (litOf sc.sel (occOf (sc.os ++ sc.bs ++ sc.gs)))
+        | none => false) &&
+      (match sceneOf t (gdkOf t) with
+        | some sc => t.lit == Int.ofNat (litOf sc.sel (occOf (sc.os ++ sc.bs ++ sc.gs)))
+        | none => false) },
+  -- click_selects：点中别的带壳物体就换它当被操纵的（原来的核心变色4），点在别处不换；物体都不挪
+  { name := "click_selects",
+    guard := fun _ a => (clickOf a).isSome,
+    effect := fun s a t => !sameLevel s t || match stepRules s a with
+      | some p => objsV p == objsV t && p.lit == t.lit
+      | none => false },
+  -- level_solved：方向动作或点击这一步，关卡号 +1 ⟺ 动作之后（stepRules 同一套走法算的落点）每个物体都嵌在框里。
+  --   同一条规则顺带断言框壁布局按关不变：关内每一帧露着的框壁 = 本关框壁布局 k_wall − 被物体 / 门带盖着的格。
+  { name := "level_solved",
+    guard := fun _ a => dirOf a != 0 || (clickOf a).isSome,
+    effect := fun s a t => (t.level == s.level + 1) == solves s a &&
+      (!sameLevel s t || match s.k_wall, sceneOf t (gdkOf t) with
+        | some wall, some sc => t.frame4 == Int.ofNat (minus wall.toNat (coverOf sc))
+        | _, _ => false) },
+  -- budget_tick：本关第 n 个非 RESET 动作之后预算条 = 64 - round_half_up(64n/T)
+  --   guard 另要求这一步之前条与计数对得上（状态自洽型 guard）。语料里唯一的失同步：文件第 1522 行那条 seq 1520 RESET
+  --   属于另一个 guid（c4bd10d3，meta 带 recard），被插进 e9890b40 这局的流里，这局其实从未重置；生成器照样在那里把
+  --   h_n 归零，于是 seq 1522–1562 共 41 步计数与条失同步，被这条 guard 挡掉。这条 guard 以后会挡住任何 h_n 失同步，
+  --   本语料只有这一处（独立审计复核：把那条 RESET 当空操作时，3958 条非 RESET 行的预算条残差为 0）。
+  { name := "budget_tick",
+    guard := fun s a => a != Act.reset && (match s.k_T with
+      | some T => s.budget == Int.ofNat (bar s.h_n.toNat T.toNat)
+      | none => false),
+    effect := fun s _ t => !sameLevel s t || match s.k_T with
+      | some T => t.budget == Int.ofNat (bar (s.h_n.toNat + 1) T.toNat) && t.h_n == s.h_n + 1
+      | none => false }
+]
+
+/-- 通关：关卡号走到 7（第 6 关之后就是 WIN）。 -/
+def isGoal (s : State) : Bool := s.level ≥ 7
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))

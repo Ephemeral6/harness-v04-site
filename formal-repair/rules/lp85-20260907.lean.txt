@@ -1,0 +1,508 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/lp85-20260907/_lib.py ; why=原 State 只有计数、写不出瓷砖下一步；补瓷砖按色掩码、插槽角标、每个箭头块的点击框与置换，竖条由隐藏量 h_clicks（本关点中箭头次数）与每关预算 k_budget 算出
+-- 由 world/formalize.py 生成于 2026-09-29T11:32:45+08:00；局 lp85；基于 run ['lp85-0907-0045']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 345 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复版规则段 v2（meta/repair-20260928，2026-09-29，审计返工）。
+-- 读数只给这一帧看得见的原语：瓷砖按色掩码 tile_color_m_c*、占位 tile_color_m、插槽角标 slot_mark_m_c*、
+-- 网格 grid_axes（边长、行首/列首像素）、箭头块 arrow_blocks（外接框 + 缺角方向）、
+-- 占位图上的闭合链 belt_chains（格子次序）、插槽拐角环 slot_ring_cells（格子次序）。
+-- 「点哪个块会搬哪些格」全在这里从原语算：星心与环由占位图算、星把手靠对齐与点乘判、
+-- 带由「最近合格链 + 独立无主链」与点乘符号判、面板由一排的长度与拐角列判。
+-- 竖条：bar_prefix = round(64 * h_clicks / k_budget)；h_clicks = 本关点中箭头块的次数（隐藏量，修订 R1）。
+-- 换关（搬色后插槽全配对）时 stepRules 不说话，新关布局由 worldRows 查表。
+-- 没写进来的概念：panel_mark_step（「每条插槽拐角环上角标恰一块、每次挪一位」；状态里有环，
+-- 但这条只是 panel_all_rot / panel_rank_rot 逐格搬色的推论，没有单独写成规则）。
+
+abbrev Cell := Int × Int
+
+-- ---------- 原语解码 ----------
+def digsN : Nat → Nat → List Nat
+  | 0, _ => []
+  | n + 1, v => v % 128 :: digsN n (v / 128)
+
+def dg (v : Int) : List Nat := digsN 160 v.toNat
+
+def at' (d : List Nat) (i : Nat) : Int := Int.ofNat (d.getD i 0)
+
+structure Grid where
+  tk : Int
+  rows : List Int
+  cols : List Int
+
+def gridOf (s : State) : Grid :=
+  let d := dg s.grid_axes
+  let nr := d.getD 1 0
+  let nc := d.getD (2 + nr) 0
+  ⟨at' d 0, (List.range nr).map (fun i => at' d (2 + i)), (List.range nc).map (fun i => at' d (3 + nr + i))⟩
+
+def Grid.row (g : Grid) (r : Int) : Int := g.rows.getD r.toNat 0
+def Grid.col (g : Grid) (c : Int) : Int := g.cols.getD c.toNat 0
+/-- 格子中心的像素坐标 ×2（避免半格）。 -/
+def Grid.pix (g : Grid) (p : Cell) : Int × Int := (2 * g.row p.1 + g.tk - 1, 2 * g.col p.2 + g.tk - 1)
+
+structure Blk where
+  r0 : Int
+  r1 : Int
+  c0 : Int
+  c1 : Int
+  dr : Int
+  dc : Int
+deriving BEq
+
+def dirOf (k : Nat) : Int × Int :=
+  if k == 0 then (-1, 0) else if k == 1 then (1, 0) else if k == 2 then (0, -1) else (0, 1)
+
+def arrowsOf (s : State) : List Blk :=
+  let d := dg s.arrow_blocks
+  (List.range (d.getD 0 0)).map fun i =>
+    let b := 1 + 5 * i
+    let dd := dirOf (d.getD (b + 4) 0)
+    ⟨at' d b, at' d (b + 1), at' d (b + 2), at' d (b + 3), dd.1, dd.2⟩
+
+/-- 块中心像素坐标 ×2。 -/
+def Blk.ctr (b : Blk) : Int × Int := (b.r0 + b.r1, b.c0 + b.c1)
+def Blk.has (b : Blk) (y x : Int) : Bool := b.r0 ≤ y && y ≤ b.r1 && b.c0 ≤ x && x ≤ b.c1
+/-- 真按钮：箭头块里最短边 >= 3 的（第 1 行的细条不算）。 -/
+def Blk.isBtn (b : Blk) : Bool := min (b.r1 - b.r0 + 1) (b.c1 - b.c0 + 1) ≥ 3
+
+def takeCells : Nat → List Nat → List Cell × List Nat
+  | 0, ds => ([], ds)
+  | n + 1, r :: c :: ds => let x := takeCells n ds; ((Int.ofNat r, Int.ofNat c) :: x.1, x.2)
+  | _, ds => ([], ds)
+
+def takeSeqs : Nat → List Nat → List (List Cell)
+  | 0, _ => []
+  | n + 1, l :: ds => let x := takeCells l ds; x.1 :: takeSeqs n x.2
+  | _, [] => []
+
+def seqsOf (v : Int) : List (List Cell) :=
+  match dg v with
+  | n :: ds => takeSeqs n ds
+  | [] => []
+
+-- ---------- 占位与颜色 ----------
+def occ (s : State) (p : Cell) : Bool := hasCell s.tile_color_m p.1 p.2
+
+def colorFields : List (Nat × (State → Int)) :=
+  [(1, State.tile_color_m_c1), (2, State.tile_color_m_c2), (9, State.tile_color_m_c9), (10, State.tile_color_m_c10),
+   (11, State.tile_color_m_c11), (12, State.tile_color_m_c12), (15, State.tile_color_m_c15)]
+
+def colorAt (s : State) (p : Cell) : Nat :=
+  match colorFields.find? (fun cf => hasCell (cf.2 s) p.1 p.2) with
+  | some cf => cf.1
+  | none => 0
+
+def gridCells (g : Grid) : List Cell :=
+  (List.range g.rows.length).flatMap fun (r : Nat) => (List.range g.cols.length).map fun (c : Nat) => (Int.ofNat r, Int.ofNat c)
+
+def cells (s : State) (g : Grid) : List Cell := (gridCells g).filter (occ s)
+
+-- ---------- 点击 ----------
+def clickRC : Act → Option (Int × Int)
+  | Act.a6 x y => some ((y : Int), (x : Int))
+  | _ => none
+
+def isA6 (a : Act) : Bool := (clickRC a).isSome
+
+def hitArrow (s : State) (a : Act) : Option Blk :=
+  match clickRC a with
+  | some (y, x) => (arrowsOf s).find? (fun b => b.has y x)
+  | none => none
+
+-- ---------- 星（全由占位图算，_lib.star_centers / star_rings）----------
+def DIRS_CW : List (Int × Int) := [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+
+def ringAt (ctr : Cell) (k : Int) : List Cell := DIRS_CW.map (fun d => (ctr.1 + k * d.1, ctr.2 + k * d.2))
+
+def ringsFrom (s : State) (ctr : Cell) : Nat → Nat → List (List Cell)
+  | 0, _ => []
+  | f + 1, k => let r := ringAt ctr (Int.ofNat k); if r.all (occ s) then r :: ringsFrom s ctr f (k + 1) else []
+
+/-- 第 k 环 = 星心八个方向距离 k 的八位（北起顺时针），八位齐全才算，从 k = 1 起连续。 -/
+def starRings (s : State) (ctr : Cell) : List (List Cell) := ringsFrom s ctr 32 1
+
+/-- 星心：空的网格位，八个方向距离 1 的邻位全是瓷砖；按 (行, 列) 升序。 -/
+def starCenters (s : State) (g : Grid) : List Cell :=
+  (gridCells g).filter (fun p => !occ s p && (ringAt p 1).all (occ s))
+
+def sq (x : Int) : Int := x * x
+def sgn (x : Int) : Int := if x > 0 then 1 else -1
+
+/-- 星把手（_lib.star_button）：按钮中心贴在某颗星最外一环某位的外侧——沿射线分量在 (0, 3 格]、垂直分量 ≤ 1 格。
+    指向与射线点乘为 0 = 切向（rot = true），符号 = 挨着的那一位的内容朝把手指向走是不是顺时针；
+    否则径向，符号 = 点乘符号（+1 朝外）。返回 (星心, 是否切向, 符号)。 -/
+def starButton (s : State) (g : Grid) (b : Blk) : Option (Cell × Bool × Int) :=
+  let tries := (starCenters s g).flatMap fun ctr =>
+    match (starRings s ctr).getLast? with
+    | none => []
+    | some outer => (List.range 8).map fun j => (ctr, outer, j)
+  let hit := tries.find? fun t =>
+    let q := t.2.1.getD t.2.2 (0, 0)
+    let u := ((g.pix q).1 - (g.pix t.1).1, (g.pix q).2 - (g.pix t.1).2)
+    let v := (b.ctr.1 - (g.pix q).1, b.ctr.2 - (g.pix q).2)
+    let n2 := sq u.1 + sq u.2
+    let al := v.1 * u.1 + v.2 * u.2
+    let pe := v.1 * u.2 - v.2 * u.1
+    n2 != 0 && al > 0 && sq al ≤ 36 * sq g.tk * n2 && sq pe ≤ 4 * sq g.tk * n2
+  hit.map fun t =>
+    let outer := t.2.1
+    let j := t.2.2
+    let q := outer.getD j (0, 0)
+    let u := ((g.pix q).1 - (g.pix t.1).1, (g.pix q).2 - (g.pix t.1).2)
+    let dot := b.dr * u.1 + b.dc * u.2
+    if dot == 0 then
+      let nx := outer.getD ((j + 1) % 8) (0, 0)
+      (t.1, true, sgn (b.dr * ((g.pix nx).1 - (g.pix q).1) + b.dc * ((g.pix nx).2 - (g.pix q).2)))
+    else (t.1, false, sgn dot)
+
+def btnsOf (s : State) : List Blk := (arrowsOf s).filter Blk.isBtn
+
+def hitStarButton (s : State) (g : Grid) (a : Act) : Option (Cell × Bool × Int) :=
+  match clickRC a with
+  | some (y, x) => match (btnsOf s).find? (fun b => b.has y x) with
+    | some b => starButton s g b
+    | none => none
+  | none => none
+
+/-- 枢纽按钮：有星时，场上唯一一个不是星把手的按钮。 -/
+def hubButton (s : State) (g : Grid) : Option Blk :=
+  if (starCenters s g).isEmpty then none else
+  match (btnsOf s).filter (fun b => (starButton s g b).isNone) with
+  | [b] => some b
+  | _ => none
+
+def hitHub (s : State) (g : Grid) (a : Act) : Bool :=
+  match hubButton s g, clickRC a with
+  | some b, some (y, x) => b.has y x
+  | _, _ => false
+
+/-- 枢纽互换的配对：每块游离（不在任何星上的）瓷砖恰有一块八邻接的星上瓷砖，且不撞车；否则 none。 -/
+def swapPairs (s : State) (g : Grid) : Option (List (Cell × Cell)) :=
+  if (starCenters s g).isEmpty then none else
+  let inside := (starCenters s g).flatMap (fun c => (starRings s c).flatten)
+  let loose := (cells s g).filter (fun p => !inside.contains p)
+  if loose.isEmpty then none else
+  let ps := loose.map fun p => (p, DIRS_CW.filterMap (fun d =>
+    let q := (p.1 + d.1, p.2 + d.2); if inside.contains q then some q else none))
+  if ps.all (fun x => x.2.length == 1) then
+    let pr := ps.map (fun x => (x.1, x.2.headD (0, 0)))
+    if (pr.map Prod.snd).eraseDups.length == pr.length then some pr else none
+  else none
+
+-- ---------- 置换的基本件：沿一条闭合次序挪一位 ----------
+/-- 落点 seq[i] 的颜色来自 seq[i-1]（sense > 0）或 seq[i+1]（sense < 0），循环。 -/
+def shiftMap (seq : List Cell) (sense : Int) : List (Cell × Cell) :=
+  let n := seq.length
+  (List.range n).map fun i => (seq.getD i (0, 0), seq.getD (if sense > 0 then (i + n - 1) % n else (i + 1) % n) (0, 0))
+
+def raysOf (rings : List (List Cell)) : List (List Cell) :=
+  (List.range 8).map (fun j => rings.map (fun ring => ring.getD j (0, 0)))
+
+-- ---------- 面板（_lib.panel_buttons / panel_claim）----------
+def minL (xs : List Int) : Int := xs.foldl min (xs.headD 0)
+def maxL (xs : List Int) : Int := xs.foldl max (xs.headD 0)
+
+/-- 每一个按钮到瓷砖包围盒的间隙都不小于一个瓷砖间距（整关性质）。 -/
+def panelButtons (s : State) (g : Grid) : Bool :=
+  let cs := cells s g
+  let bs := btnsOf s
+  if cs.isEmpty || bs.isEmpty then false else
+  let pr := if g.rows.length > 1 then g.row 1 - g.row 0 else g.tk
+  let pc := if g.cols.length > 1 then g.col 1 - g.col 0 else g.tk
+  let r0 := minL (cs.map (fun p => g.row p.1))
+  let r1 := maxL (cs.map (fun p => g.row p.1)) + g.tk - 1
+  let c0 := minL (cs.map (fun p => g.col p.2))
+  let c1 := maxL (cs.map (fun p => g.col p.2)) + g.tk - 1
+  bs.all fun b => !(max (max (r0 - b.r1) (b.r0 - r1)) 0 < pr && max (max (c0 - b.c1) (b.c0 - c1)) 0 < pc)
+
+def stepAt (ring : List Cell) (i : Nat) : Int × Int :=
+  let a := ring.getD i (0, 0); let b := ring.getD (i + 1) (0, 0); (b.1 - a.1, b.2 - a.2)
+
+/-- 环上的拐角：走向第一次变化的那一位；没有就取中间那一位。 -/
+def cornerOf (ring : List Cell) : Cell :=
+  match (List.range ring.length).find? (fun i => i ≥ 1 && i + 1 < ring.length && stepAt ring (i - 1) != stepAt ring i) with
+  | some i => ring.getD i (0, 0)
+  | none => ring.getD (ring.length / 2) (0, 0)
+
+def insertBy {α} (le : α → α → Bool) (x : α) : List α → List α
+  | [] => [x]
+  | y :: ys => if le y x then y :: insertBy le x ys else x :: y :: ys
+
+/-- 稳定排序（le 为「不大于」，相等时保持原次序）。 -/
+def sortBy {α} (le : α → α → Bool) (xs : List α) : List α := xs.foldl (fun acc x => insertBy le x acc) []
+
+/-- 面板点击驱动的段：(是否独自一排, [(符号, 段)])。一排只有一个按钮 = 全部环整环转；
+    一排按钮数 = 环数 = 按排里的次序认领一条环，只转它位于「最靠左拐角所在列」之前的那一截（与角标在哪无关）。
+    环按拐角在垂直于箭头那条轴上的像素坐标排队；符号 = 指向与环首步点乘的符号。认不出返回空段。 -/
+def panelClaim (s : State) (g : Grid) (a : Blk) : Bool × List (Int × List Cell) :=
+  let rings := seqsOf s.slot_ring_cells
+  let ckey := fun (r : List Cell) => if a.dr != 0 then g.col (cornerOf r).2 else g.row (cornerOf r).1
+  let order := sortBy (fun x y => ckey x ≤ ckey y) rings
+  let key := fun (b : Blk) => if a.dr == 0 then b.c0 + b.c1 else b.r0 + b.r1
+  let pkey := fun (b : Blk) => if a.dr == 0 then b.r0 + b.r1 else b.c0 + b.c1
+  let rank := sortBy (fun x y => pkey x ≤ pkey y)
+    ((btnsOf s).filter (fun b => b.dr == a.dr && b.dc == a.dc && key b == key a))
+  match rank.idxOf? a with
+  | none => (false, [])
+  | some i =>
+    let whole := rank.length == 1
+    if rings.isEmpty || (!whole && rank.length != order.length) then (whole, []) else
+    let picks := if whole then order else [order.getD i []]
+    let lim := minL (rings.map (fun r => (cornerOf r).2))
+    let segs := picks.filterMap fun ring =>
+      let st := stepAt ring 0
+      let dot := a.dr * st.1 + a.dc * st.2
+      if dot == 0 then none else
+      if whole then some (some (sgn dot, ring)) else
+      if a.dr != 0 then some none else
+      let w := ring.filter (fun p => p.2 < lim)
+      if w.length < 2 || w != ring.take w.length then some none
+      else some (some (sgn dot, w))
+    if segs.any Option.isNone then (whole, []) else (whole, segs.filterMap id)
+
+-- ---------- 带（_lib.driven / belt_of_click）----------
+/-- 一个箭头块对全部合格链的距离键：合格 = 指向与链首步点乘非零；
+    按「离箭头最近的那一位」升序，打平再按全链平均距离（稳定）。返回 [(键, 符号, 链)]。 -/
+def elig (g : Grid) (chains : List (List Cell)) (b : Blk) : List ((Int × Int × Int) × Int × List Cell) :=
+  let es := chains.filterMap fun o =>
+    let st := stepAt o 0
+    let dot := b.dr * st.1 + b.dc * st.2
+    if dot == 0 then none else
+    let ds := o.map (fun p => sq ((g.pix p).1 - b.ctr.1) + sq ((g.pix p).2 - b.ctr.2))
+    some ((minL ds, ds.foldl (· + ·) 0, (ds.length : Int)), sgn dot, o)
+  sortBy (fun x y => x.1.1 < y.1.1 || (x.1.1 == y.1.1 && x.1.2.1 * y.1.2.2 ≤ y.1.2.1 * x.1.2.2)) es
+
+/-- 这一次点击驱动的全部链 [(符号, 链)]：最近的合格链，外加每一条不被任何「有按钮的链」整段包含的合格链。
+    「有按钮的链」= 某个（非星把手、非枢纽）按钮自己最近的那条合格链。 -/
+def driven (s : State) (g : Grid) (a : Blk) : List (Int × List Cell) :=
+  let chains := seqsOf s.belt_chains
+  let hub := hubButton s g
+  let owned := (btnsOf s).filterMap fun b =>
+    if (starButton s g b).isSome || hub == some b then none else
+    (elig g chains b).head?.map (fun e => e.2.2)
+  match elig g chains a with
+  | [] => []
+  | m :: rest => (m.2.1, m.2.2) ::
+      (rest.filter (fun e => !owned.any (fun w => e.2.2.all w.contains))).map (fun e => (e.2.1, e.2.2))
+
+/-- 主链：驱动的链里离箭头最近的那条（最近一位距离最小，并列取先出现的）。 -/
+def mainChain (g : Grid) (a : Blk) (ds : List (Int × List Cell)) : Option (Int × List Cell) :=
+  let d := fun (x : Int × List Cell) => minL (x.2.map (fun p => sq ((g.pix p).1 - a.ctr.1) + sq ((g.pix p).2 - a.ctr.2)))
+  ds.foldl (fun acc x => match acc with
+    | none => some x
+    | some y => if d x < d y then some x else some y) none
+
+-- ---------- 一次点击归哪条律（_lib.move_map 的分派次序：星把手 → 枢纽 → 面板 → 带）----------
+inductive Move where
+  | dead                                   -- 点在一切箭头块之外
+  | star (ctr : Cell) (rot : Bool) (sense : Int)
+  | hub (pairs : List (Cell × Cell))
+  | panel (whole : Bool) (segs : List (Int × List Cell))
+  | belt (main : Int × List Cell) (all : List (Int × List Cell))
+  | abstain                                -- 点中箭头块但哪条律都不认领
+
+def moveOf (s : State) (a : Act) : Move :=
+  let g := gridOf s
+  match hitStarButton s g a with
+  | some t => Move.star t.1 t.2.1 t.2.2
+  | none =>
+    match (if hitHub s g a then swapPairs s g else none) with
+    | some ps => Move.hub ps
+    | none =>
+      match hitArrow s a with
+      | none => Move.dead
+      | some b =>
+        if panelButtons s g then
+          let pc := panelClaim s g b
+          if pc.2.isEmpty then Move.abstain else Move.panel pc.1 pc.2
+        else
+          let ds := driven s g b
+          match mainChain g b ds with
+          | some m => Move.belt m ds
+          | none => Move.abstain
+
+/-- 这一按的完整位置置换 [(落点, 来源)]（多段并行时后写的覆盖先写的，与 _lib 的 dict.update 同）。 -/
+def mapOf (s : State) : Move → List (Cell × Cell)
+  | Move.star ctr rot sense =>
+    if rot then (starRings s ctr).flatMap (fun ring => shiftMap ring sense)
+    else (raysOf (starRings s ctr)).flatMap (fun ray => shiftMap ray sense)
+  | Move.hub ps => ps.flatMap (fun p => [(p.1, p.2), (p.2, p.1)])
+  | Move.panel _ segs => segs.flatMap (fun x => shiftMap x.2 x.1)
+  | Move.belt _ ds => ds.flatMap (fun x => shiftMap x.2 x.1)
+  | _ => []
+
+def dedupLast (ps : List (Cell × Cell)) : List (Cell × Cell) :=
+  ps.reverse.foldl (fun acc q => if acc.any (fun x => x.1 == q.1) then acc else q :: acc) []
+
+def bitOf (p : Cell) : Nat := cellBit p.1 p.2
+def bitN (m i : Nat) : Bool := (m / 2 ^ i) % 2 == 1
+
+def moveMask (ps : List (Cell × Cell)) (m : Int) : Int :=
+  let n := m.toNat
+  let cleared := ps.foldl (fun acc q => if bitN n (bitOf q.1) then acc - 2 ^ bitOf q.1 else acc) n
+  Int.ofNat (ps.foldl (fun acc q => if bitN n (bitOf q.2) then acc + 2 ^ bitOf q.1 else acc) cleared)
+
+def applyMap (s : State) (ps0 : List (Cell × Cell)) : State :=
+  let ps := dedupLast ps0
+  { s with tile_color_m_c1 := moveMask ps s.tile_color_m_c1, tile_color_m_c2 := moveMask ps s.tile_color_m_c2,
+           tile_color_m_c9 := moveMask ps s.tile_color_m_c9, tile_color_m_c10 := moveMask ps s.tile_color_m_c10,
+           tile_color_m_c11 := moveMask ps s.tile_color_m_c11, tile_color_m_c12 := moveMask ps s.tile_color_m_c12,
+           tile_color_m_c15 := moveMask ps s.tile_color_m_c15 }
+
+def subMask (a b : Int) : Bool := (a.toNat &&& b.toNat) == a.toNat
+
+/-- 每个插槽都装着它自己角标色的瓷砖（_lib.slots_done）；角标色只出现过 11、12 两种。 -/
+def slotsDone (s : State) : Bool :=
+  s.slot_mark_n > 0 && subMask s.slot_mark_m_c11 s.tile_color_m_c11 && subMask s.slot_mark_m_c12 s.tile_color_m_c12
+
+def isMove : Move → Bool
+  | Move.dead => false
+  | Move.abstain => false
+  | _ => true
+
+def winHit (s : State) (a : Act) : Bool := let m := moveOf s a; isMove m && slotsDone (applyMap s (mapOf s m))
+
+/-- 点中块、认得出律、且这一按不会配齐插槽：关卡内的生效点击。 -/
+def inLevel (s : State) (a : Act) : Option Move :=
+  let m := moveOf s a
+  if isMove m && !slotsDone (applyMap s (mapOf s m)) then some m else none
+
+-- ---------- 各条概念的断言（逐格比颜色）----------
+def movedAs (s s' : State) (ps : List (Cell × Cell)) : Bool := ps.all (fun q => colorAt s' q.1 == colorAt s q.2)
+/-- 不在 touched 里的瓷砖，颜色一格不变。 -/
+def restStatic (s s' : State) (touched : List Cell) : Bool :=
+  (cells s (gridOf s)).all (fun p => touched.contains p || colorAt s' p == colorAt s p)
+
+def barOf (B n : Int) : Int := (128 * n + B) / (2 * B)
+
+def rules : List Rule := [
+  { name := "dead_click"
+    guard := fun s a => isA6 a && (hitArrow s a).isNone
+    effect := fun s _ s' => s' == s },
+  { name := "belt_rot_a"      -- 主链：指向与次序首步反向 ⇒ 新[i] = 旧[i+1]
+    guard := fun s a => match inLevel s a with | some (Move.belt m _) => m.1 < 0 | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.belt m _) => let o := m.2; let n := o.length
+          (List.range n).all (fun i => colorAt s' (o.getD i (0, 0)) == colorAt s (o.getD ((i + 1) % n) (0, 0)))
+      | _ => false },
+  { name := "belt_rot_b"      -- 主链：指向与次序首步同向 ⇒ 新[i] = 旧[i-1]
+    guard := fun s a => match inLevel s a with | some (Move.belt m _) => m.1 > 0 | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.belt m _) => let o := m.2; let n := o.length
+          (List.range n).all (fun i => colorAt s' (o.getD i (0, 0)) == colorAt s (o.getD ((i + n - 1) % n) (0, 0)))
+      | _ => false },
+  { name := "belt_parallel"   -- 主链之外被同一次点击驱动的独立无主链，也各按自己的点乘符号挪一位
+    guard := fun s a => match inLevel s a with | some (Move.belt _ ds) => ds.length > 1 | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.belt m ds) => (ds.filter (fun x => x.2 != m.2)).all (fun x => movedAs s s' (shiftMap x.2 x.1))
+      | _ => false },
+  { name := "off_belt_static"
+    guard := fun s a => match inLevel s a with | some (Move.belt _ _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.belt _ ds) => restStatic s s' (ds.flatMap Prod.snd)
+      | _ => false },
+  { name := "star_rotate"     -- 切向把手：每一环绕星心转一位，第 j 位取第 j - 符号 位
+    guard := fun s a => match inLevel s a with | some (Move.star _ true _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.star ctr true sense) => (starRings s ctr).all (fun ring =>
+          (List.range 8).all (fun j => colorAt s' (ring.getD j (0, 0)) ==
+            colorAt s (ring.getD (if sense > 0 then (j + 7) % 8 else (j + 1) % 8) (0, 0))))
+      | _ => false },
+  { name := "star_radial"     -- 径向把手：八条射线的内容一起沿射线挪一位（环 k 取环 k - 符号），最外绕回最里
+    guard := fun s a => match inLevel s a with | some (Move.star _ false _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.star ctr false sense) =>
+          let rings := starRings s ctr; let n := rings.length
+          (List.range 8).all (fun j => (List.range n).all (fun k =>
+            colorAt s' ((rings.getD k []).getD j (0, 0)) ==
+            colorAt s ((rings.getD (if sense > 0 then (k + n - 1) % n else (k + 1) % n) []).getD j (0, 0))))
+      | _ => false },
+  { name := "hub_swap"        -- 枢纽按钮：每块游离瓷砖与它唯一的八邻接星上瓷砖互换颜色
+    guard := fun s a => match inLevel s a with | some (Move.hub _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.hub ps) => ps.all (fun p => colorAt s' p.1 == colorAt s p.2 && colorAt s' p.2 == colorAt s p.1)
+      | _ => false },
+  { name := "off_star_static"
+    guard := fun s a => match inLevel s a with | some (Move.star _ _ _) => true | some (Move.hub _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.star ctr _ _) => restStatic s s' (starRings s ctr).flatten
+      | some (Move.hub ps) => restStatic s s' (ps.flatMap (fun p => [p.1, p.2]))
+      | _ => false },
+  { name := "panel_all_rot"   -- 独自一排的按钮：全部插槽拐角环各整环挪一位
+    guard := fun s a => match inLevel s a with | some (Move.panel true _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.panel true segs) =>
+          segs.length == (seqsOf s.slot_ring_cells).length && segs.all (fun x => movedAs s s' (shiftMap x.2 x.1))
+      | _ => false },
+  { name := "panel_rank_rot"  -- 一排多个按钮之一：只转自己那条环在拐角列之前的那一截
+    guard := fun s a => match inLevel s a with | some (Move.panel false _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.panel false segs) => segs.length == 1 && segs.all (fun x => movedAs s s' (shiftMap x.2 x.1))
+      | _ => false },
+  { name := "off_panel_static"
+    guard := fun s a => match inLevel s a with | some (Move.panel _ _) => true | _ => false
+    effect := fun s a s' => match inLevel s a with
+      | some (Move.panel _ segs) => restStatic s s' (segs.flatMap Prod.snd)
+      | _ => false },
+  { name := "only_tiles_change"
+    guard := fun s a => isA6 a && !winHit s a && !(match moveOf s a with | Move.abstain => true | _ => false)
+    effect := fun s _ s' =>
+      { s' with tile_color_m_c1 := s.tile_color_m_c1, tile_color_m_c2 := s.tile_color_m_c2,
+                tile_color_m_c9 := s.tile_color_m_c9, tile_color_m_c10 := s.tile_color_m_c10,
+                tile_color_m_c11 := s.tile_color_m_c11, tile_color_m_c12 := s.tile_color_m_c12,
+                tile_color_m_c15 := s.tile_color_m_c15, bar_prefix := s.bar_prefix, h_clicks := s.h_clicks } == s },
+  { name := "bar_step"
+    guard := fun s a => (inLevel s a).isSome
+    effect := fun s _ s' =>
+      s'.h_clicks == s.h_clicks + 1 && s'.bar_prefix ≥ s.bar_prefix &&
+      (match s.k_budget with
+       | some B => s'.bar_prefix == barOf B (s.h_clicks + 1)
+       | none => false) },
+  { name := "win_slots_done"
+    guard := winHit
+    effect := fun s _ s' => s'.level == s.level + 1 },
+  { name := "no_win_without_slots"
+    guard := fun s a => isA6 a && !winHit s a
+    effect := fun s _ s' => s'.level == s.level },
+  { name := "level_up_resets_bar"
+    guard := fun s a => winHit s a && !s.is_last_level
+    effect := fun _ _ s' => s'.bar_prefix == 0 && s'.h_clicks == 0 },
+  { name := "hud_counts_levels"
+    guard := fun s a => winHit s a && !s.is_last_level
+    effect := fun s _ s' => s'.levels_cleared == s.levels_cleared + 1 && s'.levels_total == s.levels_total }
+]
+
+/-- 关卡内的前向函数：只用状态本身。点空 = 原样；点中块 = 按上面算出的律搬色、隐藏计数 +1、竖条按预算重算；
+    这一按会配齐插槽（换关）或哪条律都不认领时不说话（换关由 worldRows 查表）。 -/
+def stepRules (s : State) (a : Act) : Option State :=
+  if !isA6 a then none else
+  match moveOf s a with
+  | Move.dead => some s
+  | Move.abstain => none
+  | m =>
+    let t := applyMap s (mapOf s m)
+    if slotsDone t then none else
+    match s.k_budget with
+    | none => none
+    | some B => some { t with h_clicks := s.h_clicks + 1, bar_prefix := barOf B (s.h_clicks + 1) }
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+def isGoal (s : State) : Bool := s.level == s.levels_total
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。用 native_decide：语料几百条，kernel 上 decide 太慢；代价是多依赖 Lean.ofReduceBool 这条公理。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+

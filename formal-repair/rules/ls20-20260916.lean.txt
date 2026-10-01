@@ -1,0 +1,407 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/ls20-20260916/_lib.py ; why=原数据段只有计数与像素掩码、写不出下一步且 keyEq 排除了 44 个字段；改成格位读数（墙/直线/开关/染色/补给/框/HUD）+ 隐藏量 h_t/h_rg/h_fg + 每关布局常数，让 stepRules 真算出落点、推滑、HUD、能量、掉命、会动物件与迷雾圆；路线取整局 368 步
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+-- 由 world/formalize.py 生成于 2026-09-29T17:41:53+08:00；局 ls20；基于 run ['ls20-0915-1535']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 1437 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复（2026-09-29）：数据段按 meta/repair-20260928/lib/ls20-20260916/_lib.py 重新生成（见文件第一行）。
+-- 状态里的量（全部来自那份 _lib.py）：
+--   读数（这一帧看得见的东西）：me_r/me_c 玩家块左上角；energy 能量条格数；lives 命数；hud 左下 3×3 图样位 + 512×墨色；
+--     wall_mask / line_mask / tog_mask / nc_mask / paint_mask / refill_mask 按 5×5 格位（144 格，格号 = 12×行号 + 列号）的
+--     墙、贴线（4×144 位：推向右/左/下/上）、十字开关、非十字开关、染色物件、补给块；frame0 / frame1 目标框编码
+--     （格号 + 144×(图样位 + 512×墨色)）。
+--   隐藏量（修订 R1）：h_t 本关挪动步数（会动物件的钟）；h_rg / h_fg 本关吃掉的补给、消掉的框（迷雾里看不见不等于没了）。
+--   每关常数（修订 R1，换关时随查表进入）：k_wall / k_lines / k_tog / k_nc / k_pnt / k_ref / k_frm0 / k_frm1 布局；
+--     k_mv0 / k_mv1 会动开关的轨道；k_orb 会动染色物件的轨道；k_start / k_hud0 开局（掉命也回到这里）；
+--     k_cost 每步能量；k_tfree 踩开关免费（只第 0 关）；k_fog 迷雾关。
+-- 动力学全部在下面的 Lean 里：落点（撞墙 / 撞框 / 贴线推滑）、踩开关转 HUD、非十字开关换图样、染色换墨色、补给回满、
+-- 消框与换关判定、掉命重开、会动物件的位置、迷雾圆（读数里哪些格看得见）。Python 读数只给位置 / 颜色 / 形状；
+-- hidden_step 只数「玩家块挪了位置」的步、只记下当场看见被吃掉的补给 / 被走进的框，不推演任何看不见的东西。
+-- 换关那一步（新关布局是游戏内容）走 step 里的 worldRows 查表（路线 368 步里 7 步），关卡内每一步由 stepRules 算。
+--
+-- 公示（脚本都在 meta/repair-20260928/_scratch/ls20-20260916/）：
+-- · 每关常数是拟合 / 读出来的游戏内容：布局取开局帧；第 6 关取全部照亮像素之并；会动开关的轨道端点与相位、染色轨道相位、
+--   迷雾半径（阈值落在 1594 与 1602 之间，取 1600）都是在语料上拟合的（fit_movers.py、fit_l6.py、p4_fog.py），只能说「本语料无反例」。
+--   端点不是墙决定的（第 4 关行 35 走廊西到列 9、开关只到 14；第 6 关列 54 走廊南到行 40、开关只到 30），规律未知。
+--   第 6 关列 54 开关的北端 5 从没被直接看见过（被看见的位置只有 10–30），是按相位拟合（16 次观测、另核「该看见却没看见」）推出来的。
+--   （主会话按复审补）拟合族加端点停留 0–3、lo 0–15、hi 20–40，零不符的只有 lo=5/hi=30/无停留/相位 1；原概念登记的 10↔30 最优仍有 24 处不符。
+--   第 6 关关内 223 条转移里预测开关在行 5 的（前帧或后帧）36 条，路线上 10 条，这些步它都不在视野内，断言只剩「没看见」、不可证伪；
+--   路线上踩到它只有 seq 1456（行 20）、1457（行 25），都是直接看见的位置，北端 5 只经周期 10 影响钟相位。
+--   第 6 关并集地图：144 格里 142 格的中心像素某帧被照亮过，(55,54)、(55,59) 从没照亮、按墙填、动力学没用到；
+--   按扰动法数 Lean 关内动力学用到的格×步，路线上只有 1 个（seq 1449 的格 115）要靠路线之外的信息（它是 seq 947 那次尝试里才见到的），
+--   语料里另有 seq 927 格 38、seq 947 格 103 与 115 三个格×步是首见（不在路线上）。
+-- · 只在一种情形下见过、换一种写法语料分不开的：k_tfree（第 0 关踩开关不扣能量，seq 17、436、1105 三次都是同一个开关）；
+--   「撞墙扣 k_cost、撞框不扣」（撞墙只见于第 4、6 关，撞框只见于第 0、2 关——原概念按关登记 BLOCKED_COSTS，两种说法语料上等价）；
+--   非十字开关「同朝向换册里下一形」只见过朝向 0 与 1（朝向 0 见于第 3–6 关，朝向 1 只见于第 5 关会动的那个），朝向 2、3 没见过。
+--   （主会话按复审更正）朝向 1 共 20 次按下，形 0/1/2/3/5 各 4 次，形 4 没见过朝向 1；朝向 1 这 20 次对「同朝向取下一形」是样本外检验。
+-- · 语料里一次都没走到的分支（猜的，未检验）：目标格出界；第 0/1/2/3/5 关撞墙；推滑因出界或燃料用尽而停；
+--   推滑途经开关 / 染色 / 补给（Lean 里途经不触发任何东西，只看落点）；命数 1 时再掉命；补给与开关同格；能量不够扣而截到 0；
+--   inkNext / catNext 取不到值（Lean 里此时 stepRules 返回 none）；
+--   （主会话按复审补）推滑落点是迷雾里未被照亮的补给或框：hidden_step 只看前帧读数记不到，Lean 的 rgNext / fgNext 会记，两边分叉、
+--   keyEq 会响亮失败（语料里第 6 关吃补给落点 8/8 前帧已照亮，0 例）。
+-- · 改错实验（mutate.py，在与本段同算法的 model.py 上做；数「原始步序的关内转移 1446 条 / 路线 368 步」里预测不符的条数）：十字开关改逆时针 72/15；非十字换上一形 50/13；
+--   会动开关相位 +1 730/180；染色轨道反向 370/73；迷雾半径 19 98/27；迷雾圆心 +2 88/23；墨色反向 46/16；撞墙不扣 39/7；
+--   撞框也扣 2/0；第 0 关踩开关也扣 3/1；撞墙那步会动物件也走 39/7（其中可见字段不符 10/7）。
+--   （主会话按复审补）改错改的是动力学定律，不是 hidden_step：h 类量是当场观测、不是推演，潜在状态例外的「改 hidden_step 重新生成」不适用。
+--   「撞墙那步钟不走」在 39 条语料转移里只有 10 条被可见字段检验，其余 29 条只靠 h_t 自证（路线上 7/7 有可见字段介入）。
+--   复审在 Lean 侧复现了两种（十字开关逆时针 → FAITHFUL_BAD (5, 436)；迷雾阈值 1444 → FAITHFUL_BAD (317, 1417)），失败 seq 与 model.py 一致；
+--   render_proof.py 只证明读数是（关号, 状态）的函数，第 6 关 h_t 只被约 17% 的帧检验（开关多在迷雾里）。
+-- · guard 挡掉的行（去重语料 1297 条：挪动 1228、撞墙 39、撞框 2、掉命 10、换关 16、RESET 2）：move_* / passable / 各 HUD 与物件规则
+--   只管关内（1269 条）；energy_cost 另去掉走进补给的 37 条（refill 管）；energy_tick 只收「挪动且不踩开关不踩补给」1076 条与撞框 2 条，
+--   撞墙 39 条不收（其能量由 energy_cost 断言）；toggle_changes_hud 去掉踩染色的 40 条（paint_recolors_hud 管）；
+--   levelup_iff_match 收全部能量 > 0 的移动（1283 条，含 16 条换关）；fog_disc 只收第 6 关。
+-- · 与原概念的出入：move_up/down/left/right 原文是同一条规律按方向分写，这里共用 moveEffect，方向由 delta 决定，
+--   「离开区恢复原样」只在开关 / 染色读数上断言（像素级的覆盖由 render_proof.py 整帧重画核过）；
+--   toggle_maps_hud 原文是（内图样, 旧 HUD）→ 新 HUD 的观测表，这里换成 6 形图样册 + 同朝向取下一形（49 次按下全对）；
+--   mover_shifts 原文按关登记掉头端点，这里是轨道常数 + 钟 h_t（撞墙的步不走：第 4 关 seq 1262–1265）；
+--   death_reset 比原文多断言 HUD 回开局、钟归零、整个局面回开局（10 条掉命行全对）；
+--   refill_vanishes 原文把迷雾关缩出 scope，这里靠 h_rg 把第 6 关也收进来。
+-- · 本局没有客户端超时重发步（修订 R2），没有关内 RESET（修订 R3）。没读官方游戏源码。
+
+-- ---------- 基本量 ----------
+def FULL : Int := 42
+def kv (o : Option Int) : Int := o.getD (-1)
+def kn (o : Option Int) : Nat := (o.getD 0).toNat
+def bitOf (k : Nat) : Nat := 1 <<< k
+def dropBit (m k : Nat) : Nat := if m.testBit k then m ^^^ (1 <<< k) else m
+def minus (m n : Nat) : Nat := m - (m &&& n)          -- 集合差 m \ n
+
+-- 格位：格号 k 的左上角像素 (5·(k/12), 4 + 5·(k%12))
+def cellT (k : Nat) : Int := Int.ofNat (5 * (k / 12))
+def cellL (k : Nat) : Int := Int.ofNat (4 + 5 * (k % 12))
+def kOf (r c : Int) : Nat := (r.toNat / 5) * 12 + (c.toNat - 4) / 5
+def kOfN (r c : Nat) : Nat := (r / 5) * 12 + (c - 4) / 5
+def meK (s : State) : Nat := kOf s.me_r s.me_c
+
+-- 按位过滤：保留 m 里满足 p 的位（逐个取最高位，次数 = 位数）
+def filterBits (p : Nat → Bool) : Nat → Nat → Nat → Nat
+  | 0, _, acc => acc
+  | fuel + 1, m, acc =>
+    if m == 0 then acc
+    else
+      let k := Nat.log2 m
+      filterBits p fuel (m ^^^ (1 <<< k)) (if p k then acc ||| (1 <<< k) else acc)
+
+-- ---------- 迷雾圆（fog_disc）----------
+-- 像素 (r,c) 照得到 ⇔ 到 (me_r + 1.5, me_c + 1.5) 的距离 < 20：(2r − 2me_r − 3)² + (2c − 2me_c − 3)² < 1600。
+-- 读数判据选成「物件里不含色 5 的像素全是期望值」，圆是凸的，所以一个物件读得出 ⇔ 它的几个角点都照得到。
+def sq (x : Int) : Int := x * x
+def lit (mr mc r c : Int) : Bool := decide (sq (2 * r - 2 * mr - 3) + sq (2 * c - 2 * mc - 3) < 1600)
+def litAll (mr mc : Int) : List (Int × Int) → Bool
+  | [] => true
+  | p :: ps => lit mr mc p.1 p.2 && litAll mr mc ps
+-- 开关 / 染色 / 补给：内 3×3 的四角
+def innerLit (mr mc : Int) (k : Nat) : Bool :=
+  litAll mr mc [(cellT k + 1, cellL k + 1), (cellT k + 1, cellL k + 3), (cellT k + 3, cellL k + 1), (cellT k + 3, cellL k + 3)]
+-- 墙：格中心像素
+def centerLit (mr mc : Int) (k : Nat) : Bool := lit mr mc (cellT k + 2) (cellL k + 2)
+-- 框：以内 5×5 为中心的 9×9 的四角
+def frameLit (mr mc : Int) (k : Nat) : Bool :=
+  litAll mr mc [(cellT k - 2, cellL k - 2), (cellT k - 2, cellL k + 6), (cellT k + 6, cellL k - 2), (cellT k + 6, cellL k + 6)]
+-- 直线（q = 144·方向 + 格号）：线的两个端点像素
+def lineLit (mr mc : Int) (q : Nat) : Bool :=
+  let k := q % 144
+  let t := cellT k
+  let l := cellL k
+  match q / 144 with
+  | 0 => litAll mr mc [(t, l - 1), (t + 4, l - 1)]
+  | 1 => litAll mr mc [(t, l + 5), (t + 4, l + 5)]
+  | 2 => litAll mr mc [(t - 1, l), (t - 1, l + 4)]
+  | _ => litAll mr mc [(t + 5, l), (t + 5, l + 4)]
+
+-- 这一帧看得见的格：玩家块盖住的那格读不出；迷雾关里还要照得到
+def seen (fog : Bool) (km : Nat) (p : Nat → Bool) (m : Nat) : Nat :=
+  if fog then filterBits (fun k => k != km && p k) 145 m 0 else dropBit m km
+
+-- ---------- 会动的物件（mover_shifts / paint_orbits）----------
+-- 开关编码：种类 + 2×(轴 + 2×(固定坐标 + 64×(lo + 64×(hi + 64×相位))))；轴 0 沿行走、1 沿列走。
+-- 在 lo..hi 之间每步挪 5 像素、到端掉头：u = (t + 相位) mod 2n，坐标 = lo + 5·(u ≤ n ? u : 2n − u)。返回 (种类, 格号)。
+def moverCell (code t : Nat) : Nat × Nat :=
+  let v := code / 2
+  let fixed := v / 2 % 64
+  let lo := v / 128 % 64
+  let hi := v / 8192 % 64
+  let n := (hi - lo) / 5
+  let u := (t + v / 524288) % (2 * n)
+  let x := lo + 5 * (if u ≤ n then u else 2 * n - u)
+  (code % 2, if v % 2 == 0 then kOfN fixed x else kOfN x fixed)
+
+-- 染色物件轨道：绕中心格的 8 个邻格，次序 下、左下、左、左上、上、右上、右、右下，每步一格
+def orbitOff : List Int := [12, 11, -1, -13, -12, -11, 1, 13]
+def orbitCell (code t : Nat) : Nat := (Int.ofNat (code % 144) + orbitOff.getD ((code / 144 + t) % 8) 0).toNat
+
+structure Objs where
+  tog : Nat
+  nc : Nat
+  pnt : Nat
+
+def addMover (o : Objs) (code : Int) (t : Nat) : Objs :=
+  if code < 0 then o
+  else
+    let kc := moverCell code.toNat t
+    if kc.1 == 0 then { o with tog := o.tog ||| bitOf kc.2 } else { o with nc := o.nc ||| bitOf kc.2 }
+
+-- 第 t 步时的十字开关 / 非十字开关 / 染色物件（不动的 + 会动的）
+def objsAt (s : State) (t : Nat) : Objs :=
+  let o := addMover (addMover { tog := kn s.k_tog, nc := kn s.k_nc, pnt := kn s.k_pnt } (kv s.k_mv0) t) (kv s.k_mv1) t
+  if kv s.k_orb < 0 then o else { o with pnt := o.pnt ||| bitOf (orbitCell (kv s.k_orb).toNat t) }
+
+-- 还在的补给、还在的框
+def trueRef (s : State) : Nat := minus (kn s.k_ref) s.h_rg.toNat
+def framesLeft (s : State) (fg : Nat) : List Nat :=
+  [kv s.k_frm0, kv s.k_frm1].filterMap (fun c => if c < 0 then none else if fg.testBit (c.toNat % 144) then none else some c.toNat)
+def frameAt (frs : List Nat) (b : Nat) : Option Nat := frs.find? (fun c => c % 144 == b)
+
+-- ---------- 读数怎么由真实局面决定（迷雾圆 + 玩家块遮挡）----------
+def seenFrames (fog : Bool) (mr mc : Int) (frs : List Nat) : List Int :=
+  (frs.filter (fun c => !fog || frameLit mr mc (c % 144))).map Int.ofNat
+
+def render (s : State) : State :=
+  let mr := s.me_r
+  let mc := s.me_c
+  let fog := kv s.k_fog == 1
+  let km := kOf mr mc
+  let o := objsAt s s.h_t.toNat
+  let fr := seenFrames fog mr mc (framesLeft s s.h_fg.toNat)
+  { s with
+    wall_mask := Int.ofNat (seen fog km (centerLit mr mc) (kn s.k_wall)),
+    line_mask := Int.ofNat (if fog then filterBits (lineLit mr mc) 600 (kn s.k_lines) 0 else kn s.k_lines),
+    tog_mask := Int.ofNat (seen fog km (innerLit mr mc) o.tog),
+    nc_mask := Int.ofNat (seen fog km (innerLit mr mc) o.nc),
+    paint_mask := Int.ofNat (seen fog km (innerLit mr mc) o.pnt),
+    refill_mask := Int.ofNat (seen fog km (innerLit mr mc) (trueRef s)),
+    frame0 := fr.getD 0 (-1),
+    frame1 := fr.getD 1 (-1) }
+
+-- ---------- HUD ----------
+def gb (p k : Nat) : Nat := if p.testBit k then 1 else 0
+-- 顺时针转 90°：新 (i,j) = 旧 (2−j, i)，图样位 3i+j
+def rotCW (p : Nat) : Nat :=
+  gb p 6 + 2 * gb p 3 + 4 * gb p 0 + 8 * gb p 7 + 16 * gb p 4 + 32 * gb p 1 + 64 * gb p 8 + 128 * gb p 5 + 256 * gb p 2
+def rotN : Nat → Nat → Nat
+  | 0, p => p
+  | n + 1, p => rotN n (rotCW p)
+-- 图样册（非十字开关）：6 个基本形，按下非十字开关 = 同一朝向换成册里的下一形。
+-- .#./.#./###、#.#/#.#/###、.##/#.#/.#.、.#./##./.##、###/..#/#.#、##./.##/#.#（6×4 个朝向两两不同，cat_check.py）
+def CATALOG : List Nat := [466, 493, 174, 410, 359, 371]
+def catAt (i : Nat) : Nat := CATALOG.getD (i % 6) 0
+def catPairs : List (Nat × Nat) := (List.range 6).flatMap (fun i => (List.range 4).map (fun r => (i, r)))
+def catNext (p : Nat) : Option Nat :=
+  (catPairs.find? (fun ir => rotN ir.2 (catAt ir.1) == p)).map (fun ir => rotN ir.2 (catAt (ir.1 + 1)))
+-- 染色：墨色 12 → 9 → 14 → 8 → 12
+def inkNext (c : Nat) : Option Nat :=
+  if c == 12 then some 9 else if c == 9 then some 14 else if c == 14 then some 8 else if c == 8 then some 12 else none
+def hudPat (s : State) : Nat := s.hud.toNat % 512
+def hudInk (s : State) : Nat := s.hud.toNat / 512
+
+-- ---------- 落点（passable / move_*）----------
+def delta : Act → Option (Int × Int)
+  | .a1 => some (-1, 0)
+  | .a2 => some (1, 0)
+  | .a3 => some (0, -1)
+  | .a4 => some (0, 1)
+  | _ => none
+
+def nbr (k : Nat) (d : Int × Int) : Option Nat :=
+  let i := Int.ofNat (k / 12) + d.1
+  let j := Int.ofNat (k % 12) + d.2
+  if 0 ≤ i ∧ i < 12 ∧ 0 ≤ j ∧ j < 12 then some (i.toNat * 12 + j.toNat) else none
+
+-- 落点贴着直线：左侧线推向右、右侧推向左、上侧推向下、下侧推向上
+def pushOf (lines k : Nat) : Option (Int × Int) :=
+  if lines.testBit k then some (0, 1)
+  else if lines.testBit (144 + k) then some (0, -1)
+  else if lines.testBit (288 + k) then some (1, 0)
+  else if lines.testBit (432 + k) then some (-1, 0)
+  else none
+
+-- 沿推的方向一格格滑，下一格是墙、框或出界就停（进框只能直接一步走进去）
+def slide (wall : Nat) (frs : List Nat) (d : Int × Int) : Nat → Nat → Nat
+  | 0, x => x
+  | fuel + 1, x =>
+    match nbr x d with
+    | none => x
+    | some y => if wall.testBit y || (frameAt frs y).isSome then x else slide wall frs d fuel y
+
+structure Plan where
+  kind : Nat     -- 0 撞墙不动；1 撞框不动（HUD 与框不匹配）；2 挪动；3 掉命重开；4 走进最后一个框（换关）
+  x : Nat        -- 落点格号
+  ent : Bool     -- 这一步走进了一个匹配的框
+
+def plan (s : State) (a : Act) : Option Plan :=
+  match delta a with
+  | none => none
+  | some d =>
+    let km := meK s
+    let wall := kn s.k_wall
+    let frs := framesLeft s s.h_fg.toNat
+    match nbr km d with
+    | none => some (if s.energy == 0 then { kind := 3, x := km, ent := false } else { kind := 0, x := km, ent := false })
+    | some b =>
+      if s.energy == 0 && !((trueRef s).testBit b && !wall.testBit b) then some { kind := 3, x := km, ent := false }
+      else if wall.testBit b then some { kind := 0, x := km, ent := false }
+      else
+        match frameAt frs b with
+        | some c =>
+          if Int.ofNat (c / 144) == s.hud then some { kind := (if frs.length == 1 then 4 else 2), x := b, ent := true }
+          else some { kind := 1, x := km, ent := false }
+        | none =>
+          match pushOf (kn s.k_lines) b with
+          | none => some { kind := 2, x := b, ent := false }
+          | some e => some { kind := 2, x := slide wall frs e 16 b, ent := false }
+
+def planKind (s : State) (a : Act) : Nat := match plan s a with | some p => p.kind | none => 9
+def planX (s : State) (a : Act) : Nat := match plan s a with | some p => p.x | none => meK s
+def planEnt (s : State) (a : Act) : Bool := match plan s a with | some p => p.ent | none => false
+def inLevel (s : State) (a : Act) : Bool := decide (planKind s a ≤ 2)
+def moved (s : State) (a : Act) : Bool := planKind s a == 2
+def tNext (s : State) (a : Act) : Nat := s.h_t.toNat + (if moved s a then 1 else 0)
+def objsNext (s : State) (a : Act) : Objs := objsAt s (tNext s a)
+def onCross (s : State) (a : Act) : Bool := moved s a && (objsNext s a).tog.testBit (planX s a)
+def onNC (s : State) (a : Act) : Bool := moved s a && (objsNext s a).nc.testBit (planX s a)
+def onPaint (s : State) (a : Act) : Bool := moved s a && (objsNext s a).pnt.testBit (planX s a)
+def onRefill (s : State) (a : Act) : Bool := moved s a && (trueRef s).testBit (planX s a)
+
+-- ---------- 各量的下一值 ----------
+def energyNext (s : State) (a : Act) : Int :=
+  if planKind s a == 1 then s.energy
+  else if onRefill s a then FULL
+  else if (onCross s a || onNC s a) && kv s.k_tfree == 1 then s.energy
+  else max 0 (s.energy - kv s.k_cost)
+
+def hudNext (s : State) (a : Act) : Option Int :=
+  let pat : Option Nat := if onCross s a then some (rotCW (hudPat s)) else if onNC s a then catNext (hudPat s) else some (hudPat s)
+  let ink : Option Nat := if onPaint s a then inkNext (hudInk s) else some (hudInk s)
+  match pat, ink with
+  | some p, some i => some (Int.ofNat (p + 512 * i))
+  | _, _ => none
+
+def rgNext (s : State) (a : Act) : Int := if onRefill s a then Int.ofNat (s.h_rg.toNat ||| bitOf (planX s a)) else s.h_rg
+def fgNext (s : State) (a : Act) : Int := if planEnt s a then Int.ofNat (s.h_fg.toNat ||| bitOf (planX s a)) else s.h_fg
+
+def afterDeath (s : State) : State :=
+  let k := kn s.k_start
+  render { s with lives := s.lives - 1, energy := FULL, hud := kv s.k_hud0, me_r := cellT k, me_c := cellL k,
+                  h_t := 0, h_rg := 0, h_fg := 0 }
+
+def afterMove (s : State) (a : Act) (hd : Int) : State :=
+  let x := planX s a
+  render { s with
+    me_r := cellT x
+    me_c := cellL x
+    h_t := Int.ofNat (tNext s a)
+    hud := hd
+    energy := energyNext s a
+    h_rg := rgNext s a
+    h_fg := fgNext s a }
+
+def stepRules (s : State) (a : Act) : Option State :=
+  let k := planKind s a
+  if k == 3 then some (afterDeath s)
+  else if k ≤ 2 then (hudNext s a).map (afterMove s a)
+  else none      -- 4：换关（新关布局是游戏内容，查 worldRows）；9：不是移动动作
+
+-- ---------- 规则（一条概念一条）----------
+-- 读数在 s' 里该是什么：按 s' 的玩家位置与隐藏量、本关布局重算（看得见的那部分）
+def seenAfter (s' : State) (m : Nat) (p : Int → Int → Nat → Bool) : Nat :=
+  seen (kv s'.k_fog == 1) (meK s') (p s'.me_r s'.me_c) m
+def sameMain (s s' : State) : Bool :=
+  s'.wall_mask == s.wall_mask && s'.line_mask == s.line_mask && s'.tog_mask == s.tog_mask && s'.nc_mask == s.nc_mask
+    && s'.paint_mask == s.paint_mask && s'.refill_mask == s.refill_mask && s'.frame0 == s.frame0 && s'.frame1 == s.frame1
+    && s'.hud == s.hud && s'.h_t == s.h_t
+
+def meAt (s' : State) (x : Nat) : Bool := s'.me_r == cellT x && s'.me_c == cellL x
+
+-- move_*：落点 = plan 算的格（撞墙 / 撞框原地；贴线就滑到底）；离开的那格里的持久物件（开关 / 染色）重新露出来
+def leftRestored (s : State) (a : Act) (s' : State) : Bool :=
+  let km := meK s
+  let o := objsNext s a
+  let vis := kv s'.k_fog != 1 || innerLit s'.me_r s'.me_c km
+  !moved s a || (s'.tog_mask.toNat.testBit km == (vis && o.tog.testBit km)
+                 && s'.nc_mask.toNat.testBit km == (vis && o.nc.testBit km)
+                 && s'.paint_mask.toNat.testBit km == (vis && o.pnt.testBit km))
+def moveEffect (s : State) (a : Act) (s' : State) : Bool := meAt s' (planX s a) && leftRestored s a s'
+
+def rules : List Rule :=
+  [ { name := "move_up", guard := fun s a => a == Act.a1 && inLevel s a, effect := moveEffect }
+  , { name := "move_down", guard := fun s a => a == Act.a2 && inLevel s a, effect := moveEffect }
+  , { name := "move_left", guard := fun s a => a == Act.a3 && inLevel s a, effect := moveEffect }
+  , { name := "move_right", guard := fun s a => a == Act.a4 && inLevel s a, effect := moveEffect }
+    -- 动 ⇔ 目标格可进（非墙、非不匹配的框）；不动时主区读数全不变（能量另管）
+  , { name := "passable", guard := inLevel,
+      effect := fun s a s' => if moved s a then !(s'.me_r == s.me_r && s'.me_c == s.me_c)
+                               else s'.me_r == s.me_r && s'.me_c == s.me_c && sameMain s s' }
+    -- 每步扣本关的 k_cost：撞墙也扣，撞框不扣，第 0 关踩开关不扣；到 0 为止
+  , { name := "energy_cost", guard := fun s a => inLevel s a && !onRefill s a,
+      effect := fun s a s' => s'.energy == energyNext s a }
+    -- 挪进不是开关、不是补给的格：能量严格减少；撞框不动：能量不变
+  , { name := "energy_tick", guard := fun s a => (moved s a || planKind s a == 1) && !onRefill s a && !onCross s a && !onNC s a,
+      effect := fun s a s' => if moved s a then decide (s'.energy < s.energy) else s'.energy == s.energy }
+    -- 能量 0 再动（目标不是补给）：命数减 1、能量回满、回到本关开局格、HUD 回开局、会动物件的钟归零，
+    -- 整个局面（补给、框、开关位置、迷雾里的读数）回到本关开局——最后一项用 keyEq 比全部变化字段
+  , { name := "death_reset", guard := fun s a => planKind s a == 3,
+      effect := fun s _ s' => s'.lives == s.lives - 1 && s'.energy == FULL && meAt s' (kn s.k_start) && s'.level == s.level
+                               && s'.hud == kv s.k_hud0 && s'.h_t == 0 && keyEq (afterDeath s) s' }
+    -- 走进补给：能量回满（能量 0 时也一样，不掉命）
+  , { name := "refill", guard := onRefill, effect := fun _ _ s' => s'.energy == FULL }
+    -- 吃掉的补给记进 h_rg、从读数里消失；没吃的步补给不变
+  , { name := "refill_vanishes", guard := inLevel,
+      effect := fun s a s' => s'.h_rg == rgNext s a
+                               && s'.refill_mask.toNat == seenAfter s' (minus (kn s.k_ref) (rgNext s a).toNat) innerLit }
+    -- 踩十字开关：HUD 图样顺时针转 90°，墨色不变
+  , { name := "toggle_rotates_hud", guard := onCross,
+      effect := fun s _ s' => s'.hud == Int.ofNat (rotCW (hudPat s) + 512 * hudInk s) }
+    -- 踩非十字开关：HUD 换成图样册里同朝向的下一形，墨色不变
+  , { name := "toggle_maps_hud", guard := onNC,
+      effect := fun s _ s' => (catNext (hudPat s)).map (fun p => Int.ofNat (p + 512 * hudInk s)) == some s'.hud }
+    -- HUD 图样变 ⇔ 踩到开关（踩染色那步不在内）
+  , { name := "toggle_changes_hud", guard := fun s a => inLevel s a && !onPaint s a,
+      effect := fun s a s' => (s'.hud.toNat % 512 != hudPat s) == (onCross s a || onNC s a) }
+    -- 踩染色：墨色换一档、图样不变；不踩：墨色不变
+  , { name := "paint_recolors_hud", guard := inLevel,
+      effect := fun s a s' => if onPaint s a then inkNext (hudInk s) == some (s'.hud.toNat / 512)
+                                                && s'.hud.toNat % 512 == hudPat s
+                               else s'.hud.toNat / 512 == hudInk s }
+    -- 会动的开关：钟 h_t 只在挪动的步加一；读数里的开关在轨道算出的位置（被玩家盖住、被迷雾遮住的除外）
+  , { name := "mover_shifts", guard := fun s a => inLevel s a && (decide (kv s.k_mv0 ≥ 0) || decide (kv s.k_mv1 ≥ 0)),
+      effect := fun s a s' => s'.h_t == Int.ofNat (tNext s a)
+                               && s'.tog_mask.toNat == seenAfter s' (objsNext s a).tog innerLit
+                               && s'.nc_mask.toNat == seenAfter s' (objsNext s a).nc innerLit }
+    -- 染色物件：不动的关原地；第 5 关沿轨道每步一格
+  , { name := "paint_orbits", guard := fun s a => inLevel s a && (decide (kv s.k_orb ≥ 0) || decide (kv s.k_pnt > 0)),
+      effect := fun s a s' => s'.paint_mask.toNat == seenAfter s' (objsNext s a).pnt innerLit }
+    -- 走进匹配的框（不是最后一个）：那个框消失、HUD 不变；其余步框原样
+  , { name := "frame_consumed", guard := fun s a => inLevel s a && decide (kv s.k_frm0 ≥ 0),
+      effect := fun s a s' => s'.h_fg == fgNext s a
+                               && [s'.frame0, s'.frame1] ==
+                                  (seenFrames (kv s'.k_fog == 1) s'.me_r s'.me_c (framesLeft s (fgNext s a).toNat) ++ [-1, -1]).take 2
+                               && (!planEnt s a || s'.hud == s.hud) }
+    -- 换关 ⇔ 走进最后一个框且 HUD（图样 + 墨色）与它一致；换关时关卡号加一
+  , { name := "levelup_iff_match", guard := fun s a => (delta a).isSome && decide (s.energy > 0),
+      effect := fun s a s' => (s'.level != s.level) == (planKind s a == 4) && (planKind s a != 4 || s'.level == s.level + 1) }
+    -- 迷雾关：读得出的墙、直线只有照得到的那些
+  , { name := "fog_disc", guard := fun s a => kv s.k_fog == 1 && decide (planKind s a ≤ 3),
+      effect := fun _ _ s' => s'.wall_mask.toNat == seenAfter s' (kn s'.k_wall) centerLit
+                               && s'.line_mask.toNat == filterBits (lineLit s'.me_r s'.me_c) 600 (kn s'.k_lines) 0 }
+  ]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+-- 目标：第 6 关（最后一关）过完，关卡号到 7（WIN）
+def isGoal (s : State) : Bool := s.level == 7
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致（内核判定，公理只剩 propext 一类）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线：从第 0 关开局起，每一步 step 的结果在 keyEq 的全部变化字段上等于观测，最后一步到 WIN。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))

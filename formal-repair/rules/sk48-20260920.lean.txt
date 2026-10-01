@@ -1,0 +1,647 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/sk48-20260920/_lib.py ; why=原数据段只有计数、像素渲染与「按某键会怎样」的预演读数，写不出下一步；补玩家格位 / 绳长 / 选中（hp, vp）、无主竖绳（dead_pins）、示意图分栏与挖空（hud_goal, hud_hole）、示意图图标框位置（hud_icon，返工加）与隐藏量 h_k（方向键数）/ h_stk（撤销栈），39 个原读数退出状态（fdep.py 证明是新状态的函数）
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+-- 由 world/formalize.py 生成于 2026-09-29T18:58:56+08:00；局 sk48；基于 run ['sk48-0908-0719']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 1179 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复（meta/repair-20260928，2026-09-29）重写。数据段用补过读数与隐藏状态的 _lib 重新生成（见第一行）。
+--
+-- ## 抽象状态怎么读
+--   * 盘上的靶：`cell_map_m_c8/c9/c12/c14` 四个色的格掩码，格 (r,c) 占第 r*16+c 位；`cell_map_m` 是它们的并，`cell_map_n` 是靶数。
+--   * `hp_0/1/2` = 横玩家（左竖轨上）的格行、绳节数、选中 1/0；`vp_0/1/2` = 竖玩家（上横轨上）的格列、绳节数、选中，没有竖玩家时 (-1,-1,0)。
+--   * `dead_pins_m`：无主竖绳（头上不是玩家精灵）串住的格；`walls_m`：墙格；`vrail_span` / `hrail_span`：两条轨上花纹带覆盖的格行 / 格列区间。
+--   * `hud_goal_0..7`：示意图至多两栏，每栏 (种类, 格列, 槽数, 槽色打包)——种类 1 横玩家的绳、2 竖玩家的绳、3 某根无主竖绳（格列给出）；
+--     槽色打包 = Σ 第 j 槽色号 << 4j。`hud_hole`：第 gi 栏第 j 槽挖空置第 4gi+j 位。
+--   * `hud_icon_0/1/2`（返工加的纯位置读数）：示意图图标 6×6 框的框顶像素行、第 0 / 1 栏图标的最左像素列（缺的 -1），只用来判 ACTION6 点没点中图标。
+--   * 隐藏量 `h_k`：本关按过的方向键数（ACTION1–4，含没生效的；ACTION6/7 不算）；`h_stk`：撤销栈（ACTION7 = 撤销），编码见 snap。
+--
+-- ## 动力学在哪里
+--   Python 读数只给这一帧看得见的东西（位置、节数、选中、颜色、归属、挖空与否），不给任何「按某键会怎样」。
+--   杆扫、推串、钉住、撞墙、出盘、带子范围、选中、撤销、底条、挖空、过关判据全在下面的 Lean 里算。
+--   hidden_step 只记账：h_k 数键；h_stk 在方向键真的改了盘面时把前帧读数压栈、ACTION7 时弹栈——不预演后果，
+--   ACTION7 之后盘面该是什么由 stepRules 解码栈顶得出，再由下一帧的可见字段核对。
+--
+-- ## ACTION7 是撤销，不是「带方向位的梭子」（与册子里 a7_* / frame_not_state 的解释不同）
+--   probe5.py：把「生效的方向键之前那一帧的（两名玩家格位 / 绳长、靶分布）」压栈、ACTION7 弹栈恢复，全部 35 条 ACTION7（原始步序；去重后 31 条）对上 35 条；
+--   「没生效的也压栈」只对 16 条。栈深：probe6.py 截到 14 条仍全对、13 条错 1 条（seq 424）——取 14（语料要求的最小值，真实上限不知道）。
+--   **更正（返工 2026-09-29，独立审计判 FAIL 的那一句）**：上一版这里写「a7_* 四条概念的断言在撤销读法下照样成立，按原样写成规则」——
+--   只对语料成立，对撤销模型本身不成立。四条断言（只有三种结果、满行必收、撞墙不加长、收一节时拖串）不被语料反驳，
+--   但它们的机制解释（「方向位」、「顶到右缘掉头」「撞墙下落」这类位置触发）被撤销读法取代：seq 362–382 里所谓「顶到右缘掉头」
+--   是栈里撤 a3 段与撤 a4 段的交界，不是位置触发。按原 guard，在语料状态上先按 stepRules 走一步再 ACTION7，stepRules 自己反驳自己的规则：
+--   诊断 #eval（候选副本 r2/diag_a7.lean，不进交付；从 991 条关内状态出发，前缀取一个方向键，有竖玩家时再加「换人+方向键」等 3 种组合，
+--   共 8690 串）里 guard 真而 effect 假的串数：a7_bounce 208（满绳后 ACTION1 再 ACTION7：seq 9/10/11/26…；ACTION2：10/11/14/25/26…）、
+--   a7_shuttle 3278（竖玩家选中时方向键后 ACTION7：seq 495、867–869…；以及栈空时的 ACTION7）、a7_fallthrough 222（同 shuttle 两类）、
+--   a7_drag 13（12 串是「伸绳时没顶着靶、绳尖外恰好隔一格有串」，1 串 seq 692 是被顶的串接上了后面的靶）。
+--   所以四条都收窄了 guard（各条上方注明），收窄后同一批 8690 串上四条的反例都是 0；语料上的命中：bounce 1、shuttle 31、fallthrough 4 不变，drag 26→4
+--   （主会话按复审更正：删掉的 22 条里 17 条是「没收一节或换了行」的空开口；另 5 条 seq 380、381、382、421、424 是收一节、行不变、
+--   绳尖外无串的真开口（旧 effect 真断言了「没有靶被拖」），被 guard 收窄丢掉——drag 因此弱于原概念，少说了「绳尖外无串时没靶被拖」这半句；
+--   与下文「26 条命中，其中收一节且没换行 9 条」一致：9 = 保留 4 + 丢掉 5）。
+--   原文 NOTE 的相应说法作废（原始记录不改，这里更正）：a7_bounce NOTE「触发条件全是位置，暂时没有任何一条需要看不见的状态」、
+--   a7_shuttle NOTE「掉头之后它记着方向……是一根来回扫的梭子」「换行的方向也是帧里看不见的一位」、
+--   frame_not_state NOTE「帧里藏着一个看不见的位（梭子的方向）」——看不见的不是方向位，是撤销栈；第 376 / 378 步同帧不同果，是两处栈里内容不同。
+--   这等于承认：a7_* 四条只是撤销律在单玩家、栈非空等局面上的推论，不是独立的机制；定理里真正说 ACTION7 的是 frame_not_state。
+--   撤销律写在 frame_not_state 里：ACTION7（及重发）那一支直接调 stepRules、在全部 keyEq 字段上比对（返工前只比两名玩家与靶），
+--   于是 stepRules 的 ACTION7 分支进了 consistent：去重语料 31 条 ACTION7 全对（诊断 STEP_ROWS：991 条同关非 reset 行 stepRules 全对，其中 ACTION7 31/31）。
+--   （原文对 ACTION7 返回 NA，这里把它补上，是加强；原文 NOTE 说「帧里藏着梭子的方向位」，被撤销栈取代——见 concepts/frame_not_state.py，原始记录不改。）
+--   改错实验一（mutate.py）：**是抽象模拟，不是「改 hidden_step 副本→重新生成→跑 Lean」**——在 sim.py 的帧读数上重放一遍改错的栈账，
+--   数 35 条 ACTION7（原始步序）里可见量（两名玩家格位 / 绳长 + 靶分布）被预测错的条数：没生效也压栈 19/35；栈深 13 为 1/35（seq 424）；
+--   ACTION6（点空 / 点已选中）也压栈 19/35；只恢复玩家 8/35；只恢复靶 35/35；压动作之后那一帧 35/35；先进先出 34/35；控制组 0/35。
+--   改错实验二（真重新生成，返工补做一种）：_lib 副本 STK_D = 13（r2 目录外 mutD13/_lib.py）经 gen_run.py 重新生成数据段，配上本规则段编译（r2/d13）：
+--   consistent 红，唯一反例 frame_not_state @ seq 424；991 条关内行里可见字段（keyEq 去掉 h_stk）不符的只有 seq 424（ACTION7）一条，
+--   另有 603 条只在 h_stk 上不符（隐藏量自己对账，不是可见字段抓到的）；faithful 在路线第 27 步（seq 1172）断，也只是 h_stk 不符。
+--   **路线上 0 次 ACTION7**：路线 263 步里 h_stk 变了 243 步，这些步的 h_stk 只由 keyEq 与生成器记的账互证（可见字段从不读它）；
+--   撤销律只在 consistent（frame_not_state 在去重语料 31 条 ACTION7 上）里被可见字段检验。
+--
+-- ## 底条（bar_clock 的加强版）
+--   bar_used = h_k * 64 / 196，bar_left = 64 - bar_used。bar_scan.py：1374 条关内转移上扫 B = 40..399，只有 196 零不符（193/195/197 各 115/44/90 条不符），
+--   ACTION7 也计一拍则 169 条不符。这是同一份语料上拟合再自检，只能说「本语料无反例」。原概念只断言上界 used <= step/3，这里说得更多（effect 里也保留了上界）。
+--
+-- ## 客户端超时重发（修订 R2）：`Act.retried a` = 连走两次 a
+--   全语料唯一一次：seq 984（第 6 关，ACTION2，rtt 66118 ms），选中竖玩家、竖绳 6 节、盘 7 行。帧上竖绳 6→7 只伸了一节；
+--   底条要按 h_k 多计一拍才对得上（不多计则 seq 988..1069 有 28 条不符，bar_scan.py）。「动作应用两次」与「状态一步、服务器多计一拍」
+--   在这一步上分不开：第二次伸绳时绳已满 7 节，伸不动，而没生效的方向键照样计一拍。这里取「应用两次」，两种读法对这份语料等价。
+--   该步不在路线上。定理里由 guard 不看动作种类的规则检验它（bar_clock 的 tick = 2、bar_monotone、hud_checklist、board_static、rail_band、rope_limit），
+--   返工后 frame_not_state 的重发分支也调 stepRules 全字段比对，所以 stepRules 在这一行上与观测 keyEq 相符现在在 consistent 里；方向键规则的 guard 不认 retried。
+--   **未检验**：绳没伸满时重发是「走两次」还是「走一次、多计一拍」（seq 984 两种读法等价，别处无重发）。
+--
+-- ## 未被语料检验的分支（猜的，或照 _lib 原押注）
+--   消融读数（返工补，r2/abl.py：规则段里只去掉那一个条件、重新编译 --debug 副本，数 991 条同关非 reset 行里 stepRules 与观测 keyEq 不符的条数；
+--   括号里是被牵连的规则反例）。**0 条 = 语料对这个条件不置一词，它是猜的**：
+--   * 去掉后 0 条不符（未检验）：vPoleStep 的盘底边界 `t < nr`；vPoleStep 撞墙；hPoleStep 撞墙（横杆上的靶落到墙格）；hPoleStep 的 `t < nc`；
+--     vPushable 撞墙（v_capture 也 0 反例）；vSlideOk 的三条（落在横轨花纹带里、绳盖住的行目标列没墙、扫到的串不被顶出盘）——
+--     语料里挪不动的横挪 0 次（竖玩家横挪撞带端点 / 撞墙 / 把串顶出盘都没发生过，v_slide 的断言因此比 vSlideOk 说得多，两者都没被反驳）；
+--     竖绳下伸时刚性串被顶到墙（vRopeMv runOk 的 `!hasB w t cc`）。
+--   * 只有少量证据：hMoveOk 竖轨花纹带条件 1 条（seq 1087）；hMoveOk 扫出盘 1 条（seq 10）；vExtOk 撞墙 2 条（seq 869、870；v_extend 自带墙判据，规则不牵连）；
+--     vPoleStep 落点被横杆盖着 2 条（seq 1135、1136）；vRopeMv runOk：串里有靶在横杆上 3 条（1065、1066、1106）、串尾落点被横杆盖着 1 条（1340），
+--     串被顶到盘底 `t < nr` 17 条（审计读数「runOk 4 行」即前两项之和 4）；hRopeMv runOk：串被钉 12、`t < nc` 25、落点被钉 3、落点是墙 9。
+--   * 证据较多（供对照）：vPoleStep 自己串在横杆上 15；hPoleStep 自己被钉 21、落点被钉 9；hMoveOk 杆下目标行有墙 9；hExtOk 撞墙 13。
+--   * 点中示意图里「另一名玩家」（或无主竖绳）的图标：语料 0 次（全部 ACTION6 去重 59 条里点中图标的只有 seq 398 一次，点的是已选中的横玩家芯6，帧全同）。
+--     返工前 Lean 把点图标一律当点空、不换人——与 a6_select 原文「点图标会换人」相反的猜测。返工后加了纯位置读数 hud_icon（图标框位置），
+--     点已选中者的图标 = 不变（seq 398 那一次），点别的图标 = 未定义（stepRules 返回 none，a6_select 的 guard 排除），不再替原文猜反面。
+--   * 撤销：双玩家关（第 5–7 关）语料 0 次 ACTION7，所以「撤销恢复不恢复选中」（写成不恢复：选中不在栈里）、「换人的 ACTION6 压不压栈」（写成不压）
+--     都未检验；栈空时按 ACTION7（写成整个状态不变，语料 0 次）；栈深上限只知道 ≥ 14（语料里栈满 14 条、丢最老的那一支出现过，
+--     但被丢的从没被弹到，所以任何 ≥ 14 的上限都对得上）。
+--   * 重发：绳没伸满时 `Act.retried` 的语义（见上「客户端超时重发」）。
+--   * 一步里同时凑齐示意图、而这一步是 ACTION6 / ACTION7：语料 0 次（levelup_threaded 的 guard 含 ACTION6，那 59 条恒判不过关；
+--     stepRules 的 ACTION7 分支不查凑齐，写成不换关）。
+--
+-- ## 规则说话的份量（guard 命中 / 其中同关的 / 条件式 effect 真正开口的）
+--   「换关返回 NA」写成 effect 里的 `!inLv s t ||`：换关那一步不断言。条件式 effect（原文 SCOPE 要看后帧）：
+--   a7_drag 命中 4（返工收窄前 26，其中「收一节且没换行」9 条），4 条都真有串被拖；v_carry 12 / 12（其中靶真挪了、effect 真开口的只有 5 条：seq 882、883、999、1002、1346）；
+--   v_drag 63 / 63（靶真挪了的 47 条）。
+--   levelup_threaded 是双向的（凑齐 ⟺ 换关），在 975 条命中上判，含换关 16 条。
+--   board_static / vrope_static 只在读数层面核（盘框、行列、墙、无主竖绳的格、示意图分栏不变）；原文的像素级「别处逐格不变」、绳头色与头占的行状态里没有，核不到。
+
+-- ---------------- 位运算小件（全部 Nat 位运算） ----------------
+def hasB (m : Nat) (r c : Int) : Bool := 0 ≤ r && 0 ≤ c && c < 16 && m.testBit (r * 16 + c).toNat
+def cellB (r c : Int) : Nat := 1 <<< (r * 16 + c).toNat
+def minus (x y : Nat) : Nat := x ^^^ (x &&& y)
+def lowBit (x : Nat) : Nat := x ^^^ (x &&& (x - 1))
+def rowMask (r : Int) : Nat := 65535 <<< (16 * r.toNat)
+-- 第 c 列的第 0..k-1 行
+def colSeg : Nat → Int → Nat
+  | 0, _ => 0
+  | k + 1, c => cellB k c ||| colSeg k c
+-- 第 r 行的第 0..n-1 列
+def rowSeg (r n : Int) : Nat := ((1 <<< n.toNat) - 1) <<< (16 * r.toNat)
+def popc : Nat → Nat → Nat
+  | 0, _ => 0
+  | f + 1, x => if x == 0 then 0 else 1 + popc f (x &&& (x - 1))
+def intsTo (n : Int) : List Int := (List.range n.toNat).map (fun (i : Nat) => (i : Int))
+
+-- ---------------- 靶：四个色的掩码 ----------------
+structure Cells where
+  c8 : Nat
+  c9 : Nat
+  c12 : Nat
+  c14 : Nat
+deriving DecidableEq
+
+def Cells.all (x : Cells) : Nat := x.c8 ||| x.c9 ||| x.c12 ||| x.c14
+-- 方向：0 列+1，1 列-1，2 行+1，3 行-1
+def shiftD (m : Nat) (dir : Nat) : Nat :=
+  match dir with
+  | 0 => m <<< 1
+  | 1 => m >>> 1
+  | 2 => m <<< 16
+  | _ => m >>> 16
+def moveOne (c M dir : Nat) : Nat := minus c M ||| shiftD (c &&& M) dir
+-- M（动前的格）里的靶各沿 dir 挪一格，别的不动
+def Cells.move (x : Cells) (M dir : Nat) : Cells :=
+  ⟨moveOne x.c8 M dir, moveOne x.c9 M dir, moveOne x.c12 M dir, moveOne x.c14 M dir⟩
+def colorAt (x : Cells) (r c : Int) : Nat :=
+  if hasB x.c8 r c then 8 else if hasB x.c9 r c then 9 else if hasB x.c12 r c then 12
+  else if hasB x.c14 r c then 14 else 0
+
+def cellsOf (s : State) : Cells :=
+  ⟨s.cell_map_m_c8.toNat, s.cell_map_m_c9.toNat, s.cell_map_m_c12.toNat, s.cell_map_m_c14.toNat⟩
+def cellsIs (t : State) (x : Cells) : Bool :=
+  t.cell_map_m_c8 == (x.c8 : Int) && t.cell_map_m_c9 == (x.c9 : Int)
+    && t.cell_map_m_c12 == (x.c12 : Int) && t.cell_map_m_c14 == (x.c14 : Int)
+def cellsEq (s t : State) : Bool := cellsIs t (cellsOf s)
+
+-- 会动的那部分：两名玩家的格位 / 绳长 + 靶
+structure Dyn where
+  hr : Int
+  hn : Int
+  vc : Int
+  vn : Int
+  cs : Cells
+deriving DecidableEq
+
+def dynOf (s : State) : Dyn := ⟨s.hp_0, s.hp_1, s.vp_0, s.vp_1, cellsOf s⟩
+def withDyn (s : State) (d : Dyn) : State :=
+  { s with hp_0 := d.hr, hp_1 := d.hn, vp_0 := d.vc, vp_1 := d.vn,
+           cell_map_m_c8 := d.cs.c8, cell_map_m_c9 := d.cs.c9, cell_map_m_c12 := d.cs.c12,
+           cell_map_m_c14 := d.cs.c14, cell_map_m := d.cs.all }
+
+def occ (s : State) : Nat := s.cell_map_m.toNat
+def wallM (s : State) : Nat := s.walls_m.toNat
+def isH (s : State) : Bool := s.hp_2 == 1
+def isV (s : State) : Bool := s.vp_2 == 1
+-- 被竖绳串住的格：无主竖绳 + 竖玩家自己那根
+def pinM (s : State) : Nat := s.dead_pins_m.toNat ||| (if s.vp_0 ≥ 0 then colSeg s.vp_1.toNat s.vp_0 else 0)
+-- 横杆盖住的格：横玩家那一行的第 0..n-1 列
+def hpoleM (s : State) : Nat := rowSeg s.hp_0 s.hp_1
+
+-- 从 (r,c) 起沿竖向 / 横向 d 连续的一串靶
+def runV : Nat → Nat → Int → Int → Int → Int → Nat
+  | 0, _, _, _, _, _ => 0
+  | f + 1, o, nr, r, c, d => if 0 ≤ r && r < nr && hasB o r c then cellB r c ||| runV f o nr (r + d) c d else 0
+def runH : Nat → Nat → Int → Int → Int → Int → Nat
+  | 0, _, _, _, _, _ => 0
+  | f + 1, o, nc, r, c, d => if 0 ≤ c && c < nc && hasB o r c then cellB r c ||| runH f o nc r (c + d) d else 0
+
+-- ---------------- 横玩家：上下移（vmove_blocks / move_block） ----------------
+-- 横杆从第 r 行扫到 r+d 行，杆下每列各自结算：本行有靶就从它起沿 d 的一串跟走；本行空而对面有靶，就从对面起的一串被顶走
+def hSweep (s : State) (d : Int) : Nat :=
+  let o := occ s
+  let r := s.hp_0
+  (intsTo (min s.hp_1 s.ncols)).foldl (fun acc c =>
+    if hasB o r c then acc ||| runV 8 o s.nrows r c d
+    else if 0 ≤ r + d && r + d < s.nrows && hasB o (r + d) c then acc ||| runV 8 o s.nrows (r + d) c d
+    else acc) 0
+-- 动得了：不出盘、目标行在竖轨花纹带里、杆下目标行没有墙、扫到的串没有一块被顶出盘
+def hMoveOk (s : State) (d : Int) : Bool :=
+  let r := s.hp_0 + d
+  let M := hSweep s d
+  0 ≤ r && r < s.nrows && s.vrail_span_r ≤ r && r ≤ s.vrail_span_c
+    && (intsTo (min s.hp_1 s.ncols)).all (fun c => !hasB (wallM s) r c)
+    && (M &&& rowMask (if d > 0 then s.nrows - 1 else 0)) == 0
+
+-- ---------------- 横玩家：绳伸缩（hmove_blocks） ----------------
+def hExtOk (s : State) : Bool := s.hp_1 < s.ncols && !hasB (wallM s) s.hp_0 s.hp_1
+-- 杆上逐块结算（沿运动方向从排头往后）：自己被钉 / 落点出盘 / 落点被钉 / 落点是墙 / 落点压着没走成的，走不成
+def hPoleStep (o pin w : Nat) (r nc k : Int) : List Int → Nat → Nat
+  | [], mv => mv
+  | c :: rest, mv =>
+    let t := c + k
+    let ok := !hasB pin r c && 0 ≤ t && t < nc && !hasB pin r t && !hasB w r t && (!hasB o r t || hasB mv r t)
+    hPoleStep o pin w r nc k rest (if ok then mv ||| cellB r c else mv)
+def hRopeMv (s : State) (k : Int) : Nat :=
+  let o := occ s
+  let r := s.hp_0
+  let n := s.hp_1
+  let nc := s.ncols
+  let pin := pinM s
+  let w := wallM s
+  -- 伸出去时新绳尖顶着的那一串是刚性的：有一块走不成整串不动
+  let run := if k > 0 then runH 8 o nc r n 1 else 0
+  let t := n + (popc 8 run : Int)
+  let runOk := run != 0 && (run &&& pin) == 0 && t < nc && !hasB pin r t && !hasB w r t
+  let cs := (intsTo (min n nc)).filter (fun c => hasB o r c)
+  hPoleStep o pin w r nc k (if k > 0 then cs.reverse else cs) (if runOk then run else 0)
+def hRopeCells (s : State) (k : Int) : Cells :=
+  if k > 0 && !hExtOk s then cellsOf s else (cellsOf s).move (hRopeMv s k) (if k > 0 then 0 else 1)
+
+-- ---------------- 竖玩家：绳伸缩（v_push / v_carry / v_drag / v_capture） ----------------
+def vExtOk (s : State) : Bool := s.vp_1 < s.nrows && !hasB (wallM s) s.vp_1 s.vp_0
+-- 杆上逐块结算；串在横杆上的那颗、落点被横杆盖着的，搬不动
+def vPoleStep (o hp w : Nat) (c nr k : Int) : List Int → Nat → Nat
+  | [], mv => mv
+  | r :: rest, mv =>
+    let t := r + k
+    let ok := !hasB hp r c && !hasB hp t c && 0 ≤ t && t < nr && !hasB w t c && (!hasB o t c || hasB mv t c)
+    vPoleStep o hp w c nr k rest (if ok then mv ||| cellB r c else mv)
+def vRopeMv (s : State) (k : Int) : Nat :=
+  let o := occ s
+  let cc := s.vp_0
+  let n := s.vp_1
+  let nr := s.nrows
+  let hp := hpoleM s
+  let w := wallM s
+  let run := if k > 0 then runV 8 o nr n cc 1 else 0
+  let t := n + (popc 8 run : Int)
+  let runOk := run != 0 && (run &&& hp) == 0 && t < nr && !hasB hp t cc && !hasB w t cc
+  let rs := (intsTo (min n nr)).filter (fun r => hasB o r cc)
+  vPoleStep o hp w cc nr k (if k > 0 then rs.reverse else rs) (if runOk then run else 0)
+def vRopeCells (s : State) (k : Int) : Cells :=
+  if k > 0 && !vExtOk s then cellsOf s else (cellsOf s).move (vRopeMv s k) (if k > 0 then 2 else 3)
+
+-- ---------------- 竖玩家：横挪（vslide_blocks / v_slide） ----------------
+def vSweep (s : State) (d : Int) : Nat :=
+  let o := occ s
+  let cc := s.vp_0
+  (intsTo (min s.vp_1 s.nrows)).foldl (fun acc r =>
+    if hasB o r cc then acc ||| runH 8 o s.ncols r cc d
+    else if 0 ≤ cc + d && cc + d < s.ncols && hasB o r (cc + d) then acc ||| runH 8 o s.ncols r (cc + d) d
+    else acc) 0
+def inHrail (s : State) (c : Int) : Bool :=
+  match s.hrail_span_r, s.hrail_span_c with
+  | some a, some b => a ≤ c && c ≤ b
+  | _, _ => false
+-- 挪得动：不出盘、目标列在横轨花纹带里、绳盖住的那几行目标列没有墙、扫到的串没有一块被顶出盘（照 move_ok 转 90 度，押注）
+def vSlideOk (s : State) (d : Int) : Bool :=
+  let c := s.vp_0 + d
+  0 ≤ c && c < s.ncols && inHrail s c
+    && (intsTo (min s.vp_1 s.nrows)).all (fun r => !hasB (wallM s) r c)
+    && (vSweep s d &&& colSeg 16 (if d > 0 then s.ncols - 1 else 0)) == 0
+
+-- ---------------- ACTION6：点中另一名玩家的 6×6 框就换选中 ----------------
+-- 横玩家框左上角 (盘顶 + 6*格行, 盘左 - 6)；竖玩家框左上角 (盘顶 - 6, 盘左 + 6*格列)。点空、点已选中的：一格不变
+def a6Hit (s : State) (x y : Nat) : Nat :=
+  let xi : Int := x
+  let yi : Int := y
+  let ht := s.board_box_0 + 6 * s.hp_0
+  let hl := s.board_box_2 - 6
+  let vt := s.board_box_0 - 6
+  let vl := s.board_box_2 + 6 * s.vp_0
+  if ht ≤ yi && yi ≤ ht + 5 && hl ≤ xi && xi ≤ hl + 5 then 1
+  else if s.vp_0 ≥ 0 && vt ≤ yi && yi ≤ vt + 5 && vl ≤ xi && xi ≤ vl + 5 then 2
+  else 0
+-- 示意图里的图标（6×6 框，框顶 hud_icon_0，第 gi 栏最左列 hud_icon_{1+gi}）：点中第 gi 栏的图标返回该栏种类 hud_goal_{4gi}
+-- （1 横玩家、2 竖玩家、3 无主竖绳，0 认不出的栏记 -1）；没点中返回 0
+def iconHit (s : State) (x y : Nat) : Int :=
+  let xi : Int := x
+  let yi : Int := y
+  let top := s.hud_icon_0
+  if top < 0 || yi < top || top + 5 < yi then 0
+  else if 0 ≤ s.hud_icon_1 && s.hud_icon_1 ≤ xi && xi ≤ s.hud_icon_1 + 5 then (if s.hud_goal_0 == 0 then -1 else s.hud_goal_0)
+  else if 0 ≤ s.hud_icon_2 && s.hud_icon_2 ≤ xi && xi ≤ s.hud_icon_2 + 5 then (if s.hud_goal_4 == 0 then -1 else s.hud_goal_4)
+  else 0
+-- 点中盘上另一名玩家的框就换选中；点空、点已选中的（盘上的框或它在示意图里的图标）一格不变；
+-- 点中示意图里别的图标（另一名玩家的、无主竖绳的）：未定义（none）——原文说会换人，语料 0 次，不猜
+def selectAt (s : State) (x y : Nat) : Option State :=
+  let ic := iconHit s x y
+  if ic != 0 then (if (ic == 1 && isH s) || (ic == 2 && isV s) then some s else none)
+  else
+    let h := a6Hit s x y
+    if h == 1 && !isH s then some { s with hp_2 := 1, vp_2 := 0 }
+    else if h == 2 && !isV s then some { s with hp_2 := 0, vp_2 := 1 }
+    else some s
+
+-- ---------------- 方向键：被选中的那名玩家动 ----------------
+def physDir (s : State) (a : Act) : Dyn :=
+  let d := dynOf s
+  if isH s then
+    match a with
+    | .a1 => if hMoveOk s (-1) then { d with hr := d.hr - 1, cs := d.cs.move (hSweep s (-1)) 3 } else d
+    | .a2 => if hMoveOk s 1 then { d with hr := d.hr + 1, cs := d.cs.move (hSweep s 1) 2 } else d
+    | .a3 => if s.hp_1 > 0 then { d with hn := d.hn - 1, cs := hRopeCells s (-1) } else d
+    | .a4 => if hExtOk s then { d with hn := d.hn + 1, cs := hRopeCells s 1 } else d
+    | _ => d
+  else if isV s then
+    match a with
+    | .a1 => if s.vp_1 > 0 then { d with vn := d.vn - 1, cs := vRopeCells s (-1) } else d
+    | .a2 => if vExtOk s then { d with vn := d.vn + 1, cs := vRopeCells s 1 } else d
+    | .a3 => if vSlideOk s (-1) then { d with vc := d.vc - 1, cs := d.cs.move (vSweep s (-1)) 1 } else d
+    | .a4 => if vSlideOk s 1 then { d with vc := d.vc + 1, cs := d.cs.move (vSweep s 1) 0 } else d
+    | _ => d
+  else d
+
+-- ---------------- 示意图：挖空与过关（hud_checklist / levelup_threaded） ----------------
+-- 一栏指的那根绳从绳主往外经过的格：横绳 = 它那一行第 0..n-1 列；竖绳 = 它那一列第 0..n-1 行；无主竖绳 = 它串住的那几行
+def ropeCells (s : State) (d : Dyn) (kind pos : Int) : List (Int × Int) :=
+  if kind == 1 then (intsTo d.hn).map (fun c => (d.hr, c))
+  else if kind == 2 then (intsTo d.vn).map (fun r => (r, d.vc))
+  else if kind == 3 then ((intsTo s.nrows).filter (fun r => hasB s.dead_pins_m.toNat r pos)).map (fun r => (r, pos))
+  else []
+-- 第 j 槽挖空 ⟺ 这根绳串着的第 j 颗靶（跳过空格）正是第 j 槽的颜色
+def holesG (s : State) (d : Dyn) (gi : Nat) (kind pos len pack : Int) : Nat :=
+  let sq := ((ropeCells s d kind pos).map (fun p => colorAt d.cs p.1 p.2)).filter (fun x => x != 0)
+  (List.range len.toNat).foldl (fun acc j =>
+    if sq.getD j 0 != 0 && sq.getD j 0 == ((pack.toNat >>> (4 * j)) &&& 15) then acc ||| (1 <<< (4 * gi + j)) else acc) 0
+def holes (s : State) (d : Dyn) : Nat :=
+  holesG s d 0 s.hud_goal_0 s.hud_goal_1 s.hud_goal_2 s.hud_goal_3
+    ||| holesG s d 1 s.hud_goal_4 s.hud_goal_5 s.hud_goal_6 s.hud_goal_7
+def fullHoles (s : State) : Nat := ((1 <<< s.hud_goal_2.toNat) - 1) ||| (((1 <<< s.hud_goal_6.toNat) - 1) <<< 4)
+-- 每一栏每一槽都对上（至少有一槽）
+def done (s : State) (d : Dyn) : Bool := fullHoles s != 0 && holes s d == fullHoles s
+
+-- ---------------- 撤销栈（frame_not_state） ----------------
+-- 一条 80 位：低 63 位是靶清单（按格序 r*16+c 从小到大，每颗 9 位 = (格序+1)*4 + 色码，色码 8→0 9→1 12→2 14→3），
+-- 第 63 位起：横玩家格行、横绳节数、竖玩家格列+1、竖绳节数+1 各 4 位，第 79 位恒 1。栈顶在最低 80 位，最多 14 条。
+def codeAt (x : Cells) (i : Nat) : Nat :=
+  if x.c9.testBit i then 1 else if x.c12.testBit i then 2 else if x.c14.testBit i then 3 else 0
+def encCells (x : Cells) : Nat → Nat → Nat → Nat → Nat
+  | 0, _, _, acc => acc
+  | f + 1, rem, i, acc =>
+    if rem == 0 then acc else
+      let lb := lowBit rem
+      let ix := Nat.log2 lb
+      encCells x f (rem ^^^ lb) (i + 1) (acc ||| (((ix + 1) * 4 + codeAt x ix) <<< (9 * i)))
+def snap (d : Dyn) : Nat :=
+  encCells d.cs 8 d.cs.all 0 0 ||| (d.hr.toNat <<< 63) ||| (d.hn.toNat <<< 67)
+    ||| ((d.vc + 1).toNat <<< 71) ||| ((d.vn + 1).toNat <<< 75) ||| (1 <<< 79)
+def decCells : Nat → Nat → Cells → Cells
+  | 0, _, x => x
+  | f + 1, e, x =>
+    let fld := e &&& 511
+    if fld == 0 then x else
+      let b := 1 <<< (fld / 4 - 1)
+      let x' := match fld % 4 with
+        | 0 => { x with c8 := x.c8 ||| b }
+        | 1 => { x with c9 := x.c9 ||| b }
+        | 2 => { x with c12 := x.c12 ||| b }
+        | _ => { x with c14 := x.c14 ||| b }
+      decCells f (e >>> 9) x'
+def unsnap (e : Nat) : Dyn :=
+  ⟨(((e >>> 63) &&& 15 : Nat) : Int), (((e >>> 67) &&& 15 : Nat) : Int),
+   (((e >>> 71) &&& 15 : Nat) : Int) - 1, (((e >>> 75) &&& 15 : Nat) : Int) - 1,
+   decCells 7 (e &&& ((1 <<< 63) - 1)) ⟨0, 0, 0, 0⟩⟩
+def entMask : Nat := (1 <<< 80) - 1
+def stkMask : Nat := (1 <<< (80 * 14)) - 1
+def stkTop (s : State) : Nat := s.h_stk.toNat &&& entMask
+def push (stk : Int) (e : Nat) : Int := (((stk.toNat <<< 80) ||| e) &&& stkMask : Nat)
+
+-- ---------------- 底条（bar_clock） ----------------
+def tick : Act → Int
+  | .a1 => 1
+  | .a2 => 1
+  | .a3 => 1
+  | .a4 => 1
+  | .retried b => 2 * tick b
+  | _ => 0
+def barOf (k : Int) : Int := k * 64 / 196
+
+-- ---------------- 一步 ----------------
+def stepCore (s : State) (a : Act) : Option State :=
+  match a with
+  | .a6 x y => selectAt s x y
+  | .a7 =>
+    let e := stkTop s
+    if e == 0 then some s else
+      let d := unsnap e
+      let s1 := withDyn s d
+      some { s1 with h_stk := ((s.h_stk.toNat >>> 80 : Nat) : Int), hud_hole := (holes s d : Int) }
+  | .a1 | .a2 | .a3 | .a4 =>
+    let d0 := dynOf s
+    let d := physDir s a
+    if done s d then none      -- 凑齐示意图 = 过关：新一关的布局是游戏内容，走 worldRows 查表
+    else
+      let k := s.h_k + 1
+      let s1 := withDyn s d
+      some { s1 with h_k := k, bar_used := barOf k, bar_left := 64 - barOf k,
+                     h_stk := if d == d0 then s.h_stk else push s.h_stk (snap d0),
+                     hud_hole := (holes s d : Int) }
+  | _ => none
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match a with
+  | .retried b =>
+    match stepCore s b with
+    | some s1 => stepCore s1 b
+    | none => none
+  | b => stepCore s b
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+def isGoal (s : State) : Bool := s.level == 8
+
+-- ---------------- 规则：每条概念一条；「换关返回 NA」写成 effect 里的 !inLv ||（换关那一步不断言） ----------------
+def inLv (s t : State) : Bool := s.level == t.level
+def isA6 : Act → Bool
+  | .a6 _ _ => true
+  | _ => false
+def dirOf : Act → Int
+  | .a1 => -1
+  | .a3 => -1
+  | _ => 1
+def staticEq (s t : State) : Bool :=
+  s.board_box_0 == t.board_box_0 && s.board_box_1 == t.board_box_1 && s.board_box_2 == t.board_box_2
+    && s.board_box_3 == t.board_box_3 && s.nrows == t.nrows && s.ncols == t.ncols && s.walls_m == t.walls_m
+    && s.dead_pins_m == t.dead_pins_m && s.hud_goal_0 == t.hud_goal_0 && s.hud_goal_1 == t.hud_goal_1
+    && s.hud_goal_2 == t.hud_goal_2 && s.hud_goal_3 == t.hud_goal_3 && s.hud_goal_4 == t.hud_goal_4
+    && s.hud_goal_5 == t.hud_goal_5 && s.hud_goal_6 == t.hud_goal_6 && s.hud_goal_7 == t.hud_goal_7
+def railEq (s t : State) : Bool :=
+  s.vrail_span_r == t.vrail_span_r && s.vrail_span_c == t.vrail_span_c
+    && s.hrail_span_r == t.hrail_span_r && s.hrail_span_c == t.hrail_span_c
+
+-- a1_up / a2_down：ACTION1/2 对横玩家方块只有「整体上/下移一行、绳长不变」或「原地不动」
+def rule_a1_up : Rule :=
+  { name := "a1_up"
+    guard := fun _ a => a == .a1
+    effect := fun s _ t => !inLv s t || (t.hp_1 == s.hp_1 && (t.hp_0 == s.hp_0 || t.hp_0 == s.hp_0 - 1)) }
+def rule_a2_down : Rule :=
+  { name := "a2_down"
+    guard := fun _ a => a == .a2
+    effect := fun s _ t => !inLv s t || (t.hp_1 == s.hp_1 && (t.hp_0 == s.hp_0 || t.hp_0 == s.hp_0 + 1)) }
+-- a3_retract：选中横玩家、绳非 0 节时 ACTION3 缩一节、玩家不动
+def rule_a3_retract : Rule :=
+  { name := "a3_retract"
+    guard := fun s a => a == .a3 && isH s && s.hp_1 > 0
+    effect := fun s _ t => !inLv s t || (t.hp_0 == s.hp_0 && t.hp_1 == s.hp_1 - 1) }
+-- a4_extend：选中横玩家、绳没占满时 ACTION4 伸一节，新绳尖落点是墙则一节不伸
+def rule_a4_extend : Rule :=
+  { name := "a4_extend"
+    guard := fun s a => a == .a4 && isH s && s.hp_1 < s.ncols
+    effect := fun s _ t => !inLv s t
+      || (t.hp_0 == s.hp_0 && t.hp_1 == (if hasB (wallM s) s.hp_0 s.hp_1 then s.hp_1 else s.hp_1 + 1)) }
+-- a6_select：点中另一名玩家的框就把选中换过去，其余一概不变（含底条、隐藏量）；点空 / 点已选中的（盘上或示意图里）整个状态不变。
+-- guard 排除点中示意图里「别的」图标（selectAt 返回 none，未定义；原文说会换人，语料 0 次）
+def rule_a6_select : Rule :=
+  { name := "a6_select"
+    guard := fun s a => match a with | .a6 x y => (selectAt s x y).isSome | _ => false
+    effect := fun s a t => !inLv s t || (match a with
+      | .a6 x y => (match selectAt s x y with | some u => t == u | none => false)
+      | _ => false) }
+-- a7_bounce：绳占满整行时 ACTION7 收一节、玩家不动。
+-- 返工收窄：只管「栈顶记的横绳节数 = ncols-1」（上一次生效的是把绳伸满的那一下）。原 guard（只看满绳）在
+-- 满绳后先 ACTION1/2 换行再 ACTION7 的局面上与 stepRules 相反（撤的是换行，玩家回原行、绳不收），见文末更正与诊断读数
+def rule_a7_bounce : Rule :=
+  { name := "a7_bounce"
+    guard := fun s a => a == .a7 && s.hp_1 ≥ s.ncols && stkTop s != 0 && (unsnap (stkTop s)).hn == s.ncols - 1
+    effect := fun s _ t => !inLv s t || (t.hp_0 == s.hp_0 && t.hp_1 == s.hp_1 - 1) }
+-- a7_drag：ACTION7 收一节且没换行时，旧绳尖右邻起的那一串整串左移一格，别的靶不动（杆上有靶 / 盘上有竖绳 / 串要撞墙：原文 NA）。
+-- 返工收窄：只管栈顶是「同一行、少一节、当时绳尖正顶着靶」的那一帧（撤的是一次顶着串伸绳），且此刻绳尖外那一串
+-- 与当时被顶的那一串一样长（没接上别的靶）。原 guard 在「伸绳时没顶着靶、绳尖外恰好隔一格有串」再 ACTION7 的局面上
+-- 与 stepRules 相反（撤销不挪任何靶），见文末更正与诊断读数
+def a7Run (s : State) : Nat := runH 8 (occ s) s.ncols s.hp_0 s.hp_1 1
+def a7Top (s : State) : Dyn := unsnap (stkTop s)
+def rule_a7_drag : Rule :=
+  { name := "a7_drag"
+    guard := fun s a => a == .a7 && (occ s &&& hpoleM s) == 0 && pinM s == 0 && (shiftD (a7Run s) 1 &&& wallM s) == 0
+      && stkTop s != 0 && (a7Top s).hr == s.hp_0 && (a7Top s).hn == s.hp_1 - 1
+      && hasB (a7Top s).cs.all s.hp_0 (a7Top s).hn
+      && popc 8 (a7Run s) == popc 8 (runH 8 (a7Top s).cs.all s.ncols s.hp_0 (a7Top s).hn 1)
+    effect := fun s _ t => !(inLv s t && t.hp_1 == s.hp_1 - 1 && t.hp_0 == s.hp_0) || cellsIs t ((cellsOf s).move (a7Run s) 1) }
+-- a7_fallthrough：ACTION7 时新绳尖落点是墙，绳绝不加长：要么绳长不变、玩家换一行，要么收一节、不换行。
+-- 返工收窄：同 a7_shuttle，只管没有竖玩家、栈非空（原 guard 在栈空、或上一次生效的是竖玩家时与 stepRules 相反：横玩家不动）
+def rule_a7_fallthrough : Rule :=
+  { name := "a7_fallthrough"
+    guard := fun s a => a == .a7 && s.hp_1 < s.ncols && hasB (wallM s) s.hp_0 s.hp_1 && s.vp_0 < 0 && stkTop s != 0
+    effect := fun s _ t => !inLv s t || (t.hp_1 == s.hp_1 && (t.hp_0 == s.hp_0 + 1 || t.hp_0 == s.hp_0 - 1))
+      || (t.hp_1 == s.hp_1 - 1 && t.hp_0 == s.hp_0) }
+-- a7_shuttle：ACTION7 只有三种结果：绳尖右移一节、左移一节、或绳长不变而玩家整体移一行。
+-- 返工收窄：只管这一关没有竖玩家（vp_0 < 0）、栈非空的 ACTION7。原 guard（所有 ACTION7）在有竖玩家、上一次生效的是竖玩家时
+-- 与 stepRules 相反（撤的是竖玩家那一步，横玩家不动）；栈空时 stepRules 写成不变，也不在三种之内
+def rule_a7_shuttle : Rule :=
+  { name := "a7_shuttle"
+    guard := fun s a => a == .a7 && s.vp_0 < 0 && stkTop s != 0
+    effect := fun s _ t => !inLv s t || (t.hp_0 == s.hp_0 && (t.hp_1 == s.hp_1 + 1 || t.hp_1 == s.hp_1 - 1))
+      || (t.hp_1 == s.hp_1 && (t.hp_0 == s.hp_0 + 1 || t.hp_0 == s.hp_0 - 1)) }
+-- bar_clock（加强）：方向键数 h_k 每个方向键 +1（重发 +2，ACTION6/7 不加），底条已消耗 = h_k*64/196，剩余 = 64 - 已消耗
+def rule_bar_clock : Rule :=
+  { name := "bar_clock"
+    guard := fun _ a => a != .reset
+    effect := fun s a t => !inLv s t
+      || (t.h_k == s.h_k + tick a && t.bar_used == barOf t.h_k && t.bar_left == 64 - t.bar_used && t.bar_used ≤ t.h_k / 3) }
+-- bar_monotone：RESET 清零；其余每步已消耗格数 +0 或 +1
+def rule_bar_monotone : Rule :=
+  { name := "bar_monotone"
+    guard := fun _ _ => true
+    effect := fun s a t => if a == .reset then t.bar_used == 0
+      else !inLv s t || (t.bar_used - s.bar_used == 0 || t.bar_used - s.bar_used == 1) }
+-- board_static（读数层面）：一关之内盘框、行列数、墙、无主竖绳、示意图分栏都不变（像素级「别处逐格不变」状态里没有，核不到）
+def rule_board_static : Rule :=
+  { name := "board_static"
+    guard := fun _ _ => true
+    effect := fun s _ t => !inLv s t || staticEq s t }
+-- frame_not_state：非 ACTION7 时横玩家下一步的格行与绳长只由这一帧决定（选中横玩家时）；
+-- ACTION7 那一位是帧外的撤销栈：栈非空时，动完的两名玩家格位 / 绳长与靶分布 = 栈顶记下的那一帧（原文对 ACTION7 返回 NA，此半句是修复补的）
+def rule_frame_not_state : Rule :=
+  { name := "frame_not_state"
+    guard := fun _ a => a != .reset
+    effect := fun s a t => !inLv s t ||
+      (match a with
+       | .a7 | .retried _ => (match stepRules s a with | some u => keyEq u t | none => false)
+       | .a1 | .a2 | .a3 | .a4 => !isH s || (t.hp_0 == (physDir s a).hr && t.hp_1 == (physDir s a).hn)
+       | .a6 _ _ => !isH s || (t.hp_0 == s.hp_0 && t.hp_1 == s.hp_1)
+       | _ => true) }
+-- hmove_blocks：选中横玩家按 ACTION3/4 时靶的落点（杆上珠子逐块、绳尖外的串刚性、五种走不成）
+def rule_hmove_blocks : Rule :=
+  { name := "hmove_blocks"
+    guard := fun s a => (a == .a3 || (a == .a4 && s.hp_1 < s.ncols)) && isH s
+    effect := fun s a t => !inLv s t || cellsIs t (hRopeCells s (if a == .a4 then 1 else -1)) }
+-- hud_checklist：每一帧上第 j 槽挖空 ⟺ 那一栏的绳串着的第 j 颗靶正是这一槽的颜色（在下一帧上判）
+def rule_hud_checklist : Rule :=
+  { name := "hud_checklist"
+    guard := fun _ _ => true
+    effect := fun s _ t => !inLv s t || t.hud_hole == (holes t (dynOf t) : Int) }
+-- levelup_threaded：照本步的运动规律算出落点，每一栏每一槽都对上 ⟺ 这一步换关
+def rule_levelup_threaded : Rule :=
+  { name := "levelup_threaded"
+    guard := fun _ a => a == .a1 || a == .a2 || a == .a3 || a == .a4 || isA6 a
+    effect := fun s a t => (t.level != s.level) == done s (if isA6 a then dynOf s else physDir s a) }
+-- move_block：选中横玩家时 ACTION1/2 让玩家动 ⟺ move_ok
+def rule_move_block : Rule :=
+  { name := "move_block"
+    guard := fun s a => (a == .a1 || a == .a2) && isH s
+    effect := fun s a t => !inLv s t || ((t.hp_0 != s.hp_0) == hMoveOk s (dirOf a)) }
+-- rail_band：一关之内两条轨上的花纹带区间不变（原文在横轨带读不出时 NA）
+def rule_rail_band : Rule :=
+  { name := "rail_band"
+    guard := fun s _ => s.hrail_span_r.isSome
+    effect := fun s _ t => !inLv s t || railEq s t }
+-- retract_floor：选中横玩家按 ACTION3：非 0 节就减一，0 节时节数不变、靶一块不挪
+def rule_retract_floor : Rule :=
+  { name := "retract_floor"
+    guard := fun s a => a == .a3 && isH s
+    effect := fun s _ t => !inLv s t || (if s.hp_1 == 0 then t.hp_1 == 0 && cellsEq s t else t.hp_1 == s.hp_1 - 1) }
+-- rope_ceiling：横绳占满整行时 ACTION4：绳长、玩家、靶都不变
+def rule_rope_ceiling : Rule :=
+  { name := "rope_ceiling"
+    guard := fun s a => a == .a4 && s.hp_1 ≥ s.ncols
+    effect := fun s _ t => !inLv s t || (t.hp_1 == s.hp_1 && t.hp_0 == s.hp_0 && cellsEq s t) }
+-- rope_limit：横绳节数不超过盘的列数
+def rule_rope_limit : Rule :=
+  { name := "rope_limit"
+    guard := fun _ _ => true
+    effect := fun s _ t => !inLv s t || t.hp_1 ≤ t.ncols }
+-- v_capture：竖绳往下伸、落点那颗靶顶不动（串尾下面是盘外或墙）时，它原地不动、绳照样伸过去
+def vRunDown (s : State) : Nat := runV 8 (occ s) s.nrows s.vp_1 s.vp_0 1
+def vPushable (s : State) : Bool :=
+  let t := s.vp_1 + (popc 8 (vRunDown s) : Int)
+  t < s.nrows && !hasB (wallM s) t s.vp_0
+def vTipCase (s : State) (a : Act) : Bool :=
+  a == .a2 && isV s && s.vp_1 < s.nrows && !hasB (wallM s) s.vp_1 s.vp_0 && hasB (occ s) s.vp_1 s.vp_0
+def rule_v_capture : Rule :=
+  { name := "v_capture"
+    guard := fun s a => vTipCase s a && !vPushable s
+    effect := fun s _ t => !inLv s t || (t.vp_0 == s.vp_0 && t.vp_1 == s.vp_1 + 1
+      && colorAt (cellsOf t) s.vp_1 s.vp_0 == colorAt (cellsOf s) s.vp_1 s.vp_0) }
+-- v_carry：竖绳伸一节（落点空）时杆上的靶各下移一格，挪不动的留原地（只看伸成、没换列的那一批）
+def rule_v_carry : Rule :=
+  { name := "v_carry"
+    guard := fun s a => a == .a2 && isV s && s.vp_1 < s.nrows && !hasB (occ s) s.vp_1 s.vp_0
+      && (occ s &&& colSeg s.vp_1.toNat s.vp_0) != 0
+    effect := fun s _ t => !(inLv s t && t.vp_0 == s.vp_0 && t.vp_1 == s.vp_1 + 1) || cellsIs t (vRopeCells s 1) }
+-- v_drag：竖绳缩一节时杆上的靶各上移一格（只看缩成、没换列的那一批）
+def rule_v_drag : Rule :=
+  { name := "v_drag"
+    guard := fun s a => a == .a1 && isV s
+    effect := fun s _ t => !(inLv s t && t.vp_0 == s.vp_0 && t.vp_1 == s.vp_1 - 1) || cellsIs t (vRopeCells s (-1)) }
+-- v_extend：选中竖玩家、绳没伸满时 ACTION2 伸一节，落点是墙则不伸
+def rule_v_extend : Rule :=
+  { name := "v_extend"
+    guard := fun s a => a == .a2 && isV s && s.vp_1 < s.nrows
+    effect := fun s _ t => !inLv s t
+      || (t.vp_0 == s.vp_0 && t.vp_1 == (if hasB (wallM s) s.vp_1 s.vp_0 then s.vp_1 else s.vp_1 + 1)) }
+-- v_push：竖绳往下伸、落点压着靶时，那一列的落点（刚性串 / 钉在横杆上的不动）
+def rule_v_push : Rule :=
+  { name := "v_push"
+    guard := fun s a => vTipCase s a
+    effect := fun s _ t => !inLv s t || cellsIs t (vRopeCells s 1) }
+-- v_retract：选中竖玩家、绳非 0 节时 ACTION1 缩一节、不换列
+def rule_v_retract : Rule :=
+  { name := "v_retract"
+    guard := fun s a => a == .a1 && isV s && s.vp_1 > 0
+    effect := fun s _ t => !inLv s t || (t.vp_0 == s.vp_0 && t.vp_1 == s.vp_1 - 1) }
+-- v_slide：选中竖玩家、目标列在盘内时 ACTION3/4 连同整根绳挪一列、节数不变
+def rule_v_slide : Rule :=
+  { name := "v_slide"
+    guard := fun s a => (a == .a3 || a == .a4) && isV s && 0 ≤ s.vp_0 + dirOf a && s.vp_0 + dirOf a < s.ncols
+    effect := fun s a t => !inLv s t || (t.vp_0 == s.vp_0 + dirOf a && t.vp_1 == s.vp_1) }
+-- vmove_blocks：选中横玩家按 ACTION1/2：动得了则杆扫过去每列各自结算，动不了则靶不动
+def rule_vmove_blocks : Rule :=
+  { name := "vmove_blocks"
+    guard := fun s a => (a == .a1 || a == .a2) && isH s
+    effect := fun s a t => !inLv s t || cellsIs t (if hMoveOk s (dirOf a) then
+      (cellsOf s).move (hSweep s (dirOf a)) (if a == .a1 then 3 else 2) else cellsOf s) }
+-- vrope_static：无主竖绳一步都不变
+def rule_vrope_static : Rule :=
+  { name := "vrope_static"
+    guard := fun s _ => s.dead_pins_m != 0
+    effect := fun s _ t => !inLv s t || t.dead_pins_m == s.dead_pins_m }
+-- vslide_blocks：选中竖玩家按 ACTION3/4：挪得动则竖杆扫过去每行各自结算，挪不动则靶不动
+def rule_vslide_blocks : Rule :=
+  { name := "vslide_blocks"
+    guard := fun s a => (a == .a3 || a == .a4) && isV s
+    effect := fun s a t => !inLv s t || cellsIs t (if vSlideOk s (dirOf a) then
+      (cellsOf s).move (vSweep s (dirOf a)) (if a == .a3 then 1 else 0) else cellsOf s) }
+
+def rules : List Rule :=
+  [rule_a1_up, rule_a2_down, rule_a3_retract, rule_a4_extend, rule_a6_select, rule_a7_bounce, rule_a7_drag,
+   rule_a7_fallthrough, rule_a7_shuttle, rule_bar_clock, rule_bar_monotone, rule_board_static, rule_frame_not_state,
+   rule_hmove_blocks, rule_hud_checklist, rule_levelup_threaded, rule_move_block, rule_rail_band, rule_retract_floor,
+   rule_rope_ceiling, rule_rope_limit, rule_v_capture, rule_v_carry, rule_v_drag, rule_v_extend, rule_v_push,
+   rule_v_retract, rule_v_slide, rule_vmove_blocks, rule_vrope_static, rule_vslide_blocks]
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致（内核判定 decide +kernel）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))
+

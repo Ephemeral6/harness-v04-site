@@ -1,0 +1,477 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/tu93-20260910/_lib.py ; why=补桥块读数、醒着的追兵只数，隐藏状态（被压住的守卫的位置与朝向）与每关常数（预算步数、目标、开局守卫、画的先后），让 stepRules 真算出关卡内每一步
+-- 由 world/formalize.py 生成于 2026-09-28T21:42:47+08:00；局 tu93；基于 run ['tu93-0909-1819']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 495 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复（2026-09-28）：数据段按 meta/repair-20260928/lib/tu93-20260910/_lib.py 重新生成。新增：
+--   bridges_m/n     桥块集合（3x3 全是色 2 的块左上角；位掩码，格 (r,c) 占第 r*64+c 位）；
+--   chasers_awake   帧上看得见的追兵里记号是唤醒色 11 的只数；
+--   h_ready, h_s0..5, h_p0..3, h_c0  隐藏状态（判据修订 R1.1）：本关推过没有 + 每只哨兵/巡逻/追兵的
+--                   位置、朝向、醒没醒（被别的守卫压住时帧上读不出，由历史机械决定）；
+--   k_B, k_tr, k_tc, k_s0..5, k_p0..3, k_c0, k_sover  每关常数：预算步数、目标位置、开局守卫、画的先后
+--                   （反推依据写在 _lib.py 的 LEVEL_CONST 上）。
+-- stepRules 由这些字段真算出关卡内的每一步（玩家、记号、预算带、守卫、遮挡后的各项读数）；
+-- 换关那一步（新关卡的布局是游戏内容）走 step 里的查表，其余一步不查。
+
+-- ---------- 方向与位置 ----------
+-- 方向编号：0 上、1 下、2 左、3 右（ACTION1..4）。位置 p = 行*64 + 列（像素，块的左上角）。
+def actDir : Act → Option Nat
+  | Act.a1 => some 0
+  | Act.a2 => some 1
+  | Act.a3 => some 2
+  | Act.a4 => some 3
+  | _ => none
+
+def posOf (r c : Int) : Nat := (r * 64 + c).toNat
+
+-- 走一格 = 6 像素；上下一格 = 6 行 = 384 位
+def stepPos (p d : Nat) : Nat :=
+  match d with
+  | 0 => p - 384
+  | 1 => p + 384
+  | 2 => p - 6
+  | _ => p + 6
+
+def revDir (d : Nat) : Nat :=
+  match d with
+  | 0 => 1
+  | 1 => 0
+  | 2 => 3
+  | _ => 2
+
+-- 两个方向不同轴（垂直）
+def perp (a b : Nat) : Bool := (a < 2) != (b < 2)
+
+-- bridge_gate 的判据：p 往 d 那一格之间的中间块是不是桥块
+def linked (br p d : Nat) : Bool :=
+  match d with
+  | 0 => 192 ≤ p && br.testBit (p - 192)
+  | 1 => br.testBit (p + 192)
+  | 2 => 3 ≤ p && br.testBit (p - 3)
+  | _ => br.testBit (p + 3)
+
+def absDiff (a b : Nat) : Nat := if a ≥ b then a - b else b - a
+
+-- 两个块角之间的曼哈顿距离，按格（6 像素）计
+def cellDist (p q : Nat) : Nat := (absDiff (p / 64) (q / 64) + absDiff (p % 64) (q % 64)) / 6
+
+def dirDelta (d : Nat) : Int × Int :=
+  match d with
+  | 0 => (-6, 0)
+  | 1 => (6, 0)
+  | 2 => (0, -6)
+  | _ => (0, 6)
+
+-- 记号在块内的偏移（_lib.MARK_OFFSET 的反表）
+def markOff (d : Nat) : Int × Int :=
+  match d with
+  | 0 => (0, 1)
+  | 1 => (2, 1)
+  | 2 => (1, 0)
+  | _ => (1, 2)
+
+-- ---------- 桥图上的最短路（chaser_hunts）----------
+-- 一层 BFS：沿桥往四个方向各扩一格（位运算，一次扩整层）
+def expand (br f : Nat) : Nat :=
+  (((f <<< 3) &&& br) <<< 3) ||| (((f >>> 3) &&& br) >>> 3)
+    ||| (((f <<< 192) &&& br) <<< 192) ||| (((f >>> 192) &&& br) >>> 192)
+
+-- 从目标一层层往外扩，frm 第一次出现在 fr 这一层时，返回上一层（离目标近一步的那一层）
+def bfsPrev (br frm : Nat) : Nat → Nat → Nat → Nat → Option Nat
+  | 0, _, _, _ => none
+  | fuel + 1, vis, fr, prev =>
+    if fr == 0 then none
+    else if fr.testBit frm then some prev
+    else
+      let e := expand br fr
+      let nx := e ^^^ (e &&& vis)
+      bfsPrev br frm fuel (vis ||| nx) nx fr
+
+-- frm 走向 dst 的最短路第一步；并列按 上、下、左、右 取第一个；同格或到不了 = none
+def firstStep (br frm dst : Nat) : Option Nat :=
+  if frm == dst then none
+  else
+    let src := 1 <<< dst
+    match bfsPrev br frm 80 src src 0 with
+    | none => none
+    | some prev => [0, 1, 2, 3].find? (fun d => linked br frm d && prev.testBit (stepPos frm d))
+
+-- ---------- 守卫 ----------
+structure G where
+  p : Nat      -- 位置
+  d : Nat      -- 朝向
+  a : Nat      -- 1 = 记号是唤醒色（只有追兵会醒）
+deriving Repr, DecidableEq
+
+def decG (x : Int) : Option G :=
+  if x < 0 then none else
+  let n := x.toNat
+  some { p := n / 8, d := n / 2 % 4, a := n % 2 }
+
+def encG : Option G → Int
+  | none => -1
+  | some g => Int.ofNat ((g.p * 4 + g.d) * 2 + g.a)
+
+-- 这一步开始时的守卫槽位：本关还没推过（h_ready = 0）就取本关开局布局 k_*
+def slotsS (s : State) : List (Option G) :=
+  (if s.h_ready == 0 then
+    [s.k_s0.getD (-1), s.k_s1.getD (-1), s.k_s2.getD (-1), s.k_s3.getD (-1), s.k_s4.getD (-1), s.k_s5.getD (-1)]
+  else [s.h_s0, s.h_s1, s.h_s2, s.h_s3, s.h_s4, s.h_s5]).map decG
+
+def slotsP (s : State) : List (Option G) :=
+  (if s.h_ready == 0 then [s.k_p0.getD (-1), s.k_p1.getD (-1), s.k_p2.getD (-1), s.k_p3.getD (-1)]
+  else [s.h_p0, s.h_p1, s.h_p2, s.h_p3]).map decG
+
+def slotsC (s : State) : List (Option G) :=
+  (if s.h_ready == 0 then [s.k_c0.getD (-1)] else [s.h_c0]).map decG
+
+def alive (l : List (Option G)) : List G := l.filterMap id
+
+-- foe_kills / patrol_kills：玩家这一步落在它身上、且进入方向与它的朝向垂直 ⇒ 被踩掉
+def stomp (q d : Nat) (x : Option G) : Option G :=
+  match x with
+  | some g => if g.p == q && perp g.d d then none else some g
+  | none => none
+
+-- patrol_steps + patrol_turns：沿朝向有桥就走一格；到了之后前方没桥就掉头
+def patrolMove (br : Nat) (x : Option G) : Option G :=
+  x.map fun g =>
+    let p := if linked br g.p g.d then stepPos g.p g.d else g.p
+    { g with p := p, d := if linked br p g.d then g.d else revDir g.d }
+
+-- chaser_wakes / chaser_steps / chaser_alarm / chaser_hunts：
+--   醒着 ⇒ 沿记号方向走一格，然后记号改指「到玩家动作之前那一格」的最短路第一步；
+--   睡着 ⇒ 玩家落点离它不超过 2 格就醒（记号同样改指那条最短路的第一步），否则不动。
+def chaserMove (br m q : Nat) (x : Option G) : Option G :=
+  x.map fun g =>
+    if g.a == 1 then
+      let p := if linked br g.p g.d then stepPos g.p g.d else g.p
+      { g with p := p, d := (firstStep br p m).getD g.d }
+    else if cellDist g.p q ≤ 2 then
+      { g with a := 1, d := (firstStep br g.p m).getD g.d }
+    else g
+
+structure W where
+  me : Nat
+  moved : Bool
+  ss : List (Option G)
+  ps : List (Option G)
+  cs : List (Option G)
+
+def mePos (s : State) : Option Nat :=
+  match s.me_r, s.me_c with
+  | some r, some c => some (posOf r c)
+  | _, _ => none
+
+-- 一步的次序：玩家走（没桥 ⇒ 整个世界冻住）→ 踩掉 → 巡逻走 → 追兵走；哨兵不动（foe_walks）
+def sim (s : State) (d : Nat) : Option W :=
+  match mePos s with
+  | none => none
+  | some m =>
+    let br := s.bridges_m.toNat
+    if linked br m d then
+      let q := stepPos m d
+      some { me := q, moved := true, ss := (slotsS s).map (stomp q d),
+             ps := ((slotsP s).map (stomp q d)).map (patrolMove br),
+             cs := (slotsC s).map (chaserMove br m q) }
+    else some { me := m, moved := false, ss := slotsS s, ps := slotsP s, cs := slotsC s }
+
+def isTarget (s : State) (p : Nat) : Bool :=
+  match s.k_tr, s.k_tc with
+  | some r, some c => posOf r c == p
+  | _, _ => false
+
+-- ---------- 预算带（hud_drain）----------
+-- 本关第 k 步之后剩 64 - round(64k/B)（.5 进位）；帧上剩几格就定了走过几步
+def hudAt (B k : Nat) : Int := 64 - Int.ofNat ((128 * k + B) / (2 * B))
+
+def hudAfter (B : Nat) (h : Int) : Int :=
+  match (List.range (B + 1)).find? (fun k => hudAt B k == h) with
+  | some k => hudAt B (k + 1)
+  | none => h
+
+-- ---------- 渲染：由真实状态算出帧上的读数（遮挡）----------
+def maskOf (l : List Nat) : Nat := l.foldl (fun m p => m ||| (1 <<< p)) 0
+
+def countDistinct (l : List Nat) : Nat :=
+  (l.foldl (fun (acc : Nat × Nat) p => if acc.1.testBit p then acc else (acc.1 ||| (1 <<< p), acc.2 + 1)) (0, 0)).2
+
+-- 看得见的哨兵：被追兵压住看不见；被巡逻压住时看画的先后（k_sover 第 i 位 = 1 ⇒ 第 i 只哨兵画在巡逻上面）
+def visS (s : State) (w : W) : List G :=
+  let sov := (s.k_sover.getD 0).toNat
+  let pm := maskOf ((alive w.ps).map (·.p))
+  let cm := maskOf ((alive w.cs).map (·.p))
+  ((List.range 6).zip w.ss).filterMap fun (i, x) =>
+    match x with
+    | some g => if cm.testBit g.p || (pm.testBit g.p && !sov.testBit i) then none else some g
+    | none => none
+
+-- 看得见的巡逻位置：同格有看得见的哨兵（画在它上面）就看不见
+def visP (s : State) (w : W) : List Nat :=
+  let sm := maskOf ((visS s w).map (·.p))
+  ((alive w.ps).map (·.p)).filter (fun p => !sm.testBit p)
+
+-- 看得见的追兵：被巡逻压住就看不见（chaser_hidden）
+def visC (w : W) : List G :=
+  let pm := maskOf ((alive w.ps).map (·.p))
+  (alive w.cs).filter (fun g => !pm.testBit g.p)
+
+def render (s base : State) (w : W) (d : Nat) : State :=
+  let vs := visS s w
+  let vp := visP s w
+  let vc := visC w
+  let spos := vs.map (·.p)
+  let cpos := vc.map (·.p)
+  let occ := maskOf (spos ++ ((alive w.ps).map (·.p)) ++ ((alive w.cs).map (·.p)) ++ [w.me])
+  let tgt : Option Int × Option Int :=
+    match s.k_tr, s.k_tc with
+    | some r, some c => if occ.testBit (posOf r c) then (none, none) else (some r, some c)
+    | _, _ => (none, none)
+  let lone := countDistinct spos == 1 && vp.isEmpty && !(vc.any (fun g => g.a == 0))
+  let foe : Option G := if lone then vs.head? else none
+  { base with
+    me_r := some (Int.ofNat (w.me / 64)), me_c := some (Int.ofNat (w.me % 64)),
+    facing_r := some (dirDelta d).1, facing_c := some (dirDelta d).2,
+    foes_m := Int.ofNat (maskOf spos), foes_n := Int.ofNat (countDistinct spos),
+    patrols_m := Int.ofNat (maskOf vp), patrols_n := Int.ofNat (countDistinct vp),
+    chasers_m := Int.ofNat (maskOf cpos), chasers_n := Int.ofNat (countDistinct cpos),
+    chasers_0_r := (cpos.head?).map (fun p => Int.ofNat (p / 64)),
+    chasers_0_c := (cpos.head?).map (fun p => Int.ofNat (p % 64)),
+    chasers_awake := Int.ofNat (vc.filter (fun g => g.a == 1)).length,
+    target_r := tgt.1, target_c := tgt.2,
+    foe_r := foe.map (fun g => Int.ofNat (g.p / 64)), foe_c := foe.map (fun g => Int.ofNat (g.p % 64)),
+    foe_facing_r := foe.map (fun g => (dirDelta g.d).1), foe_facing_c := foe.map (fun g => (dirDelta g.d).2),
+    foe_mark_offset_r := foe.map (fun g => (markOff g.d).1),
+    foe_mark_offset_c := foe.map (fun g => (markOff g.d).2) }
+
+-- 把守卫槽位写回隐藏状态
+def setSlots (s : State) (w : W) : State :=
+  { s with
+    h_ready := 1,
+    h_s0 := encG (w.ss.getD 0 none), h_s1 := encG (w.ss.getD 1 none), h_s2 := encG (w.ss.getD 2 none),
+    h_s3 := encG (w.ss.getD 3 none), h_s4 := encG (w.ss.getD 4 none), h_s5 := encG (w.ss.getD 5 none),
+    h_p0 := encG (w.ps.getD 0 none), h_p1 := encG (w.ps.getD 1 none), h_p2 := encG (w.ps.getD 2 none),
+    h_p3 := encG (w.ps.getD 3 none), h_c0 := encG (w.cs.getD 0 none) }
+
+-- ---------- 关卡内的一步 ----------
+-- 落点是目标块 ⇒ 换关（reach_goal），新关布局不归规则算：返回 none，交给 step 的查表。
+def stepRules (s : State) (a : Act) : Option State :=
+  match actDir a, s.k_B with
+  | some d, some B =>
+    match sim s d with
+    | none => none
+    | some w =>
+      if w.moved && isTarget s w.me then none
+      else
+        let base := setSlots { s with hud_left := hudAfter B.toNat s.hud_left } w
+        if w.moved then some (render s base w d) else some base
+  | _, _ => none
+
+-- ---------- 死法（game_over）----------
+-- 落点是某只哨兵正对着的格；或巡逻这一步落在玩家落点上（含对穿换位）；或醒着的追兵同上。
+def collides (s : State) (w : W) : Bool :=
+  match mePos s with
+  | none => false
+  | some m =>
+    let front := (alive w.ss).any (fun g => g.d != 0 && stepPos g.p g.d == w.me || g.d == 0 && 384 ≤ g.p && g.p - 384 == w.me)
+    let hit := fun (old new : Option G) =>
+      match new with
+      | some g => g.p == w.me || (match old with | some o => o.p == w.me && g.p == m | none => false)
+      | none => false
+    let pat := ((slotsP s).zip w.ps).any (fun (o, n) => hit o n)
+    let cha := ((slotsC s).zip w.cs).any (fun (o, n) => (match n with | some g => g.a == 1 | none => false) && hit o n)
+    w.moved && (front || pat || cha)
+
+-- ---------- 规则共用的论域 ----------
+def pre (s : State) (a : Act) : Option (Nat × W) :=
+  match actDir a, s.k_B with
+  | some d, some _ => (sim s d).map (fun w => (d, w))
+  | _, _ => none
+
+-- 这一步落在目标上（换关）
+def landsOnTarget (s : State) (a : Act) : Bool :=
+  match pre s a with
+  | some (_, w) => w.moved && isTarget s w.me
+  | none => false
+
+-- 关卡内、没撞死的一步
+def live (s : State) (a : Act) : Bool :=
+  match pre s a with
+  | some (_, w) => !(w.moved && isTarget s w.me) && !(collides s w)
+  | none => false
+
+def predP (s : State) (a : Act) (f : State → Bool) : Bool :=
+  match stepRules s a with
+  | some p => f p
+  | none => false
+
+def movedNow (s : State) (a : Act) : Bool :=
+  match pre s a with
+  | some (_, w) => w.moved
+  | none => false
+
+-- ---------- 规则 ----------
+-- move_shift：生效时玩家块整体平移一格（6 像素）到落点，没生效原地
+def moveShiftGuard (s : State) (a : Act) : Bool := live s a
+def moveShiftEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.me_r == s'.me_r && p.me_c == s'.me_c)
+
+-- bridge_gate：动得了当且仅当玩家与落点之间的中间块是桥
+def bridgeGateGuard (s : State) (a : Act) : Bool := live s a
+def bridgeGateEffect (s : State) (a : Act) (s' : State) : Bool :=
+  match actDir a, mePos s with
+  | some d, some m => (s'.me_r == s.me_r && s'.me_c == s.me_c) == !(linked s.bridges_m.toNat m d)
+  | _, _ => false
+
+-- mark_faces：生效时记号转向动作方向；没生效记号不动
+def markFacesGuard (s : State) (a : Act) : Bool := live s a
+def markFacesEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.facing_r == s'.facing_r && p.facing_c == s'.facing_c)
+
+-- reach_goal：落点是目标块当步换关；没落在目标上绝不换关
+def reachGoalGuard (s : State) (a : Act) : Bool := (pre s a).isSome && s.k_tr.isSome
+def reachGoalEffect (s : State) (a : Act) (s' : State) : Bool :=
+  landsOnTarget s a == (s'.level != s.level)
+
+-- hud_drain：同一关内每发一个动作（生效与否、死没死）预算带按本关预算步数扣到下一格
+def hudDrainGuard (s : State) (a : Act) : Bool := (pre s a).isSome && !landsOnTarget s a
+def hudDrainEffect (s : State) (_a : Act) (s' : State) : Bool :=
+  match s.k_B with
+  | some B => s'.hud_left == hudAfter B.toNat s.hud_left
+  | none => false
+
+-- hud_reset：换关那一步，新帧上有下一关的目标块 ⇒ 预算带回满 64；末关通关后没有下一关，照常扣
+def hudResetGuard (s : State) (a : Act) : Bool := landsOnTarget s a
+def hudResetEffect (s : State) (_a : Act) (s' : State) : Bool :=
+  match s.k_B with
+  | some B => s'.hud_left == (if s'.target_r.isSome then 64 else hudAfter B.toNat s.hud_left)
+  | none => false
+
+-- foe_walks：哨兵不动——帧上看得见的哨兵位置与单只哨兵读数，就是原位的哨兵经遮挡后的样子
+def foeWalksGuard (s : State) (a : Act) : Bool := live s a && (alive (slotsS s)).length > 0
+def foeWalksEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.foes_m == s'.foes_m && p.foes_n == s'.foes_n && p.foe_r == s'.foe_r && p.foe_c == s'.foe_c
+    && p.foe_facing_r == s'.foe_facing_r && p.foe_facing_c == s'.foe_facing_c
+    && p.foe_mark_offset_r == s'.foe_mark_offset_r && p.foe_mark_offset_c == s'.foe_mark_offset_c)
+
+def stompsAny (l : List (Option G)) (s : State) (a : Act) : Bool :=
+  match pre s a with
+  | some (d, w) => w.moved && (alive l).any (fun g => g.p == w.me && perp g.d d)
+  | none => false
+
+-- foe_kills：垂直踩进哨兵所在格，它当步消失，玩家不死
+def foeKillsGuard (s : State) (a : Act) : Bool := live s a && stompsAny (slotsS s) s a
+def foeKillsEffect (s : State) (a : Act) (s' : State) : Bool :=
+  s'.me_r.isSome && predP s a (fun p => p.foes_n == s'.foes_n && p.foes_m == s'.foes_m && p.h_s0 == s'.h_s0
+    && p.h_s1 == s'.h_s1 && p.h_s2 == s'.h_s2 && p.h_s3 == s'.h_s3 && p.h_s4 == s'.h_s4 && p.h_s5 == s'.h_s5)
+
+-- patrol_kills：垂直踩进巡逻所在格，它当步消失，玩家不死
+def patrolKillsGuard (s : State) (a : Act) : Bool := live s a && stompsAny (slotsP s) s a
+def patrolKillsEffect (s : State) (a : Act) (s' : State) : Bool :=
+  s'.me_r.isSome && predP s a (fun p => p.patrols_n == s'.patrols_n && p.patrols_m == s'.patrols_m)
+
+-- patrol_steps：玩家这一步真挪动了巡逻才走一格；被挡住则巡逻原地（帧上看得见的巡逻位置照此）
+def patrolStepsGuard (s : State) (a : Act) : Bool := live s a && (alive (slotsP s)).length > 0
+def patrolStepsEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.patrols_m == s'.patrols_m && p.patrols_n == s'.patrols_n)
+
+-- 这一步有巡逻到了尽头要掉头
+def turnsNow (s : State) (a : Act) : Bool :=
+  match pre s a with
+  | some (_, w) => w.moved && ((slotsP s).zip w.ps).any (fun (o, n) =>
+      match o, n with
+      | some g, some g' => g.d != g'.d
+      | _, _ => false)
+  | none => false
+
+-- patrol_turns：沿桥直行，走到前方无桥的尽头当场掉头（掉头后的朝向进隐藏状态，位置进帧上读数）
+def patrolTurnsGuard (s : State) (a : Act) : Bool := live s a && turnsNow s a
+def patrolTurnsEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.h_p0 == s'.h_p0 && p.h_p1 == s'.h_p1 && p.h_p2 == s'.h_p2 && p.h_p3 == s'.h_p3
+    && p.patrols_m == s'.patrols_m)
+
+def hasChaser (s : State) (want : Nat → Bool) : Bool := (alive (slotsC s)).any (fun g => want g.a)
+
+-- chaser_wakes：追兵这一步动不动只看它上一帧醒没醒（睡着不动，醒着走）
+def chaserWakesGuard (s : State) (a : Act) : Bool := live s a && hasChaser s (fun _ => true)
+def chaserWakesEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.chasers_m == s'.chasers_m && p.chasers_n == s'.chasers_n
+    && p.chasers_0_r == s'.chasers_0_r && p.chasers_0_c == s'.chasers_0_c)
+
+-- chaser_alarm：睡着的追兵在玩家落点进入它 2 格以内那一步翻成唤醒色（帧上看得见的醒着的只数）
+def chaserAlarmGuard (s : State) (a : Act) : Bool := live s a && hasChaser s (fun x => x == 0)
+def chaserAlarmEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.chasers_awake == s'.chasers_awake && p.h_c0 == s'.h_c0)
+
+-- chaser_steps：醒着的追兵沿记号方向走一格
+def chaserStepsGuard (s : State) (a : Act) : Bool := live s a && movedNow s a && hasChaser s (fun x => x == 1)
+def chaserStepsEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.chasers_m == s'.chasers_m && p.chasers_0_r == s'.chasers_0_r && p.chasers_0_c == s'.chasers_0_c)
+
+-- chaser_hunts：醒着（或这一步醒来）的追兵，记号改指桥图上通往玩家动作前位置的最短路第一步
+def chaserHuntsGuard (s : State) (a : Act) : Bool :=
+  live s a && movedNow s a && predP s a (fun p => match decG p.h_c0 with | some g => g.a == 1 | none => false)
+def chaserHuntsEffect (s : State) (a : Act) (s' : State) : Bool :=
+  predP s a (fun p => p.h_c0 == s'.h_c0 && p.chasers_awake == s'.chasers_awake)
+
+-- 这一步之后追兵被巡逻压住
+def chaserCovered (s : State) (a : Act) : Bool :=
+  match pre s a with
+  | some (_, w) =>
+    let pm := maskOf ((alive w.ps).map (·.p))
+    (alive w.cs).any (fun g => pm.testBit g.p)
+  | none => false
+
+-- chaser_hidden：追兵被巡逻压住时帧上读不出来（但它还在：隐藏状态里照走）
+def chaserHiddenGuard (s : State) (a : Act) : Bool := live s a && chaserCovered s a
+def chaserHiddenEffect (s : State) (a : Act) (s' : State) : Bool :=
+  s'.chasers_n == 0 && s'.chasers_0_r.isNone && predP s a (fun p => p.h_c0 == s'.h_c0)
+
+-- game_over：玩家被吃掉（帧上读不出玩家）当且仅当撞上 collides 列的三类危险格之一
+def gameOverGuard (s : State) (a : Act) : Bool := (pre s a).isSome && !landsOnTarget s a
+def gameOverEffect (s : State) (a : Act) (s' : State) : Bool :=
+  match pre s a with
+  | some (_, w) => s'.me_r.isNone == collides s w
+  | none => false
+
+def rules : List Rule :=
+  [ { name := "move_shift", guard := moveShiftGuard, effect := moveShiftEffect }
+  , { name := "bridge_gate", guard := bridgeGateGuard, effect := bridgeGateEffect }
+  , { name := "mark_faces", guard := markFacesGuard, effect := markFacesEffect }
+  , { name := "reach_goal", guard := reachGoalGuard, effect := reachGoalEffect }
+  , { name := "hud_drain", guard := hudDrainGuard, effect := hudDrainEffect }
+  , { name := "hud_reset", guard := hudResetGuard, effect := hudResetEffect }
+  , { name := "foe_walks", guard := foeWalksGuard, effect := foeWalksEffect }
+  , { name := "foe_kills", guard := foeKillsGuard, effect := foeKillsEffect }
+  , { name := "patrol_kills", guard := patrolKillsGuard, effect := patrolKillsEffect }
+  , { name := "patrol_steps", guard := patrolStepsGuard, effect := patrolStepsEffect }
+  , { name := "patrol_turns", guard := patrolTurnsGuard, effect := patrolTurnsEffect }
+  , { name := "chaser_wakes", guard := chaserWakesGuard, effect := chaserWakesEffect }
+  , { name := "chaser_alarm", guard := chaserAlarmGuard, effect := chaserAlarmEffect }
+  , { name := "chaser_steps", guard := chaserStepsGuard, effect := chaserStepsEffect }
+  , { name := "chaser_hunts", guard := chaserHuntsGuard, effect := chaserHuntsEffect }
+  , { name := "chaser_hidden", guard := chaserHiddenGuard, effect := chaserHiddenEffect }
+  , { name := "game_over", guard := gameOverGuard, effect := gameOverEffect }
+  ]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+-- 整局通关：最后一关（第 8 关）过完，关号到 9
+def isGoal (s : State) : Bool := s.level == 9
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。内核证明（decide +kernel），不依赖 ofReduceBool。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))
+

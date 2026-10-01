@@ -1,0 +1,378 @@
+-- REGENERATED: lib=meta/repair-20260928/lib/m0r0-20260910/_lib.py ; why=补危险格读数、隐藏状态（本关步数、两块列序对调次数）与每关常数（开局身份、出生格、开局记号、物件布局），让 stepRules 真算出关卡内每一步
+-- 由 world/formalize.py 生成于 2026-09-29T11:36:28+08:00；局 m0r0；基于 run ['m0r0-0910-1209']
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 626 行从略：由 world/formalize.py 从原始转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复（2026-09-29，meta/repair-20260928）：数据段按 meta/repair-20260928/lib/m0r0-20260910/_lib.py 重新生成。
+-- 补的读数与量（都只是感知原语，后果全在下面由 Lean 推）：
+--   hazard_cells_m  棋盘花纹格（危险格）的位置；
+--   h_steps         本关已走步数（隐藏量，每个动作 +1）；
+--   h_flip          两块按列序排的次序自本关开局以来对调过几次（mod 2，隐藏量，按「每块一步最多挪一格」追踪）；
+--   k_dir           本关开局时按 DELTA 走的是列序第几块；k_spawn / k_mark0 本关出生格点与开局记号位置；
+--   k_o12/k_o14/k_o15 本关各色物件格的全布局（开关 = 布局里孤立的格，门 = 连成条的格）。
+-- stepRules 由这些字段推出：两块的镜像移动与阻挡、危险格整关重置、相撞（交给换关查表）、点选、推记号、
+-- 开关开门 / 走开关门、可走格集合、物件集合与各种计数、计数带。换关那一步（新关卡布局）走 step 里的查表。
+-- 位掩码约定与数据段一致：格点 (r,c) 占第 r*64+c 位；规则里一律先转成 Nat 再做位运算。
+
+-- ---------- 位运算小工具 ----------
+def nat (x : Int) : Nat := x.toNat
+def onat (x : Option Int) : Nat := (x.getD 0).toNat
+def bitRC (r c : Nat) : Nat := 1 <<< (r * 64 + c)
+def testRC (m r c : Nat) : Bool := (m >>> (r * 64 + c)) % 2 == 1
+def andNot (a b : Nat) : Nat := a ^^^ (a &&& b)
+def subsetOf (a b : Nat) : Bool := andNot a b == 0
+-- 四邻（列不会越过 63：本局格点列数 ≤ 16）
+def nbr (m : Nat) : Nat := (m <<< 1) ||| (m >>> 1) ||| (m <<< 64) ||| (m >>> 64)
+-- 孤立格：四邻里没有同一集合的格
+def isolated (m : Nat) : Nat := andNot m (nbr m)
+def popc : Nat → Nat → Nat
+  | 0, _ => 0
+  | f + 1, m => if m == 0 then 0 else 1 + popc f (m &&& (m - 1))
+def cnt (m : Nat) : Nat := popc 4096 m
+def single (m : Nat) : Bool := m != 0 && (m &&& (m - 1)) == 0
+def lowBit (m : Nat) : Nat := m ^^^ (m &&& (m - 1))
+def cellOfIdx (k : Nat) : Int × Int := (Int.ofNat (k / 64), Int.ofNat (k % 64))
+
+-- 带符号格点
+def inM (m : Nat) (p : Int × Int) : Bool := 0 ≤ p.1 && 0 ≤ p.2 && p.2 < 64 && testRC m p.1.toNat p.2.toNat
+def bitP (p : Int × Int) : Nat := bitRC p.1.toNat p.2.toNat
+def addP (p d : Int × Int) : Int × Int := (p.1 + d.1, p.2 + d.2)
+-- 列序：列小在前，同列行小在前（与 _lib.pieces 的排序一致）
+def colLt (a b : Int × Int) : Bool := a.2 < b.2 || (a.2 == b.2 && a.1 < b.1)
+def byCol (a b : Int × Int) : (Int × Int) × (Int × Int) := if colLt b a then (b, a) else (a, b)
+def lexLt (a b : Int × Int) : Bool := a.1 < b.1 || (a.1 == b.1 && a.2 < b.2)
+def near1 (a b : Int × Int) : Bool := (a.1 - b.1).natAbs + (a.2 - b.2).natAbs ≤ 1
+
+-- ---------- 几何：像素 <-> 格点 ----------
+def side (s : State) : Nat := onat s.geom_0
+def org (s : State) : Nat × Nat := (onat s.geom_1, onat s.geom_2)
+def toCell (s : State) (r c : Option Int) : Int × Int :=
+  (Int.ofNat ((onat r - (org s).1) / side s), Int.ofNat ((onat c - (org s).2) / side s))
+-- 两块的格点，按列序
+def cellsOf (s : State) : (Int × Int) × (Int × Int) :=
+  byCol (toCell s s.pieces_0_r s.pieces_0_c) (toCell s s.pieces_1_r s.pieces_1_c)
+-- 下一帧（s'）的两块格点，按 s 的几何换算（关内几何不变）
+def cellsWith (s t : State) : (Int × Int) × (Int × Int) :=
+  byCol (toCell s t.pieces_0_r t.pieces_0_c) (toCell s t.pieces_1_r t.pieces_1_c)
+def pmOf (a b : Int × Int) : Nat := bitP a ||| bitP b
+def gridCols (s : State) : Nat := (64 - (org s).2) / side s
+def gridRows (s : State) : Nat := (64 - (org s).1) / side s
+
+-- ---------- 动作 ----------
+def dirOf : Act → Option (Int × Int)
+  | Act.a1 => some (-1, 0)
+  | Act.a2 => some (1, 0)
+  | Act.a3 => some (0, -1)
+  | Act.a4 => some (0, 1)
+  | _ => none
+def isMove (a : Act) : Bool := (dirOf a).isSome
+def dOf (a : Act) : Int × Int := (dirOf a).getD (0, 0)
+
+-- ---------- 记号 ----------
+def lit (s : State) : Nat := onat s.markers_m_c11
+def selected (s : State) : Bool := lit s != 0
+-- 点中哪个格点（x 列 y 行）；点中的是记号格就点亮它，否则全部复原（click_selects）
+def clickSel (s : State) (x y : Nat) : Nat :=
+  let (pr, pc) := org s
+  if pr ≤ y && pc ≤ x && side s != 0 then
+    let r := (y - pr) / side s
+    let c := (x - pc) / side s
+    if testRC (onat s.markers_m) r c then bitRC r c else 0
+  else 0
+-- 点亮的记号按 DELTA（不取镜像）挪一格：落点须是可走格、且没有块占着（push_door）
+def pushTarget (s : State) (d : Int × Int) : Int × Int := addP (cellOfIdx (Nat.log2 (lit s))) d
+def pushOk (s : State) (d : Int × Int) : Bool :=
+  let t := pushTarget s d
+  let (p0, p1) := cellsOf s
+  inM (nat s.free_cells_m) t && !inM (pmOf p0 p1) t
+
+-- ---------- 两块的移动 ----------
+-- 标法 k：列序第 k 块按 DELTA 走（direct），另一块列取反（mirror）
+def intentsBy (s : State) (a : Act) (k : Nat) : (Int × Int) × (Int × Int) :=
+  let (p0, p1) := cellsOf s
+  let d := dOf a
+  let dm : Int × Int := (d.1, -d.2)
+  if k == 0 then (addP p0 d, addP p1 dm) else (addP p0 dm, addP p1 d)
+-- 真身份：本关开局是第 k_dir 块，此后跟着块走（每对调一次列序就换一次下标）
+def dirIdx (s : State) : Nat := (nat s.k_dir + nat s.h_flip) % 2
+def hitsHazard (s : State) (t : (Int × Int) × (Int × Int)) : Bool :=
+  inM (nat s.hazard_cells_m) t.1 || inM (nat s.hazard_cells_m) t.2
+def destBy (s : State) (a : Act) (k : Nat) : (Int × Int) × (Int × Int) :=
+  let (p0, p1) := cellsOf s
+  let t := intentsBy s a k
+  let fr := nat s.free_cells_m
+  (if inM fr t.1 then t.1 else p0, if inM fr t.2 then t.2 else p1)
+def hzTrue (s : State) (a : Act) : Bool := hitsHazard s (intentsBy s a (dirIdx s))
+def hzAny (s : State) (a : Act) : Bool := hitsHazard s (intentsBy s a 0) || hitsHazard s (intentsBy s a 1)
+def destTrue (s : State) (a : Act) : (Int × Int) × (Int × Int) := destBy s a (dirIdx s)
+def collides (s : State) (a : Act) : Bool := let d := destTrue s a; d.1 == d.2
+-- 这一步是「未点亮态的方向键」（两块真的会迈步）
+def freeMove (s : State) (a : Act) : Bool := isMove a && !selected s && s.pieces_n == some 2
+def spawnCells (s : State) : (Int × Int) × (Int × Int) :=
+  let sp := nat s.k_spawn
+  byCol (cellOfIdx (Nat.log2 (lowBit sp))) (cellOfIdx (Nat.log2 sp))
+
+-- ---------- 物件：开关与门 ----------
+def lay12 (s : State) : Nat := nat s.k_o12
+def lay14 (s : State) : Nat := nat s.k_o14
+def lay15 (s : State) : Nat := nat s.k_o15
+def swOf (lay : Nat) : Nat := isolated lay
+def gtOf (lay : Nat) : Nat := andNot lay (isolated lay)
+-- 有块站在同色开关上，这色的门就开（switch_opens_gate / gate_closes_on_leave）
+def openBy (lay pm : Nat) : Bool := (swOf lay &&& pm) != 0
+-- 帧上看得见的物件格：开关 + 关着的门，减去块盖住的格
+def visOf (lay pm : Nat) : Nat := andNot (if openBy lay pm then swOf lay else lay) pm
+
+-- ---------- 由「两块格点 + 记号 + 点亮」重算全部派生字段 ----------
+def derive (s : State) (n : Nat) (flip : Nat) (a b : Int × Int) (mk c11 : Nat) : State :=
+  let pm := pmOf a b
+  let v12 := visOf (lay12 s) pm
+  let v14 := visOf (lay14 s) pm
+  let v15 := visOf (lay15 s) pm
+  let allv := v12 ||| v14 ||| v15
+  let i12 := isolated v12
+  let i14 := isolated v14
+  let i15 := isolated v15
+  let fl := nat s.free_cells_m ||| lay12 s ||| lay14 s ||| lay15 s ||| onat s.markers_m
+  let fr := pm ||| andNot (andNot fl mk) allv ||| i12 ||| i14 ||| i15
+  let fr0 := nat s.free_cells_m
+  let ob0 := onat s.objects_m
+  let sel := c11 != 0
+  let sd := side s
+  let (pr, pc) := org s
+  let pa := (Int.ofNat pr + Int.ofNat sd * a.1, Int.ofNat pc + Int.ofNat sd * a.2)
+  let pb := (Int.ofNat pr + Int.ofNat sd * b.1, Int.ofNat pc + Int.ofNat sd * b.2)
+  let (q0, q1) := if lexLt pb pa then (pb, pa) else (pa, pb)
+  { s with
+    h_steps := Int.ofNat n
+    h_flip := Int.ofNat flip
+    hud_len := Int.ofNat ((128 * n + 150) / 300)
+    free_cells_m := Int.ofNat fr
+    free_cells_n := s.free_cells_n + Int.ofNat (cnt (andNot fr fr0)) - Int.ofNat (cnt (andNot fr0 fr))
+    objects_m := some (Int.ofNat allv)
+    objects_m_c12 := some (Int.ofNat v12)
+    objects_m_c14 := some (Int.ofNat v14)
+    objects_m_c15 := some (Int.ofNat v15)
+    objects_n := some ((s.objects_n.getD 0) + Int.ofNat (cnt (andNot allv ob0)) - Int.ofNat (cnt (andNot ob0 allv)))
+    switches_n := some (Int.ofNat ((if i12 != 0 then 1 else 0) + (if i14 != 0 then 1 else 0) + (if i15 != 0 then 1 else 0)))
+    gates_n := some (Int.ofNat ((if andNot v12 i12 != 0 then 1 else 0) + (if andNot v14 i14 != 0 then 1 else 0)
+                  + (if andNot v15 i15 != 0 then 1 else 0)))
+    markers_m := some (Int.ofNat mk)
+    markers_m_c11 := some (Int.ofNat c11)
+    markers_m_c9 := some (Int.ofNat (andNot mk c11))
+    piece_color := some (if sel then 1 else 10)
+    sel_dim := some sel
+    pieces_0_r := some q0.1
+    pieces_0_c := some q0.2
+    pieces_1_r := some q1.1
+    pieces_1_c := some q1.2
+    pieces_m := some (Int.ofNat (pmOf q0 q1)) }
+
+-- 未点亮态的方向键：危险 -> 整关重置；相撞 -> 说不出（换关，交给查表）；否则按真身份走
+def moveStep (s : State) (a : Act) (n : Nat) : Option State :=
+  let (p0, p1) := cellsOf s
+  let mk := onat s.markers_m
+  let c11 := lit s
+  if selected s then
+    let d := dOf a
+    if pushOk s d then
+      let tb := bitP (pushTarget s d)
+      some (derive s n (nat s.h_flip) p0 p1 (andNot mk c11 ||| tb) tb)
+    else some (derive s n (nat s.h_flip) p0 p1 mk c11)
+  else if hzTrue s a then
+    let sp := spawnCells s
+    some (derive s n 0 sp.1 sp.2 (nat s.k_mark0) 0)
+  else
+    let d := destTrue s a
+    if d.1 == d.2 then none
+    else
+      let fl := if colLt d.2 d.1 then (nat s.h_flip + 1) % 2 else nat s.h_flip
+      some (derive s n fl d.1 d.2 mk c11)
+
+def stepRules (s : State) (a : Act) : Option State :=
+  let n := nat s.h_steps + 1
+  let (p0, p1) := cellsOf s
+  match a with
+  | Act.a5 => some (derive s n (nat s.h_flip) p0 p1 (onat s.markers_m) (lit s))
+  | Act.a6 x y => some (derive s n (nat s.h_flip) p0 p1 (onat s.markers_m) (clickSel s x y))
+  | Act.reset => none
+  | Act.other => none
+  | _ => moveStep s a n
+
+-- ---------- 规则用的判定 ----------
+def sameLevel (s t : State) : Bool := s.level == t.level
+def pmNow (s : State) : Nat := let c := cellsOf s; pmOf c.1 c.2
+def pmNext (s t : State) : Nat := let c := cellsWith s t; pmOf c.1 c.2
+-- 格点位移是 0 或给定位移
+def stepOk (p q d : Int × Int) : Bool := q == p || q == addP p d
+-- 被挡块数（某种标法下）
+def blockedBy (s : State) (a : Act) (k : Nat) : Nat :=
+  let (p0, p1) := cellsOf s
+  let d := destBy s a k
+  (if d.1 == p0 then 1 else 0) + (if d.2 == p1 then 1 else 0)
+def explainsBy (s t : State) (a : Act) (k : Nat) : Bool :=
+  let d := destBy s a k
+  pmNext s t == pmOf d.1 d.2
+def colGapOdd (p : (Int × Int) × (Int × Int)) : Bool := (p.1.2 - p.2.2) % 2 != 0
+def mirrorPair (s : State) (p : (Int × Int) × (Int × Int)) : Bool :=
+  p.1.1 == p.2.1 && p.1.2 + p.2.2 == Int.ofNat (gridCols s) - 1
+-- 通行图左右对称（逐行逐列比，第 j 列与第 nc-1-j 列）
+def symRow (fr : Nat) (nc r : Nat) : Nat → Bool
+  | 0 => true
+  | j + 1 => testRC fr r j == testRC fr r (nc - 1 - j) && symRow fr nc r j
+def symBoard (s : State) : Bool :=
+  let fr := nat s.free_cells_m
+  let nc := gridCols s
+  (List.range (gridRows s)).all (fun r => symRow fr nc r nc)
+-- 所有开关与门（三色合起来）
+def swAll (s : State) : Nat := swOf (lay12 s) ||| swOf (lay14 s) ||| swOf (lay15 s)
+def gtAll (s : State) : Nat := gtOf (lay12 s) ||| gtOf (lay14 s) ||| gtOf (lay15 s)
+-- 预测的下一步两块格点（未点亮态方向键，无危险）
+def pmDest (s : State) (a : Act) : Nat := let d := destTrue s a; pmOf d.1 d.2
+-- 这一步有块从开关上走开（开关色会露出来）
+def leavesSwitch (s : State) (a : Act) : Bool :=
+  freeMove s a && !hzTrue s a && andNot (swAll s &&& pmNow s) (pmDest s a) != 0
+def leftGate (lay : Nat) (s : State) (a : Act) : Nat :=
+  if openBy lay (pmNow s) && !openBy lay (pmDest s a) then gtOf lay else 0
+
+-- ---------- 规则 ----------
+def rules : List Rule := [
+  { name := "two_pieces_50"
+    guard := fun s _ => s.pieces_n == some 2
+    effect := fun s _ t => !sameLevel s t ||
+      (t.pieces_n == some 2 && t.geom_0 == s.geom_0
+        && (onat t.pieces_0_r - (org s).1) % side s == 0 && (onat t.pieces_0_c - (org s).2) % side s == 0
+        && (onat t.pieces_1_r - (org s).1) % side s == 0 && (onat t.pieces_1_c - (org s).2) % side s == 0) },
+  { name := "action5_noop"
+    guard := fun _ a => a == Act.a5
+    effect := fun s _ t => sameLevel s t && t.pieces_m == s.pieces_m && t.free_cells_m == s.free_cells_m
+      && t.markers_m == s.markers_m && t.markers_m_c11 == s.markers_m_c11 && t.objects_m == s.objects_m
+      && t.hazard_cells_m == s.hazard_cells_m },
+  { name := "hud_monotone"
+    guard := fun _ a => a != Act.reset
+    effect := fun s _ t => !sameLevel s t ||
+      (s.hud_len ≤ t.hud_len && t.hud_len ≤ s.hud_len + 1
+        && t.h_steps == s.h_steps + 1 && t.hud_len == Int.ofNat ((128 * nat t.h_steps + 150) / 300)) },
+  { name := "click_selects"
+    guard := fun s a => match a with | Act.a6 _ _ => s.pieces_n == some 2 | _ => false
+    effect := fun s a t => match a with
+      | Act.a6 x y =>
+        let c := clickSel s x y
+        sameLevel s t && t.pieces_m == s.pieces_m && t.markers_m == s.markers_m
+          && t.markers_m_c11 == some (Int.ofNat c) && t.piece_color == some (if c != 0 then 1 else 10)
+      | _ => false },
+  { name := "dim_iff_highlight"
+    guard := fun s _ => s.markers_n != some 0 && s.pieces_n == some 2
+    effect := fun s _ t => !sameLevel s t ||
+      (t.sel_dim == some (onat t.markers_m_c11 != 0)
+        && (onat t.markers_m_c11 == 0 || single (onat t.markers_m_c11))) },
+  { name := "frozen_when_selected"
+    guard := fun s a => isMove a && selected s
+    effect := fun s _ t => sameLevel s t && t.pieces_m == s.pieces_m },
+  { name := "push_door"
+    guard := fun s a => isMove a && single (lit s)
+    effect := fun s a t =>
+      let c11 := lit s
+      let mk := onat s.markers_m
+      if pushOk s (dOf a) then
+        let tb := bitP (pushTarget s (dOf a))
+        t.markers_m_c11 == some (Int.ofNat tb) && t.markers_m == some (Int.ofNat (andNot mk c11 ||| tb))
+      else t.markers_m_c11 == s.markers_m_c11 && t.markers_m == s.markers_m },
+  { name := "move_delta"
+    guard := fun s a => freeMove s a && !hzAny s a
+    effect := fun s a t => !sameLevel s t ||
+      (let (p0, p1) := cellsOf s
+       let (q0, q1) := cellsWith s t
+       let d := dOf a
+       let dm : Int × Int := (d.1, -d.2)
+       (stepOk p0 q0 d && stepOk p1 q1 dm) || (stepOk p0 q0 dm && stepOk p1 q1 d)
+         || (stepOk p0 q1 d && stepOk p1 q0 dm) || (stepOk p0 q1 dm && stepOk p1 q0 d)) },
+  { name := "move_iff_clear"
+    guard := fun s a => freeMove s a && !hzTrue s a && !collides s a
+    effect := fun s a t =>
+      let d := destTrue s a
+      sameLevel s t && pmNext s t == pmOf d.1 d.2
+        && t.h_flip == Int.ofNat (if colLt d.2 d.1 then (nat s.h_flip + 1) % 2 else nat s.h_flip) },
+  { name := "dest_set"
+    guard := fun s a => freeMove s a && !hzAny s a
+      && (let d0 := destBy s a 0; let d1 := destBy s a 1; d0.1 != d0.2 && d1.1 != d1.2)
+    effect := fun s a t =>
+      let d0 := destBy s a 0
+      let d1 := destBy s a 1
+      sameLevel s t && subsetOf (pmOf d0.1 d0.2 &&& pmOf d1.1 d1.2) (pmNext s t) },
+  { name := "collide_wins"
+    guard := fun s a => freeMove s a && !hzTrue s a
+    effect := fun s a t => collides s a == !sameLevel s t },
+  { name := "hazard_resets"
+    guard := fun s a => freeMove s a && hzTrue s a
+    effect := fun s a t =>
+      -- 概念原文强度：不换关、两块都不在意图落点上、至少一块换了格点；不断言出生点在哪
+      let it := intentsBy s a (dirIdx s)
+      sameLevel s t && !(inM (pmNext s t) it.1) && !(inM (pmNext s t) it.2)
+        && pmNext s t != pmNow s },
+  { name := "identity_needs_one_move"
+    guard := fun s a => freeMove s a && (dOf a).2 != 0 && !hzAny s a
+    effect := fun s a t => !sameLevel s t ||
+      (explainsBy s t a (dirIdx s) && explainsBy s t a 0 != explainsBy s t a 1) },
+  { name := "parity_flips_iff_blocked"
+    guard := fun s a => freeMove s a && (dOf a).2 != 0 && !hzAny s a
+      && blockedBy s a 0 % 2 == blockedBy s a 1 % 2
+    effect := fun s a t => !sameLevel s t ||
+      ((colGapOdd (cellsOf s) != colGapOdd (cellsWith s t)) == (blockedBy s a 0 % 2 == 1)) },
+  { name := "land_on_floor_only"
+    guard := fun s a => a != Act.reset && s.pieces_n == some 2
+    effect := fun s _ t => !sameLevel s t || subsetOf (pmNext s t) (nat s.free_cells_m) },
+  { name := "mirror_pair_persists"
+    guard := fun s a => freeMove s a && mirrorPair s (cellsOf s) && symBoard s
+    effect := fun s _ t => !sameLevel s t || mirrorPair s (cellsWith s t) },
+  { name := "terrain_static"
+    guard := fun s a => a != Act.reset && s.pieces_n == some 2
+    effect := fun s _ t => !sameLevel s t ||
+      (let chg := (nat s.free_cells_m ^^^ nat t.free_cells_m) ||| (nat s.hazard_cells_m ^^^ nat t.hazard_cells_m)
+       let skip := onat s.markers_m ||| onat t.markers_m ||| onat s.objects_m ||| onat t.objects_m
+       t.markers_n == s.markers_n && andNot chg skip == 0) },
+  { name := "switch_opens_gate"
+    guard := fun s a => freeMove s a && !hzTrue s a && !collides s a && (swAll s &&& pmDest s a) != 0
+    effect := fun s a t =>
+      let pm := pmDest s a
+      let g := (if openBy (lay12 s) pm then gtOf (lay12 s) else 0) ||| (if openBy (lay14 s) pm then gtOf (lay14 s) else 0)
+        ||| (if openBy (lay15 s) pm then gtOf (lay15 s) else 0)
+      g != 0 && (g &&& onat t.objects_m) == 0 && subsetOf g (nat t.free_cells_m) },
+  { name := "gate_closes_on_leave"
+    guard := fun s a => leavesSwitch s a && !collides s a
+    effect := fun s a t =>
+      let g := leftGate (lay12 s) s a ||| leftGate (lay14 s) s a ||| leftGate (lay15 s) s a
+      subsetOf (andNot g (pmNext s t)) (onat t.objects_m) && (andNot g (pmNext s t) &&& nat t.free_cells_m) == 0 },
+  { name := "gate_stays_open"
+    guard := fun s a => gtAll s != 0 && !(leavesSwitch s a) && a != Act.reset
+    effect := fun s _ t => !sameLevel s t || subsetOf (onat t.objects_m) (onat s.objects_m ||| pmNow s) },
+  { name := "piece_survives_on_gate"
+    guard := fun s a => freeMove s a && !hzTrue s a && !collides s a && andNot (gtAll s &&& pmNow s) (pmDest s a) != 0
+    effect := fun s _ t =>
+      let (p0, p1) := cellsOf s
+      let (q0, q1) := cellsWith s t
+      sameLevel s t && t.pieces_n == some 2
+        && ((near1 p0 q0 && near1 p1 q1) || (near1 p0 q1 && near1 p1 q0)) }
+]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w => keyEq w.s s && w.a == a) with | some w => some w.s' | none => stepRules s a
+
+-- 目标：通关后的第 6 关画面（WIN）
+def isGoal (s : State) : Bool := s.level == 6
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。内核证明（decide +kernel），不依赖 ofReduceBool。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println ("GUARD_HITS " ++ String.intercalate "," (rules.map (fun r => r.name ++ "=" ++ toString (corpus.filter (fun t => r.guard t.s t.a)).length)))
+
