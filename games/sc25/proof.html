@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← sc25 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演认证那一遍的真实操作，逐帧和录像比对，直到踏进插座；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通，每关 4 到 49 步，逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/a062ecda-ddab-4811-8e6d-56025ec301f7" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>模型在整份录像的 401 步上逐步比对：382 步一致，0 步不一致。其余 19 步是过关换关、重来和每次开局的第一个动作，模型从每关开局接手、不推演这几步；这几步由录像上的规则逐步检验，没有一步说错。</li><li>全部 18 条规则在录像上逐步检验，一共说错 2 次，全部出自不进模型的那条「第一关竖条消耗上限」：凑齐图案那一下扣双份，这一关已经花了几份画面上读不出来。</li><li>把 Python 规则故意改错 15 种，检验抓住了 14 种（其中直接说错的 13 种，另外的由「规则管了多少步」这个读数发现）；漏掉的是「涨大时先扫左、再扫上」：录像里每一次涨大，两种扫描顺序的落点都相同。</li><li>把 Lean 模型故意改错 8 种，逐帧比对抓住了 7 种，漏掉的同样是涨大的扫描顺序。</li><li>31 条定理全部只依赖 Lean 的标准基础，没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>只在录像上检验的规则</h2><p class="prose">另有 7 条规则在录像上逐步检验，不在 Lean 模型里：竖条（预算）、重来、每次开局的第一个动作，以及小面板和大面板的对应关系。</p><div class="rules"><article class="rule"><h3>一关之内，竖条只短不长</h3><p>吃燃料、换关、重来之外，竖条满的部分只会变短；除了凑齐图案那一下，一步最多扣一块。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">382/382 步</span></div></article><article class="rule"><h3>进入还要打的新关，竖条回满</h3><p>换关、而且后面还有关要打时，新关第一帧的竖条是满的。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>重来一次：竖条回满、大面板全灭、我回到大号</h3><p>关号要么不变，要么回到第一关。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">5/5 步</span></div></article><article class="rule"><h3>关号不变的重来，整个世界回到这一关的开局</h3><p>我、面板、竖条、地面，全部等于这一关第一帧的样子。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">4/4 步</span></div></article><article class="rule"><h3>每次开局收到的第一个动作不起作用</h3><p>开局、或换一张记分卡之后的第一个动作：世界一格不变，竖条也不动。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">2/2 步</span></div></article><article class="rule"><h3>大面板上该点的格，都在某块小面板的图案里</h3><p>任何一帧里，大面板上还没亮的格位都落在某块小面板的图案之内。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">398/398 步</span></div></article><article class="rule"><h3>第一关里，竖条的消耗有一个按动作数算的上限</h3><p>这条在录像里说错 2 步：凑齐图案那一下扣双份，而这一关已经花了几份，画面上读不出来。竖条因此不进模型。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">32/34 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 401 条记录，是两遍完整通关：第一遍 254 条，边摸索边打，中途重来过 4 次；第二遍 147 条，是官方认证的那一遍，每关动作数与官方成绩单逐关一致。首页的截图和全部证明都用这一遍。</p><h2>适用范围</h2><ul class="lst"><li>Lean 模型从每一关的开局推演到踏进插座；重来一次之后的局面由录像上的规则检验，认证那一遍的关卡中途没有重来。</li><li>开局时被我压住的格子、暂时熄着的外圈角标，画面上看不见；模型按整关的录像把它们补齐之后再推演。</li><li>涨回大号时，录像分不出候选位置是先上后左还是先左后上；模型采用先上后左。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>me / 标记块</dt><dd>正文里的「我」</dd><dt>pad / legends</dt><dd>大面板 / 小面板</dd><dt>bar / 竖条</dt><dd>右边缘的预算条</dd><dt>记号 / 角标</dt><dd>画在地上的彩色角点，成组圈出方框</dd><dt>标本</dt><dd>抹除框里扣着的那块颜色</dd><dt>色 14</dt><dd>竖条、亮格和燃料共用的颜色（官方配色里是绿色）</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← sc25 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演认证那一遍的真实操作，逐帧和录像比对，直到踏进插座；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通，每关 4 到 49 步，逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/a062ecda-ddab-4811-8e6d-56025ec301f7" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>模型在整份录像的 401 步上逐步比对：382 步一致，0 步不一致。其余 19 步是过关换关、重来和每次开局的第一个动作，模型从每关开局接手、不推演这几步；这几步由录像上的规则逐步检验，没有一步说错。</li><li>全部 18 条规则在录像上逐步检验，一共说错 2 次，全部出自不进模型的那条「第一关竖条消耗上限」：凑齐图案那一下扣双份，这一关已经花了几份画面上读不出来。</li><li>把 Python 规则故意改错 15 种，检验抓住了 14 种（其中直接说错的 13 种，另外的由「规则管了多少步」这个读数发现）；漏掉的是「涨大时先扫左、再扫上」：录像里每一次涨大，两种扫描顺序的落点都相同。</li><li>把 Lean 模型故意改错 8 种，逐帧比对抓住了 7 种，漏掉的同样是涨大的扫描顺序。</li><li>31 条定理全部只依赖 Lean 的标准基础，没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>只在录像上检验的规则</h2><p class="prose">另有 7 条规则在录像上逐步检验，不在 Lean 模型里：竖条（预算）、重来、每次开局的第一个动作，以及小面板和大面板的对应关系。</p><div class="rules"><article class="rule"><h3>一关之内，竖条只短不长</h3><p>吃燃料、换关、重来之外，竖条满的部分只会变短；除了凑齐图案那一下，一步最多扣一块。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">382/382 步</span></div></article><article class="rule"><h3>进入还要打的新关，竖条回满</h3><p>换关、而且后面还有关要打时，新关第一帧的竖条是满的。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>重来一次：竖条回满、大面板全灭、我回到大号</h3><p>关号要么不变，要么回到第一关。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">5/5 步</span></div></article><article class="rule"><h3>关号不变的重来，整个世界回到这一关的开局</h3><p>我、面板、竖条、地面，全部等于这一关第一帧的样子。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">4/4 步</span></div></article><article class="rule"><h3>每次开局收到的第一个动作不起作用</h3><p>开局、或换一张记分卡之后的第一个动作：世界一格不变，竖条也不动。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">2/2 步</span></div></article><article class="rule"><h3>大面板上该点的格，都在某块小面板的图案里</h3><p>任何一帧里，大面板上还没亮的格位都落在某块小面板的图案之内。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">398/398 步</span></div></article><article class="rule"><h3>第一关里，竖条的消耗有一个按动作数算的上限</h3><p>这条在录像里说错 2 步：凑齐图案那一下扣双份，而这一关已经花了几份，画面上读不出来。竖条因此不进模型。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">32/34 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 401 条记录，是两遍完整通关：第一遍 254 条，边摸索边打，中途重来过 4 次；第二遍 147 条，是官方认证的那一遍，每关动作数与官方成绩单逐关一致。首页的截图和全部证明都用这一遍。</p><h2>适用范围</h2><ul class="lst"><li>Lean 模型从每一关的开局推演到踏进插座；重来一次之后的局面由录像上的规则检验，认证那一遍的关卡中途没有重来。</li><li>开局时被我压住的格子、暂时熄着的外圈角标，画面上看不见；模型按整关的录像把它们补齐之后再推演。</li><li>涨回大号时，录像分不出候选位置是先上后左还是先左后上；模型采用先上后左。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>me / 标记块</dt><dd>正文里的「我」</dd><dt>pad / legends</dt><dd>大面板 / 小面板</dd><dt>bar / 竖条</dt><dd>右边缘的预算条</dd><dt>记号 / 角标</dt><dd>画在地上的彩色角点，成组圈出方框</dd><dt>标本</dt><dd>抹除框里扣着的那块颜色</dd><dt>色 14</dt><dd>竖条、亮格和燃料共用的颜色（官方配色里是绿色）</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。
 
     objects/
       parse.py        唯一碰像素的地方（留在根上，它最该显眼）
@@ -4069,7 +4069,631 @@ def step (b : Board) (s : St) : Act → Res
   | .reset =&gt; .na
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>sc25 · 统一到对象–规则–Lean–前端框架：报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">sc25-20260912/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 26 条</span><span class="chip c-mute">路线 146 步，换关查表 6 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/sc25-20260912/_lib.py ; why=原抽象只有计数与派生量、写不出下一步：补场地逐色位掩码（虚空/墙与插座外框/插座内胆/记号 6·11·15/标本 12·13）、朝向、小面板图案，隐藏记忆 h_n（本关计费动作数）h_fresh h_under（标记块底下压着的色）h_fl（本关早先是地板的格），每关常数 k_B（竖条预算）k_erase_fuel；12 个派生原读数以 *args 签名退出状态（fdep.py 证明是新状态的函数）；路线取整局
+-- 由 world/formalize.py 生成于 2026-09-29T16:53:51+08:00；局 sc25；基于 run [&#x27;sc25-0912-1126&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 554 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 规则段（2026-09-29 修复重写，审计返工一次）。读数只给原语：各色格子的位掩码、标记块位置/边长/朝向、小面板图案、大面板哪格亮、竖条块数；
+-- 隐藏量 h_* 是记忆（计费动作数、标记块底下压上去之前看见的色、本关早先是地板的格）；k_* 是每关常数。
+-- 位掩码约定同数据段：格 (r,c) 占第 64r+c 位。
+--
+-- ==== 公示（写给审计与读者）====
+-- · 世界数据：数据段注释里生成器写的「共 0 条」是 WORLD.json 口径；实际 worldIdx 有 6 条，全是路线上的换关步（含最后通关那步），
+--   由本修复手填。路线 146 步，其余 140 步由 stepRules 算出。
+-- · 竖条：已消耗块数 = 32 − ⌊32·h_n / k_B⌋ 里的 k_B 是按关反推的常数，吃燃料退还 10 次（FUEL_REFUND）也是反推的常数；
+--   h_n 的精确值由 hidden_step 按同一条计费律累加，Lean 这边独立写出同一条律，二者只经竖条读数互相核对。
+-- · k_erase_fuel 与关号完全共线（4 次正例全在第 5 关、8 次反例全在第 2–4 关），等价于按关号查表，不是规律。
+-- · 会话首条被吞：Lean 写成「第 0 关且 h_fresh = 1」（不看帧），hidden_step 写成「fresh 且整帧不变」（与关号、动作无关）——两者并不相同，
+--   只在语料未见的局面分叉（例：第 0 关 fresh 且本会动的方向键，hidden_step 计 1、Lean 判被吞）。（主会话按复审更正「两边对齐」的说法）
+--   语料里只有两个第 0 关会话起点（seq 1、256），都被吞。未检验的外推：
+--   第 0 关 RESET 之后的首条（概念 SCOPE 说 RESET 之后不吞，Lean 会吞；语料里没有第 0 关的 RESET）、首条是点击、
+--   第 ≥1 关首条撞墙且朝向不变（Lean 与 hidden_step 都记为「不计费」，语料里没出现过）。
+-- · 各规则只验证了什么：
+--   teleport_swaps_gate 只覆盖「同奇偶合法框恰好 2 个且戴外圈的恰好 1 个」；「另一个框藏在我身下」与「只有一个框、指路牌不动」
+--     两种情形只在 stepRules 里，没有对应的规则断言。
+--   panel_done_erases_specimen 只核标本色清零与标记块不动（框环变地板、左上 2x2 变燃料只在 stepRules 里）。
+--   bar_rate_level3 比概念弱（只断言每步扣 0–1 块、收尾 0–2 块）；完整竖条律在 bar_rate（逐关按 k_B）。
+--   resize_swaps_marks 核熄灭格、该亮的格与涨大时新亮格凑成跨度 6 四角组；没断言其余格不变。
+-- · insideOk（框合法性）两个方向都有偏差：墙 4 与插座外框 9 合并成一类，比原文粗；框与标记块任何重叠即按 9、10 两色算，
+--   比原文严（原文按像素看重叠部分的颜色）。涨大时找框改为先用记忆补上我身下的格（seq 113），因此那里不与标记块重叠。
+-- · （主会话按复审补注）涨大后外圈落在哪：「按行列序最后一个合法框」与「涨回缩小前指路牌所在的框」（指路牌记忆）在语料上分不开——
+--   第 4 关只有一个合法框，第 5 关两次缩小前外圈都在 (37,53)、它也恰是行列序最后的框，从未见缩小前外圈在 (33,29) 的局面。
+-- · 燃料退还断言 s.h_n − t.h_n ∈ {8, 9} 是「退还 10」减本步计费（收尾点击计 2 得 8、方向键计 1 得 9）；语料两次吃燃料（seq 175、236）都是收尾点击 = 8，
+--   「没压住的格变地板」只在 seq 175 上被检验；退还量 10 在两段尾巴上唯一（d=±1 均有十余行不符）。
+-- · 语料里从未走到的分支：点已亮的大面板格、目标方区出场地的移动、涨大九个候选都站不上去、搬家 same &gt; 2、走路吃燃料（fuel_absorbs 的 9 那一支）。
+-- · 读数退出的语义键依赖证明（fdep.py）只对本语料成立，且只覆盖默认参数形态的调用（arena_marks(prev, c) 按色调用未单独覆盖）。
+
+def W : Nat := 64
+def bt (r c : Nat) : Nat := 1 &lt;&lt;&lt; (W * r + c)
+def dif (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)          -- 集合差 a \ b
+
+/-- 从最高位往下逐个摘位，结果按位序升序（= 先行后列）。fuel 只是结构递归的上界。 -/
+def bitsAsc : Nat → Nat → List Nat
+  | 0, _ =&gt; []
+  | n + 1, x =&gt; if x == 0 then [] else
+      let p := Nat.log2 x
+      bitsAsc n (x ^^^ (1 &lt;&lt;&lt; p)) ++ [p]
+
+def popc : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | n + 1, x =&gt; if x == 0 then 0 else 1 + popc n (x ^^^ (1 &lt;&lt;&lt; Nat.log2 x))
+
+def pc (x : Nat) : Nat := popc 4096 x
+
+/-- 左上角 (r,c)、边长 k 的实心方块。 -/
+def sqm (r c k : Nat) : Nat :=
+  (List.range k).foldl (fun acc i =&gt; acc ||| (((1 &lt;&lt;&lt; k) - 1) &lt;&lt;&lt; (W * (r + i) + c))) 0
+
+/-- 闭区间矩形 [r0,r1] × [c0,c1]。 -/
+def rect (r0 r1 c0 c1 : Nat) : Nat :=
+  (List.range (r1 + 1 - r0)).foldl (fun acc i =&gt; acc ||| (((1 &lt;&lt;&lt; (c1 + 1 - c0)) - 1) &lt;&lt;&lt; (W * (r0 + i) + c0))) 0
+
+/-- 跨度 span 的方框四角（左上角在 (r,c)）。 -/
+def corners (r c span : Nat) : Nat :=
+  bt r c ||| bt r (c + span - 1) ||| bt (r + span - 1) c ||| bt (r + span - 1) (c + span - 1)
+
+/-- 四角都落在 M 里的那些跨度 span 方框的左上角。 -/
+def cornerHits (M span : Nat) : Nat :=
+  let d := span - 1
+  M &amp;&amp;&amp; (M &gt;&gt;&gt; d) &amp;&amp;&amp; (M &gt;&gt;&gt; (W * d)) &amp;&amp;&amp; (M &gt;&gt;&gt; (W * d + d))
+
+def expandC (X span : Nat) : Nat :=
+  let d := span - 1
+  X ||| (X &lt;&lt;&lt; d) ||| (X &lt;&lt;&lt; (W * d)) ||| (X &lt;&lt;&lt; (W * d + d))
+
+/-- 场地：各色格子的集合（地板 fl = arena；bk = 墙 4 与插座外框 9；so = 插座内胆 10；fu = 燃料 14）。 -/
+structure Fld where
+  fl : Nat
+  vo : Nat
+  bk : Nat
+  so : Nat
+  m6 : Nat
+  m11 : Nat
+  m15 : Nat
+  c12 : Nat
+  c13 : Nat
+  fu : Nat
+
+def Fld.ofS (s : State) : Fld :=
+  ⟨s.arena_m.toNat, s.g_void_m.toNat, s.g_block_m.toNat, s.g_sock_m.toNat, s.g_m6_m.toNat, s.g_m11_m.toNat,
+   s.g_m15_m.toNat, s.g_c12_m.toNat, s.g_c13_m.toNat, s.fuel_cells_m.toNat⟩
+
+def Fld.clear (f : Fld) (m : Nat) : Fld :=
+  ⟨dif f.fl m, dif f.vo m, dif f.bk m, dif f.so m, dif f.m6 m, dif f.m11 m, dif f.m15 m, dif f.c12 m, dif f.c13 m, dif f.fu m⟩
+
+/-- 把 m 这些格涂成色 col（0 = 地板）。 -/
+def Fld.paint (f : Fld) (m col : Nat) : Fld :=
+  let g := f.clear m
+  match col with
+  | 5 =&gt; { g with vo := g.vo ||| m }
+  | 4 =&gt; { g with bk := g.bk ||| m }
+  | 10 =&gt; { g with so := g.so ||| m }
+  | 6 =&gt; { g with m6 := g.m6 ||| m }
+  | 11 =&gt; { g with m11 := g.m11 ||| m }
+  | 15 =&gt; { g with m15 := g.m15 ||| m }
+  | 12 =&gt; { g with c12 := g.c12 ||| m }
+  | 13 =&gt; { g with c13 := g.c13 ||| m }
+  | 14 =&gt; { g with fu := g.fu ||| m }
+  | _ =&gt; { g with fl := g.fl ||| m }
+
+def Fld.classes (f : Fld) : List (Nat × Nat) :=
+  [(0, f.fl), (5, f.vo), (4, f.bk), (10, f.so), (6, f.m6), (11, f.m11), (15, f.m15), (12, f.c12), (13, f.c13), (14, f.fu)]
+
+def Fld.colorAt (f : Fld) (b : Nat) : Nat :=
+  match f.classes.find? (fun p =&gt; p.2 &amp;&amp;&amp; b != 0) with
+  | some p =&gt; p.1
+  | none =&gt; 0
+
+def Fld.vis (f : Fld) : Nat := f.vo ||| f.bk ||| f.so ||| f.m6 ||| f.m11 ||| f.m15 ||| f.c12 ||| f.c13 ||| f.fu
+
+def Fld.mark (f : Fld) (col : Nat) : Nat := if col == 6 then f.m6 else if col == 11 then f.m11 else if col == 15 then f.m15 else 0
+
+/-- 此刻挂着小面板的记号色。 -/
+def legendCols (s : State) : List Nat :=
+  (if s.legend_pats_0 != -1 then [6] else []) ++ (if s.legend_pats_1 != -1 then [11] else []) ++
+  (if s.legend_pats_2 != -1 then [15] else [])
+
+def marksAll (s : State) (f : Fld) : Nat := (legendCols s).foldl (fun acc c =&gt; acc ||| f.mark c) 0
+
+/-- 记忆里标记块底下格 (i,j) 的色（地板 0）。 -/
+def nib (u i j : Nat) : Nat := (u &gt;&gt;&gt; (4 * (4 * i + j))) &amp;&amp;&amp; 15
+
+def pairs (k : Nat) : List (Nat × Nat) := (List.range k).flatMap (fun i =&gt; (List.range k).map (fun j =&gt; (i, j)))
+
+/-- 标记块从 (r,c,k) 挪开：keep 之外的格露出记忆里的底色。 -/
+def reveal (f : Fld) (u r c k keep : Nat) : Fld :=
+  (pairs k).foldl (fun f ij =&gt;
+    let b := bt (r + ij.1) (c + ij.2)
+    if b &amp;&amp;&amp; keep != 0 then f else f.paint b (nib u ij.1 ij.2)) f
+
+/-- 标记块压上 (r,c,k)：记下每格底色（与旧方区重叠的格沿用旧记忆），并把这些格从场地集合里拿掉。 -/
+def takeUnder (f : Fld) (r c k orr occ ok ou : Nat) : Nat × Fld :=
+  let u := (pairs k).foldl (fun acc ij =&gt;
+    let rr := r + ij.1
+    let cc := c + ij.2
+    let v := if orr ≤ rr &amp;&amp; rr &lt; orr + ok &amp;&amp; occ ≤ cc &amp;&amp; cc &lt; occ + ok then nib ou (rr - orr) (cc - occ)
+             else f.colorAt (bt rr cc)
+    acc ||| (v &lt;&lt;&lt; (4 * (4 * ij.1 + ij.2)))) 0
+  (u, f.clear (sqm r c k))
+
+/-- 熄灭的记号格：本关早先是地板的回到地板，其余成虚空。 -/
+def revert (f : Fld) (hfl m : Nat) : Fld :=
+  (f.paint (m &amp;&amp;&amp; hfl) 0).paint (dif m hfl) 5
+
+/-- mark_boxes 的合法性：框里除地板与该色之外至多一类别的色、且不是虚空；也不能整块都是该色。标记块压着的部分算 9、10 两色。 -/
+def insideOk (f : Fld) (br bc k col mr mc mk : Nat) : Bool :=
+  let q := sqm br bc k
+  let cls := (f.classes.filter (fun p =&gt; p.2 &amp;&amp;&amp; q != 0)).map (·.1) ++
+             (if q &amp;&amp;&amp; sqm mr mc mk != 0 then [9, 10] else [])
+  let extra := (cls.filter (fun x =&gt; x != 0 &amp;&amp; x != col)).eraseDups
+  !(!cls.isEmpty &amp;&amp; cls.all (· == col)) &amp;&amp; extra.length ≤ 1 &amp;&amp; !(extra.contains 5)
+
+/-- 记号色 col 在场上圈出的、边长 k 的合法框（四角画在框上，或画在外扩一圈上），按先行后列排。 -/
+def boxesOf (f : Fld) (col k mr mc mk : Nat) : List (Nat × Nat) :=
+  let M := f.mark col
+  let hits := cornerHits M k ||| (cornerHits M (k + 2) &lt;&lt;&lt; (W + 1))
+  (bitsAsc 4096 hits).filterMap (fun p =&gt;
+    let r := p / W
+    let c := p % W
+    if r + k ≤ 64 &amp;&amp; c + k ≤ 64 &amp;&amp; insideOk f r c k col mr mc mk then some (r, c) else none)
+
+/-- 大面板的点击坐标 → 格位（x 是列）。 -/
+def cidx (v base : Nat) : Option Nat :=
+  if base ≤ v &amp;&amp; v ≤ base + 2 then some 0 else if base + 5 ≤ v &amp;&amp; v ≤ base + 7 then some 1
+  else if base + 10 ≤ v &amp;&amp; v ≤ base + 12 then some 2 else none
+
+def full9 : Nat := (pairs 3).foldl (fun acc ij =&gt; acc ||| bt ij.1 ij.2) 0
+
+/-- 大面板亮格集合（位 64i+j）→ 小面板图案编码（位 3i+j）。 -/
+def pat9 (lit : Nat) : Nat := (pairs 3).foldl (fun acc ij =&gt; if (lit &gt;&gt;&gt; (W * ij.1 + ij.2)) &amp;&amp;&amp; 1 != 0 then acc ||| (1 &lt;&lt;&lt; (3 * ij.1 + ij.2)) else acc) 0
+
+/-- 点中大面板一个未亮格：(格位位, 点亮后凑齐的记号色)。点空或点已亮格返回 none。 -/
+def clickHit (s : State) (a : Act) : Option (Nat × Option Nat) :=
+  match a with
+  | .a6 x y =&gt;
+    match cidx x 24, cidx y 49 with
+    | some j, some i =&gt;
+      let b := bt i j
+      if s.panel_grid_m_c14.toNat &amp;&amp;&amp; b != 0 then none else
+      let p : Int := pat9 (s.lit_grid_m.toNat ||| b)
+      some (b, if s.legend_pats_0 == p then some 6 else if s.legend_pats_1 == p then some 11
+               else if s.legend_pats_2 == p then some 15 else none)
+    | _, _ =&gt; none
+  | _ =&gt; none
+
+def doneCol (s : State) (a : Act) : Option Nat :=
+  match clickHit s a with
+  | some (_, some c) =&gt; some c
+  | _ =&gt; none
+
+def isMove (a : Act) : Bool := a == .a1 || a == .a2 || a == .a3 || a == .a4
+
+def dirOf (a : Act) : Int × Int × Nat :=
+  match a with
+  | .a1 =&gt; (-1, 0, 0) | .a2 =&gt; (1, 0, 1) | .a3 =&gt; (0, -1, 2) | .a4 =&gt; (0, 1, 3) | _ =&gt; (0, 0, 0)
+
+def meOf (s : State) : Option (Nat × Nat × Nat) :=
+  match s.me_r, s.me_c, s.side with
+  | some r, some c, some k =&gt; some (r.toNat, c.toNat, k.toNat)
+  | _, _, _ =&gt; none
+
+def sqOf (s : State) : Nat := match meOf s with | some (r, c, k) =&gt; sqm r c k | none =&gt; 0
+
+/-- 方向键的目标方区（出场地返回 none）。 -/
+def targetSq (s : State) (a : Act) : Option (Nat × Nat × Nat) :=
+  match meOf s with
+  | some (r, c, k) =&gt;
+    let (dr, dc, _) := dirOf a
+    let tr : Int := r + dr * k
+    let tc : Int := c + dc * k
+    if 0 ≤ tr &amp;&amp; tr + k ≤ 47 &amp;&amp; 0 ≤ tc &amp;&amp; tc + k ≤ 62 then some (tr.toNat, tc.toNat, sqm tr.toNat tc.toNat k) else none
+  | none =&gt; none
+
+def canEnter (s : State) (a : Act) : Bool :=
+  match targetSq s a with
+  | some (_, _, T) =&gt; let f := Fld.ofS s; T &amp;&amp;&amp; (f.fl ||| marksAll s f) == T
+  | none =&gt; false
+
+def atSocket (s : State) (a : Act) : Bool :=
+  isMove a &amp;&amp; match targetSq s a with
+  | some (_, _, T) =&gt; T &amp;&amp;&amp; s.g_sock_m.toNat == T
+  | none =&gt; false
+
+def voidStep (s : State) : Bool := s.level == 0 &amp;&amp; s.h_fresh == 1
+
+-- ---------- 三台机器 ----------
+
+/-- 搬家：同奇偶的合法框 same，其中戴着外圈（k+2 四角全亮）的 gated。 -/
+def teleportSets (s : State) : List (Nat × Nat) × List (Nat × Nat) :=
+  match meOf s with
+  | some (r, c, k) =&gt;
+    let f := Fld.ofS s
+    let same := (boxesOf f 11 k r c k).filter (fun b =&gt; (b.1 + r) % 2 == 0 &amp;&amp; (b.2 + c) % 2 == 0)
+    let gated := same.filter (fun b =&gt; let q := corners (b.1 - 1) (b.2 - 1) (k + 2); f.m11 &amp;&amp;&amp; q == q)
+    (same, gated)
+  | none =&gt; ([], [])
+
+/-- 抹标本：正前方唯一的合法色 6 框（带子与框环互相套住）、框里恰有一种标本色、带子里至少一条车道全是地板或记号。
+    返回 (框左上, 标本色, 框环左上)。 -/
+def eraseTarget (s : State) : Option ((Nat × Nat) × Nat × (Nat × Nat)) :=
+  match meOf s, s.facing_code with
+  | some (r0, c0, k), some fc =&gt;
+    let f := Fld.ofS s
+    let fd := fc.toNat
+    let hits := (boxesOf f 6 k r0 c0 k).filterMap (fun b =&gt;
+      let (br, bc) := b
+      let ring := (bitsAsc 4096 (f.m6 &amp;&amp;&amp; rect (br - 1) (br + k) (bc - 1) (bc + k))).map (fun p =&gt; (p / W, p % W))
+      if ring.isEmpty then none else
+      let rs := ring.map (·.1)
+      let cs := ring.map (·.2)
+      let (lo, hi, mlo, mhi, ahead) :=
+        if fd ≤ 1 then (cs.foldl min 64, cs.foldl max 0, c0, c0 + k - 1, if fd == 0 then decide (br + k ≤ r0) else decide (r0 + k ≤ br))
+        else (rs.foldl min 64, rs.foldl max 0, r0, r0 + k - 1, if fd == 2 then decide (bc + k ≤ c0) else decide (c0 + k ≤ bc))
+      let nested := (lo ≤ mlo &amp;&amp; mhi ≤ hi) || (mlo ≤ lo &amp;&amp; hi ≤ mhi)
+      if nested &amp;&amp; ahead then some (b, (rs.foldl min 64, cs.foldl min 64)) else none)
+    match hits with
+    | [((br, bc), tl)] =&gt;
+      let q := sqm br bc k
+      let extra := ([(5, f.vo), (4, f.bk), (11, f.m11), (15, f.m15), (12, f.c12), (13, f.c13), (14, f.fu)].filter
+                      (fun p =&gt; p.2 &amp;&amp;&amp; q != 0)).map (·.1)
+      match extra with
+      | [sp] =&gt;
+        if sp != 12 &amp;&amp; sp != 13 then none else
+        let ok := f.fl ||| marksAll s f
+        let (lo, hi) := if fd == 0 then (br + k, r0) else if fd == 1 then (r0 + k, br)
+                        else if fd == 2 then (bc + k, c0) else (c0 + k, bc)
+        let lanes := (List.range k).map (fun i =&gt;
+          if fd ≤ 1 then rect lo (hi - 1) (c0 + i) (c0 + i) else rect (r0 + i) (r0 + i) lo (hi - 1))
+        if lo &lt; hi &amp;&amp; !(lanes.any (fun l =&gt; l &amp;&amp;&amp; ok == l)) then none else some ((br, bc), sp, tl)
+      | _ =&gt; none
+    | _ =&gt; none
+  | _, _ =&gt; none
+
+/-- 涨大：九个含住原 2x2 的 4x4 候选，先最上再最左，挑第一个整块站得上去的（地板、记号、燃料或我自己压着的格）。 -/
+def growDest (s : State) : Option (Nat × Nat) :=
+  match meOf s with
+  | some (r, c, _) =&gt;
+    let f := Fld.ofS s
+    let stand := f.fl ||| marksAll s f ||| f.fu ||| sqm r c 2
+    (pairs 3).findSome? (fun ab =&gt;
+      if r + ab.1 &lt; 2 || c + ab.2 &lt; 2 then none else
+      let rr := r + ab.1 - 2
+      let cc := c + ab.2 - 2
+      if rr + 4 ≤ 47 &amp;&amp; cc + 4 ≤ 62 &amp;&amp; sqm rr cc 4 &amp;&amp;&amp; stand == sqm rr cc 4 then some (rr, cc) else none)
+  | none =&gt; none
+
+/-- 缩放时熄灭的角标：所有挂着的记号色里跨度 6 的四角组。 -/
+def span6Off (s : State) (f : Fld) : Nat := (legendCols s).foldl (fun acc c =&gt; acc ||| expandC (cornerHits (f.mark c) 6) 6) 0
+
+/-- 缩小时亮起的角标：色 15 每一坨实心 2x2 外隔一格的四角。 -/
+def shrinkOn (f : Fld) : Nat := expandC (cornerHits f.m15 2 &gt;&gt;&gt; (2 * W + 2)) 6
+
+/-- 涨大时亮起的角标：搬家色按先行后列最后那个合法 4x4 框的外扩一圈四角。
+    框按「地面」找：我身下那 2x2 用记忆里的底色补上（seq 113：我缩在框里、框的一角被我压着，只看可见格就找不到这个框）。 -/
+def growOn (s : State) (f : Fld) (u r c : Nat) : Nat :=
+  if (legendCols s).contains 11 then
+    match (boxesOf (reveal f u r c 2 0) 11 4 0 0 0).getLast? with
+    | some b =&gt; corners (b.1 - 1) (b.2 - 1) 6
+    | none =&gt; 0
+  else 0
+
+/-- 吃燃料：新方区压到前帧场地上的燃料格时，与之 4-连通的整坨（前帧燃料集合 fu0 里）变地板。返回 (场地, 吃没吃)。 -/
+def eatFuel (f : Fld) (fu0 newsq : Nat) : Fld × Bool :=
+  let x0 := fu0 &amp;&amp;&amp; newsq
+  if x0 == 0 then (f, false) else
+  let blob := (List.range 16).foldl (fun x _ =&gt; (x ||| (x &lt;&lt;&lt; 1) ||| (x &gt;&gt;&gt; 1) ||| (x &lt;&lt;&lt; W) ||| (x &gt;&gt;&gt; W)) &amp;&amp;&amp; fu0) x0
+  (f.paint blob 0, true)
+
+/-- 吃一坨燃料退还的计费动作数（_lib.FUEL_REFUND；由两段吃过燃料的尾巴反推）。 -/
+def fuelRefund : Int := 10
+
+def refund (ate : Bool) : Int := if ate then fuelRefund else 0
+
+-- ---------- 前向函数 ----------
+
+def cnt (n : Int) (old new : Nat) : Int := n + (pc (dif new old) : Int) - (pc (dif old new) : Int)
+
+/-- 把场地集合写回状态，并更新计数、fl 记忆、竖条与 marker_*。 -/
+def finish (s0 s : State) (f : Fld) : State :=
+  let o := Fld.ofS s0
+  { s with
+    arena_m := f.fl, arena_n := cnt s0.arena_n o.fl f.fl,
+    g_void_m := f.vo, g_void_n := cnt s0.g_void_n o.vo f.vo,
+    g_block_m := f.bk, g_block_n := cnt s0.g_block_n o.bk f.bk,
+    g_sock_m := f.so, g_sock_n := cnt s0.g_sock_n o.so f.so,
+    g_m6_m := f.m6, g_m6_n := cnt s0.g_m6_n o.m6 f.m6,
+    g_m11_m := f.m11, g_m11_n := cnt s0.g_m11_n o.m11 f.m11,
+    g_m15_m := f.m15, g_m15_n := cnt s0.g_m15_n o.m15 f.m15,
+    g_c12_m := f.c12, g_c12_n := cnt s0.g_c12_n o.c12 f.c12,
+    g_c13_m := f.c13, g_c13_n := cnt s0.g_c13_n o.c13 f.c13,
+    fuel_cells_m := f.fu, fuel_cells_n := cnt s0.fuel_cells_n o.fu f.fu,
+    h_fresh := 0,
+    h_fl := ((s0.h_fl.toNat ||| o.fl) &amp;&amp;&amp; f.vis : Nat),
+    lit_grid_n := (pc s.lit_grid_m.toNat : Nat),
+    bar_blocks := match s.k_B with | some b =&gt; 32 - (32 * s.h_n) / b | none =&gt; s.bar_blocks,
+    marker_0 := s.me_r, marker_1 := s.me_c, marker_2 := s.side }
+
+def moveStep (s : State) (a : Act) : Option State :=
+  match meOf s with
+  | none =&gt; none
+  | some (r, c, k) =&gt;
+    if voidStep s then some { s with h_fresh := 0 } else
+    let (_, _, face) := dirOf a
+    -- 计费：会话首条（h_fresh = 1）且整帧不变（走不动、朝向也没变）的那一下不计，与 hidden_step 同一条
+    let still := s.h_fresh == 1 &amp;&amp; !canEnter s a &amp;&amp; s.facing_code == some (face : Int)
+    let s1 := { s with h_n := s.h_n + (if still then 0 else 1), facing_code := some (face : Int) }
+    let f := Fld.ofS s
+    match targetSq s a with
+    | some (tr, tc, T) =&gt;
+      if canEnter s a then
+        let f1 := reveal f s.h_under.toNat r c k 0
+        let (f1&#x27;, ate) := eatFuel f1 f.fu T
+        let (u, f2) := takeUnder f1&#x27; tr tc k r c k s.h_under.toNat
+        some (finish s { s1 with me_r := some (tr : Int), me_c := some (tc : Int), h_under := (u : Int),
+                                  h_n := s1.h_n - refund ate } f2)
+      else some (finish s s1 f)
+    | none =&gt; some (finish s s1 f)
+
+def machine (s s1 : State) (col r c k : Nat) : State :=
+  let f := Fld.ofS s
+  let hfl := s.h_fl.toNat
+  let u := s.h_under.toNat
+  if col == 15 &amp;&amp; k == 4 then
+    let hid := sqm r c 4
+    let f1 := reveal f u r c 4 (sqm r c 2)
+    let f2 := revert f1 hfl (dif (span6Off s f) hid)
+    let f3 := f2.paint (dif (shrinkOn f) hid) 15
+    finish s { s1 with side := some 2, h_under := ((u &amp;&amp;&amp; 16711935 : Nat) : Int) } f3
+  else if col == 15 &amp;&amp; k == 2 then
+    match growDest s with
+    | some (rr, cc) =&gt;
+      let (f0, ate) := eatFuel f f.fu (sqm rr cc 4)
+      let (u2, f1) := takeUnder f0 rr cc 4 r c 2 u
+      let hid := sqm r c 2 ||| sqm rr cc 4
+      let f2 := revert f1 hfl (dif (span6Off s f) hid)
+      let f3 := f2.paint (dif (growOn s f u r c) hid) 11
+      finish s { s1 with side := some 4, me_r := some (rr : Int), me_c := some (cc : Int), h_under := (u2 : Int),
+                         h_n := s1.h_n - refund ate } f3
+    | none =&gt; finish s s1 f
+  else if col == 11 then
+    match teleportSets s with
+    | (same, [d]) =&gt;
+      let (f1, ate) := eatFuel (reveal f u r c k 0) f.fu (sqm d.1 d.2 k)
+      let (u2, f2) := takeUnder f1 d.1 d.2 k r c k 0
+      let others := same.filter (· != d)
+      let spot := [(0, 0), (0, k - 1), (k - 1, 0), (k - 1, k - 1)].all (fun ij =&gt; nib u ij.1 ij.2 == 11)
+      let other := match others with
+        | [o] =&gt; some o
+        | [] =&gt; if spot then some (r, c) else none
+        | _ =&gt; none
+      let newsq := sqm d.1 d.2 k
+      let f3 := match other with
+        | some o =&gt;
+          if same.length ≤ 2 then
+            (revert f2 hfl (dif (corners (d.1 - 1) (d.2 - 1) (k + 2)) newsq)).paint
+              (dif (corners (o.1 - 1) (o.2 - 1) (k + 2)) newsq) 11
+          else f2
+        | none =&gt; f2
+      finish s { s1 with me_r := some (d.1 : Int), me_c := some (d.2 : Int), h_under := (u2 : Int),
+                         h_n := s1.h_n - refund ate } f3
+    | _ =&gt; finish s s1 f
+  else if col == 6 then
+    match eraseTarget s with
+    | some ((br, bc), sp, tl) =&gt;
+      let zone := rect (br - 1) (br + k) (bc - 1) (bc + k)
+      let spm := if sp == 12 then f.c12 else f.c13
+      let f1 := f.paint (dif spm zone) 0
+      let spm1 := if sp == 12 then f1.c12 else f1.c13
+      let zs := (spm1 ||| f1.m6) &amp;&amp;&amp; zone
+      let fuel := if s.k_erase_fuel == some 1 then sqm tl.1 tl.2 2 else 0
+      let f2 := (f1.paint (dif zs fuel) 0).paint (zs &amp;&amp;&amp; fuel) 14
+      finish s s1 f2
+    | none =&gt; finish s s1 f
+  else finish s s1 f
+
+def clickStep (s : State) (a : Act) : Option State :=
+  match meOf s with
+  | none =&gt; none
+  | some (r, c, k) =&gt;
+    if voidStep s then some { s with h_fresh := 0 } else
+    match clickHit s a with
+    | none =&gt; some { s with h_fresh := 0 }
+    | some (b, none) =&gt;
+      let s1 : State := { s with
+        h_n := s.h_n + 1
+        lit_grid_m := ((s.lit_grid_m.toNat ||| b : Nat) : Int)
+        panel_grid_m_c14 := ((s.panel_grid_m_c14.toNat ||| b : Nat) : Int)
+        panel_grid_m_c0 := ((dif s.panel_grid_m_c0.toNat b : Nat) : Int)
+        panel_grid_m_c2 := ((dif s.panel_grid_m_c2.toNat b : Nat) : Int) }
+      some (finish s s1 (Fld.ofS s))
+    | some (_, some col) =&gt;
+      let s1 : State := { s with
+        h_n := s.h_n + 2
+        lit_grid_m := 0
+        panel_grid_m_c14 := 0
+        panel_grid_m_c0 := 0
+        panel_grid_m_c2 := (full9 : Int) }
+      some (machine s s1 col r c k)
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match a with
+  | .a1 | .a2 | .a3 | .a4 =&gt; moveStep s a
+  | .a6 _ _ =&gt; clickStep s a
+  | _ =&gt; none
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+def isGoal (s : State) : Bool := s.level == 6
+
+-- ---------- 概念 → 规则（guard 只看 s 与动作；effect 看 s&#x27;）----------
+
+def lvSame (s t : State) : Bool := s.level == t.level
+
+/-- 除 h_fresh 之外整个状态不变。 -/
+def sameButFresh (s t : State) : Bool := { s with h_fresh := t.h_fresh } == t
+
+def fieldsOf (s : State) : List Nat := let f := Fld.ofS s; [f.fl, f.vo, f.bk, f.so, f.m6, f.m11, f.m15, f.c12, f.c13]
+
+def rules : List Rule := [
+  { name := &quot;dir_delta&quot;,
+    guard := fun s a =&gt; isMove a &amp;&amp; (meOf s).isSome,
+    effect := fun s a t =&gt; !lvSame s t || match meOf s, meOf t with
+      | some (r, c, k), some (r&#x27;, c&#x27;, _) =&gt;
+        let (dr, dc, _) := dirOf a
+        (r&#x27; == r &amp;&amp; c&#x27; == c) || ((r&#x27; : Int) == r + dr * k &amp;&amp; (c&#x27; : Int) == c + dc * k)
+      | _, _ =&gt; false },
+  { name := &quot;facing_marks_action&quot;,
+    guard := fun s a =&gt; isMove a &amp;&amp; (meOf s).isSome &amp;&amp; !voidStep s,
+    effect := fun s a t =&gt; !lvSame s t || t.facing_code == some ((dirOf a).2.2 : Int) },
+  { name := &quot;move_iff_floor&quot;,
+    guard := fun s a =&gt; isMove a &amp;&amp; (meOf s).isSome &amp;&amp; !voidStep s,
+    effect := fun s a t =&gt; !lvSame s t || ((t.me_r != s.me_r || t.me_c != s.me_c) == canEnter s a) },
+  { name := &quot;socket_ends_level&quot;,
+    guard := fun s a =&gt; (meOf s).isSome &amp;&amp; a != .reset,
+    effect := fun s a t =&gt; (!lvSame s t) == atSocket s a },
+  { name := &quot;board_static&quot;,
+    guard := fun s a =&gt; isMove a &amp;&amp; (meOf s).isSome,
+    effect := fun s _ t =&gt; !lvSame s t ||
+      (let keep := sqOf s ||| sqOf t
+       (meOf t).isSome &amp;&amp; ((fieldsOf s).zip (fieldsOf t)).all (fun p =&gt; dif (p.1 ^^^ p.2) keep == 0) &amp;&amp;
+       t.panel_grid_m_c14 == s.panel_grid_m_c14 &amp;&amp; t.panel_grid_m_c0 == s.panel_grid_m_c0) },
+  { name := &quot;first_action_void&quot;,
+    guard := fun s _ =&gt; voidStep s,
+    effect := fun s _ t =&gt; sameButFresh s t &amp;&amp; t.h_fresh == 0 },
+  { name := &quot;click_dead_is_free&quot;,
+    guard := fun s a =&gt; (match a with | .a6 _ _ =&gt; true | _ =&gt; false) &amp;&amp; (clickHit s a).isNone,
+    effect := fun s _ t =&gt; sameButFresh s t },
+  { name := &quot;click_lights_panel&quot;,
+    guard := fun s a =&gt; match clickHit s a with | some (_, none) =&gt; true | _ =&gt; false,
+    effect := fun s a t =&gt; match clickHit s a with
+      | some (b, _) =&gt;
+        t.panel_grid_m_c14.toNat == (s.panel_grid_m_c14.toNat ||| b) &amp;&amp; t.lit_grid_m.toNat == (s.lit_grid_m.toNat ||| b) &amp;&amp;
+        t.panel_grid_m_c0.toNat == dif s.panel_grid_m_c0.toNat b &amp;&amp; t.panel_grid_m_c2.toNat == dif s.panel_grid_m_c2.toNat b &amp;&amp;
+        fieldsOf t == fieldsOf s &amp;&amp; t.fuel_cells_m == s.fuel_cells_m &amp;&amp; meOf t == meOf s
+      | none =&gt; false },
+  { name := &quot;panel_done_clears_pad&quot;,
+    guard := fun s a =&gt; (doneCol s a).isSome,
+    effect := fun _ _ t =&gt; t.panel_grid_m_c2 == (full9 : Int) &amp;&amp; t.panel_grid_m_c0 == 0 &amp;&amp; t.panel_grid_m_c14 == 0 &amp;&amp; t.lit_grid_m == 0 },
+  { name := &quot;resize_only_by_diamond_legend&quot;,
+    guard := fun s a =&gt; (doneCol s a).isSome &amp;&amp; (meOf s).isSome,
+    effect := fun s a t =&gt; (t.side != s.side) == (doneCol s a == some 15) },
+  { name := &quot;panel_done_shrinks_me&quot;,
+    guard := fun s a =&gt; doneCol s a == some 15 &amp;&amp; s.side == some 4,
+    effect := fun s _ t =&gt; t.me_r == s.me_r &amp;&amp; t.me_c == s.me_c &amp;&amp; t.side == some 2 &amp;&amp; t.facing_code == s.facing_code },
+  { name := &quot;panel_done_grows_me&quot;,
+    guard := fun s a =&gt; doneCol s a == some 15 &amp;&amp; s.side == some 2,
+    effect := fun s _ t =&gt; match growDest s with
+      | some (rr, cc) =&gt; t.me_r == some (rr : Int) &amp;&amp; t.me_c == some (cc : Int) &amp;&amp; t.side == some 4 &amp;&amp; t.facing_code == s.facing_code
+      | none =&gt; false },
+  { name := &quot;panel_done_teleports_me&quot;,
+    guard := fun s a =&gt; doneCol s a == some 11 &amp;&amp; (meOf s).isSome &amp;&amp; (teleportSets s).2.length == 1,
+    effect := fun s _ t =&gt; match (teleportSets s).2 with
+      | [d] =&gt; t.me_r == some (d.1 : Int) &amp;&amp; t.me_c == some (d.2 : Int) &amp;&amp; t.side == s.side &amp;&amp; t.facing_code == s.facing_code
+      | _ =&gt; false },
+  { name := &quot;teleport_swaps_gate&quot;,
+    guard := fun s a =&gt; doneCol s a == some 11 &amp;&amp; (meOf s).isSome &amp;&amp; (teleportSets s).2.length == 1 &amp;&amp; (teleportSets s).1.length == 2,
+    effect := fun s _ t =&gt; match teleportSets s, meOf s with
+      | (same, [d]), some (_, _, k) =&gt;
+        match same.filter (· != d) with
+        | [o] =&gt;
+          let ring := dif (corners (o.1 - 1) (o.2 - 1) (k + 2)) (sqOf t)
+          let off := dif (corners (d.1 - 1) (d.2 - 1) (k + 2)) (sqOf t)
+          t.g_m11_m.toNat &amp;&amp;&amp; ring == ring &amp;&amp; t.g_m11_m.toNat &amp;&amp;&amp; off == 0
+        | _ =&gt; false
+      | _, _ =&gt; false },
+  { name := &quot;resize_swaps_marks&quot;,
+    guard := fun s a =&gt; doneCol s a == some 15 &amp;&amp; (meOf s).isSome,
+    effect := fun s _ t =&gt; match meOf s with
+      | some (r, c, k) =&gt;
+        let f := Fld.ofS s
+        let g := Fld.ofS t
+        let hid := sqOf s ||| sqOf t
+        let on := dif (if k == 4 then shrinkOn f else growOn s f s.h_under.toNat r c) hid
+        let onM := if k == 4 then g.m15 else g.m11
+        let off := dif (dif (span6Off s f) hid) on
+        -- 涨大时的兜底（概念原文）：新亮起的记号格必须凑成跨度 6 的四角组
+        let fallback := k != 2 || (legendCols s).all (fun col =&gt;
+          dif (dif (dif (g.mark col) (f.mark col)) hid) (expandC (cornerHits (g.mark col) 6) 6) == 0)
+        marksAll t g &amp;&amp;&amp; off == 0 &amp;&amp; dif off (g.vo ||| g.fl) == 0 &amp;&amp; onM &amp;&amp;&amp; on == on &amp;&amp; fallback
+      | none =&gt; false },
+  { name := &quot;panel_done_erases_specimen&quot;,
+    guard := fun s a =&gt; doneCol s a == some 6 &amp;&amp; (eraseTarget s).isSome,
+    effect := fun s _ t =&gt; match eraseTarget s with
+      | some (_, sp, _) =&gt; (if sp == 12 then t.g_c12_m else t.g_c13_m) == 0 &amp;&amp; meOf t == meOf s
+      | none =&gt; false },
+  { name := &quot;legend_marks_targets&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt;
+      let cover := fun (x : State) =&gt; [x.legend_pats_0, x.legend_pats_1, x.legend_pats_2].foldl (fun acc p =&gt;
+        if p == -1 then acc else acc ||| (pairs 3).foldl (fun m ij =&gt;
+          if (p.toNat &gt;&gt;&gt; (3 * ij.1 + ij.2)) &amp;&amp;&amp; 1 != 0 then m ||| bt ij.1 ij.2 else m) 0) 0
+      dif s.panel_grid_m_c0.toNat (cover s) == 0 &amp;&amp; dif t.panel_grid_m_c0.toNat (cover t) == 0 },
+  { name := &quot;marks_are_ground&quot;,
+    guard := fun s a =&gt; a != .reset &amp;&amp; (doneCol s a).isNone,
+    effect := fun s _ t =&gt; !lvSame s t ||
+      (let keep := sqOf s ||| sqOf t
+       [(s.g_m6_m, t.g_m6_m), (s.g_m11_m, t.g_m11_m), (s.g_m15_m, t.g_m15_m)].all
+         (fun p =&gt; dif (p.1.toNat ^^^ p.2.toNat) keep == 0)) },
+  { name := &quot;map_static&quot;,
+    guard := fun s a =&gt; a != .reset &amp;&amp; (doneCol s a).isNone &amp;&amp; (meOf s).isSome,
+    effect := fun s _ t =&gt; !lvSame s t ||
+      ((meOf t).isSome &amp;&amp;
+       (let f := Fld.ofS s
+        let g := Fld.ofS t
+        dif ((f.fl ||| marksAll s f ||| sqOf s) ^^^ (g.fl ||| marksAll t g ||| sqOf t)) f.fu == 0)) },
+  { name := &quot;bar_cost_one&quot;,
+    guard := fun s a =&gt; a != .reset &amp;&amp; (doneCol s a).isNone,
+    effect := fun s _ t =&gt; !lvSame s t || (0 ≤ s.bar_blocks - t.bar_blocks &amp;&amp; s.bar_blocks - t.bar_blocks ≤ 1) ||
+      s.fuel_cells_m.toNat &amp;&amp;&amp; sqOf t != 0 },
+  { name := &quot;bar_monotone&quot;,
+    guard := fun _ a =&gt; a != .reset,
+    effect := fun s _ t =&gt; !lvSame s t || s.fuel_cells_m.toNat &amp;&amp;&amp; sqOf t != 0 || t.bar_blocks ≤ s.bar_blocks },
+  { name := &quot;bar_rate&quot;,
+    guard := fun s a =&gt; s.k_B.isSome &amp;&amp; a != .reset,
+    effect := fun s _ t =&gt; !lvSame s t || match s.k_B with
+      | some b =&gt; t.bar_blocks == 32 - (32 * t.h_n) / b
+      | none =&gt; false },
+  { name := &quot;bar_rate_level3&quot;,
+    guard := fun s a =&gt; s.level == 3 &amp;&amp; a != .reset,
+    effect := fun s a t =&gt; !lvSame s t ||
+      (let d := s.bar_blocks - t.bar_blocks
+       0 ≤ d &amp;&amp; d ≤ (if (doneCol s a).isSome then 2 else 1)) },
+  { name := &quot;level_up_refills_bar&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; lvSame s t || t.level == 6 || t.bar_blocks == 32 },
+  { name := &quot;reset_restores_level&quot;,
+    guard := fun _ a =&gt; a == .reset,
+    effect := fun s _ t =&gt; t.bar_blocks == 32 &amp;&amp; t.lit_grid_m == 0 &amp;&amp; t.side == some 4 &amp;&amp; (t.level == s.level || t.level == 0) },
+  { name := &quot;fuel_absorbs&quot;,
+    guard := fun s a =&gt; a != .reset &amp;&amp; s.fuel_cells_m != 0 &amp;&amp; (meOf s).isSome,
+    effect := fun s _ t =&gt; !lvSame s t ||
+      ((meOf t).isSome &amp;&amp;
+       (let fu := s.fuel_cells_m.toNat
+        let x0 := fu &amp;&amp;&amp; sqOf t
+        x0 == 0 ||
+        (let blob := (List.range 16).foldl (fun x _ =&gt; (x ||| (x &lt;&lt;&lt; 1) ||| (x &gt;&gt;&gt; 1) ||| (x &lt;&lt;&lt; W) ||| (x &gt;&gt;&gt; W)) &amp;&amp;&amp; fu) x0
+         let rest := dif blob (sqOf t)
+         -- 整坨消失（没被压住的格成地板）、竖条净涨、计费动作数退还 10（本步自己计 1 或 2）
+         t.fuel_cells_m.toNat &amp;&amp;&amp; blob == 0 &amp;&amp; t.arena_m.toNat &amp;&amp;&amp; rest == rest &amp;&amp; t.bar_blocks &gt; s.bar_blocks &amp;&amp;
+         (s.h_n - t.h_n == 8 || s.h_n - t.h_n == 9)))) }
+]
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。内核证明（decide +kernel）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>sc25 · 统一到对象–规则–Lean–前端框架：报告</h1>
 <p>每一个数都来自实际运行。重新生成的完整顺序是 <code>python regen.py</code>，10 步全部 rc=0；
 日志在 <code>runs/_wb-sc25/regen.log</code>，最后一次全量运行在 2026-09-24。</p>
 <p>语料（卡 00）：<code>python ledger/trace_source.py sc25</code> 认领到封存局 <strong>sc25-20260912</strong>，

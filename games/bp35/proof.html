@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← bp35 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。每一关的整关地图由这一关录像里的各帧拼起来；Lean 从录像里的开局出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">9 关全部被证明可以打通。每关沿录像核对 24 到 72 步，每一帧都和录像一致，再加上走进十字的最后一步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：9/9 关，100 分，共 374 步（<a href="https://arcprize.org/replay/10ba54c8-b765-4e17-8be4-7a11afd23368" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>Python 规则在录像全部 374 步上逐步检验，0 次说错。Lean 里的模型逐步推演：348 步与录像一致，0 步说错，26 步不表态（撤销，或玩家被带出画面、看不到落点）。</li><li>Lean 与 Python 两份实现对全部 374 步分别给出判决，对不上的 0 步。</li><li>把 Python 规则故意改错 14 种，检验抓住了 14 种；把 Lean 模型和检查流程故意改错 11 种，抓住了 11 种。</li><li>全部 41 条定理都查过依赖，只用到 Lean 自带的基础；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>只在录像上检验的规则</h2><p class="prose">另有 1 条规则只在录像上检验，不进模型：撤销要回到之前的状态，这需要记得走过什么，一帧画面上读不出来。证明里它是一条明写的假设（回到上一个操作之前、计步条照走），录像里每一次撤销都与它一致：</p><div class="rules"><article class="rule"><h3>撤销，回到上一个操作之前的样子</h3><p>地形、玩家的位置、朝向和重力都退回去，连按几次就一步一步往回退；计步条不退。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">8/8 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 374 步，是一遍完整通关，也就是官方认证的那一遍：89 次向左、104 次向右、173 次点击、8 次撤销。这一遍照着更早一遍摸索通关的路线重走；规则最初写于那一遍，那一遍的录像不在这份数据里，本站所有检验与证明都只用认证的那一遍。</p><h2>适用范围</h2><ul class="lst"><li>屏幕只露出竖井的一段。每一关的整关地图由这一关录像里的各帧拼起来，Lean 证明的是：从这张地图和录像里的开局出发，模型逐帧推出录像。</li><li>模型里没有步数上限，撤销是证明里明写的一条假设；录像里没出现过的情况（点在缝上、撞上尖刺、撤销到开局之前）模型不作陈述。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>册子</dt><dd>摸索那一遍写下的全部早期说法</dd><dt>色7 / 色8 / 色10 / 色12 / 色14 / 色15</dt><dd>十字 / 开关 / 液体 / 橙色块 / 绿色块 / 泡沫与计步条（官方色号）</dd><dt>pull / 被拉的方向</dt><dd>重力方向：上浮或下沉</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类；唯一碰像素的 <code>parse.py</code> 留在根上。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类；唯一碰像素的 `parse.py` 留在根上。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← bp35 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。每一关的整关地图由这一关录像里的各帧拼起来；Lean 从录像里的开局出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">9 关全部被证明可以打通。每关沿录像核对 24 到 72 步，每一帧都和录像一致，再加上走进十字的最后一步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：9/9 关，100 分，共 374 步（<a href="https://arcprize.org/replay/10ba54c8-b765-4e17-8be4-7a11afd23368" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>Python 规则在录像全部 374 步上逐步检验，0 次说错。Lean 里的模型逐步推演：348 步与录像一致，0 步说错，26 步不表态（撤销，或玩家被带出画面、看不到落点）。</li><li>Lean 与 Python 两份实现对全部 374 步分别给出判决，对不上的 0 步。</li><li>把 Python 规则故意改错 14 种，检验抓住了 14 种；把 Lean 模型和检查流程故意改错 11 种，抓住了 11 种。</li><li>全部 41 条定理都查过依赖，只用到 Lean 自带的基础；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>只在录像上检验的规则</h2><p class="prose">另有 1 条规则只在录像上检验，不进模型：撤销要回到之前的状态，这需要记得走过什么，一帧画面上读不出来。证明里它是一条明写的假设（回到上一个操作之前、计步条照走），录像里每一次撤销都与它一致：</p><div class="rules"><article class="rule"><h3>撤销，回到上一个操作之前的样子</h3><p>地形、玩家的位置、朝向和重力都退回去，连按几次就一步一步往回退；计步条不退。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">8/8 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 374 步，是一遍完整通关，也就是官方认证的那一遍：89 次向左、104 次向右、173 次点击、8 次撤销。这一遍照着更早一遍摸索通关的路线重走；规则最初写于那一遍，那一遍的录像不在这份数据里，本站所有检验与证明都只用认证的那一遍。</p><h2>适用范围</h2><ul class="lst"><li>屏幕只露出竖井的一段。每一关的整关地图由这一关录像里的各帧拼起来，Lean 证明的是：从这张地图和录像里的开局出发，模型逐帧推出录像。</li><li>模型里没有步数上限，撤销是证明里明写的一条假设；录像里没出现过的情况（点在缝上、撞上尖刺、撤销到开局之前）模型不作陈述。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>册子</dt><dd>摸索那一遍写下的全部早期说法</dd><dt>色7 / 色8 / 色10 / 色12 / 色14 / 色15</dt><dd>十字 / 开关 / 液体 / 橙色块 / 绿色块 / 泡沫与计步条（官方色号）</dd><dt>pull / 被拉的方向</dt><dd>重力方向：上浮或下沉</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类；唯一碰像素的 <code>parse.py</code> 留在根上。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类；唯一碰像素的 `parse.py` 留在根上。
 
     objects/
       parse.py            帧 → World；动作串 → Act。**全局唯一碰像素的地方**
@@ -3525,7 +3525,495 @@ def step (s : State) : Act → Res
       | .stop r&#x27; =&gt; .ok (settle s a r&#x27;)
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>bp35 · 统一框架报告（卡 00–11；归档那一步不在这里）</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">bp35-20260920/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 17 条</span><span class="chip c-mute">路线 374 步，换关查表 9 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/bp35-20260920/_lib.py ; why=镜头竖向跟随、一关比一屏高，补屏幕瓦片码读数 grid、计数器第二轮 tick_wrap、潮顶 tide_top，隐藏量 h_pw/h_mem/h_stk（玩家世界行、本关见过的世界格、撤销栈）与每关开局世界地图 k_map、计数色 k_tick，让 stepRules 真算出关卡内每一步
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+-- 由 world/formalize.py 生成于 2026-09-29T16:13:03+08:00；局 bp35；基于 run [&#x27;bp35-0916-0958&#x27;, &#x27;bp35-0920-0507&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 1595 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+/-
+bp35 规则段（2026-09-29 修复重写）。
+抽象状态：grid = 屏幕 10×10 瓦片码（每格 4 位）；me_r/me_c = 玩家内腔左上角；gravity_down；phase；
+底行计数器 step_count / tick_color / tick_wrap；潮顶 tide_top；
+隐藏量 h_pw（玩家世界行）、h_mem（本关见过的世界格，每格 4 位）、h_stk（撤销栈，8 条，每条 128 位）；
+每关常数 k_map（开局世界地图，每格 4 位）、k_tick（第一轮计数色）。
+世界格 (W, C) 的下标 = (W + 40) * 10 + C。世界格现在是什么：本步改动表优先；其次这一屏看得见的地形；
+再次记忆（打了「点过」标的按点击效果换算）；再次开局地图；都没有按实心算。
+瓦片码：0 空 1 实心 2 块 3/4 尖刺 5 青块 6 青种 7 开关 8 spikeblock 9 目标 10/11 玩家朝左/右，12/13/15 读不出。
+
+公示（审计 2026-09-29 要求写全）：
+· k_map 在关内是承重的：路线 365 个关内步里，滚进屏幕的新行由 k_map 提供 88 步，落点/列/重力因未见格而变 5 步，
+  玩家身下从没露出过的格 19 步。k_map 取自路线 run 自己各格的第一次看见；拿它预测另一 run（0916）的 3705 个关内步
+  （主会话按复审更正，栈深 8 口径）：23 步死亡 stepRules 不预测，其余 3682 步中 3644 步对、38 步错（38 步多为潮水盖住的格）。
+  此前写的「3705 步对 3666 步」是栈深 4 时的旧数且把 23 步死亡算作对，作废。
+  第 8 关 (W=-28, C=5,6,7) 三格第一次看见都在玩家点了相邻 spikeblock 之后（两个 run 都是），
+  地图里那三个 spikeblock 可能是点击的产物——「首见即点击后，不担保是开局布局」。
+· stepRules 从不产出死亡状态；语料 23 步死亡只在 spike_kills / spike_kills_falling / tide 三条规则里作谓词验证。
+· 点击类规则的一部分是自证：被点的格点完出屏或被玩家盖住时，下一状态里只剩 hidden_step 打的「点过」记法，
+  判定落到本段的 flagDec（即点击效果表本身）。hidden_step 对所有可点码都打这个记法、不判断点击是否真起作用。
+  自证/命中：块 20/134、青 1/70、开关 30/72、spikeblock 75/137。分母 = 不换关、不致死、effect 实际被检验的命中；
+  GUARD_HITS 打出的总命中是 136 / 70 / 82 / 137；扣掉自证后「有观测」的次数是 114 / 69 / 42 / 62。（主会话按复审补注口径）
+· rise_after_move、spike_kills 的概念原文只担保第 3 关，这里推广到全部关卡：只能说「本语料无反例」。
+· step_ticks 的 effect 只核格数与第二轮指针，不核颜色（颜色在 stepRules 里由 k_tick 给出、faithful 比对）。
+· click_clears_block 与 click_switch_consumes、spike_kills 与 spike_kills_falling 两对的 effect 相同，只差 guard
+  （说的是同一条机制在不同对象/重力下成立）。
+-/
+
+def OFFW : Int := 40
+def isPass (c : Nat) : Bool := c == 0 || c == 6 || c == 9
+def storable (c : Nat) : Bool := c ≤ 9
+def isSpike (c : Nat) : Bool := c == 3 || c == 4
+/-- 点击的效果（在世界格上）：块、开关、spikeblock 点掉变空；青块与青种互换。其余不变。 -/
+def effC (c : Nat) : Nat :=
+  if c == 2 || c == 7 || c == 8 then 0 else if c == 5 then 6 else if c == 6 then 5 else c
+def clickable (c : Nat) : Bool := c == 2 || c == 5 || c == 6 || c == 7 || c == 8
+
+def cellIdx (W C : Int) : Nat := ((W + OFFW) * 10 + C).toNat
+def gcode (g i j : Nat) : Nat := (g &gt;&gt;&gt; (4 * (10 * i + j))) &amp;&amp;&amp; 15
+
+/-- 记忆里「点过、没再看见」的格（11..15 = 点它时是 块/青块/青种/开关/spikeblock）现在是什么：点击效果。 -/
+def flagDec (v : Nat) : Nat := if v == 12 then 6 else if v == 13 then 5 else 0
+
+/-- 记忆 + 开局地图里的世界格（都是 4 位一格；记忆 0 = 没见过，1..10 = 码 + 1）。 -/
+def memK (mem km : Nat) (W C : Int) : Nat :=
+  if C &lt; 0 || C &gt; 9 || W + OFFW &lt; 0 then 1 else
+  let i := cellIdx W C
+  let m := (mem &gt;&gt;&gt; (4 * i)) &amp;&amp;&amp; 15
+  if m != 0 then (if m ≤ 10 then m - 1 else flagDec m)
+  else
+    let k := (km &gt;&gt;&gt; (4 * i)) &amp;&amp;&amp; 15
+    if k == 0 then 1 else k - 1
+
+-- 一屏（10 行 × 10 列 × 4 位 = 400 位）的整段位运算工具
+def MASK400 : Nat := (1 &lt;&lt;&lt; 400) - 1
+def M1 : Nat := MASK400 / 15
+/-- 每个 4 位格非零 → 该格最低位置 1。 -/
+def nz1 (v : Nat) : Nat := (v ||| (v &gt;&gt;&gt; 1) ||| (v &gt;&gt;&gt; 2) ||| (v &gt;&gt;&gt; 3)) &amp;&amp;&amp; M1
+/-- 每个 4 位格 ≥ 10（非地形码） → 最低位置 1。 -/
+def ge10 (v : Nat) : Nat := ((v &gt;&gt;&gt; 3) &amp;&amp;&amp; ((v &gt;&gt;&gt; 2) ||| (v &gt;&gt;&gt; 1))) &amp;&amp;&amp; M1
+/-- 每个 4 位格 ≥ 11（记忆里的「点过」记法） → 最低位置 1。 -/
+def ge11 (v : Nat) : Nat := ((v &gt;&gt;&gt; 3) &amp;&amp;&amp; ((v &gt;&gt;&gt; 2) ||| ((v &gt;&gt;&gt; 1) &amp;&amp;&amp; v))) &amp;&amp;&amp; M1
+def setNib (x t v : Nat) : Nat := (x ^^^ (x &amp;&amp;&amp; (15 &lt;&lt;&lt; (4 * t)))) ||| (v &lt;&lt;&lt; (4 * t))
+/-- 掩码里置 1 的位，从低到高，折成格号（位号 / 4）。 -/
+def bitsList : Nat → Nat → List Nat
+  | 0, _ =&gt; []
+  | f + 1, m =&gt; if m == 0 then [] else
+    let lb := m &amp;&amp;&amp; (m ^^^ (m - 1))
+    (Nat.log2 lb / 4) :: bitsList f (m ^^^ lb)
+/-- 世界行下标 r0 起的一屏窗口。 -/
+def winOf (n : Nat) (r0 : Int) : Nat := if r0 &lt; 0 then 0 else (n &gt;&gt;&gt; (40 * r0.toNat)) &amp;&amp;&amp; MASK400
+/-- 把窗口里的记忆（缺的用开局地图，都缺按实心）解成一屏码。 -/
+def decodeWin (wm wk : Nat) : Nat :=
+  let nzm := nz1 wm
+  let memPart := (wm &amp;&amp;&amp; (nzm * 15)) - nzm
+  let kk := wk &amp;&amp;&amp; ((nzm * 15) ^^^ MASK400)
+  let nzk := nz1 kk
+  let s0 := memPart ||| (kk - nzk) ||| (M1 ^^^ (nzm ||| nzk))
+  (bitsList 101 (ge11 wm)).foldl (fun acc t =&gt; setNib acc t (flagDec ((wm &gt;&gt;&gt; (4 * t)) &amp;&amp;&amp; 15))) s0
+
+/-- 看世界的上下文：这一屏 g（玩家在屏幕行 ip、世界行 pw）、记忆、开局地图。 -/
+structure Ctx where
+  g : Nat
+  pw : Int
+  ip : Int
+  mem : Nat
+  km : Nat
+
+abbrev Ov := List (Int × Int × Nat)
+
+def ovFind : Ov → Int → Int → Option Nat
+  | [], _, _ =&gt; none
+  | (w, c, v) :: rest, W, C =&gt; if w == W &amp;&amp; c == C then some v else ovFind rest W C
+
+def cget (x : Ctx) (ov : Ov) (W C : Int) : Nat :=
+  if C &lt; 0 || C &gt; 9 then 1 else
+  match ovFind ov W C with
+  | some v =&gt; v
+  | none =&gt;
+    let k := W - x.pw + x.ip
+    if 0 ≤ k &amp;&amp; k &lt; 10 then
+      let c := gcode x.g k.toNat C.toNat
+      if storable c then c else memK x.mem x.km W C
+    else memK x.mem x.km W C
+
+/-- 沿重力方向 d 一直滑到下一格不可通行为止。 -/
+def slideF (x : Ctx) (ov : Ov) : Nat → Int → Int → Int → Int
+  | 0, pw, _, _ =&gt; pw
+  | f + 1, pw, col, d =&gt; if isPass (cget x ov (pw + d) col) then slideF x ov f (pw + d) col d else pw
+
+/-- 滑的路上（不含起点）有没有目标瓦。 -/
+def slideGoal (x : Ctx) (ov : Ov) : Nat → Int → Int → Int → Bool
+  | 0, _, _, _ =&gt; false
+  | f + 1, pw, col, d =&gt;
+    let c := cget x ov (pw + d) col
+    if isPass c then (c == 9 || slideGoal x ov f (pw + d) col d) else false
+
+def gdir (gd : Bool) : Int := if gd then 1 else -1
+def anchorIp (gd : Bool) : Int := if gd then 4 else 6
+
+/-- 玩家信息：(重力向下?, 玩家屏幕行 ip, 列, 朝向 0 左 / 1 右)。 -/
+def pinfo (s : State) : Option (Bool × Int × Int × Nat) :=
+  match s.me_c, s.me_r with
+  | some c, some r =&gt;
+    if r == 27 || r == 37 then
+      let ip := anchorIp s.gravity_down
+      let col := (c - 1) / 6
+      some (s.gravity_down, ip, col, if gcode s.grid.toNat ip.toNat col.toNat == 11 then 1 else 0)
+    else none
+  | _, _ =&gt; none
+
+def ctxOf (s : State) (ip : Int) : Ctx := ⟨s.grid.toNat, s.h_pw, ip, s.h_mem.toNat, s.k_map.toNat⟩
+
+/-- 点击落在哪个屏幕瓦片 (i, j)。 -/
+def clickCell (x y : Nat) (gd : Bool) : Option (Nat × Nat) :=
+  let ph := if gd then 3 else 1
+  if y &lt; ph || x == 0 then none else
+  let i := (y - ph) / 6
+  let j := (x - 1) / 6
+  if i &lt; 10 &amp;&amp; j &lt; 10 then some (i, j) else none
+
+structure Phy where
+  ov : Ov
+  pw : Int
+  col : Int
+  gd : Bool
+  face : Nat
+
+/-- 一步的物理（动作 3/4/6）：横移一格（目标可通行才走）再沿重力滑；点块/开关/spikeblock 变空、
+    点青块青种互换；点开关翻重力；点 spikeblock 在四邻空格（玩家那格除外）各生一块；点完沿（新）重力滑。 -/
+def physics (s : State) (a : Act) : Option Phy :=
+  match pinfo s with
+  | none =&gt; none
+  | some (gd, ip, col, face) =&gt;
+    let x := ctxOf s ip
+    let pw := s.h_pw
+    match a with
+    | .a3 | .a4 =&gt;
+      let dc : Int := match a with | .a3 =&gt; -1 | _ =&gt; 1
+      let f2 : Nat := match a with | .a3 =&gt; 0 | _ =&gt; 1
+      if isPass (cget x [] pw (col + dc)) then
+        some ⟨[], slideF x [] 64 pw (col + dc) (gdir gd), col + dc, gd, f2⟩
+      else some ⟨[], pw, col, gd, f2⟩
+    | .a6 cx cy =&gt;
+      match clickCell cx cy gd with
+      | none =&gt; some ⟨[], pw, col, gd, face⟩
+      | some (i, j) =&gt;
+        let W := pw + (i : Int) - ip
+        let C : Int := j
+        if W == pw &amp;&amp; C == col then some ⟨[], pw, col, gd, face⟩ else
+        let c := cget x [] W C
+        let gd2 := if c == 7 then !gd else gd
+        let sp (ov : Ov) (dW dC : Int) : Ov :=
+          if (W + dW == pw &amp;&amp; C + dC == col) || C + dC &lt; 0 || C + dC &gt; 9 then ov
+          else if cget x ov (W + dW) (C + dC) == 0 then (W + dW, C + dC, 8) :: ov else ov
+        let ov1 : Ov := if c == 8 then sp (sp (sp (sp [] (-1) 0) 1 0) 0 (-1)) 0 1 else []
+        if clickable c then
+          let ov2 := (W, C, effC c) :: ov1
+          some ⟨ov2, slideF x ov2 64 pw col (gdir gd2), col, gd2, face⟩
+        else some ⟨[], pw, col, gd, face⟩
+    | _ =&gt; none
+
+/-- 把一屏写进记忆：屏幕第 0 行对应的记忆行起连续 100 格整段替换；地形格写「码 + 1」，读不出的格保留旧值。 -/
+def writeScreen (mem g : Nat) (pw ip : Int) : Nat :=
+  let r0 := pw - ip + OFFW
+  let base := 40 * r0.toNat
+  let old := (mem &gt;&gt;&gt; base) &amp;&amp;&amp; MASK400
+  let ns := ge10 g
+  let nw := ((g &amp;&amp;&amp; ((ns * 15) ^^^ MASK400)) + (M1 ^^^ ns)) ||| (old &amp;&amp;&amp; (ns * 15))
+  if r0 &lt; 0 then mem else mem ^^^ ((old ^^^ nw) &lt;&lt;&lt; base)
+
+/-- 往记忆里写一格（v = 记法值）。 -/
+def wput (wm : Nat) (W C : Int) (v : Nat) : Nat :=
+  if W + OFFW &lt; 0 then wm else setNib wm (cellIdx W C) v
+
+/-- 「点过、没再看见」的记法：点击起作用的五种码各有记法，其余照常记「码 + 1」。 -/
+def flagEnc (c : Nat) : Nat :=
+  if c == 2 then 11 else if c == 5 then 12 else if c == 6 then 13 else if c == 7 then 14 else if c == 8 then 15 else c + 1
+
+/-- 按世界（记忆 mem、开局地图 km、本步改动 ov）与玩家位置画出屏幕码网格。 -/
+def screenOf (mem km : Nat) (ov : Ov) (pw col : Int) (gd : Bool) (face : Nat) : Nat :=
+  let ip := anchorIp gd
+  let r0 := pw - ip + OFFW
+  let s0 := decodeWin (winOf mem r0) (winOf km r0)
+  let s1 := ov.foldr (fun (e : Int × Int × Nat) acc =&gt;
+    let k := e.1 - pw + ip
+    if 0 ≤ k &amp;&amp; k &lt; 10 &amp;&amp; 0 ≤ e.2.1 &amp;&amp; e.2.1 ≤ 9 then setNib acc (k * 10 + e.2.1).toNat e.2.2 else acc) s0
+  setNib s1 (ip * 10 + col).toNat (10 + face)
+
+def insSorted (e : Nat × Nat) : List (Nat × Nat) → List (Nat × Nat)
+  | [] =&gt; [e]
+  | y :: ys =&gt; if e.1 == y.1 then y :: ys else if e.1 &lt; y.1 then e :: y :: ys else y :: insSorted e ys
+
+def recPack (pw col : Int) (gd : Bool) (face : Nat) (ch : List (Nat × Nat)) : Nat :=
+  let hd := 1 ||| ((pw + 64).toNat &lt;&lt;&lt; 1) ||| (col.toNat &lt;&lt;&lt; 8) ||| ((if gd then 1 else 0) &lt;&lt;&lt; 12)
+    ||| (face &lt;&lt;&lt; 13) ||| (ch.length &lt;&lt;&lt; 14)
+  (ch.zip (List.range ch.length)).foldl (fun acc (e, k) =&gt; acc ||| ((e.1 ||| (e.2 &lt;&lt;&lt; 12)) &lt;&lt;&lt; (17 + 16 * k))) hd
+
+def REC : Nat := 128
+def recTop (stk : Nat) : Nat := stk &amp;&amp;&amp; ((1 &lt;&lt;&lt; REC) - 1)
+def recPw (r : Nat) : Int := (((r &gt;&gt;&gt; 1) &amp;&amp;&amp; 127 : Nat) : Int) - 64
+def recCol (r : Nat) : Int := (((r &gt;&gt;&gt; 8) &amp;&amp;&amp; 15 : Nat) : Int)
+def recGd (r : Nat) : Bool := ((r &gt;&gt;&gt; 12) &amp;&amp;&amp; 1) == 1
+def recFace (r : Nat) : Nat := (r &gt;&gt;&gt; 13) &amp;&amp;&amp; 1
+
+/-- 撤销：把记录里的旧码写回记忆。 -/
+def recRestore (r mem : Nat) : Nat :=
+  (List.range ((r &gt;&gt;&gt; 14) &amp;&amp;&amp; 7)).foldl (fun m k =&gt;
+    let e := (r &gt;&gt;&gt; (17 + 16 * k)) &amp;&amp;&amp; 65535
+    let i := e &amp;&amp;&amp; 4095
+    wput m (((i / 10 : Nat) : Int) - OFFW) ((i % 10 : Nat) : Int) ((e &gt;&gt;&gt; 12) + 1)) mem
+
+/-- 计数器：没满 64 格每步多点亮一格（本关颜色）；满了第二轮重涂指针进一格（两色并存，读不出单一颜色）。 -/
+def tick (s : State) : Int × Option Int × Int :=
+  if s.step_count &lt; 64 then (s.step_count + 1, some s.k_tick, 0) else (64, none, s.tick_wrap + 1)
+
+def withView (s : State) (g2 : Nat) (pw2 col2 : Int) (gd2 : Bool) (mem2 stk2 : Nat) : State :=
+  let (sc, tc, tw) := tick s
+  { s with grid := (g2 : Int), gravity_down := gd2, me_r := some (if gd2 then 27 else 37), me_c := some (1 + 6 * col2),
+           phase := (if gd2 then 3 else 1), step_count := sc, tick_color := tc, tick_wrap := tw, tide_top := none,
+           h_pw := pw2, h_mem := (mem2 : Int), h_stk := (stk2 : Int) }
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match pinfo s with
+  | none =&gt; none
+  | some (gd, ip, col, face) =&gt;
+    let km := s.k_map.toNat
+    let pw := s.h_pw
+    let stk := s.h_stk.toNat
+    let g := s.grid.toNat
+    let mem1 := writeScreen s.h_mem.toNat g pw ip
+    match a with
+    | .a7 =&gt;
+      let r := recTop stk
+      if r != 0 then
+        let m1 := recRestore r mem1
+        let pw2 := recPw r
+        let col2 := recCol r
+        let gd2 := recGd r
+        -- 撤销后的屏：记忆（已写回旧码）+ 开局地图
+        let g2 := screenOf m1 km [] pw2 col2 gd2 (recFace r)
+        some (withView s g2 pw2 col2 gd2 (writeScreen m1 g2 pw2 (anchorIp gd2)) (stk &gt;&gt;&gt; REC))
+      else
+        let g2 := screenOf mem1 km [] pw col gd face
+        some (withView s g2 pw col gd (writeScreen mem1 g2 pw ip) stk)
+    | .a3 | .a4 | .a6 _ _ =&gt;
+      match physics s a with
+      | none =&gt; none
+      | some p =&gt;
+        let g2 := screenOf mem1 km p.ov p.pw p.col p.gd p.face
+        let ipn := anchorIp p.gd
+        -- 前后两屏重叠的行上，两边都是地形、码变了的格（前屏第 i 行 = 后屏第 i + dk 行）
+        let dk : Int := pw - p.pw + ipn - ip
+        let gA := if dk ≥ 0 then (g &lt;&lt;&lt; (40 * dk.toNat)) &amp;&amp;&amp; MASK400 else g &gt;&gt;&gt; (40 * (-dk).toNat)
+        let lo : Nat := if dk ≥ 0 then dk.toNat else 0
+        let hi : Nat := if dk ≥ 0 then 10 else (10 + dk).toNat
+        let rm := if lo &lt; hi then M1 &amp;&amp;&amp; ((1 &lt;&lt;&lt; (40 * hi)) - (1 &lt;&lt;&lt; (40 * lo))) else 0
+        let dm := nz1 (gA ^^^ g2) &amp;&amp;&amp; rm &amp;&amp;&amp; (M1 ^^^ ge10 gA) &amp;&amp;&amp; (M1 ^^^ ge10 g2)
+        let chs : List (Nat × Nat) := (bitsList 101 dm).map fun t =&gt;
+          (cellIdx (p.pw + ((t / 10 : Nat) : Int) - ipn) ((t % 10 : Nat) : Int), (gA &gt;&gt;&gt; (4 * t)) &amp;&amp;&amp; 15)
+        let mem2 := writeScreen mem1 g2 p.pw ipn
+        -- 被点的格点完没再看见（出屏或被玩家盖住）：记「点它时的样子」并打标，也记进撤销记录
+        let (mem3, chs2) : Nat × List (Nat × Nat) :=
+          match a with
+          | .a6 cx cy =&gt;
+            match clickCell cx cy gd with
+            | some (i, j) =&gt;
+              let W := pw + (i : Int) - ip
+              let c0 := gcode g i j
+              let k := W - p.pw + ipn
+              if storable c0 &amp;&amp; !(0 ≤ k &amp;&amp; k &lt; 10 &amp;&amp; storable (gcode g2 k.toNat j)) then
+                (wput mem2 W (j : Int) (flagEnc c0), insSorted (cellIdx W (j : Int), c0) chs)
+              else (mem2, chs)
+            | none =&gt; (mem2, chs)
+          | _ =&gt; (mem2, chs)
+        let rec1 := recPack pw col gd face (chs2.take 6)
+        let stk2 := ((stk &lt;&lt;&lt; REC) ||| rec1) % (1 &lt;&lt;&lt; (REC * 8))
+        some (withView s g2 p.pw p.col p.gd mem3 stk2)
+    | _ =&gt; none
+
+-- ---------------- 规则（每条对应一个概念文件） ----------------
+def chgL (s s&#x27; : State) : Bool := s&#x27;.level != s.level
+def deadN (s&#x27; : State) : Bool := s&#x27;.me_c.isNone
+
+/-- 点击：(世界行, 列, 屏幕行, 屏幕列, 点击时的码)；点在玩家自己身上或格外为 none。 -/
+def clickOf (s : State) (a : Act) : Option (Int × Int × Nat × Nat × Nat) :=
+  match a, pinfo s with
+  | .a6 cx cy, some (gd, ip, col, _) =&gt;
+    match clickCell cx cy gd with
+    | some (i, j) =&gt;
+      let W := s.h_pw + (i : Int) - ip
+      if W == s.h_pw &amp;&amp; (j : Int) == col then none else some (W, (j : Int), i, j, gcode s.grid.toNat i j)
+    | none =&gt; none
+  | _, _ =&gt; none
+
+def clickCode (s : State) (a : Act) : Nat := match clickOf s a with | some (_, _, _, _, c) =&gt; c | none =&gt; 99
+/-- 下一状态里（后帧看得见的写进记忆之后）某世界格的码。 -/
+def world&#x27; (s&#x27; : State) (W C : Int) : Nat := memK s&#x27;.h_mem.toNat s&#x27;.k_map.toNat W C
+def clickedNow (s s&#x27; : State) (a : Act) : Nat :=
+  match clickOf s a with | some (W, C, _, _, _) =&gt; world&#x27; s&#x27; W C | none =&gt; 99
+def faceOf (s : State) : Nat := match pinfo s with | some (_, _, _, f) =&gt; f | none =&gt; 9
+def sideCode (s : State) (dc : Int) : Nat :=
+  match pinfo s with
+  | some (_, ip, col, _) =&gt; if col + dc &lt; 0 || col + dc &gt; 9 then 1 else gcode s.grid.toNat ip.toNat (col + dc).toNat
+  | none =&gt; 99
+def upPlayer (s : State) : Bool := (pinfo s).isSome &amp;&amp; !s.gravity_down
+
+/-- 这一步落点的重力下游那一格是不是尖刺。 -/
+def killedAt (s : State) (a : Act) : Bool :=
+  match physics s a, pinfo s with
+  | some p, some (_, ip, _, _) =&gt; isSpike (cget (ctxOf s ip) p.ov (p.pw + gdir p.gd) p.col)
+  | _, _ =&gt; false
+
+/-- 这一步有没有走进/升进/落进目标瓦。 -/
+def entersGoal (s : State) (a : Act) : Bool :=
+  match pinfo s with
+  | none =&gt; false
+  | some (gd, ip, col, _) =&gt;
+    let x := ctxOf s ip
+    let pw := s.h_pw
+    match a with
+    | .a3 | .a4 =&gt;
+      let dc : Int := match a with | .a3 =&gt; -1 | _ =&gt; 1
+      let c := cget x [] pw (col + dc)
+      isPass c &amp;&amp; (c == 9 || slideGoal x [] 64 pw (col + dc) (gdir gd))
+    | .a6 _ _ =&gt;
+      if clickable (clickCode s a) then
+        match physics s a with
+        | some p =&gt; slideGoal x p.ov 64 pw col (gdir p.gd)
+        | none =&gt; false
+      else false
+    | _ =&gt; false
+
+/-- spikeblock 分裂：被点那格变空（若还看得见），四邻中原本是空、且现在看得见、且不是玩家现在那格的，都成了 spikeblock。 -/
+def splitOk (s s&#x27; : State) (a : Act) : Bool :=
+  match clickOf s a, pinfo s, pinfo s&#x27; with
+  | some (W, C, _, _, _), some (_, ip, col, _), some (_, ip2, col2, _) =&gt;
+    let x := ctxOf s ip
+    let vis (Wn : Int) : Bool := 0 ≤ Wn - s&#x27;.h_pw + ip2 &amp;&amp; Wn - s&#x27;.h_pw + ip2 &lt; 10
+    let nb (dW dC : Int) : Bool :=
+      let Wn := W + dW
+      let Cn := C + dC
+      if (Wn == s.h_pw &amp;&amp; Cn == col) || Cn &lt; 0 || Cn &gt; 9 then true
+      else if cget x [] Wn Cn == 0 &amp;&amp; vis Wn &amp;&amp; !(Wn == s&#x27;.h_pw &amp;&amp; Cn == col2) then world&#x27; s&#x27; Wn Cn == 8
+      else true
+    (world&#x27; s&#x27; W C == 0 || !vis W) &amp;&amp; nb (-1) 0 &amp;&amp; nb 1 0 &amp;&amp; nb 0 (-1) &amp;&amp; nb 0 1
+  | _, _, _ =&gt; true
+
+def ceilingGuard (s : State) (a : Act) : Bool :=
+  match clickOf s a, pinfo s with
+  | some (_, _, i, j, c), some (false, ip, col, _) =&gt;
+    c == 8 &amp;&amp; (i : Int) == ip - 1 &amp;&amp; (j : Int) == col &amp;&amp; ip ≥ 2 &amp;&amp;
+      (let u := gcode s.grid.toNat (ip - 2).toNat j; u == 0 || u == 1 || u == 2 || u == 8)
+  | _, _ =&gt; false
+
+def isA3 : Act → Bool | .a3 =&gt; true | _ =&gt; false
+def isA4 : Act → Bool | .a4 =&gt; true | _ =&gt; false
+def isA6 : Act → Bool | .a6 _ _ =&gt; true | _ =&gt; false
+def isA7 : Act → Bool | .a7 =&gt; true | _ =&gt; false
+def isReset : Act → Bool | .reset =&gt; true | _ =&gt; false
+
+def rules : List Rule := [
+  { name := &quot;move_left&quot;
+    guard := fun s a =&gt; isA3 a &amp;&amp; upPlayer s
+    effect := fun s _ s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; ||
+      (s&#x27;.me_r == s.me_r &amp;&amp; faceOf s&#x27; == 0 &amp;&amp;
+        s&#x27;.me_c == (if isPass (sideCode s (-1)) then s.me_c.map (· - 6) else s.me_c)) },
+  { name := &quot;move_right&quot;
+    guard := fun s a =&gt; isA4 a &amp;&amp; upPlayer s
+    effect := fun s _ s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; ||
+      (s&#x27;.me_r == s.me_r &amp;&amp; faceOf s&#x27; == 1 &amp;&amp;
+        s&#x27;.me_c == (if isPass (sideCode s 1) then s.me_c.map (· + 6) else s.me_c)) },
+  { name := &quot;gd_move&quot;
+    guard := fun s a =&gt; (isA3 a || isA4 a) &amp;&amp; (pinfo s).isSome &amp;&amp; s.gravity_down
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; ||
+      (let dc : Int := if isA4 a then 1 else -1
+       s&#x27;.me_r == s.me_r &amp;&amp; s&#x27;.me_c == (if isPass (sideCode s dc) then s.me_c.map (· + 6 * dc) else s.me_c)) },
+  { name := &quot;rise_after_move&quot;
+    guard := fun s a =&gt; (isA3 a || isA4 a) &amp;&amp; upPlayer s &amp;&amp; isPass (sideCode s (if isA4 a then 1 else -1))
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; ||
+      (match physics s a with | some p =&gt; s&#x27;.h_pw == p.pw | none =&gt; false) },
+  { name := &quot;step_ticks&quot;
+    guard := fun _ a =&gt; !isReset a
+    effect := fun s _ s&#x27; =&gt; chgL s s&#x27; ||
+      (if s.step_count &lt; 64 then s&#x27;.step_count == s.step_count + 1
+       else s&#x27;.step_count == 64 &amp;&amp; s&#x27;.tick_wrap == s.tick_wrap + 1) },
+  -- 撤销：栈非空 ⇒ 回到栈顶记录的玩家列与重力、h_pw 回到记录值；栈空（本关还没走、或已退到底）⇒ 画面与玩家都不动。
+  -- 两种情形都不换关、不致死。h_pw 回到记录值这一半是自证（记录是 hidden_step 自己压的）；
+  -- 独立证据是可见的 me_c、gravity_down，以及 faithful 里整屏 grid。
+  -- 栈深 8 是取值不是观测：真实上限未知，语料最深连退 5 次（0916 run seq 2805–2809）。
+  -- （主会话按复审补注）栈空支只有一条证据：0916 seq 908，本关第一步就撤销、前后画面相同；「已退到底再撤销」在语料里 0 条，那半句是猜测。
+  { name := &quot;action7_is_undo&quot;
+    guard := fun s a =&gt; isA7 a &amp;&amp; (pinfo s).isSome
+    effect := fun s _ s&#x27; =&gt;
+      let r := recTop s.h_stk.toNat
+      !chgL s s&#x27; &amp;&amp; !deadN s&#x27; &amp;&amp;
+        (if r != 0 then s&#x27;.h_pw == recPw r &amp;&amp; s&#x27;.me_c == some (1 + 6 * recCol r) &amp;&amp; s&#x27;.gravity_down == recGd r
+         else s&#x27;.grid == s.grid &amp;&amp; s&#x27;.h_pw == s.h_pw &amp;&amp; s&#x27;.me_c == s.me_c &amp;&amp; s&#x27;.gravity_down == s.gravity_down) },
+  { name := &quot;click_clears_block&quot;
+    guard := fun s a =&gt; clickCode s a == 2
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; || clickedNow s s&#x27; a == 0 },
+  { name := &quot;click_toggles_cyan&quot;
+    guard := fun s a =&gt; clickCode s a == 5 || clickCode s a == 6
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; || clickedNow s s&#x27; a == (if clickCode s a == 5 then 6 else 5) },
+  { name := &quot;click_switch_consumes&quot;
+    guard := fun s a =&gt; clickCode s a == 7
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; || clickedNow s s&#x27; a == 0 },
+  { name := &quot;flip_gravity&quot;
+    guard := fun s a =&gt; (clickOf s a).isSome
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; || s&#x27;.gravity_down == (s.gravity_down != (clickCode s a == 7)) },
+  { name := &quot;spikeblock_splits_cross&quot;
+    guard := fun s a =&gt; clickCode s a == 8
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; || splitOk s s&#x27; a },
+  { name := &quot;click_ceiling_block_lifts_one&quot;
+    guard := fun s a =&gt; ceilingGuard s a
+    effect := fun s _ s&#x27; =&gt; chgL s s&#x27; || (s&#x27;.h_pw == s.h_pw - 1 &amp;&amp; s&#x27;.me_r == some 37 &amp;&amp; s&#x27;.me_c == s.me_c) },
+  { name := &quot;spike_kills&quot;
+    guard := fun s a =&gt; upPlayer s &amp;&amp; (isA3 a || isA4 a || isA6 a)
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || s&#x27;.tide_top.isSome || deadN s&#x27; == killedAt s a },
+  { name := &quot;spike_kills_falling&quot;
+    guard := fun s a =&gt; (pinfo s).isSome &amp;&amp; s.gravity_down &amp;&amp; (isA3 a || isA4 a)
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; || s&#x27;.tide_top.isSome || deadN s&#x27; == killedAt s a },
+  { name := &quot;switch_tile_blocks_walk&quot;
+    guard := fun s a =&gt; (isA3 a || isA4 a) &amp;&amp; (pinfo s).isSome &amp;&amp; sideCode s (if isA4 a then 1 else -1) == 7
+    effect := fun s _ s&#x27; =&gt; chgL s s&#x27; || deadN s&#x27; || (s&#x27;.me_c == s.me_c &amp;&amp; s&#x27;.h_pw == s.h_pw) },
+  -- 潮：这条只断言「后帧看得见潮时，潮顶够到玩家瓦底行（锚点 + 4）⇔ 玩家消失」，**不断言潮上涨**，
+  -- 换关与重力翻转两种情形放行；阈值「+4」数据只限定在 [4, 10) 之间（语料非平凡命中 16 次，其中死 2 次）。
+  -- 潮什么时候出现没有建模（不是本关步数的函数：路线第 0、1 关走到 32、43 步都没潮，0916 run 第 1 关第 10 步就有）；
+  -- stepRules 一律预测 tide_top = none，路线 374 步上确实没有潮。
+  { name := &quot;tide_rises_and_kills&quot;
+    guard := fun s a =&gt; !isReset a &amp;&amp; (pinfo s).isSome
+    effect := fun s _ s&#x27; =&gt; chgL s s&#x27; || s&#x27;.gravity_down != s.gravity_down ||
+      (match s&#x27;.tide_top, s.me_r with
+       | some t, some r =&gt; decide (t ≤ r + 4) == deadN s&#x27;
+       | none, _ =&gt; true
+       | _, none =&gt; true) },
+  { name := &quot;levelup_iff_goal&quot;
+    guard := fun s a =&gt; !isReset a &amp;&amp; (pinfo s).isSome
+    effect := fun s a s&#x27; =&gt; chgL s s&#x27; == entersGoal s a }
+]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+/-- 第 9 关不是新地图，是通关标记：到了第 9 关就是赢。 -/
+def isGoal (s : State) : Bool := s.level == 9
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。内核证明（decide +kernel），不依赖 ofReduceBool。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println (&quot;GUARD_HITS &quot; ++ String.intercalate &quot;,&quot; (rules.map (fun r =&gt; r.name ++ &quot;=&quot; ++ toString (corpus.filter (fun t =&gt; r.guard t.s t.a)).length)))
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>bp35 · 统一框架报告（卡 00–11；归档那一步不在这里）</h1>
 <p>语料：<code>python ledger/trace_source.py bp35</code> → 封存局 <code>bp35-20260920</code>、run <code>bp35-0920-0507</code>、100.0 分、9/9 关、374 步（rc=0）。
 一段（guid <code>10ba54c8…</code>，成绩单认证），逐关步数 <code>[32,43,34,25,30,41,45,51,73]</code> 与成绩单 <code>level_actions</code> 逐关对上；seq/step/tid 无重号。
 起点册子 EVIDENCE：33 个不同 tid 里 7 个在这批语料中——tid 是内容哈希（<code>world/arc.py:tid</code>），这只说明内容重叠（本跑重走了旧路线开头），不说明册子用的是这批语料；每条都已在这批语料上重判（record.txt 卡 00/04）。</p>

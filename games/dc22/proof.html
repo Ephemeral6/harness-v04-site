@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← dc22 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。推演时只有开局那一帧取自画面，之后每一帧都是模型自己算出来的；玩家脚下被盖住的垫子、带子下一次的方向这两样看不见的量，也由模型沿着历史自己推进。</p><p class="result">6 关都被证明可以打通，每关逐帧核对 23 到 713 步，合计 1026 步，逐步和录像一致。第 6 关中途重开过 5 次，每一段都从这一关的开局起算，分别核对。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/fb6bb78d-d1fa-4023-b1df-ce85ac67a761" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像全部 2664 步上逐步检验：0 次说错，0 步没有任何规则管到。</li><li>Lean 里还有逐条的一层：除重开以外的每一条真实转移，都交给模型从那一帧算一步、和下一帧比对，6 关各一条定理，全部对上。</li><li>把规则和读图代码故意改错 28 种，检验抓住了 28 种；把 Lean 规则故意改错 7 种，每一种都让某一关的证明编译失败。</li><li>一份故意写错的证明编译失败，失败在标出的那一行（第 34 行）。</li></ul><h2>重开与机关格：只在录像上检验的规则</h2><p class="prose">另有 3 条规则在录像上逐步检验，不在 Lean 模型里：重开之后回到哪一帧，以及第 5、6 关那几种机关。</p><div class="rules"><article class="rule"><h3>重开之后，回到这一关的开局</h3><p>本关重开回到这一关开局那一帧；整局重开回到第 1 关的开局。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>第 5、6 关的机关格，走过去时都开着</h3><p>爪子、杆、十字件、方框这几种机关会让一些格时开时关；录像里每一次走向这些格，那一格此刻都走得进。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">316/316 步</span></div></article><article class="rule"><h3>点那几种机关的卡，模型里的东西不动</h3><p>点推爪子、合爪子、推方框的那几张卡：玩家、露着的垫子、相变格、臂、轨道、带子一格不变。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">239/239 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 2664 条记录，是四遍游戏：前三遍 661、505、460 条，边摸索边打；第四遍 1038 条，是官方认证的那一遍，共 1037 个动作，首页的截图和全部逐关证明都用它。逐条那一层和规则检验用全部四遍。</p><h2>适用范围</h2><ul class="lst"><li>第 5、6 关另有几种机关（爪子与杆、十字件、方框、菱形）由补充规则约束。模型把它们会开合的格单列出来（第 5 关 105 格、第 6 关 268 格），推演时当作开着，逐帧核对时这些格不比；录像里走向这些格 316 次，每次都开着。第 1 到 4 关没有这样的格，是完整的模型。</li><li>模型的动作里没有重开。第 6 关前几段的核对用到「重开放回这一关开局」，这一条在录像的 10 次重开上逐条对上；开局还设定玩家不站在垫子上、带子朝伸长的方向走，设定错了第一步就会对不上。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>U</dt><dd>第 5、6 关里模型不描述的机关格（附录关号为 L4、L5）</dd><dt>under / rise</dt><dd>玩家脚下被盖住的垫子 / 带子下一次的方向（两样看不见的量）</dd><dt>相变格 / 桥</dt><dd>bridges：实心可走、棋盘格不可走</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← dc22 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。推演时只有开局那一帧取自画面，之后每一帧都是模型自己算出来的；玩家脚下被盖住的垫子、带子下一次的方向这两样看不见的量，也由模型沿着历史自己推进。</p><p class="result">6 关都被证明可以打通，每关逐帧核对 23 到 713 步，合计 1026 步，逐步和录像一致。第 6 关中途重开过 5 次，每一段都从这一关的开局起算，分别核对。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/fb6bb78d-d1fa-4023-b1df-ce85ac67a761" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像全部 2664 步上逐步检验：0 次说错，0 步没有任何规则管到。</li><li>Lean 里还有逐条的一层：除重开以外的每一条真实转移，都交给模型从那一帧算一步、和下一帧比对，6 关各一条定理，全部对上。</li><li>把规则和读图代码故意改错 28 种，检验抓住了 28 种；把 Lean 规则故意改错 7 种，每一种都让某一关的证明编译失败。</li><li>一份故意写错的证明编译失败，失败在标出的那一行（第 34 行）。</li></ul><h2>重开与机关格：只在录像上检验的规则</h2><p class="prose">另有 3 条规则在录像上逐步检验，不在 Lean 模型里：重开之后回到哪一帧，以及第 5、6 关那几种机关。</p><div class="rules"><article class="rule"><h3>重开之后，回到这一关的开局</h3><p>本关重开回到这一关开局那一帧；整局重开回到第 1 关的开局。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>第 5、6 关的机关格，走过去时都开着</h3><p>爪子、杆、十字件、方框这几种机关会让一些格时开时关；录像里每一次走向这些格，那一格此刻都走得进。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">316/316 步</span></div></article><article class="rule"><h3>点那几种机关的卡，模型里的东西不动</h3><p>点推爪子、合爪子、推方框的那几张卡：玩家、露着的垫子、相变格、臂、轨道、带子一格不变。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">239/239 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 2664 条记录，是四遍游戏：前三遍 661、505、460 条，边摸索边打；第四遍 1038 条，是官方认证的那一遍，共 1037 个动作，首页的截图和全部逐关证明都用它。逐条那一层和规则检验用全部四遍。</p><h2>适用范围</h2><ul class="lst"><li>第 5、6 关另有几种机关（爪子与杆、十字件、方框、菱形）由补充规则约束。模型把它们会开合的格单列出来（第 5 关 105 格、第 6 关 268 格），推演时当作开着，逐帧核对时这些格不比；录像里走向这些格 316 次，每次都开着。第 1 到 4 关没有这样的格，是完整的模型。</li><li>模型的动作里没有重开。第 6 关前几段的核对用到「重开放回这一关开局」，这一条在录像的 10 次重开上逐条对上；开局还设定玩家不站在垫子上、带子朝伸长的方向走，设定错了第一步就会对不上。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>U</dt><dd>第 5、6 关里模型不描述的机关格（附录关号为 L4、L5）</dd><dt>under / rise</dt><dd>玩家脚下被盖住的垫子 / 带子下一次的方向（两样看不见的量）</dd><dt>相变格 / 桥</dt><dd>bridges：实心可走、棋盘格不可走</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
 
 ## 契约（装置按名字找）
 
@@ -7728,7 +7728,728 @@ def step (b : Board) (w : World) : Act → Res
   | .press p =&gt; .ok (press b w p)
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>dc22 · 统一到对象-规则-Lean-前端一条链的报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">dc22-20260920/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 42 条</span><span class="chip c-mute">路线 604 步，换关查表 6 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/dc22-20260920/_lib.py ; why=整帧位平面 + 第5关件/方框位置读数 + 隐藏量(拍数/脚下像素/卡生效次数) + 每关常数，路线取整局（--full-route）
+set_option maxHeartbeats 0
+set_option maxRecDepth 1000000
+-- 由 world/formalize.py 生成于 2026-09-29T19:20:42+08:00；局 dc22；基于 run [&#x27;dc22-0915-2238&#x27;, &#x27;dc22-0916-1543&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 2893 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复版规则段（meta/repair-20260928，dc22，2026-09-29；按独立审计意见返工补公示）。
+--
+-- 【状态】读数只给这一帧看得见的东西（lib 副本 meta/repair-20260928/lib/dc22-20260920/_lib.py 文件末尾）：
+--   fb0..fb3  整帧 64×64 的 4 个位平面（像素 (r,c) 占第 r*64+c 位；四个平面合起来逐像素就是整帧，含 HUD 行 63）；
+--   me        玩家所在 2×2 格（原读数，保留）；
+--   pc6 / bx6 第 5 关十字件（环左上角、横/竖）与 8×8 方框（左上角、张口/合口）的位置，模板匹配、唯一才认。
+--   原 17 个读数（walls、pads、box、box_ring、cross_piece、track_after_shift、standing_on……）退出状态。
+--   退出无害的理由：新的 keyEq 逐像素比整帧，比任何原读数都严格更强（原读数都是帧的函数）。
+--   （_scratch 里的 retire_proof.py 只核了「同一帧同一值」，这对帧的确定函数必然成立，不作证据。）
+--   整帧逐像素都在 keyEq 里比，所以 stepRules 每一步要把整帧（地图、面板、HUD）逐像素算对。
+-- 【隐藏量】（修订 R1 +「潜在状态例外」）h_t 本关拍数、h_u 玩家脚下 4 像素（被玩家盖住、帧上看不见）、
+--   h_n2 / h_n11 本关色 2 / 色 11 卡生效次数。hidden_step 只用 (h, 前帧, 动作串, 后帧)，规律见 lib 注释；
+--   Lean 在 stepRules 里独立再算一遍（①）。全部 3722 条关内转移上 hidden_step 与 Lean 镜像逐项相同（hcheck.py）。
+--   h_t 不是纯记账：每步拍数按后帧里「地图区变没变」等看得见的结果分类（后帧参与了）。
+--   hidden_step 里的常数（出处与理由在 lib 注释）：_HUB = (48,18)（第 5 关那块被图标换花色的垫子格位，取自概念原文，
+--   单帧读不出）；地图区色 8 像素 30→28（爪子张口形→合口形，拍数 1）、==28（爪子合口，杆跟着动）；色 13 &lt; 16
+--   （没有 4×4 色 13 枢纽，色 8 卡点了没反应算空点 0 拍）。它们都是对前后帧像素的计数，但数值来自本局物件的形状。
+--   ② 改错实验（hid_mut.py，在 Python 镜像 lmirror.py 上做，不是在 Lean 里；隐藏量用模型自己一路推出的值，可见字段用
+--     真实前态；改错之后同一关段里任何一步可见字段对不上，就把这次改错记为「被抓到」）：
+--     M1 传送落点垫子不翻相 96 次改错、抓到 96；M2 拾取时脚下保留图标像素 34/33；M3 横条转过脚下不更新 15/15；
+--     M4 站在枢纽垫上点图标不换花色 32/32；M5 被拒只记 2 拍 29/29；M6 空点记 1 拍 10/10；M7 站垫上点色 6 不翻 1/1。
+--     路线上：M1 10/10、M2 5/5、M3 1/1、M4 3/3、M6 1/1（M5、M7 路线上没有）。
+--   ③ 只靠 h 自证：h_u 设定后到关段结束都没露出来的步数，全语料 43、路线 0；h_t 在关段最后一次 HUD 跳格之后的步数
+--     全语料 89、路线 19（HUD 只显示 ceil(64t/tb)，这些步上 t 的值只被 h_t 自己的比对卡住）（self_proof.py）。
+-- 【每关常数】k_tb、k_pc、k_bars、k_bands、k_pk1/2、k_dia、k_hub、k_icon、k_btn、k_bgr/bgz/bgf/bgi，逐项出处在 lib 注释。
+--   · k_bg*（第 4 关爪子与杆、第 5 关件与方框身后的「静态底图」）：只编码精灵走过的窗口里用得着的色 0 / 2 / 15 像素，
+--     窗口外和没编码的一律当墙 4——够用即止，不是真实底图。Lean 真正用到（精灵挪开、露出底图）的像素×步
+--     全语料 第 4 关 7406、第 5 关 10993，其中此前在该关段从未露出过的 第 4 关 420、第 5 关 900；
+--     路线上 用到 1406 / 1310，此前未露出 84 / 128（reveal_need2.py）。
+--     它还决定推得动与否：审计复算，路线上爪子 / 方框「推得动吗」的判定共 59 次，其中 8 次（方框 5/23、爪子 3/36）
+--     的判定输入用到了此前未露出的像素。
+--   · k_pk1/pk2（拾取后面板上出现的卡）：只在拾取那一步用，那一步才第一次露出——路线 seq 212（47 像素）、269（47）、
+--     419（47）、479（27）、522（16）。
+--   · k_hub = (48,18)：翻相例外只在它不是 6/7 花色时起作用（第一次点四色图标之后）；点图标那一步用它换花色，那一步才看出是它。
+--   · 审计消融（去掉该常数后全语料 / 路线不符行数）：去 k_bg 260/58，去 k_pk 19/5，去 k_hub 88/11。
+--   · k_bars 第 5 关行 58 那条的轨道起列 6 是按「三带同一轨道」推的。
+--   · k_tb 是**拟合**的，且不唯一，取可行区间下界：第 0 关 {128,129}、第 1 关 192-194、第 2 关 192-195、第 3 关 192-193、
+--     第 4 关 512-514、第 5 关 1024-1026；各关统一 +1 全语料 0 不符，统一 −1 帧不符 759 条（路线 134 条）（tb_scan.py；
+--     审计按另一口径数得 558 条，路线同为 134）。
+--   · 每步拍数（移动 / 空点 / 灭菱形 / 按钮 1，卡生效 2、爪子合口 1、亮菱形推框 2、四色图标 2、被拒 20、色 8 空点 0）也是拟合的。
+--     被拒改成 19：全语料帧不符 4 条（审计口径 14 条）、路线 0 条——**路线本身钉不住 20**，20 是由路线以外的语料定的。
+-- 【Python 与 Lean 的分工】Python 只给像素平面、玩家格、件 / 方框的位置朝向；走格、拾取、臂转置、相位互换、横条、横带、
+--   传送与翻相、爪子平移与合口、件的旋转、方框推移与合口、夹着件滑、菱形亮灭、HUD 全在 Lean 里从这些原语算。
+--   隐藏量的更新规律（hidden_step）是 Python 里对同一模型的第二份实现（潜在状态例外，见上 ①②③）。
+-- 【RESET 回第 0 关】0916-1543 seq 1167（rtt 88143 ms，写成 Act.retried Act.reset）与 seq 1627（普通 RESET，非重发，
+--   带 recard）都是第 5 关 → 第 0 关，两次都换了 guid；1167 的 reset 记录为「整局」。其余第 5 关的 RESET（seq 2088、2226、
+--   2279、2345、2468）都是 5→5。两种解释都与数据相容：(a) 会话被重建（换 guid 的 RESET 都回第 0 关——更简约，1627 也在内）；
+--   (b) 重发让请求执行了两次、连按两次整局重开（语料里没有别的连按样本）。本文件不区分这两种，也不依赖任何一种：
+--   它们是 reset 行、不在路线上，stepRules 不管；规则 reset_clears_state 的 guard 包括它们（HUD 清空、回第 0 关时玩家在 (40,10) 成立）。
+-- 【规则】42 条概念全部写成规则。装置类概念的 effect = 把与 stepRules 共用的装置函数作用在「擦掉玩家的底图」上，
+--   与后帧在地图区（除玩家前后两格）逐像素比；几条共用同一个装置函数：card11_l3_bars_shift / l4_card11_slides_bar /
+--   card11_bars_shift 都是 barsPaint（按关分 guard）；card2_l3_bands_one_notch / l4_card2_fills_meter 都是 bandsPaint。
+--   与概念原文的出入（公示）：
+--   · hud_alternating_counter：原文「本关第奇数次动作 +1 格」；这里是 HUD = ceil(64·h_t/tb)，每步拍数增量 ∈ {0,1,2,20}。
+--   · gameover_counter：原文「(63,62)/(63,63) 两像素各计到 3 触发」；这里是「HUD 满 64 格之后动作整帧无效（冻结）」，只有 1 个样本。
+--   · panel_ring_fades_on_click：这里是「点卡芯且地图区变了才褪框，地图没变则框不动」；734 条命中里 111 行地图没变（审计数）。
+--   · card6_teleport：没有传送时只断言玩家不动，丢了原文「所有垫子位置一格不变」这半句。
+--   · 弱规则（审计身份消融：把 effect 换成「后帧 = 前帧」仍能判对的行不算有信息）：icon_recolors_pad 41 条里 13 条有信息，
+--     card8_clamps_box_on_piece 10 条里 5 条，l4_card8_closes_clamp 8 条里 3 条。
+--   · onPan（点面板上某色的卡）排除了点在菱形、四色图标、第 4 关按钮行上的点击（第 5 关它们也有 8/11/15 色像素，
+--     按原文「按被点像素颜色认」会把点图标当成点色 8/11 卡，那几行照卡的效果判会错）。
+--   · move_into_piece_ring_keeps_ring_pixels：「环」取此刻看得见的那圈——方框合口时是 6×6 的那圈（概念 NOTE 说 4 条跨界正例
+--     「全部来自同一处大环（6×6 外接框）」）；语料 6 行命中全是合口方框。
+--   · underfoot_reveals_floor_vote：standing_on 的「脚下是横条」一项写成「站在某条横条轨道行上且 h_u 全是 1/12」，
+--     挡掉 21 行（第 3 关 16、第 4 关 5）；这 21 行上投票成立 18、不成立 3（0915 seq 548、0916 seq 327、844，都在第 3 关横条上）。
+--     原文的横条读法只认第 3 关，第 4 关那 5 行（投票都成立）原文会判、这里没判。
+--   · card8_gate_toggle 只管第 0-2 关（原文 SCOPE）。
+-- 【语料里从未走到的分支】（cov2.py 镜像口径；后 5 项是审计消融后全语料 0 不符的）方框推出地图、夹着件滑时件出画面、
+--   件新占的格压到地板 2（clamped_piece_slides 原文的两条否决条件，本语料一次都没发生）、爪子已合口再点色 8、
+--   方框已合口再点色 8、件转出地图；夹紧时「里圈套准件的环」这一条件（clamp6 的 inner == ring）、玩家在地图边缘的越界检查、
+--   拾取候选唯一性（cand != lb cand）、传送锚点唯一性、图标点击的「不是底色 5」条件——
+--   这些分支照概念写，本语料检验不到。
+-- 【内核】两条定理在 10 GB 内存上限下跑不完（faithful 实测进程私有内存峰值 13.7 GB，LEAN_MEM_MB=20000 下 244 s 通过）；
+--   复核须 LEAN_MEM_MB=20000。
+
+-- ==== 位平面工具（整帧 = 4 个 4096 位 Nat；像素 (r,c) 占第 r*64+c 位） ====
+def FULL : Nat := 2 ^ 4096 - 1
+def rrep (h : Nat) : Nat := (2 ^ (64 * h) - 1) / (2 ^ 64 - 1)
+def C0 : Nat := rrep 64
+def C63 : Nat := C0 &lt;&lt;&lt; 63
+def mn (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)
+def rect (r0 r1 c0 c1 : Int) : Nat :=
+  if r0 &lt; 0 || c0 &lt; 0 || r1 &gt; 63 || c1 &gt; 63 || r1 &lt; r0 || c1 &lt; c0 then 0
+  else ((2 ^ (c1 - c0 + 1).toNat - 1) * rrep (r1 - r0 + 1).toNat) &lt;&lt;&lt; (r0 * 64 + c0).toNat
+def bt (r c : Int) : Nat := if r &lt; 0 || c &lt; 0 || r &gt; 63 || c &gt; 63 then 0 else 2 ^ (r * 64 + c).toNat
+def cel (r c : Int) : Nat := rect r (r + 1) c (c + 1)
+def east (m : Nat) : Nat := mn m C63 &lt;&lt;&lt; 1
+def west (m : Nat) : Nat := mn m C0 &gt;&gt;&gt; 1
+def south (m : Nat) : Nat := (m &lt;&lt;&lt; 64) &amp;&amp;&amp; FULL
+def north (m : Nat) : Nat := m &gt;&gt;&gt; 64
+def dil (m : Nat) : Nat := m ||| east m ||| west m ||| south m ||| north m
+def flood : Nat → Nat → Nat → Nat
+  | 0, m, _ =&gt; m
+  | k + 1, m, a =&gt; let m2 := dil m &amp;&amp;&amp; a; if m2 == m then m else flood k m2 a
+def lb (m : Nat) : Nat := m &amp;&amp;&amp; (m ^^^ (m - 1))
+def cnt : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | k + 1, m =&gt; if m == 0 then 0 else cnt k (m ^^^ lb m) + 1
+def cfold (m : Nat) : Nat :=
+  let x := m ||| m &gt;&gt;&gt; 2048
+  let x := x ||| x &gt;&gt;&gt; 1024
+  let x := x ||| x &gt;&gt;&gt; 512
+  let x := x ||| x &gt;&gt;&gt; 256
+  let x := x ||| x &gt;&gt;&gt; 128
+  (x ||| x &gt;&gt;&gt; 64) % 2 ^ 64
+def shiftM (m : Nat) (dr dc : Int) : Nat :=
+  let m := if dc &gt; 0 then (List.range dc.toNat).foldl (fun x _ =&gt; east x) m else (List.range (-dc).toNat).foldl (fun x _ =&gt; west x) m
+  if dr ≥ 0 then (m &lt;&lt;&lt; (64 * dr.toNat)) &amp;&amp;&amp; FULL else m &gt;&gt;&gt; (64 * (-dr).toNat)
+def spread (a : Nat) : Nat := a ||| east a ||| south a ||| south (east a)
+-- EVEN：行、列都是偶数的像素（2×2 格的左上角）；ODDP：r+c 为奇数的像素
+def A64 : Nat := (2 ^ 64 - 1) / 3
+def EVR : Nat := (2 ^ 4096 - 1) / (2 ^ 128 - 1)
+def EVEN : Nat := A64 * EVR
+def ODDP : Nat := (A64 * 2) * EVR ||| (A64 * EVR) &lt;&lt;&lt; 64
+
+structure Fr where
+  p0 : Nat
+  p1 : Nat
+  p2 : Nat
+  p3 : Nat
+deriving BEq
+
+def sl (p b : Nat) : Nat := if b == 1 then p else FULL ^^^ p
+def colm (F : Fr) (c : Nat) : Nat := sl F.p0 (c % 2) &amp;&amp;&amp; sl F.p1 (c / 2 % 2) &amp;&amp;&amp; sl F.p2 (c / 4 % 2) &amp;&amp;&amp; sl F.p3 (c / 8 % 2)
+def pb (p m b : Nat) : Nat := mn p m ||| (if b == 1 then m else 0)
+def pnt (F : Fr) (m c : Nat) : Fr := ⟨pb F.p0 m (c % 2), pb F.p1 m (c / 2 % 2), pb F.p2 m (c / 4 % 2), pb F.p3 m (c / 8 % 2)⟩
+def pxc (F : Fr) (r c : Int) : Nat :=
+  let i := (r * 64 + c).toNat
+  F.p0 &gt;&gt;&gt; i % 2 + 2 * (F.p1 &gt;&gt;&gt; i % 2) + 4 * (F.p2 &gt;&gt;&gt; i % 2) + 8 * (F.p3 &gt;&gt;&gt; i % 2)
+-- 一格 2×2 的四个像素打包成 16 位：左上、右上、左下、右下（每个平面只移一次）
+def q4 (p i : Nat) : Nat := let x := p &gt;&gt;&gt; i % 2 ^ 66; x % 2 * 4096 + x / 2 % 2 * 256 + x / 2 ^ 64 % 2 * 16 + x / 2 ^ 65 % 2
+def cv (F : Fr) (r c : Int) : Nat := let i := (r * 64 + c).toNat; q4 F.p0 i + 2 * q4 F.p1 i + 4 * q4 F.p2 i + 8 * q4 F.p3 i
+def nib (v i : Nat) : Nat := v &gt;&gt;&gt; (4 * (3 - i)) % 16
+def pk4 (v k : Nat) : Nat := nib v 0 &gt;&gt;&gt; k % 2 + 2 * (nib v 1 &gt;&gt;&gt; k % 2) + 2 ^ 64 * (nib v 2 &gt;&gt;&gt; k % 2) + 2 ^ 65 * (nib v 3 &gt;&gt;&gt; k % 2)
+def put4 (F : Fr) (r c : Int) (v : Nat) : Fr :=
+  let i := (r * 64 + c).toNat
+  let m := (3 + 3 * 2 ^ 64) &lt;&lt;&lt; i
+  ⟨mn F.p0 m ||| pk4 v 0 &lt;&lt;&lt; i, mn F.p1 m ||| pk4 v 1 &lt;&lt;&lt; i, mn F.p2 m ||| pk4 v 2 &lt;&lt;&lt; i, mn F.p3 m ||| pk4 v 3 &lt;&lt;&lt; i⟩
+def has4 (v x : Nat) : Bool := nib v 0 == x || nib v 1 == x || nib v 2 == x || nib v 3 == x
+def all4 (v : Nat) (p : Nat → Bool) : Bool := p (nib v 0) &amp;&amp; p (nib v 1) &amp;&amp; p (nib v 2) &amp;&amp; p (nib v 3)
+def cnt4 (v x : Nat) : Nat := [0, 1, 2, 3].foldl (fun n i =&gt; if nib v i == x then n + 1 else n) 0
+
+-- ==== 概念 cell_enterable / 垫子 ====
+def PAIRS : List (Nat × Nat) := [(6, 7), (13, 8), (12, 11), (9, 10)]
+-- icon_recolors_pad 的花色循环 (6,7)→(13,8)→(12,11)→(9,10)→(6,7)，主色（前一个）位置仍放主色
+def nextPair (p : Nat × Nat) : Nat × Nat :=
+  if p == (6, 7) then (13, 8) else if p == (13, 8) then (12, 11) else if p == (12, 11) then (9, 10) else (6, 7)
+def isPad (v : Nat) : Bool :=
+  nib v 0 == nib v 3 &amp;&amp; nib v 1 == nib v 2 &amp;&amp; nib v 0 != nib v 1 &amp;&amp;
+    PAIRS.any (fun p =&gt; (nib v 0 == p.1 &amp;&amp; nib v 1 == p.2) || (nib v 0 == p.2 &amp;&amp; nib v 1 == p.1))
+def isMarker (v : Nat) : Bool := cnt4 v 0 == 2 &amp;&amp; cnt4 v 1 == 1 &amp;&amp; all4 v (fun x =&gt; x != 3 &amp;&amp; x != 4 &amp;&amp; x != 5)
+def enterable (v : Nat) : Bool :=
+  if all4 v (fun x =&gt; x != 3 &amp;&amp; x != 4 &amp;&amp; x != 5) then
+    if has4 v 0 then isMarker v
+    else all4 v (fun x =&gt; x == nib v 0) || has4 v 2 || isPad v || cnt4 v 8 ≥ 2
+  else false
+
+-- ==== 每关常数解码 ====
+def kd (o : Option Int) : Nat := (o.getD 0).toNat
+def fld (v sh w : Nat) : Nat := v &gt;&gt;&gt; sh % 2 ^ w
+-- 打包列表：低 3 位条数，第 i 条占 [3 + wd·i, 3 + wd·(i+1)) 位
+def klist (v wd : Nat) : List Nat := (List.range (v % 8)).map (fun i =&gt; fld v (3 + wd * i) wd)
+
+structure Env where
+  mapm : Nat
+  panm : Nat
+  z : Nat
+  f : Nat
+  i : Nat
+  hub : Nat
+  pm : Nat
+
+def bgFix (s : State) (m : Nat) : Nat := if s.k_bgr.isSome then (m &lt;&lt;&lt; (64 * kd s.k_bgr)) &amp;&amp;&amp; FULL else 0
+def restore (e : Env) (F : Fr) (m : Nat) : Fr := pnt (pnt (pnt (pnt F m 4) (m &amp;&amp;&amp; e.z) 0) (m &amp;&amp;&amp; e.f) 2) (m &amp;&amp;&amp; e.i) 15
+
+-- ==== card8_transposes_arms / card6_transposes_color7_arms：枢纽 4×4 + 相连的臂，过枢纽主对角线转置 ====
+def transp : Nat → Nat → Int → Int → Nat → Nat
+  | 0, _, _, _, acc =&gt; acc
+  | k + 1, m, r0, c0, acc =&gt;
+    if m == 0 then acc else
+      let i := Nat.log2 (lb m)
+      let r : Int := i / 64
+      let c : Int := i % 64
+      transp k (m ^^^ lb m) r0 c0 (acc ||| bt (r0 + c - c0) (c0 + r - r0))
+-- 结果码：0 没有这套装置，1 做了，2 被拒（玩家踩在臂上）
+def arms (e : Env) (B : Fr) (ka kh : Nat) : Fr × Nat :=
+  let hub := colm B kh &amp;&amp;&amp; e.mapm
+  if hub == 0 || cnt 17 hub != 16 then (B, 0) else
+  let r0 : Int := Nat.log2 (lb hub) / 64
+  let c0 : Int := Nat.log2 (lb (cfold hub))
+  if hub != rect r0 (r0 + 3) c0 (c0 + 3) then (B, 0) else
+  let ac := colm B ka &amp;&amp;&amp; e.mapm
+  let arm := flood 40 (dil hub &amp;&amp;&amp; ac) ac
+  if arm == 0 then (B, 0) else if arm &amp;&amp;&amp; e.pm != 0 then (B, 2) else
+  (pnt (pnt B arm 4) (transp 200 arm r0 c0 0) ka, 1)
+
+-- ==== card_phase_swap_by_color：实心 k 格 ↔ 4/k 棋盘格（k 在 r+c 奇的位置） ====
+def phase (e : Env) (B : Fr) (k : Nat) : Fr × Nat :=
+  let m := colm B k &amp;&amp;&amp; e.mapm
+  let w := colm B 4 &amp;&amp;&amp; e.mapm
+  let sp := spread (m &amp;&amp;&amp; west m &amp;&amp;&amp; north m &amp;&amp;&amp; north (west m) &amp;&amp;&amp; EVEN)
+  let cp := spread (west m &amp;&amp;&amp; north m &amp;&amp;&amp; w &amp;&amp;&amp; north (west w) &amp;&amp;&amp; EVEN)
+  if sp ||| cp == 0 then (B, 0) else if sp &amp;&amp;&amp; e.pm != 0 then (B, 2) else
+  (pnt (pnt B (mn sp ODDP) 4) cp k, 1)
+
+-- ==== card6_flips_pad_phase / card6_teleport(_by_color_pair) ====
+def padAnc (e : Env) (B : Fr) (a b : Nat) : Nat :=
+  let ma := colm B a &amp;&amp;&amp; e.mapm
+  let mb := colm B b &amp;&amp;&amp; e.mapm
+  (ma &amp;&amp;&amp; west mb &amp;&amp;&amp; north mb &amp;&amp;&amp; north (west ma) ||| mb &amp;&amp;&amp; west ma &amp;&amp;&amp; north ma &amp;&amp;&amp; north (west mb)) &amp;&amp;&amp; EVEN
+def flipPads (e : Env) (B : Fr) : Fr :=
+  PAIRS.foldl (fun F p =&gt;
+    let anc := padAnc e B p.1 p.2
+    let anc := if p == (6, 7) then anc else mn anc e.hub
+    let sp := spread anc
+    pnt (pnt F (colm B p.1 &amp;&amp;&amp; sp) p.2) (colm B p.2 &amp;&amp;&amp; sp) p.1) B
+def teleDest (e : Env) (B : Fr) (r c : Int) (u : Nat) : Option (Int × Int) :=
+  if !isPad u then none else
+  match PAIRS.find? (fun p =&gt; (nib u 0 == p.1 &amp;&amp; nib u 1 == p.2) || (nib u 0 == p.2 &amp;&amp; nib u 1 == p.1)) with
+  | none =&gt; none
+  | some p =&gt;
+    let anc := mn (padAnc e B p.1 p.2) (bt r c)
+    if anc != 0 &amp;&amp; anc == lb anc then some ((Nat.log2 anc / 64 : Nat), (Nat.log2 anc % 64 : Nat)) else none
+
+-- ==== card11_*：横条 (行, 轨道起列, 开局档)；第 n 次生效后档位 (开局档+n) mod 6，最右档色 12，色 1 压在色 12 上 ====
+def bar3 (x : Nat) : Int × Int × Nat := ((fld x 0 6 : Nat), (fld x 6 6 : Nat), fld x 12 3)
+def barsPaint (B : Fr) (bs : List Nat) (n : Nat) : Fr :=
+  let B := bs.foldl (fun F x =&gt; let b := bar3 x; pnt F (rect b.1 (b.1 + 1) b.2.1 (b.2.1 + 15)) 4) B
+  let draw := fun (want : Nat) (F : Fr) =&gt; bs.foldl (fun F x =&gt;
+    let b := bar3 x
+    let sl := (b.2.2 + n) % 6
+    let c := if sl == 5 then 12 else 1
+    if c == want then pnt F (rect b.1 (b.1 + 1) (b.2.1 + 2 * sl) (b.2.1 + 2 * sl + 5)) c else F) F
+  draw 1 (draw 12 B)
+-- ==== card2 / 横带 (行, 起列, 开局端)：第 n 次后填充 f = 4·tri(n mod 8)（开局全闭的取 16-f），两端各 f/2，满 16 整条色 12 ====
+def bandsPaint (B : Fr) (bs : List Nat) (n : Nat) : Fr :=
+  let k := n % 8
+  let f0 := 4 * (if k ≤ 4 then k else 8 - k)
+  bs.foldl (fun F x =&gt;
+    let r : Int := fld x 0 6
+    let c0 : Int := fld x 6 6
+    let f := if fld x 12 1 == 1 then 16 - f0 else f0
+    let F := pnt F (rect r (r + 1) c0 (c0 + 15)) 5
+    if f == 16 then pnt F (rect r (r + 1) c0 (c0 + 15)) 12
+    else if f == 0 then F
+    else pnt F (rect r (r + 1) c0 (c0 + (f / 2 : Nat) - 1) ||| rect r (r + 1) (c0 + 16 - (f / 2 : Nat)) (c0 + 15)) 1) B
+
+-- ==== card_pickup_clears_icon：走进压着 .XX./XXXX 图标的格，图标涂成地板 2，面板出现对应的卡 ====
+def pickCard (F : Fr) (v : Nat) : Fr :=
+  let r0 : Int := fld v 4 6
+  let c0 : Int := fld v 10 6
+  let w := fld v 16 4
+  let h := fld v 20 3
+  (List.range (w * h)).foldl (fun G k =&gt;
+    let x := fld v (24 + 4 * k) 4
+    if x == 0 then G else pnt G (bt (r0 + (k / w : Nat)) (c0 + (k % w : Nat))) x) F
+def iconAt (wr wc : Int) : Nat := rect wr wr (wc + 1) (wc + 2) ||| rect (wr + 1) (wr + 1) wc (wc + 3)
+def pickup (e : Env) (s : State) (B : Fr) (tr tc : Int) : Fr :=
+  let v := cv B tr tc
+  if !has4 v 2 || all4 v (fun x =&gt; x == 0 || x == 2 || x == 3 || x == 4 || x == 5 || x == 14) then B else
+  let good := FULL ^^^ [0, 2, 3, 4, 5, 14].foldl (fun m k =&gt; m ||| colm B k) 0
+  let two := colm B 2
+  let anc := two &amp;&amp;&amp; west (west (west two)) &amp;&amp;&amp; west good &amp;&amp;&amp; west (west good) &amp;&amp;&amp;
+    north (good &amp;&amp;&amp; west good &amp;&amp;&amp; west (west good) &amp;&amp;&amp; west (west (west good))) &amp;&amp;&amp; e.mapm
+  let hit := cel tr tc &amp;&amp;&amp; good
+  let cand := (List.range 24).foldl (fun acc k =&gt;
+    let wr := tr - 1 + (k / 8 : Nat)
+    let wc := tc - 3 + (k % 8 : Nat)
+    if anc &amp;&amp;&amp; bt wr wc != 0 &amp;&amp; iconAt wr wc &amp;&amp;&amp; hit != 0 then acc ||| bt wr wc else acc) 0
+  if cand == 0 || cand != lb cand then B else
+  let wr : Int := Nat.log2 cand / 64
+  let wc : Int := Nat.log2 cand % 64
+  let key := pxc B wr (wc + 1)
+  let B := pnt B (iconAt wr wc) 2
+  let v1 := kd s.k_pk1
+  let v2 := kd s.k_pk2
+  if s.k_pk1.isSome &amp;&amp; v1 % 16 == key then pickCard B v1
+  else if s.k_pk2.isSome &amp;&amp; v2 % 16 == key then pickCard B v2 else B
+
+-- ==== 第 4 关爪子与杆：card_l4_claw_slides / card_l4_claw_waist_peek / l4_card8_closes_clamp ====
+def dv (d : Nat) : Int × Int := if d == 1 then (-4, 0) else if d == 2 then (4, 0) else if d == 3 then (0, -4) else (0, 4)
+def clawOf (e : Env) (B : Fr) : Option (Int × Int × Bool × Nat) :=
+  let C := colm B 8 &amp;&amp;&amp; e.mapm
+  if C == 0 then none else
+  let r0 : Int := Nat.log2 (lb C) / 64
+  let r1 : Int := Nat.log2 C / 64
+  let sh := r1 - r0 == 5
+  some ((if sh then r0 - 1 else r0), (Nat.log2 (lb (cfold C)) : Nat), sh, C)
+def rodOf (e : Env) (s : State) (B : Fr) : Nat :=
+  let m := colm B 12 &amp;&amp;&amp; e.mapm
+  let m := (klist (kd s.k_bars) 15).foldl (fun x b =&gt; mn x (rect (fld b 0 6) (fld b 0 6 + 1) (fld b 6 6) (fld b 6 6 + 15))) m
+  (klist (kd s.k_bands) 13).foldl (fun x b =&gt; mn x (rect (fld b 0 6) (fld b 0 6 + 1) (fld b 6 6) (fld b 6 6 + 15))) m
+-- 结果码：0 没有爪子，1 动了，2 被拒（玩家踩在要动的东西上），3 推不动（腰格落点不全是底图的轨道色 0）
+def clawMove (e : Env) (s : State) (B : Fr) (d : Nat) : Fr × Nat :=
+  match clawOf e B with
+  | none =&gt; (B, 0)
+  | some (R, C0, sh, cm) =&gt;
+    let wr := R + 2 + (dv d).1
+    let wc := C0 + 1 + (dv d).2
+    let w := rect wr (wr + 3) wc (wc + 3)
+    if wr &lt; 0 || wc &lt; 0 || wr + 3 &gt; 61 || w == 0 || e.z &amp;&amp;&amp; w != w then (B, 3) else
+    let rod := if sh then rodOf e s B else 0
+    if (cm ||| rod) &amp;&amp;&amp; e.pm != 0 then (B, 2) else
+    (pnt (pnt (restore e B (cm ||| rod)) (shiftM rod (dv d).1 (dv d).2) 12) (shiftM cm (dv d).1 (dv d).2) 8, 1)
+def clawShut (e : Env) (B : Fr) : Fr × Nat :=
+  match clawOf e B with
+  | none =&gt; (B, 0)
+  | some (R, C0, sh, cm) =&gt;
+    if sh || colm B 12 &amp;&amp;&amp; rect (R + 2) (R + 5) (C0 + 7) (C0 + 7) == 0 then (B, 3) else
+    let nw := (cm &amp;&amp;&amp; rect (R + 2) (R + 5) 0 63) ||| south (cm &amp;&amp;&amp; rect R (R + 1) 0 63) ||| north (cm &amp;&amp;&amp; rect (R + 6) (R + 7) 0 63)
+    (pnt (restore e B cm) nw 8, 1)
+
+-- ==== 第 5 关十字件与方框：card6_rotates_piece / lit_diamond_moves_box / card8_clamps_box_on_piece / clamped_piece_slides ====
+-- 件：环左上角 (rr,rc)，o = 0 横放；臂 = 环的 4 行 × 列 rc-8..rc+11，环上下各两行凸起；竖放是关于环的转置
+def pR (rr rc : Int) (o : Nat) (a b c d : Int) : Nat := if o == 0 then rect (rr + a) (rr + b) (rc + c) (rc + d) else rect (rr + c) (rr + d) (rc + a) (rc + b)
+def ringM (rr rc : Int) : Nat := mn (rect rr (rr + 3) rc (rc + 3)) (rect (rr + 1) (rr + 2) (rc + 1) (rc + 2))
+def pieceM (p : Int × Int × Nat) : Nat :=
+  let (rr, rc, o) := p
+  mn (pR rr rc o 0 3 (-8) 11 ||| pR rr rc o (-2) (-2) (-1) 4 ||| pR rr rc o (-1) (-1) 0 3 ||| pR rr rc o 4 4 0 3 ||| pR rr rc o 5 5 (-1) 4) (ringM rr rc)
+def pieceOk (p : Int × Int × Nat) : Bool :=
+  let (rr, rc, o) := p
+  if o == 0 then rr ≥ 2 &amp;&amp; rr + 5 ≤ 53 &amp;&amp; rc ≥ 8 &amp;&amp; rc + 11 ≤ 39 else rc ≥ 2 &amp;&amp; rc + 5 ≤ 39 &amp;&amp; rr ≥ 8 &amp;&amp; rr + 11 ≤ 53
+def boxM (b : Int × Int × Nat) : Nat :=
+  let (br, bc, sh) := b
+  if sh == 0 then mn (rect br (br + 7) bc (bc + 7)) (rect (br + 1) (br + 6) (bc + 1) (bc + 6))
+  else mn (rect (br + 1) (br + 6) (bc + 1) (bc + 6)) (rect (br + 3) (br + 4) (bc + 3) (bc + 4))
+def boxIn (b : Int × Int × Nat) : Nat := let (br, bc, sh) := b; if sh == 0 then rect br (br + 7) bc (bc + 7) else rect (br + 1) (br + 6) (bc + 1) (bc + 6)
+def pAll (p : Option (Int × Int × Nat)) : Nat := match p with | some q =&gt; pieceM q ||| ringM q.1 q.2.1 | none =&gt; 0
+def render6 (e : Env) (B : Fr) (op nq : Option (Int × Int × Nat)) (ob nb : Option (Int × Int × Nat)) : Fr :=
+  let B := restore e B (pAll op ||| (match ob with | some b =&gt; boxM b | none =&gt; 0))
+  let B := match nq with | some q =&gt; pnt (pnt B (pieceM q) 12) (ringM q.1 q.2.1) 8 | none =&gt; B
+  match nb with | some b =&gt; pnt B (boxM b) 8 | none =&gt; B
+def mvP (p : Int × Int × Nat) (d : Int × Int) : Int × Int × Nat := (p.1 + d.1, p.2.1 + d.2, p.2.2)
+-- 亮菱形推方框：返回 (底图, 件, 框, 结果码 1 动了 / 3 推不动)
+def boxStep (e : Env) (B : Fr) (pc : Option (Int × Int × Nat)) (bx : Int × Int × Nat) (d : Nat) :
+    Fr × Option (Int × Int × Nat) × (Int × Int × Nat) × Nat :=
+  let nb := mvP bx (dv d)
+  let sh := bx.2.2 == 1
+  if nb.1 &lt; 0 || nb.2.1 &lt; 0 || nb.1 + 7 &gt; 53 || nb.2.1 + 7 &gt; 39 then (B, pc, bx, 3) else
+  let under := render6 e B pc (if sh then none else pc) (some bx) none
+  if colm under 4 &amp;&amp;&amp; rect (nb.1 + 3) (nb.1 + 4) (nb.2.1 + 3) (nb.2.1 + 4) != 0 then (B, pc, bx, 3) else
+  let npc := if sh then pc.map (fun p =&gt; mvP p (dv d)) else pc
+  let blocked := match sh, pc, npc with
+    | true, some p, some q =&gt; !pieceOk q || e.f &amp;&amp;&amp; mn (pAll (some q)) (pAll (some p)) != 0
+    | _, _, _ =&gt; false
+  if blocked then (B, pc, bx, 3) else (render6 e B pc npc (some bx) (some nb), npc, nb, 1)
+def clamp6 (e : Env) (B : Fr) (pc : Option (Int × Int × Nat)) (bx : Int × Int × Nat) : Fr × (Int × Int × Nat) × Nat :=
+  let (br, bc, sh) := bx
+  match pc with
+  | none =&gt; (B, bx, 3)
+  | some p =&gt;
+    let ctr := rect (br + 3) (br + 4) (bc + 3) (bc + 4)
+    if sh == 1 || pieceM p &amp;&amp;&amp; ctr != ctr || mn (rect (br + 2) (br + 5) (bc + 2) (bc + 5)) ctr != ringM p.1 p.2.1 then (B, bx, 3)
+    else (render6 e B pc pc (some bx) (some (br, bc, 1)), (br, bc, 1), 1)
+def dias (s : State) : List (Int × Int × Nat × Nat) :=
+  if s.k_dia.isNone then [] else (List.range 4).map (fun i =&gt; let x := fld (kd s.k_dia) (19 * i) 19; ((fld x 0 6 : Nat), (fld x 6 6 : Nat), fld x 12 4, fld x 16 3))
+-- legend_marker_lights_diamond：脚下是标记格 [1,0/0,X] 时 X 那颗整块亮，其余灭（15 个色 4 + 右下角 X）
+def diamonds (s : State) (F : Fr) (u : Nat) : Fr :=
+  let lit := if nib u 0 == 1 &amp;&amp; nib u 1 == 0 &amp;&amp; nib u 2 == 0 &amp;&amp; nib u 3 &gt; 1 then nib u 3 else 99
+  (dias s).foldl (fun G d =&gt;
+    let b4 := rect d.1 (d.1 + 3) d.2.1 (d.2.1 + 3)
+    if d.2.2.1 == lit then pnt G b4 lit else pnt (pnt G b4 4) (bt (d.1 + 3) (d.2.1 + 3)) d.2.2.1) F
+
+-- ==== 卡：同色四连通块 ≥ 20 像素、外圈只有色 0 / 色 5（面板底与卡框） ====
+def MAPROWS : Nat := rect 0 61 0 63
+def cardOf (F : Fr) (r c : Int) : Option Nat :=
+  if r &lt; 0 || r &gt; 61 || c &lt; 0 || c &gt; 63 then none else
+  let v := pxc F r c
+  if v == 0 || v == 4 || v == 5 then none else
+  let g := flood 40 (bt r c) (colm F v &amp;&amp;&amp; MAPROWS)
+  if cnt 20 g &lt; 20 then none else
+  if mn (dil g &amp;&amp;&amp; MAPROWS) g &amp;&amp;&amp; (FULL ^^^ (colm F 0 ||| colm F 5)) != 0 then none else some v
+
+-- ==== HUD：本关已走 t 拍，色 3 像素 = min(64, ceil(64t/tb))；拍数（拟合）见头部说明 ====
+def hudRow (t tb : Nat) : Nat := (2 ^ min 64 ((64 * t + tb - 1) / tb) - 1) &lt;&lt;&lt; 4032
+def HUDM : Nat := (2 ^ 64 - 1) &lt;&lt;&lt; 4032
+def setHud (F : Fr) (h : Nat) : Fr := ⟨mn F.p0 HUDM ||| h, mn F.p1 HUDM ||| h, mn F.p2 HUDM, mn F.p3 HUDM⟩
+def hudFull (F : Fr) : Bool := colm F 3 &amp;&amp;&amp; rect 63 63 0 63 == rect 63 63 0 63
+
+def oP (a b c : Option Int) : Option (Int × Int × Nat) := match a, b, c with | some x, some y, some z =&gt; some (x, y, z.toNat) | _, _, _ =&gt; none
+def mkEnv (s : State) : Env :=
+  ⟨rect 0 61 0 (kd s.k_pc - 1 : Nat), rect 0 61 (kd s.k_pc : Nat) 63, bgFix s (kd s.k_bgz), bgFix s (kd s.k_bgf), bgFix s (kd s.k_bgi),
+    (if s.k_hub.isSome then bt (kd s.k_hub / 64 : Nat) (kd s.k_hub % 64 : Nat) else 0), cel s.me_r s.me_c⟩
+
+-- ==== stepRules：一步。玩家先擦掉（脚下 u 补回），在底图上做装置的事，再把玩家画回去、重记 u ====
+-- 拆成许多小函数：内核每步只展开走到的那一支（整段大 match 每步复制会把内存吃光）。
+-- cls：0 移动 / 空点，1 卡生效，2 被拒，3 卡空点，4 爪子合口，5 按钮动 / 推不动，6 亮菱形推动，7 四色图标
+def wt (cls : Nat) : Nat := if cls == 1 || cls == 6 || cls == 7 then 2 else if cls == 2 then 20 else if cls == 3 then 0 else 1
+structure Rs where
+  B : Fr
+  r : Int
+  c : Int
+  pc : Option (Int × Int × Nat)
+  bx : Option (Int × Int × Nat)
+  cls : Nat
+  n2 : Int
+  n11 : Int
+def frS (s : State) : Fr := ⟨s.fb0.toNat, s.fb1.toNat, s.fb2.toNat, s.fb3.toNat⟩
+def bg0 (s : State) : Fr := put4 (frS s) s.me_r s.me_c s.h_u.toNat
+def pcS (s : State) : Option (Int × Int × Nat) := oP s.pc6_0 s.pc6_1 s.pc6_2
+def bxS (s : State) : Option (Int × Int × Nat) := oP s.bx6_0 s.bx6_1 s.bx6_2
+def rs0 (s : State) (B : Fr) (cls : Nat) : Rs := ⟨B, s.me_r, s.me_c, pcS s, bxS s, cls, s.h_n2, s.h_n11⟩
+def dOf (a : Act) : Int × Int := match a with | Act.a1 =&gt; (-2, 0) | Act.a2 =&gt; (2, 0) | Act.a3 =&gt; (0, -2) | Act.a4 =&gt; (0, 2) | _ =&gt; (0, 0)
+
+def card8 (s : State) : Rs :=
+  let a := arms (mkEnv s) (bg0 s) 8 13
+  if a.2 != 0 then rs0 s a.1 a.2 else
+  if s.k_btn.isSome then (let c := clawShut (mkEnv s) (bg0 s); rs0 s c.1 (if c.2 == 1 then 4 else 3)) else
+  match bxS s with
+  | some b =&gt; let r := clamp6 (mkEnv s) (bg0 s) (pcS s) b; { rs0 s r.1 r.2.2 with bx := some r.2.1 }
+  | none =&gt; rs0 s (bg0 s) 3
+def rot6 (s : State) (B : Fr) : Fr × Option (Int × Int × Nat) × Nat :=
+  match pcS s with
+  | some p =&gt;
+    let q := (p.1, p.2.1, 1 - p.2.2)
+    let m := cel s.me_r s.me_c
+    if !pieceOk q then (B, pcS s, 0)
+    else if pAll (pcS s) &amp;&amp;&amp; m != 0 &amp;&amp; pAll (some q) &amp;&amp;&amp; m != m then (B, pcS s, 2)
+    else (render6 (mkEnv s) B (pcS s) (some q) (bxS s) (bxS s), some q, 1)
+  | none =&gt; (B, none, 0)
+def card6b (s : State) (B : Fr) : Rs :=
+  let rt := rot6 s B
+  if rt.2.2 == 2 then rs0 s (bg0 s) 2 else
+  let d := (teleDest (mkEnv s) rt.1 s.me_r s.me_c s.h_u.toNat).getD (s.me_r, s.me_c)
+  { rs0 s (flipPads (mkEnv s) rt.1) 1 with r := d.1, c := d.2, pc := rt.2.1 }
+def card6 (s : State) : Rs :=
+  let a := arms (mkEnv s) (bg0 s) 7 6
+  if a.2 == 2 then rs0 s (bg0 s) 2 else card6b s a.1
+def card11 (s : State) (B3 : Fr) : Rs :=
+  if all4 s.h_u.toNat (fun z =&gt; z == 1 || z == 12) &amp;&amp; !all4 (cv B3 s.me_r s.me_c) (fun z =&gt; z == 1 || z == 12) then rs0 s (bg0 s) 2
+  else { rs0 s B3 1 with n11 := s.h_n11 + 1 }
+def cardDev (s : State) (kc : Nat) : Rs :=
+  if kc == 8 then card8 s else if kc == 6 then card6 s
+  else if kc == 9 || kc == 15 then (let p := phase (mkEnv s) (bg0 s) kc; rs0 s p.1 (if p.2 == 0 then 3 else p.2))
+  else if kc == 11 &amp;&amp; s.k_bars.isSome then card11 s (barsPaint (bg0 s) (klist (kd s.k_bars) 15) (s.h_n11 + 1).toNat)
+  else if kc == 2 &amp;&amp; s.k_bands.isSome then { rs0 s (bandsPaint (bg0 s) (klist (kd s.k_bands) 13) (s.h_n2 + 1).toNat) 1 with n2 := s.h_n2 + 1 }
+  else rs0 s (bg0 s) 3
+-- panel_ring_fades_on_click：卡生效时面板上所有色 0 卡框褪成面板底色 5
+def cardStep (s : State) (kc : Nat) : Rs :=
+  let x := cardDev s kc
+  if x.cls == 1 || x.cls == 4 then { x with B := pnt x.B (colm x.B 0 &amp;&amp;&amp; (mkEnv s).panm) 5 } else x
+def iconRe (s : State) (B : Fr) : Fr :=
+  let hr : Int := kd s.k_hub / 64
+  let hc : Int := kd s.k_hub % 64
+  let v := cv B hr hc
+  match PAIRS.find? (fun p =&gt; (nib v 0 == p.1 &amp;&amp; nib v 1 == p.2) || (nib v 0 == p.2 &amp;&amp; nib v 1 == p.1)) with
+  | some p =&gt; let q := nextPair p; put4 B hr hc ([0, 1, 2, 3].foldl (fun acc k =&gt; acc * 16 + (if nib v k == p.1 then q.1 else q.2)) 0)
+  | none =&gt; B
+def diaStep (s : State) (d : Int × Int × Nat × Nat) (b : Int × Int × Nat) : Rs :=
+  let b4 := rect d.1 (d.1 + 3) d.2.1 (d.2.1 + 3)
+  if colm (frS s) d.2.2.1 &amp;&amp;&amp; b4 != b4 then rs0 s (bg0 s) 0 else
+  let r := boxStep (mkEnv s) (bg0 s) (pcS s) b d.2.2.2
+  if r.2.2.2 == 1 then { rs0 s r.1 6 with pc := r.2.1, bx := some r.2.2.1 } else rs0 s (bg0 s) 5
+def nonCard (s : State) (y x : Int) : Rs :=
+  let br : Int := kd s.k_btn / 64
+  let bc : Int := kd s.k_btn % 64
+  match (List.range 4).find? (fun (i : Nat) =&gt; s.k_btn.isSome &amp;&amp; rect br (br + 3) (bc + 5 * (i : Int)) (bc + 5 * (i : Int) + 3) &amp;&amp;&amp; bt y x != 0) with
+  | some i =&gt; let m := clawMove (mkEnv s) s (bg0 s) ([3, 1, 4, 2].getD i 0); rs0 s (if m.2 == 1 then m.1 else bg0 s) (if m.2 == 2 then 2 else 5)
+  | none =&gt;
+    match (dias s).find? (fun d =&gt; rect d.1 (d.1 + 3) d.2.1 (d.2.1 + 3) &amp;&amp;&amp; bt y x != 0), bxS s with
+    | some d, some b =&gt; diaStep s d b
+    | _, _ =&gt;
+      let ic := kd s.k_icon
+      if s.k_icon.isSome &amp;&amp; rect (ic / 64 : Nat) (ic / 64 + 3 : Nat) (ic % 64 : Nat) (ic % 64 + 3 : Nat) &amp;&amp;&amp; bt y x != 0 &amp;&amp; pxc (frS s) y x != 5
+      then rs0 s (iconRe s (bg0 s)) 7 else rs0 s (bg0 s) 0
+def moveStep (s : State) (d : Int × Int) : Rs :=
+  let tr := s.me_r + d.1
+  let tc := s.me_c + d.2
+  if (d.1 != 0 || d.2 != 0) &amp;&amp; tr ≥ 0 &amp;&amp; tr ≤ 62 &amp;&amp; tc ≥ 0 &amp;&amp; tc ≤ 62 &amp;&amp; enterable (cv (bg0 s) tr tc) then
+    { rs0 s (pickup (mkEnv s) s (bg0 s) tr tc) 0 with r := tr, c := tc }
+  else rs0 s (bg0 s) 0
+def act (s : State) (a : Act) : Rs :=
+  match a with
+  | Act.a6 x y =&gt; match cardOf (frS s) y x with | some kc =&gt; cardStep s kc | none =&gt; nonCard s y x
+  | _ =&gt; moveStep s (dOf a)
+-- 画回玩家：件的环 / 方框的色 8 在玩家半步踏上它的外沿时画在玩家上面；图例菱形按脚下标记格亮灭；HUD
+def finQ (s : State) (x : Rs) (t : Nat) : Fr :=
+  let nu := cv x.B x.r x.c
+  let cm := cel x.r x.c
+  let tops : List (Nat × Nat) := (match x.pc with | some p =&gt; [(ringM p.1 p.2.1, rect p.1 (p.1 + 3) p.2.1 (p.2.1 + 3))] | none =&gt; []) ++
+    (match x.bx with | some b =&gt; [(boxM b, boxIn b)] | none =&gt; [])
+  let Q := tops.foldl (fun G y =&gt; if cm &amp;&amp;&amp; y.1 != 0 &amp;&amp; cm &amp;&amp;&amp; y.2 != cm then pnt G (cm &amp;&amp;&amp; y.1) 8 else G) (pnt x.B cm 14)
+  let Q := if s.k_dia.isSome &amp;&amp; (isMarker s.h_u.toNat || isMarker nu) then diamonds s Q nu else Q
+  setHud Q (hudRow t (kd s.k_tb))
+def stepRules (s : State) (a : Act) : Option State :=
+  if hudFull (frS s) then some s else
+  let x := act s a
+  let t := s.h_t.toNat + wt x.cls
+  let Q := finQ s x t
+  some { s with
+    fb0 := Q.p0, fb1 := Q.p1, fb2 := Q.p2, fb3 := Q.p3, me_r := x.r, me_c := x.c
+    h_t := t, h_u := cv x.B x.r x.c, h_n2 := x.n2, h_n11 := x.n11
+    pc6_0 := x.pc.map (·.1), pc6_1 := x.pc.map (·.2.1), pc6_2 := x.pc.map (fun p =&gt; (p.2.2 : Int))
+    bx6_0 := x.bx.map (·.1), bx6_1 := x.bx.map (·.2.1), bx6_2 := x.bx.map (fun b =&gt; (b.2.2 : Int)) }
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+def isGoal (s : State) : Bool := s.level == 6
+
+
+-- ==== 规则（每条概念一条；effect 只核这条概念主张的那部分，装置函数与 stepRules 共用） ====
+def frameOf (s : State) : Fr := frS s
+def bgOf (s : State) : Fr := bg0 s
+def lvUp (s s&#x27; : State) : Bool := s&#x27;.level != s.level
+def isMv (a : Act) : Bool := dOf a != (0, 0)
+def inR (s : State) (a : Act) : Bool := let t := s.me_r + (dOf a).1; let u := s.me_c + (dOf a).2; t ≥ 0 &amp;&amp; t ≤ 62 &amp;&amp; u ≥ 0 &amp;&amp; u ≤ 62
+def tgt (s : State) (a : Act) : Nat := cv (bgOf s) (s.me_r + (dOf a).1) (s.me_c + (dOf a).2)
+def canGo (s : State) (a : Act) : Bool := isMv a &amp;&amp; inR s a &amp;&amp; enterable (tgt s a)
+def live (s : State) : Bool := !hudFull (frameOf s)
+def mapM (s : State) : Nat := rect 0 61 0 (kd s.k_pc - 1 : Nat)
+def agree (G : Fr) (s&#x27; : State) (m : Nat) : Bool :=
+  (G.p0 ^^^ s&#x27;.fb0.toNat) &amp;&amp;&amp; m == 0 &amp;&amp; (G.p1 ^^^ s&#x27;.fb1.toNat) &amp;&amp;&amp; m == 0 &amp;&amp;
+  (G.p2 ^^^ s&#x27;.fb2.toNat) &amp;&amp;&amp; m == 0 &amp;&amp; (G.p3 ^^^ s&#x27;.fb3.toNat) &amp;&amp;&amp; m == 0
+def sameOn (s s&#x27; : State) (m : Nat) : Bool := agree (frameOf s) s&#x27; m
+-- 某区域里除去玩家挪动前后那两格
+def outP (s s&#x27; : State) (m : Nat) : Nat := mn (mn m (cel s.me_r s.me_c)) (cel s&#x27;.me_r s&#x27;.me_c)
+def clk (s : State) (a : Act) : Option (Int × Int × Nat) := match a with | Act.a6 x y =&gt; some (y, x, pxc (frameOf s) y x) | _ =&gt; none
+def inBox4 (s : State) (a : Act) (o : Option Int) : Bool :=
+  match clk s a, o with | some (y, x, v), some p =&gt; v != 5 &amp;&amp; y ≥ p / 64 &amp;&amp; y ≤ p / 64 + 3 &amp;&amp; x ≥ p % 64 &amp;&amp; x ≤ p % 64 + 3 | _, _ =&gt; false
+-- 点在面板上色 k 的卡上（不是菱形、不是四色图标——第 5 关它们也有 8/11/15 色的像素）
+def onPan (s : State) (a : Act) (k : Nat) : Bool :=
+  match clk s a with
+  | some (y, x, v) =&gt; x ≥ kd s.k_pc &amp;&amp; v == k &amp;&amp; live s &amp;&amp; !inBox4 s a s.k_icon &amp;&amp;
+      !(s.k_btn.isSome &amp;&amp; y ≥ kd s.k_btn / 64 &amp;&amp; y ≤ kd s.k_btn / 64 + 3) &amp;&amp;
+      !(dias s).any (fun d =&gt; y ≥ d.1 &amp;&amp; y ≤ d.1 + 3 &amp;&amp; x ≥ d.2.1 &amp;&amp; x ≤ d.2.1 + 3)
+  | none =&gt; false
+def meSame (s s&#x27; : State) : Bool := s&#x27;.me_r == s.me_r &amp;&amp; s&#x27;.me_c == s.me_c
+def uAll (s : State) (p : Nat → Bool) : Bool := all4 s.h_u.toNat p
+def pc (s : State) : Option (Int × Int × Nat) := pcS s
+def bxOf (s : State) : Option (Int × Int × Nat) := bxS s
+def diaHit (s : State) (a : Act) : Option ((Int × Int × Nat × Nat) × Bool) :=
+  match clk s a with
+  | some (y, x, _) =&gt; (dias s).find? (fun d =&gt; y ≥ d.1 &amp;&amp; y ≤ d.1 + 3 &amp;&amp; x ≥ d.2.1 &amp;&amp; x ≤ d.2.1 + 3) |&gt;.map (fun d =&gt;
+      let b4 := rect d.1 (d.1 + 3) d.2.1 (d.2.1 + 3); (d, colm (frameOf s) d.2.2.1 &amp;&amp;&amp; b4 == b4))
+  | none =&gt; none
+def btnHit (s : State) (a : Act) : Option Nat :=
+  if !live s || s.k_btn.isNone then none else (List.range 4).find? (fun i =&gt; inBox4 s a (some (Int.ofNat (kd s.k_btn + 5 * i))))
+def padsAll (s : State) : Nat := PAIRS.foldl (fun m p =&gt; m ||| padAnc (mkEnv s) (frameOf s) p.1 p.2) 0
+def mvRule (nm : String) (act : Act) : Rule :=
+  { name := nm, guard := fun s a =&gt; a == act &amp;&amp; live s,
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; ||
+      (if canGo s a then s&#x27;.me_r == s.me_r + (dOf a).1 &amp;&amp; s&#x27;.me_c == s.me_c + (dOf a).2 else meSame s s&#x27;) }
+-- 装置概念：装置函数作用在「擦掉玩家的底图」上，与后帧在地图区（除玩家两格）逐像素比；玩家不挪
+def devRule (nm : String) (g : State → Act → Bool) (dev : State → Act → Fr) : Rule :=
+  { name := nm, guard := g, effect := fun s a s&#x27; =&gt; lvUp s s&#x27; || (meSame s s&#x27; &amp;&amp; agree (dev s a) s&#x27; (outP s s&#x27; (mapM s))) }
+def bandFill (F : Fr) (b : Nat) : Nat :=
+  let m := rect (fld b 0 6 : Nat) (fld b 0 6 : Nat) (fld b 6 6 : Nat) (fld b 6 6 + 15 : Nat)
+  if colm F 12 &amp;&amp;&amp; m == m then 16 else cnt 17 (colm F 1 &amp;&amp;&amp; m)
+def bandsOf (s : State) : List Nat := klist (kd s.k_bands) 13
+def barsNext (s : State) : Fr := barsPaint (bgOf s) (klist (kd s.k_bars) 15) (s.h_n11 + 1).toNat
+def barRef (s : State) : Bool := uAll s (fun z =&gt; z == 1 || z == 12) &amp;&amp; !all4 (cv (barsNext s) s.me_r s.me_c) (fun z =&gt; z == 1 || z == 12)
+def ringNow (s : State) : Option (Nat × Nat) :=
+  match bxOf s, pc s with
+  | some b, _ =&gt; if b.2.2 == 1 then some (boxM b, boxIn b) else (pc s).map (fun p =&gt; (ringM p.1 p.2.1, rect p.1 (p.1 + 3) p.2.1 (p.2.1 + 3)))
+  | none, some p =&gt; some (ringM p.1 p.2.1, rect p.1 (p.1 + 3) p.2.1 (p.2.1 + 3))
+  | none, none =&gt; none
+def rot (p : Int × Int × Nat) : Int × Int × Nat := (p.1, p.2.1, 1 - p.2.2)
+-- 色 6 卡转件被拒：玩家踩在件上、转后脚下不在件上
+def rotRef (s : State) : Bool :=
+  match pc s with
+  | some p =&gt; let m := cel s.me_r s.me_c; pieceOk (rot p) &amp;&amp; pAll (pc s) &amp;&amp;&amp; m != 0 &amp;&amp; pAll (some (rot p)) &amp;&amp;&amp; m != m
+  | none =&gt; false
+def ref6 (s : State) : Bool := (arms (mkEnv s) (bgOf s) 7 6).2 == 2 || rotRef s
+def boxRes (s : State) (a : Act) : Fr × Option (Int × Int × Nat) × (Int × Int × Nat) × Nat :=
+  match diaHit s a, bxOf s with
+  | some (d, true), some b =&gt; boxStep (mkEnv s) (bgOf s) (pc s) b d.2.2.2
+  | _, some b =&gt; (bgOf s, pc s, b, 3)
+  | _, none =&gt; (bgOf s, pc s, (0, 0, 0), 3)
+def rd (s : State) : Option (Int × Int × Nat) × Option (Int × Int × Nat) := (pc s, bxOf s)
+-- underfoot_reveals_floor_vote：四邻格像素（不算 0/3/4/5/14）里票最多且唯一的颜色
+def vote (F : Fr) (r c : Int) : Option Nat :=
+  let cs := [(r - 2, c), (r + 2, c), (r, c - 2), (r, c + 2)].filter (fun p =&gt; p.1 ≥ 0 &amp;&amp; p.1 ≤ 62 &amp;&amp; p.2 ≥ 0 &amp;&amp; p.2 ≤ 62)
+  let vs := cs.map (fun p =&gt; cv F p.1 p.2)
+  let n := fun (x : Nat) =&gt; vs.foldl (fun k v =&gt; k + cnt4 v x) 0
+  let ok := (List.range 16).filter (fun x =&gt; x != 0 &amp;&amp; x != 3 &amp;&amp; x != 4 &amp;&amp; x != 5 &amp;&amp; x != 14)
+  let top := ok.foldl (fun m x =&gt; max m (n x)) 0
+  let w := ok.filter (fun x =&gt; n x == top)
+  if top &gt; 0 &amp;&amp; w.length == 1 then w.head? else none
+def standKnown (s : State) : Bool :=
+  (dias s).any (fun d =&gt; let b4 := rect d.1 (d.1 + 3) d.2.1 (d.2.1 + 3); colm (frameOf s) d.2.2.1 &amp;&amp;&amp; b4 == b4) ||
+  (padsAll s != 0 &amp;&amp; padsAll s == lb (padsAll s)) ||
+  ((klist (kd s.k_bars) 15).any (fun b =&gt; (fld b 0 6 : Int) == s.me_r) &amp;&amp; uAll s (fun z =&gt; z == 1 || z == 12))
+def maybePad (s : State) : Bool := PAIRS.any (fun p =&gt; let a := padAnc (mkEnv s) (frameOf s) p.1 p.2; a != 0 &amp;&amp; a == lb a)
+
+def rules : List Rule := [
+  mvRule &quot;action1_right&quot; Act.a1, mvRule &quot;action2_left&quot; Act.a2, mvRule &quot;action3_up&quot; Act.a3, mvRule &quot;action4_down&quot; Act.a4,
+  { name := &quot;blocking&quot;, guard := fun s a =&gt; isMv a &amp;&amp; live s &amp;&amp; !canGo s a,
+    effect := fun s _ s&#x27; =&gt; meSame s s&#x27; &amp;&amp; sameOn s s&#x27; (rect 0 62 0 63) },
+  { name := &quot;cell_enterable&quot;, guard := fun s a =&gt; isMv a &amp;&amp; live s &amp;&amp; inR s a,
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; || (!meSame s s&#x27;) == enterable (tgt s a) },
+  { name := &quot;goal_is_color11_block&quot;, guard := fun s a =&gt; isMv a &amp;&amp; live s,
+    effect := fun s a s&#x27; =&gt; (s&#x27;.level == s.level + 1) == (inR s a &amp;&amp; all4 (tgt s a) (· == 11)) },
+  { name := &quot;hud_alternating_counter&quot;, guard := fun _ a =&gt; a != Act.reset &amp;&amp; a != Act.retried Act.reset,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; ||
+      (colm (frameOf s&#x27;) 3 &amp;&amp;&amp; HUDM == hudRow s&#x27;.h_t.toNat (kd s&#x27;.k_tb) &amp;&amp; [0, 1, 2, 20].contains (s&#x27;.h_t - s.h_t).toNat &amp;&amp; s&#x27;.h_t ≥ s.h_t) },
+  { name := &quot;gameover_counter&quot;, guard := fun s a =&gt; a != Act.reset &amp;&amp; a != Act.retried Act.reset &amp;&amp; !live s,
+    effect := fun s _ s&#x27; =&gt; meSame s s&#x27; &amp;&amp; sameOn s s&#x27; FULL },
+  { name := &quot;reset_clears_state&quot;, guard := fun _ a =&gt; a == Act.reset || a == Act.retried Act.reset,
+    effect := fun _ _ s&#x27; =&gt; colm (frameOf s&#x27;) 3 &amp;&amp;&amp; HUDM == 0 &amp;&amp; (s&#x27;.level != 0 || (s&#x27;.me_r == 40 &amp;&amp; s&#x27;.me_c == 10)) },
+  { name := &quot;panel_ring_fades_on_click&quot;, guard := fun s a =&gt; match clk s a with | some (_, x, v) =&gt; x ≥ kd s.k_pc &amp;&amp; v != 0 &amp;&amp; v != 4 &amp;&amp; v != 5 &amp;&amp; live s | none =&gt; false,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; ||
+      (let pm := rect 0 61 (kd s.k_pc : Nat) 63
+       let z&#x27; := colm (frameOf s&#x27;) 0 &amp;&amp;&amp; pm
+       if sameOn s s&#x27; (mapM s) then z&#x27; == colm (frameOf s) 0 &amp;&amp;&amp; pm else z&#x27; == 0) },
+  devRule &quot;card8_transposes_arms&quot; (fun s a =&gt; onPan s a 8 &amp;&amp; colm (frameOf s) 13 &amp;&amp;&amp; mapM s != 0) (fun s _ =&gt; (arms (mkEnv s) (bgOf s) 8 13).1),
+  devRule &quot;card6_transposes_color7_arms&quot; (fun s a =&gt; onPan s a 6 &amp;&amp; colm (frameOf s) 7 &amp;&amp;&amp; mapM s != 0 &amp;&amp; cnt 17 (colm (frameOf s) 6 &amp;&amp;&amp; mapM s) == 16)
+    (fun s _ =&gt; (arms (mkEnv s) (bgOf s) 7 6).1),
+  { name := &quot;card8_gate_toggle&quot;, guard := fun s a =&gt; onPan s a 8 &amp;&amp; s.level ≤ 2,
+    effect := fun s _ s&#x27; =&gt;
+      let F := frameOf s
+      let G := frameOf s&#x27;
+      let d := ((F.p0 ^^^ G.p0) ||| (F.p1 ^^^ G.p1) ||| (F.p2 ^^^ G.p2) ||| (F.p3 ^^^ G.p3)) &amp;&amp;&amp; mapM s
+      let a := d &amp;&amp;&amp; colm F 4 &amp;&amp;&amp; colm G 8
+      let b := d &amp;&amp;&amp; colm F 8 &amp;&amp;&amp; colm G 4
+      d == a ||| b &amp;&amp; cnt 200 a == cnt 200 b },
+  devRule &quot;card_phase_swap_by_color&quot; (fun s a =&gt; onPan s a 9 || onPan s a 15) (fun s a =&gt; (phase (mkEnv s) (bgOf s) ((clk s a).map (·.2.2) |&gt;.getD 0)).1),
+  devRule &quot;card11_l3_bars_shift&quot; (fun s a =&gt; onPan s a 11 &amp;&amp; s.level == 3) (fun s _ =&gt; if barRef s then bgOf s else barsNext s),
+  devRule &quot;l4_card11_slides_bar&quot; (fun s a =&gt; onPan s a 11 &amp;&amp; s.level == 4) (fun s _ =&gt; if barRef s then bgOf s else barsNext s),
+  devRule &quot;card11_bars_shift&quot; (fun s a =&gt; onPan s a 11 &amp;&amp; s.level == 5) (fun s _ =&gt; if barRef s then bgOf s else barsNext s),
+  { name := &quot;card11_refused_if_player_stranded&quot;, guard := fun s a =&gt; onPan s a 11 &amp;&amp; s.k_bars.isSome &amp;&amp; uAll s (fun z =&gt; z == 1 || z == 12),
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || meSame s s&#x27; &amp;&amp; (!barRef s || sameOn s s&#x27; (mapM s)) },
+  devRule &quot;card2_l3_bands_one_notch&quot; (fun s a =&gt; onPan s a 2 &amp;&amp; s.level == 3) (fun s _ =&gt; bandsPaint (bgOf s) (bandsOf s) (s.h_n2 + 1).toNat),
+  { name := &quot;l3_twin_band_meter&quot;, guard := fun s a =&gt; onPan s a 2 &amp;&amp; s.level == 3,
+    effect := fun _ _ s&#x27; =&gt; ((bandsOf s&#x27;).map (bandFill (bgOf s&#x27;))).foldl (· + ·) 0 == 16 },
+  devRule &quot;l4_card2_fills_meter&quot; (fun s a =&gt; onPan s a 2 &amp;&amp; s.level == 4) (fun s _ =&gt; bandsPaint (bgOf s) (bandsOf s) (s.h_n2 + 1).toNat),
+  { name := &quot;card2_gate_bounce&quot;, guard := fun s a =&gt; onPan s a 2 &amp;&amp; (bandsOf s).any (fun b =&gt; let f := bandFill (bgOf s) b; f == 0 || f == 16),
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || (bandsOf s).all (fun b =&gt;
+      let f := bandFill (bgOf s) b; let f&#x27; := bandFill (bgOf s&#x27;) b
+      (f != 0 || f&#x27; == 4) &amp;&amp; (f != 16 || f&#x27; == 12)) },
+  { name := &quot;card6_teleport&quot;, guard := fun s a =&gt; onPan s a 6 &amp;&amp; isPad s.h_u.toNat,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || (match teleDest (mkEnv s) (bgOf s) s.me_r s.me_c s.h_u.toNat with
+      | some d =&gt; ref6 s || (s&#x27;.me_r == d.1 &amp;&amp; s&#x27;.me_c == d.2 &amp;&amp; (let v := cv (frameOf s&#x27;) s.me_r s.me_c; isPad v &amp;&amp; has4 v (nib s.h_u.toNat 0) &amp;&amp; has4 v (nib s.h_u.toNat 1)))
+      | none =&gt; meSame s s&#x27;) },
+  { name := &quot;card6_teleport_by_color_pair&quot;, guard := fun s a =&gt; onPan s a 6 &amp;&amp; isPad s.h_u.toNat &amp;&amp; s.pc6_0.isSome,
+    effect := fun s _ s&#x27; =&gt; match teleDest (mkEnv s) (bgOf s) s.me_r s.me_c s.h_u.toNat with
+      | some d =&gt; (ref6 s &amp;&amp; meSame s s&#x27;) || (s&#x27;.me_r == d.1 &amp;&amp; s&#x27;.me_c == d.2) | none =&gt; meSame s s&#x27; },
+  { name := &quot;card6_flips_pad_phase&quot;, guard := fun s a =&gt; onPan s a 6 &amp;&amp; padsAll s != 0,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; ||
+      agree (if ref6 s then bgOf s else flipPads (mkEnv s) (bgOf s)) s&#x27; (outP s s&#x27; (spread (padsAll s))) },
+  { name := &quot;pad_partner_under_player&quot;, guard := fun s a =&gt; isMv a &amp;&amp; live s &amp;&amp; isPad s.h_u.toNat &amp;&amp;
+      (let v := s.h_u.toNat; let p := PAIRS.find? (fun p =&gt; has4 v p.1 &amp;&amp; has4 v p.2) |&gt;.getD (0, 0)
+       let an := padAnc (mkEnv s) (frameOf s) p.1 p.2; an != 0 &amp;&amp; an == padsAll s &amp;&amp; an == lb an),
+    effect := fun s _ s&#x27; =&gt; meSame s s&#x27; || lvUp s s&#x27; ||
+      (let an := padsAll s
+       let w := cv (frameOf s) (Nat.log2 an / 64 : Nat) (Nat.log2 an % 64 : Nat)
+       cv (frameOf s&#x27;) s.me_r s.me_c == nib w 1 * 4096 + nib w 0 * 256 + nib w 0 * 16 + nib w 1) },
+  { name := &quot;pad_sites_pinned_except_hub&quot;, guard := fun s a =&gt; s.level == 5 &amp;&amp; a != Act.reset &amp;&amp; a != Act.retried Act.reset,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || PAIRS.all (fun p =&gt;
+      let keep := mn (mn (padAnc (mkEnv s) (frameOf s) p.1 p.2) (mkEnv s).hub) (bt s&#x27;.me_r s&#x27;.me_c)
+      keep &amp;&amp;&amp; padAnc (mkEnv s&#x27;) (frameOf s&#x27;) p.1 p.2 == keep) },
+  devRule &quot;icon_recolors_pad&quot; (fun s a =&gt; inBox4 s a s.k_icon &amp;&amp; live s) (fun s _ =&gt;
+    let hr : Int := kd s.k_hub / 64
+    let hc : Int := kd s.k_hub % 64
+    let v := cv (bgOf s) hr hc
+    match PAIRS.find? (fun p =&gt; has4 v p.1 &amp;&amp; has4 v p.2) with
+    | some p =&gt; let q := nextPair p; put4 (bgOf s) hr hc ([0, 1, 2, 3].foldl (fun acc k =&gt; acc * 16 + (if nib v k == p.1 then q.1 else q.2)) 0)
+    | none =&gt; bgOf s),
+  { name := &quot;card6_rotates_piece&quot;, guard := fun s a =&gt; onPan s a 6 &amp;&amp; s.pc6_0.isSome,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || (match pc s with
+      | some p =&gt; if ref6 s || !pieceOk (rot p) then pc s&#x27; == pc s else
+          let q := rot p
+          let hide := (match bxOf s with | some b =&gt; boxM b | none =&gt; 0) ||| cel s&#x27;.me_r s&#x27;.me_c
+          pc s&#x27; == some q &amp;&amp; agree (pnt (pnt (frameOf s&#x27;) (pieceM q) 12) (ringM q.1 q.2.1) 8) s&#x27; (mn (pAll (some q)) hide)
+      | none =&gt; true) },
+  { name := &quot;card6_refused_if_player_stranded&quot;, guard := fun s a =&gt; onPan s a 6 &amp;&amp; pAll (pc s) &amp;&amp;&amp; cel s.me_r s.me_c != 0,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || (if rotRef s then meSame s s&#x27; &amp;&amp; sameOn s s&#x27; (mapM s) else pc s&#x27; != pc s) },
+  { name := &quot;card8_clamps_box_on_piece&quot;, guard := fun s a =&gt; onPan s a 8 &amp;&amp; s.bx6_0.isSome,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; || (match bxOf s with
+      | some b =&gt; let r := clamp6 (mkEnv s) (bgOf s) (pc s) b; bxOf s&#x27; == some r.2.1 &amp;&amp; agree r.1 s&#x27; (outP s s&#x27; (mapM s))
+      | none =&gt; true) },
+  { name := &quot;lit_diamond_moves_box&quot;, guard := fun s a =&gt; live s &amp;&amp; s.bx6_2 == some 0 &amp;&amp; (diaHit s a).any (·.2),
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; || (let r := boxRes s a; bxOf s&#x27; == some r.2.2.1 &amp;&amp; agree r.1 s&#x27; (outP s s&#x27; (mapM s))) },
+  { name := &quot;clamped_piece_slides&quot;, guard := fun s a =&gt; live s &amp;&amp; s.bx6_2 == some 1 &amp;&amp; (diaHit s a).any (·.2),
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; || (let r := boxRes s a
+      rd s&#x27; == (r.2.1, some r.2.2.1) &amp;&amp; (rd s&#x27; == rd s || r.2.2.2 == 1) &amp;&amp; agree r.1 s&#x27; (outP s s&#x27; (mapM s))) },
+  { name := &quot;diamonds_inert&quot;, guard := fun s a =&gt; live s &amp;&amp; (diaHit s a).any (fun h =&gt; !h.2),
+    effect := fun s _ s&#x27; =&gt; sameOn s s&#x27; (mapM s) },
+  { name := &quot;legend_marker_lights_diamond&quot;, guard := fun s a =&gt; isMv a &amp;&amp; live s &amp;&amp; s.k_dia.isSome,
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; ||
+      (let v := if canGo s a then tgt s a else s.h_u.toNat
+       let lit := if nib v 0 == 1 &amp;&amp; nib v 1 == 0 &amp;&amp; nib v 2 == 0 &amp;&amp; nib v 3 &gt; 1 then nib v 3 else 99
+       (dias s).all (fun d =&gt; let b4 := rect d.1 (d.1 + 3) d.2.1 (d.2.1 + 3); (colm (frameOf s&#x27;) d.2.2.1 &amp;&amp;&amp; b4 == b4) == (d.2.2.1 == lit))) },
+  { name := &quot;move_into_piece_ring_keeps_ring_pixels&quot;, guard := fun s a =&gt; canGo s a &amp;&amp; live s &amp;&amp;
+      (match ringNow s with
+       | some (rg, bb) =&gt; let cm := cel (s.me_r + (dOf a).1) (s.me_c + (dOf a).2); cm &amp;&amp;&amp; rg != 0 &amp;&amp; cm &amp;&amp;&amp; bb != cm
+       | none =&gt; false),
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; || (match ringNow s with
+      | some (rg, _) =&gt; let m := cel (s.me_r + (dOf a).1) (s.me_c + (dOf a).2) &amp;&amp;&amp; rg; colm (frameOf s&#x27;) 8 &amp;&amp;&amp; m == m
+      | none =&gt; true) },
+  { name := &quot;card_pickup_clears_icon&quot;, guard := fun s a =&gt; canGo s a &amp;&amp; live s &amp;&amp;
+      !all4 (tgt s a) (fun x =&gt; x == 0 || x == 2 || x == 3 || x == 4 || x == 5 || x == 14) &amp;&amp; has4 (tgt s a) 2,
+    effect := fun s a s&#x27; =&gt; lvUp s s&#x27; ||
+      agree (pickup (mkEnv s) s (bgOf s) (s.me_r + (dOf a).1) (s.me_c + (dOf a).2)) s&#x27; (outP s s&#x27; (rect 0 61 0 63)) },
+  devRule &quot;card_l4_claw_slides&quot; (fun s a =&gt; btnHit s a |&gt;.isSome) (fun s a =&gt; (clawMove (mkEnv s) s (bgOf s) ([3, 1, 4, 2].getD ((btnHit s a).getD 0) 0)).1),
+  { name := &quot;card_l4_claw_waist_peek&quot;, guard := fun s a =&gt; btnHit s a |&gt;.isSome,
+    effect := fun s a s&#x27; =&gt;
+      let c := colm (frameOf s) 8 &amp;&amp;&amp; mapM s
+      let c&#x27; := colm (frameOf s&#x27;) 8 &amp;&amp;&amp; mapM s
+      let d := dv ([3, 1, 4, 2].getD ((btnHit s a).getD 0) 0)
+      c&#x27; == c || c&#x27; == shiftM c d.1 d.2 },
+  devRule &quot;l4_card8_closes_clamp&quot; (fun s a =&gt; onPan s a 8 &amp;&amp; s.k_btn.isSome) (fun s _ =&gt; (clawShut (mkEnv s) (bgOf s)).1),
+  { name := &quot;underfoot_reveals_floor_vote&quot;, guard := fun s a =&gt; canGo s a &amp;&amp; live s &amp;&amp; !standKnown s &amp;&amp; !maybePad s &amp;&amp;
+      (vote (frameOf s) s.me_r s.me_c).isSome,
+    effect := fun s _ s&#x27; =&gt; lvUp s s&#x27; ||
+      (match vote (frameOf s) s.me_r s.me_c with | some x =&gt; cv (frameOf s&#x27;) s.me_r s.me_c == x * 4369 | none =&gt; true) }
+]
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>dc22 · 统一到对象-规则-Lean-前端一条链的报告</h1>
 <p>工作台：<code>ledger/games/dc22/</code>（objects/ derive/ rule/ analysis/ lean2/ web/ 与驱动脚本）。
 <code>concepts/</code>、<code>history/</code>、<code>registry.json</code>、<code>formal/</code>、<code>formal_legacy/</code> 一个字没改。临时探针在 <code>runs/_wb-dc22/</code>。
 下面每个数都是本会话真实跑出来的，命令与关键输出行照贴；没跑过的标「待跑」。</p>

@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← ft09 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从认证那一遍的真实开局出发，照规则推演每一次点击，逐帧和录像比对，直到过关那一步；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通：每关逐帧核对 3 到 20 步，再加过关的那一步；逐帧核对的 74 步加上各关过关的那一步，正是官方记录的 80 步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/22ad2c44-13eb-4fc0-9e30-d1c27641b190" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像全部 168 步上逐步检验，0 次说错；每一步都至少有一条规则表态。</li><li>同一批 167 步，Lean 版规则与 Python 版规则逐步对账，结论完全一致。</li><li>把 Python 版规则故意改错 16 种（含一种不改行为的对照），检验抓住了 12 种；其余几种改的是过关条件里的细节或底板，这份录像里没有能把它们和原规则分开的局面。</li><li>把 Lean 版故意改错 9 处（含一处不改行为的对照），8 处让证明编译失败或被检查拦下，对照那一处照常通过。</li><li>50 条定理全部检查过依赖，只用到 Lean 的标准基础，没有跳过任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>计数条与重开的规则</h2><p class="prose">另有 3 条规则，在录像上逐步检验，不在 Lean 模型里：计数条每步涨多少、重开后回到哪里，都取决于这一关走过的历史，单看当前画面读不出来。</p><div class="rules"><article class="rule"><h3>同一关里走一步，计数条用掉的格数不减少，一步最多多用两格</h3><p>每一关用得快慢不同，取决于这一关已经走了几步，单看当前画面读不出来。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">157/157 步</span></div></article><article class="rule"><h3>进入还要打的下一关，计数条重新填满</h3><p>打完最后一关的那一步，计数条原样不动。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>重开之后，回到那一关的开局</h3><p>重开后的世界和那一关第一次出现时的开局完全相同。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 168 条记录，是两遍完整通关：第一遍边摸索边打，打到通关；从通关画面重开一次之后，第二遍 80 步，是官方认证的那一遍，首页的截图和全部证明都用它。</p><h2>适用范围</h2><ul class="lst"><li>模型描述同一关里的一步：计数条怎么涨、重开回到哪里、下一关长什么样，由录像检验，不进 Lean。打不通的定理只算点击，模型里没有重开这一步。</li><li>录像里没有出现点空白处、点网格中心、计数条用满这几种情况，规则对它们的说法未在录像上检验。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>scope / 论域</dt><dd>一条规则管哪些步</dd><dt>C / E / N</dt><dd>管到的步数 / 其中说错的 / 不归它管的</dd><dt>底色 / 记号</dt><dd>瓦片的颜色 / 瓦片边上指向邻居的粉色小块</dd><dt>ON / OFF</dt><dd>图样里要涂点亮色的位置 / 要涂另一种颜色的位置</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← ft09 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从认证那一遍的真实开局出发，照规则推演每一次点击，逐帧和录像比对，直到过关那一步；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通：每关逐帧核对 3 到 20 步，再加过关的那一步；逐帧核对的 74 步加上各关过关的那一步，正是官方记录的 80 步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/22ad2c44-13eb-4fc0-9e30-d1c27641b190" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像全部 168 步上逐步检验，0 次说错；每一步都至少有一条规则表态。</li><li>同一批 167 步，Lean 版规则与 Python 版规则逐步对账，结论完全一致。</li><li>把 Python 版规则故意改错 16 种（含一种不改行为的对照），检验抓住了 12 种；其余几种改的是过关条件里的细节或底板，这份录像里没有能把它们和原规则分开的局面。</li><li>把 Lean 版故意改错 9 处（含一处不改行为的对照），8 处让证明编译失败或被检查拦下，对照那一处照常通过。</li><li>50 条定理全部检查过依赖，只用到 Lean 的标准基础，没有跳过任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>计数条与重开的规则</h2><p class="prose">另有 3 条规则，在录像上逐步检验，不在 Lean 模型里：计数条每步涨多少、重开后回到哪里，都取决于这一关走过的历史，单看当前画面读不出来。</p><div class="rules"><article class="rule"><h3>同一关里走一步，计数条用掉的格数不减少，一步最多多用两格</h3><p>每一关用得快慢不同，取决于这一关已经走了几步，单看当前画面读不出来。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">157/157 步</span></div></article><article class="rule"><h3>进入还要打的下一关，计数条重新填满</h3><p>打完最后一关的那一步，计数条原样不动。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">10/10 步</span></div></article><article class="rule"><h3>重开之后，回到那一关的开局</h3><p>重开后的世界和那一关第一次出现时的开局完全相同。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 168 条记录，是两遍完整通关：第一遍边摸索边打，打到通关；从通关画面重开一次之后，第二遍 80 步，是官方认证的那一遍，首页的截图和全部证明都用它。</p><h2>适用范围</h2><ul class="lst"><li>模型描述同一关里的一步：计数条怎么涨、重开回到哪里、下一关长什么样，由录像检验，不进 Lean。打不通的定理只算点击，模型里没有重开这一步。</li><li>录像里没有出现点空白处、点网格中心、计数条用满这几种情况，规则对它们的说法未在录像上检验。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>scope / 论域</dt><dd>一条规则管哪些步</dd><dt>C / E / N</dt><dd>管到的步数 / 其中说错的 / 不归它管的</dd><dt>底色 / 记号</dt><dd>瓦片的颜色 / 瓦片边上指向邻居的粉色小块</dd><dt>ON / OFF</dt><dd>图样里要涂点亮色的位置 / 要涂另一种颜色的位置</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
 
 ## 契约（装置按名字找）
 
@@ -2227,7 +2227,421 @@ def step (b : Board) (s : List Nat) (a : Act) : List Nat :=
   s.mapIdx (fun i c =&gt; if (b.moved a).contains i then advance b.palette c else c)
 
 def World.step (w : World) (a : Act) : World := ⟨w.board, _root_.step w.board w.colors a⟩
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>ft09 · 统一到对象-规则-形式化-前端框架（第 0~12 步，归档除外）</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">ft09-20260907/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 9 条</span><span class="chip c-mute">路线 80 步，换关查表 6 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/ft09-20260907/_lib.py ; why=补逐格读数（瓦片底色/记号/目标、网格槽位、调色板）与隐藏状态 h_clicks、每关常数 k_bar_*，让 stepRules 真算出点击、联动、计数条与换关判定
+-- 由 world/formalize.py 生成于 2026-09-29T13:43:22+08:00；局 ft09；基于 run [&#x27;_exp-smoke-ft09&#x27;, &#x27;ft09-0907-0044&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 356 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复（2026-09-28）：数据段按 meta/repair-20260928/lib/ft09-20260907/_lib.py 重新生成，补了逐格读数
+--   tiles_0..31   每块可涂瓦片一个编码：位置 (top,left)、在不在网格里、记号方向、底色（只有看得见的原语）；
+--   grid_slots_0..7 每个网格：左上瓦片位置、点亮色、外环 8 个位置的「图样取值 × slot_kind」；
+--   mid_color_bits 各网格点亮色集合；legend_code 图例颜色序列；
+--   h_clicks      本关已生效点击次数（隐藏状态，判据修订 R1.1）；
+--   k_bar_num / k_bar_den 每关计数条速率（每关常数，反推依据写在 _lib.py 的 LEVEL_CONST 上）。
+-- stepRules 由这些字段真算出点击后的换色、记号联动、计数条与两个派生清点；
+-- 目标色（图样 0 处涂点亮色、2 处涂调色板另一色、共用瓦片两边一致）与「会不会换关」在下面 ringTargets 里求解。
+-- 换关那一步（新关卡布局是游戏内容）走 step 里的查表，其余一步不查。
+
+-- ---------- 瓦片编码 ----------
+structure Tile where
+  t : Nat          -- 左上角行
+  l : Nat          -- 左上角列
+  ing : Bool       -- 是不是某个网格外环上的瓦片（否则只是被记号牵动的邻居）
+  marks : Nat      -- 记号位：上 1、下 2、左 4、右 8
+  base : Nat       -- 当前底色
+deriving Repr, DecidableEq
+
+def decTile (c : Int) : Tile :=
+  let n := c.toNat
+  { base := n % 16, marks := n / 16 % 16, ing := n / 256 % 2 == 1,
+    l := n / 512 % 64, t := n / 32768 }
+
+def encTile (d : Tile) : Int :=
+  Int.ofNat (((((d.t * 64 + d.l) * 2 + (if d.ing then 1 else 0)) * 16 + d.marks) * 16) + d.base)
+
+def tileCodes (s : State) : List Int :=
+  [s.tiles_0, s.tiles_1, s.tiles_2, s.tiles_3, s.tiles_4, s.tiles_5, s.tiles_6, s.tiles_7,
+   s.tiles_8, s.tiles_9, s.tiles_10, s.tiles_11, s.tiles_12, s.tiles_13, s.tiles_14, s.tiles_15,
+   s.tiles_16, s.tiles_17, s.tiles_18, s.tiles_19, s.tiles_20, s.tiles_21, s.tiles_22, s.tiles_23,
+   s.tiles_24, s.tiles_25, s.tiles_26, s.tiles_27, s.tiles_28, s.tiles_29, s.tiles_30, s.tiles_31]
+
+def tileList (s : State) : List Tile := ((tileCodes s).filter (fun c =&gt; c != 0)).map decTile
+
+-- 把瓦片表写回 32 个定长槽（余位补 0，与读数函数的补位一致）
+def setTiles (s : State) (l : List Int) : State :=
+  { s with
+    tiles_0 := l.getD 0 0, tiles_1 := l.getD 1 0, tiles_2 := l.getD 2 0, tiles_3 := l.getD 3 0,
+    tiles_4 := l.getD 4 0, tiles_5 := l.getD 5 0, tiles_6 := l.getD 6 0, tiles_7 := l.getD 7 0,
+    tiles_8 := l.getD 8 0, tiles_9 := l.getD 9 0, tiles_10 := l.getD 10 0, tiles_11 := l.getD 11 0,
+    tiles_12 := l.getD 12 0, tiles_13 := l.getD 13 0, tiles_14 := l.getD 14 0, tiles_15 := l.getD 15 0,
+    tiles_16 := l.getD 16 0, tiles_17 := l.getD 17 0, tiles_18 := l.getD 18 0, tiles_19 := l.getD 19 0,
+    tiles_20 := l.getD 20 0, tiles_21 := l.getD 21 0, tiles_22 := l.getD 22 0, tiles_23 := l.getD 23 0,
+    tiles_24 := l.getD 24 0, tiles_25 := l.getD 25 0, tiles_26 := l.getD 26 0, tiles_27 := l.getD 27 0,
+    tiles_28 := l.getD 28 0, tiles_29 := l.getD 29 0, tiles_30 := l.getD 30 0, tiles_31 := l.getD 31 0 }
+
+def tileAt (tl : List Tile) (t l : Nat) : Option Tile := tl.find? (fun d =&gt; d.t == t &amp;&amp; d.l == l)
+
+-- 瓦片除底色以外的部分（位置、网格归属、记号、目标）
+def skeleton (d : Tile) : Tile := { d with base := 0 }
+
+-- ---------- 调色板 ----------
+def digits16 : Nat → Nat → List Nat
+  | 0, _ =&gt; []
+  | fuel + 1, n =&gt; if n == 0 then [] else (n % 16) :: digits16 fuel (n / 16)
+
+def hasBit (m k : Nat) : Bool := m / 2 ^ k % 2 == 1
+
+-- 清点（_lib.grid_palette_colors）：各网格点亮色 ∪ 网格外环瓦片底色，按色号排序
+def gridSet (s : State) (tl : List Tile) : List Nat :=
+  (List.range 16).filter (fun c =&gt; hasBit s.mid_color_bits.toNat c || tl.any (fun d =&gt; d.ing &amp;&amp; d.base == c))
+
+-- 本关调色板（_lib.palette_seq）：有图例用图例从上到下，没有就退回清点
+def palette (s : State) (tl : List Tile) : List Nat :=
+  match digits16 8 s.legend_code.toNat with
+  | [] =&gt; gridSet s tl
+  | lg =&gt; lg
+
+def nextAux (first c : Nat) : List Nat → Option Nat
+  | [] =&gt; none
+  | [a] =&gt; if a == c then some first else none
+  | a :: b :: rest =&gt; if a == c then some b else nextAux first c (b :: rest)
+
+-- 沿调色板前进一位，到头绕回（click_cycles_palette）
+def nextColor (pal : List Nat) (c : Nat) : Option Nat :=
+  match pal with
+  | [] =&gt; none
+  | f :: _ =&gt; nextAux f c pal
+
+-- 生成器把「恰好两个元素的有序表」铺成 _r/_c 两个字段，其余情形两个都是 none
+def pairOf (xs : List Nat) : Option Int × Option Int :=
+  match xs with
+  | [a, b] =&gt; (some (Int.ofNat a), some (Int.ofNat b))
+  | _ =&gt; (none, none)
+
+-- ---------- 点击 ----------
+def TILE : Nat := 6
+def GRID_SPAN : Nat := 22      -- 3 块瓦片 + 2 条缝：6 + 2 + 6 + 2 + 6
+
+def inBox (t l x y : Nat) : Bool := t ≤ y &amp;&amp; y &lt; t + TILE &amp;&amp; l ≤ x &amp;&amp; x &lt; l + TILE
+
+-- 点中的是哪块网格外环瓦片（x=列, y=行）
+def hitTile (tl : List Tile) (x y : Nat) : Option Tile := tl.find? (fun d =&gt; d.ing &amp;&amp; inBox d.t d.l x y)
+
+-- 第 0 关有色 4 方框圈住一个网格（active_origin）：其余网格是示例，点上去一格不动、计数条也不走
+-- （run _exp-smoke-ft09 seq 1、2、4、5、6）。没有方框的关，所有网格都可点。
+def inActive (s : State) (x y : Nat) : Bool :=
+  match s.active_origin_r, s.active_origin_c with
+  | some r, some c =&gt; r ≤ (y : Int) &amp;&amp; (y : Int) &lt; r + GRID_SPAN &amp;&amp; c ≤ (x : Int) &amp;&amp; (x : Int) &lt; c + GRID_SPAN
+  | _, _ =&gt; true
+
+-- 被点瓦片 h 这一下会推动 d 吗：d 就是 h，或 d 在 h 某个记号指向的物理相邻位置（相距 8 像素）。联动只走一步。
+-- 瓦片表按「看得见」收录（网格外环可涂瓦片 + 与之相邻、画面内、非中心、底色非背景的块），与记号无关；
+-- 所以记号指向出界、空槽（背景色）、别的网格中心时，那个位置上本就没有表里的瓦片，这里推不到任何东西。
+-- 「那个方向一格不动」这半句另由 mark_directs_linkage 的 effect 在下一状态上核（markFrozenOk）：
+-- 能核的只有「那里没长出瓦片」和「被指的网格中心图样不变」，空槽与出界处的像素状态里没有，核不到。
+def affects (h d : Tile) : Bool :=
+  (d.t == h.t &amp;&amp; d.l == h.l)
+  || (hasBit h.marks 0 &amp;&amp; d.t + 8 == h.t &amp;&amp; d.l == h.l)
+  || (hasBit h.marks 1 &amp;&amp; d.t == h.t + 8 &amp;&amp; d.l == h.l)
+  || (hasBit h.marks 2 &amp;&amp; d.l + 8 == h.l &amp;&amp; d.t == h.t)
+  || (hasBit h.marks 3 &amp;&amp; d.l == h.l + 8 &amp;&amp; d.t == h.t)
+
+def advance (pal : List Nat) (h : Tile) (d : Tile) : Option Tile :=
+  if affects h d then (nextColor pal d.base).map (fun b =&gt; { d with base := b }) else some d
+
+def allSome : List (Option Tile) → Option (List Tile)
+  | [] =&gt; some []
+  | none :: _ =&gt; none
+  | some d :: rest =&gt; (allSome rest).map (d :: ·)
+
+-- 点击之后的瓦片表：点空返回 none（没观测过，不猜）；方框外的示例网格原样不动
+def afterTiles (s : State) (x y : Nat) : Option (List Tile) :=
+  let tl := tileList s
+  match hitTile tl x y with
+  | none =&gt; none
+  | some h =&gt; if inActive s x y then allSome (tl.map (advance (palette s tl) h)) else some tl
+
+-- ---------- 目标色：从中心图样求解（ring_matched_levels_up 的几何内容）----------
+structure Grid where
+  r : Int              -- 左上瓦片行
+  c : Int              -- 左上瓦片列
+  mid : Nat            -- 点亮色（中心图样正中那格）
+  codes : List Nat     -- 外环 8 个位置的图样取值，按行列序
+deriving Repr, DecidableEq
+
+def decGrid (g : Int) : Grid :=
+  let n := g.toNat
+  let hi := n / 32 ^ 8
+  let pos := hi / 16
+  { mid := hi % 16, r := Int.ofNat (pos / 128) - 16, c := Int.ofNat (pos % 128) - 16,
+    codes := (List.range 8).map (fun k =&gt; n / 32 ^ k % 32 / 8) }
+
+def gridList (s : State) : List Grid :=
+  ([s.grid_slots_0, s.grid_slots_1, s.grid_slots_2, s.grid_slots_3,
+    s.grid_slots_4, s.grid_slots_5, s.grid_slots_6, s.grid_slots_7].filter (fun g =&gt; g != 0)).map decGrid
+
+def PAT_MID : Nat := 0     -- 该位置应涂本网格点亮色
+def PAT_OTHER : Nat := 2   -- 该位置应涂调色板里别的某一色（同一网格统一一个）
+def PAT_NONE : Nat := 3    -- 该位置没有可涂瓦片，没有目标
+
+-- 外环第 k 个位置（跳过中心）在网格里的 (行, 列)
+def slotIJ (k : Nat) : Nat × Nat :=
+  if k &lt; 3 then (0, k) else if k == 3 then (1, 0) else if k == 4 then (1, 2) else (2, k - 5)
+
+-- 一条要求：物理位置 (r, c) 上的瓦片，按第 gi 个网格的图样该涂点亮色（on）还是「另一色」
+structure Want where
+  r : Int
+  c : Int
+  gi : Nat
+  on : Bool
+
+def wantsOf (gi : Nat) (g : Grid) : List Want :=
+  ((List.range 8).zip g.codes).filterMap (fun p =&gt;
+    if p.2 == PAT_NONE then none
+    else some { r := g.r + 8 * Int.ofNat (slotIJ p.1).1, c := g.c + 8 * Int.ofNat (slotIJ p.1).2,
+                gi := gi, on := p.2 == PAT_MID })
+
+def product : List (List Nat) → List (List Nat)
+  | [] =&gt; [[]]
+  | xs :: rest =&gt; xs.flatMap (fun v =&gt; (product rest).map (v :: ·))
+
+-- 给每个网格选定「另一色」x 之后，一条要求的颜色
+def wantColor (mids x : List Nat) (w : Want) : Nat := if w.on then mids.getD w.gi 0 else x.getD w.gi 0
+
+-- 共用瓦片两边一致：同一物理位置上的所有要求颜色相同
+def sharedAgree (ws : List Want) (mids x : List Nat) : Bool :=
+  ws.all (fun w =&gt; match ws.find? (fun v =&gt; v.r == w.r &amp;&amp; v.c == w.c) with
+    | some v =&gt; wantColor mids x v == wantColor mids x w
+    | none =&gt; true)
+
+-- 目标色表 [(行, 列, 色)]：图样取值只许 0/2/3、点亮色要在调色板里；
+-- 每个网格的「另一色」在调色板除点亮色之外的颜色里挑，组合里恰好一种满足共用瓦片一致才算定死，否则说不出话（none）
+def ringTargets (gs : List Grid) (pal : List Nat) : Option (List (Int × Int × Nat)) :=
+  if gs.isEmpty || !gs.all (fun g =&gt; pal.contains g.mid &amp;&amp; g.codes.all (fun v =&gt; v == PAT_MID || v == PAT_OTHER || v == PAT_NONE))
+  then none
+  else
+    let mids := gs.map (·.mid)
+    let ws := ((List.range gs.length).zip gs).flatMap (fun p =&gt; wantsOf p.1 p.2)
+    let cands := gs.map (fun g =&gt; pal.filter (fun v =&gt; v != g.mid))
+    match ws, (product cands).filter (sharedAgree ws mids) with
+    | [], _ =&gt; none
+    | _, [x] =&gt; some (ws.map (fun w =&gt; (w.r, w.c, wantColor mids x w)))
+    | _, _ =&gt; none
+
+def allOpt : List (Option Bool) → Option Bool
+  | [] =&gt; some true
+  | none :: _ =&gt; none
+  | some b :: rest =&gt; (allOpt rest).map (b &amp;&amp; ·)
+
+-- 目标到齐（_lib.all_matched_after_click）：每个目标位置上都读得到瓦片、且底色等于目标色
+def targetsMet (ts : List (Int × Int × Nat)) (tl : List Tile) : Option Bool :=
+  allOpt (ts.map (fun p =&gt; (tl.find? (fun d =&gt; (d.t : Int) == p.1 &amp;&amp; (d.l : Int) == p.2.1)).map (fun d =&gt; d.base == p.2.2)))
+
+-- 这一下点击之后是否所有网格都到齐（目标按点击前的画面求解）
+def matchedWith (s : State) (tl&#x27; : List Tile) : Option Bool :=
+  (ringTargets (gridList s) (palette s (tileList s))).bind (fun ts =&gt; targetsMet ts tl&#x27;)
+
+def matchedAfter (s : State) (a : Act) : Option Bool :=
+  match a with
+  | Act.a6 x y =&gt; (afterTiles s x y).bind (matchedWith s)
+  | _ =&gt; none
+
+def isClick (a : Act) : Bool :=
+  match a with
+  | Act.a6 _ _ =&gt; true
+  | _ =&gt; false
+
+-- ---------- 计数条 ----------
+def BAR_W : Nat := 64          -- 计数条 = 最后一行，全宽
+def BAR_FULL : Int := 12
+def BAR_USED : Int := 11
+
+-- Python round() 的半数取偶：num/den 恰为 .5 时取偶数那一边
+def roundHalfEven (num den : Nat) : Nat :=
+  let q := num / den
+  let r := num % den
+  if 2 * r &gt; den then q + 1 else if 2 * r == den then q + q % 2 else q
+
+-- 已用 u 格时最后一行的游程清点（_lib.bar_runs，生成器按 (色, 长度) 排序后拆成两槽）
+def withBar (s : State) (u : Nat) : State :=
+  if u == 0 then
+    { s with bar_used := 0, bar_runs_n := 1, bar_runs_0_r := BAR_FULL, bar_runs_0_c := Int.ofNat BAR_W,
+             bar_runs_1_r := none, bar_runs_1_c := none }
+  else if u ≥ BAR_W then
+    { s with bar_used := Int.ofNat BAR_W, bar_runs_n := 1, bar_runs_0_r := BAR_USED, bar_runs_0_c := Int.ofNat BAR_W,
+             bar_runs_1_r := none, bar_runs_1_c := none }
+  else
+    { s with bar_used := Int.ofNat u, bar_runs_n := 2, bar_runs_0_r := BAR_USED, bar_runs_0_c := Int.ofNat u,
+             bar_runs_1_r := some BAR_FULL, bar_runs_1_c := some (Int.ofNat (BAR_W - u)) }
+
+-- bar_is_full_then_used 能在这份状态上核的部分：只有「未用」「已用」两色、至多两段，已用格数与游程一致。
+-- （左右次序在生成器按色号排序拆槽时已经丢了，这半句问不出来。）
+def barShapeOk (s : State) : Bool :=
+  match s.bar_runs_n, s.bar_runs_1_r, s.bar_runs_1_c with
+  | 1, none, none =&gt; (s.bar_runs_0_r == BAR_FULL &amp;&amp; s.bar_used == 0)
+                      || (s.bar_runs_0_r == BAR_USED &amp;&amp; s.bar_used == s.bar_runs_0_c)
+  | 2, some r1, some c1 =&gt; s.bar_runs_0_r == BAR_USED &amp;&amp; r1 == BAR_FULL &amp;&amp; s.bar_used == s.bar_runs_0_c
+                            &amp;&amp; s.bar_runs_0_c + c1 == Int.ofNat BAR_W
+  | _, _, _ =&gt; false
+
+-- ---------- 一步 ----------
+def clickStep (s : State) (x y : Nat) : Option State :=
+  let tl := tileList s
+  match hitTile tl x y with
+  | none =&gt; none
+  | some h =&gt;
+    if !inActive s x y then some s
+    else match allSome (tl.map (advance (palette s tl) h)), s.k_bar_num, s.k_bar_den with
+      | some tl&#x27;, some num, some den =&gt;
+        -- 凑齐目标的那一下会换关、整屏重画：新布局规则说不出，交给查表
+        if matchedWith s tl&#x27; != some false then none
+        else
+          let c := s.h_clicks + 1
+          let s1 := withBar { setTiles s (tl&#x27;.map encTile) with h_clicks := c }
+                      (roundHalfEven (c.toNat * num.toNat) den.toNat)
+          let g := pairOf (gridSet s1 tl&#x27;)
+          let p := pairOf (palette s1 tl&#x27;)
+          some { s1 with grid_palette_colors_r := g.1, grid_palette_colors_c := g.2,
+                         palette_seq_r := p.1, palette_seq_c := p.2 }
+      | _, _, _ =&gt; none
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match a with
+  | Act.a6 x y =&gt; clickStep s x y
+  | _ =&gt; none
+
+-- ---------- 各条概念 ----------
+-- 点中的、生效的那块瓦片（方框外的示例网格不算）
+def hitLive (s : State) (a : Act) : Option Tile :=
+  match a with
+  | Act.a6 x y =&gt; if inActive s x y then hitTile (tileList s) x y else none
+  | _ =&gt; none
+
+-- h 的各个记号指向的物理位置（上、下、左、右相距 8 像素；可以出界）
+def markTargets (h : Tile) : List (Int × Int) :=
+  let t : Int := h.t
+  let l : Int := h.l
+  (if hasBit h.marks 0 then [(t - 8, l)] else []) ++ (if hasBit h.marks 1 then [(t + 8, l)] else [])
+  ++ (if hasBit h.marks 2 then [(t, l - 8)] else []) ++ (if hasBit h.marks 3 then [(t, l + 8)] else [])
+
+def tileHere (tl : List Tile) (p : Int × Int) : Bool := tl.any (fun d =&gt; (d.t : Int) == p.1 &amp;&amp; (d.l : Int) == p.2)
+
+-- mark_directs_linkage 的另一半：记号指向的位置上点击前没有可涂瓦片（出界 / 空槽 / 别的网格中心）时，
+-- 那个方向无效——点击后那里也没长出瓦片，且若那里是某个网格的中心，该网格（位置、点亮色、图样）原样不变。
+def markFrozenOk (s s&#x27; : State) (h : Tile) : Bool :=
+  (markTargets h).all (fun p =&gt;
+    tileHere (tileList s) p
+    || (!tileHere (tileList s&#x27;) p
+        &amp;&amp; (gridList s).all (fun g =&gt; !(g.r + 8 == p.1 &amp;&amp; g.c + 8 == p.2) || (gridList s&#x27;).contains g)))
+
+-- nothing_else_changes：除底色外瓦片表逐块相同（位置、归属、记号都不动），且这一步不推的瓦片底色不变。
+-- 只在读数层面核（瓦片表、网格槽位、图例、方框等读数不变），不逐像素核「别处一格不动」。
+def othersKept (s s&#x27; : State) (h : Option Tile) : Bool :=
+  let tl := tileList s
+  let tl&#x27; := tileList s&#x27;
+  tl.length == tl&#x27;.length
+  &amp;&amp; (tl.zip tl&#x27;).all (fun p =&gt; skeleton p.1 == skeleton p.2
+        &amp;&amp; (match h with
+            | some hh =&gt; affects hh p.1 || p.1.base == p.2.base
+            | none =&gt; p.1.base == p.2.base))
+
+-- 画面上除瓦片底色与计数条之外的读数都不动
+def fixedEq (a b : State) : Bool :=
+  a.active_origin_c == b.active_origin_c &amp;&amp; a.active_origin_r == b.active_origin_r &amp;&amp; a.bg == b.bg
+  &amp;&amp; a.centers_m == b.centers_m &amp;&amp; a.centers_n == b.centers_n
+  &amp;&amp; a.frame_bbox_0 == b.frame_bbox_0 &amp;&amp; a.frame_bbox_1 == b.frame_bbox_1
+  &amp;&amp; a.frame_bbox_2 == b.frame_bbox_2 &amp;&amp; a.frame_bbox_3 == b.frame_bbox_3
+  &amp;&amp; a.grid_slots_0 == b.grid_slots_0 &amp;&amp; a.grid_slots_1 == b.grid_slots_1 &amp;&amp; a.grid_slots_2 == b.grid_slots_2
+  &amp;&amp; a.grid_slots_3 == b.grid_slots_3 &amp;&amp; a.grid_slots_4 == b.grid_slots_4 &amp;&amp; a.grid_slots_5 == b.grid_slots_5
+  &amp;&amp; a.grid_slots_6 == b.grid_slots_6 &amp;&amp; a.grid_slots_7 == b.grid_slots_7
+  &amp;&amp; a.legend_code == b.legend_code &amp;&amp; a.legend_col == b.legend_col
+  &amp;&amp; a.legend_colors_c == b.legend_colors_c &amp;&amp; a.legend_colors_r == b.legend_colors_r
+  &amp;&amp; a.mid_color_bits == b.mid_color_bits &amp;&amp; a.tile_grids_m == b.tile_grids_m &amp;&amp; a.tile_grids_n == b.tile_grids_n
+
+-- pattern_three_marks_no_tile：每个网格外环 8 个位置，图样取值只在 {0,2,3} 里，
+-- 且取值 3 恰好落在出界(1)/空槽(2)/别的网格中心(3) 上
+def slotOk (v : Nat) : Bool :=
+  let code := v / 8
+  let kind := v % 8
+  (code == 0 || code == 2 || code == 3) &amp;&amp; ((code == 3) == (kind == 1 || kind == 2 || kind == 3))
+
+def gridOk (g : Int) : Bool :=
+  g == 0 || (List.range 8).all (fun k =&gt; slotOk (g.toNat / 32 ^ k % 32))
+
+def slotsOk (s : State) : Bool :=
+  [s.grid_slots_0, s.grid_slots_1, s.grid_slots_2, s.grid_slots_3,
+   s.grid_slots_4, s.grid_slots_5, s.grid_slots_6, s.grid_slots_7].all gridOk
+
+def LAST_LEVEL : Int := 5      -- 本局 6 关（0..5），打完第 5 关即 WIN（MANIFEST win_levels = 6）
+def WIN_LEVEL : Int := 6
+
+-- 带坐标点击、且点击后目标没到齐（这一步不换关）
+def stays (s : State) (a : Act) : Bool := isClick a &amp;&amp; matchedAfter s a == some false
+
+def rules : List Rule := [
+  { name := &quot;bar_is_full_then_used&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ s&#x27; =&gt; barShapeOk s &amp;&amp; barShapeOk s&#x27; },
+  { name := &quot;bar_refills_on_levelup&quot;,
+    -- 换关且不是通关的那一步：计数条回到 0
+    guard := fun s a =&gt; isClick a &amp;&amp; matchedAfter s a == some true &amp;&amp; s.level &lt; LAST_LEVEL,
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level == s.level + 1 &amp;&amp; s&#x27;.bar_used == 0 &amp;&amp; s&#x27;.bar_runs_n == 1 },
+  { name := &quot;bar_used_never_shrinks&quot;,
+    guard := fun s a =&gt; stays s a,
+    effect := fun s _ s&#x27; =&gt; 0 ≤ s&#x27;.bar_used - s.bar_used &amp;&amp; s&#x27;.bar_used - s.bar_used ≤ 2 },
+  { name := &quot;click_cycles_palette&quot;,
+    guard := fun s a =&gt; stays s a &amp;&amp; (match hitLive s a with
+      | some h =&gt; (nextColor (palette s (tileList s)) h.base).isSome
+      | none =&gt; false),
+    effect := fun s a s&#x27; =&gt; match hitLive s a with
+      | some h =&gt; (tileAt (tileList s&#x27;) h.t h.l).map (·.base) == nextColor (palette s (tileList s)) h.base
+      | none =&gt; false },
+  { name := &quot;mark_directs_linkage&quot;,
+    guard := fun s a =&gt; stays s a &amp;&amp; (match hitLive s a with
+      | some h =&gt; h.marks != 0
+      | none =&gt; false),
+    effect := fun s a s&#x27; =&gt; match hitLive s a with
+      | some h =&gt; markFrozenOk s s&#x27; h
+          &amp;&amp; (tileList s).all (fun d =&gt; (d.t == h.t &amp;&amp; d.l == h.l) || !affects h d
+          || (tileAt (tileList s&#x27;) d.t d.l).map (·.base) == nextColor (palette s (tileList s)) d.base)
+      | none =&gt; false },
+  { name := &quot;no_levelup_before_ring_matches&quot;,
+    guard := fun s a =&gt; stays s a,
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level == s.level },
+  { name := &quot;nothing_else_changes&quot;,
+    guard := fun s a =&gt; stays s a,
+    effect := fun s a s&#x27; =&gt; fixedEq s s&#x27; &amp;&amp; othersKept s s&#x27; (hitLive s a) },
+  { name := &quot;pattern_three_marks_no_tile&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ s&#x27; =&gt; slotsOk s &amp;&amp; slotsOk s&#x27; },
+  { name := &quot;ring_matched_levels_up&quot;,
+    guard := fun s a =&gt; isClick a &amp;&amp; matchedAfter s a == some true,
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level == s.level + 1 }
+]
+
+def step (s : State) (a : Act) : Option State :=
+  match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with
+  | some w =&gt; some w.s&#x27;
+  | none =&gt; stepRules s a
+
+def isGoal (s : State) : Bool := s.level == WIN_LEVEL
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。用 native_decide：语料几百条，kernel 上 decide 太慢；代价是多依赖 Lean.ofReduceBool 这条公理。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println (&quot;GUARD_HITS &quot; ++ String.intercalate &quot;,&quot; (rules.map (fun r =&gt; r.name ++ &quot;=&quot; ++ toString (corpus.filter (fun t =&gt; r.guard t.s t.a)).length)))
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>ft09 · 统一到对象-规则-形式化-前端框架（第 0~12 步，归档除外）</h1>
 <p>日期 2026-09-24。所有读数都是本会话真实跑出来的；命令都在 <code>ledger/games/ft09/</code> 下跑（除注明）。
 全链重跑顺序见 <code>web/share.html</code> 那一页，也就是：
 <code>parse_check.py → run_rules.py --reverse → compare_books.py → field_witness.py → lean2/verify.py → lean2/reverse.py → web/export.py → web/pages.py → web/bundle.py → web/check_no_logic.py</code>。</p>

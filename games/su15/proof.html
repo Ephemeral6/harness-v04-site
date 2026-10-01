@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← su15 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从这一关的开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">5/9 关被证明可以从开局打通，每一步都和录像一致。其余 4 关，路线在模型给不出下一帧、或算出的下一帧与画面不符的地方断开；断点之间的每一段各自与录像逐帧一致，这几关在官方记录里同样是通过的。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：9/9 关，100 分，90 步（<a href="https://arcprize.org/replay/b99b56c2-927c-4317-9c5b-cabe92435957" target="_blank" rel="noopener">官方记录 ↗</a>）。逐关证明用的就是这一遍的操作。</li><li>模型在录像全部 904 步上逐步推演下一帧：571 步与画面完全一致，103 步算错，230 步模型不给结论（撤销、重来、追新件时被甩飞、两只并成一只、目标并列）。算错的每一步都归了因，主要是几只会动的东西同时挪、互相挡住，以及追刚落下的件时被甩飞。</li><li>Python 与 Lean 两份独立写成的推演，对这 904 步给出的判决有 0 处不同。</li><li>全部 14 条规则在录像上逐条检验：说对 5406 次，说错 127 次，每一次说错都归了因。</li><li>把规则故意改错 11 种，检验抓住了 10 种；没抓住的那一种把「交的件要同级」放宽成「不低于」，录像里从没出现过能区分这两种说法的局面。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>不进模型的规则</h2><p class="prose">另有 4 条规则在录像上逐步检验，不在 Lean 模型里：它们要用到当前这一帧之外的东西——撤销要记得之前的局面，重来要记得这一关的开局，驳回罚多少要数这一条命里驳回过几次，换关那一帧画的是下一关的开局。</p><div class="rules"><article class="rule"><h3>换关那一步，下一帧是下一关的开局</h3><p>预算回到满格，圈和要交的东西换成新的一套；打完最后一关时，画面停在这一关、预算不扣。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">42/42 步</span></div></article><article class="rule"><h3>撤销：回到上一次有效点击之前</h3><p>件和会动的东西回到上一次没被驳回的棋盘点击之前的样子；预算不退也不扣。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">92/92 步</span></div></article><article class="rule"><h3>重来：预算回满，局面回到这一关的开局</h3><p>件、会动的东西、圈和要交的东西都回到这一关第一次出现时的样子。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">27/27 步</span></div></article><article class="rule"><h3>被驳回的点击：件和会动的东西一格不动</h3><p>只有预算照扣，而且同一条命里驳回得越多，罚得越多。哪一下会被驳回，从画面上说不出。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">17/17 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 904 条记录，来自这一局的好几遍游玩；最后 91 条是官方认证的那一遍，首页的截图和全部逐关证明都用它，其余记录用来逐步检验规则。<b>这一局的通关受过外部攻略注入</b>：注入的是这款游戏官方公开源码里的机制，所以通关路线的来源不纯，其中一部分早期说法并不是从画面里自己看出来的。录像本身是真实的画面，全部规则都在它上面检验。认证的那一遍是从先前几遍的通关记录里逐关切出最短的干净片段、照原样重走一次得到的：它证明这个世界是确定的，不证明这条路线是从模型推出来的。</p><h2>适用范围</h2><ul class="lst"><li>「打得通」指不经过模型不给结论的那几种情形就打得通；证出的每一关，见证路线一步都没有经过它们。</li><li>会动的东西有四种情形模型不给结论或算不准：追刚落下的件时被甩飞、几只同时挪互相挡住、两只并成高一级、菱形与蟹咬刚落下的件。没证出从开局打通的那几关，路线都断在这些地方。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默（N）</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>S / C / E</dt><dd>规则管到的步数 / 其中说对的 / 说错的</dd><dt>T / F / N</dt><dd>模型逐步判决：下一帧对上 / 算错 / 不给结论</dd><dt>色7 / 色14 / 色13</dt><dd>追猎者 / 菱形 / 蟹</dd><dt>级</dt><dd>件的大小档；两件同级并成高一级</dd><dt>顶带</dt><dd>屏幕顶上那一栏，画着要交的东西</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← su15 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从这一关的开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">5/9 关被证明可以从开局打通，每一步都和录像一致。其余 4 关，路线在模型给不出下一帧、或算出的下一帧与画面不符的地方断开；断点之间的每一段各自与录像逐帧一致，这几关在官方记录里同样是通过的。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：9/9 关，100 分，90 步（<a href="https://arcprize.org/replay/b99b56c2-927c-4317-9c5b-cabe92435957" target="_blank" rel="noopener">官方记录 ↗</a>）。逐关证明用的就是这一遍的操作。</li><li>模型在录像全部 904 步上逐步推演下一帧：571 步与画面完全一致，103 步算错，230 步模型不给结论（撤销、重来、追新件时被甩飞、两只并成一只、目标并列）。算错的每一步都归了因，主要是几只会动的东西同时挪、互相挡住，以及追刚落下的件时被甩飞。</li><li>Python 与 Lean 两份独立写成的推演，对这 904 步给出的判决有 0 处不同。</li><li>全部 14 条规则在录像上逐条检验：说对 5406 次，说错 127 次，每一次说错都归了因。</li><li>把规则故意改错 11 种，检验抓住了 10 种；没抓住的那一种把「交的件要同级」放宽成「不低于」，录像里从没出现过能区分这两种说法的局面。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>不进模型的规则</h2><p class="prose">另有 4 条规则在录像上逐步检验，不在 Lean 模型里：它们要用到当前这一帧之外的东西——撤销要记得之前的局面，重来要记得这一关的开局，驳回罚多少要数这一条命里驳回过几次，换关那一帧画的是下一关的开局。</p><div class="rules"><article class="rule"><h3>换关那一步，下一帧是下一关的开局</h3><p>预算回到满格，圈和要交的东西换成新的一套；打完最后一关时，画面停在这一关、预算不扣。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">42/42 步</span></div></article><article class="rule"><h3>撤销：回到上一次有效点击之前</h3><p>件和会动的东西回到上一次没被驳回的棋盘点击之前的样子；预算不退也不扣。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">92/92 步</span></div></article><article class="rule"><h3>重来：预算回满，局面回到这一关的开局</h3><p>件、会动的东西、圈和要交的东西都回到这一关第一次出现时的样子。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">27/27 步</span></div></article><article class="rule"><h3>被驳回的点击：件和会动的东西一格不动</h3><p>只有预算照扣，而且同一条命里驳回得越多，罚得越多。哪一下会被驳回，从画面上说不出。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">17/17 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 904 条记录，来自这一局的好几遍游玩；最后 91 条是官方认证的那一遍，首页的截图和全部逐关证明都用它，其余记录用来逐步检验规则。<b>这一局的通关受过外部攻略注入</b>：注入的是这款游戏官方公开源码里的机制，所以通关路线的来源不纯，其中一部分早期说法并不是从画面里自己看出来的。录像本身是真实的画面，全部规则都在它上面检验。认证的那一遍是从先前几遍的通关记录里逐关切出最短的干净片段、照原样重走一次得到的：它证明这个世界是确定的，不证明这条路线是从模型推出来的。</p><h2>适用范围</h2><ul class="lst"><li>「打得通」指不经过模型不给结论的那几种情形就打得通；证出的每一关，见证路线一步都没有经过它们。</li><li>会动的东西有四种情形模型不给结论或算不准：追刚落下的件时被甩飞、几只同时挪互相挡住、两只并成高一级、菱形与蟹咬刚落下的件。没证出从开局打通的那几关，路线都断在这些地方。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默（N）</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>S / C / E</dt><dd>规则管到的步数 / 其中说对的 / 说错的</dd><dt>T / F / N</dt><dd>模型逐步判决：下一帧对上 / 算错 / 不给结论</dd><dt>色7 / 色14 / 色13</dt><dd>追猎者 / 菱形 / 蟹</dd><dt>级</dt><dd>件的大小档；两件同级并成高一级</dd><dt>顶带</dt><dd>屏幕顶上那一栏，画着要交的东西</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
 
 契约（装置按名字找）：
 
@@ -4293,7 +4293,468 @@ def step (b : Board) (lim : Nat) (w : World) : Act → Res
         | _, _ =&gt; .na
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>su15 · UNIFY-REPORT</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">su15-20260924/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 12 条</span><span class="chip c-mute">路线 90 步，换关查表 9 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/su15-20260924/_lib.py ; why=补对象级读数 pcs/cres（件与会动物件的级/种与位置）、隐藏量 h_clicks/h_frozen 与每关常数 k_T/k_dots，路线改为整局（--full-route），keyEq 比全部变化字段；按修订 R2 重新生成（seq 66、349 为 retried）；规则常数只从观测反推（fit_sim.py）
+set_option maxHeartbeats 0
+set_option maxRecDepth 100000
+-- 由 world/formalize.py 生成于 2026-09-29T17:28:23+08:00；局 su15；基于 run [&#x27;su15-0916-1554&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 768 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- su15 修复版 v2（2026-09-29，只从观测反推）。状态里的对象原语：pcs_i = 级*4096 + 行*64 + 列（件左上角），
+-- cres_i = 种*4096 + 行*64 + 列（会动物件 4×5 盒左上角；种 1=色7、2=色14、3=色13），按 (行, 列) 排好、空位 -1。
+-- 一次棋盘点击在帧上只看到结果；simClick 把概念说的机制写成一串子步，每个常数都在语料上反推过：
+--   _scratch/su15-20260924/fit_sim.py 把每个常数做成参数，逐个扫描，数「同关内的棋盘点击」739 条里
+--   后帧的件与可见会动物件被逐个对上的条数（fit_sim.out / fit_final.out）。下面每个常数后面写的是那次扫描的结果。
+--   REACH = 8（点击点到盒子最近格的欧氏距离；扫 7/7.5/8/8.5/9 → 312/367/727/695/662）
+--   子步数 4（扫 2..6 → 228/254/727/257/255）；选中的件与色14/色13 每子步逐轴走向点击点，至多 4 格（扫 1..6 与瞬移 → 4 最好）
+--   选中的色7 沿「盒心→点击点」方向每子步走 17/5 = 3.4 格、四舍五入（扫 V：3.36..3.49 都是 727，区间外全都更少；取 3.4）
+--   没选中的会动物件每子步逐轴向最近的件（件心与盒心距离平方最小、并列取先者）走 1 格；色13 走 2 格
+--     （目标按件心 727 / 按最近格 703；色13 步长 1/2/3 → 725/727/725，只有 2 条转移分得开，证据很薄）
+--   盒子相交就咬（按盒子 727 / 按格子 721）：那件先停 3 个子步，然后降一级、沿「咬它者盒心→件心」方向一次甩出 10 格
+--   （扫 FD：9.95..10.05 都是 727）；1 级件停完就消失。
+--   停几个子步与「甩出那一子步其余物件停不停」是耦合的：(停 4、甩出时全停) 与 (停 3、不停) 都是 727，数据分不开
+--   （不停时 W=2/3/4/5 → 710/727/719/719）。取更简的 (停 3、不停)；另一种写法的来源受过源码影响，不作依据。
+--   咬过件的会动物件、以及新并出来的会动物件，本次点击剩下的子步不再追。冷却 ≥4 子步都是 727，与「本次点击内不再动」等价
+--   只是因为追猎窗口一共 4 个子步，不是数据另有信息。
+--   同种会动物件盒子相交并成高一级（7→14→13），新物件盒心 = 两者盒心的平均向下取整（新物件向上取整 699，已被数据排除）；
+--   两种不同的相交 = 世界驳回。4 个子步后，选中的件里盒子相交的：同级并成高一级，落在件心平均处——
+--   这一处向下与向上取整都是 727，数据未区分，取向下；不同级 = 世界驳回（棋盘一格不动）。
+-- 数据定不了、按最简写法取的：被咬件停步时是否上下抖（727/727，取不抖）、甩出分几子步（1..8 都是 727，取 1）、取整逢 .5 的方向（727/727，取四舍五入）。
+-- 计数口径：「727/739」按 seq 计、含重复的转移；按去重后的语料，独立审计用本文件 Lean 整份重算同关点击为 470/480 对上；
+--   本人按 keyEq 全字段复算（去重语料里同关的棋盘点击，stepRules 的结果）为 450/480，未对上的含判死涂色（samples 变化）与藏着的物件。
+-- 假设族的来历：子步结构与各参数的候选集合继承自旧概念册（explain.md 自称受过外部攻略注入），第一版又是照官方源码写的；
+--   本版只做了数值扫描与结构的数据核对。结构证据（独立审计的替代结构实验，同一评分）：咬先于追 665、追/咬先于选中者移动 569、
+--   会动物件只在最后并 695、并先于咬 706、件的并每子步做 707、没选中者追猎步长 2/3 → 254/247，都比现行结构（727）差。
+-- 几何常数的出处：夹取行界上 10（棋盘顶）、下 63 且整块留在帧内——_lib.placed 的 NOTE（第 400 步上夹、第 158 步压到第 63 行）；
+--   会动物件盒 4 行×5 列、盒心 = 左上 +(2,2)——probe_shapes.py 量出的三种形状都在 4×5 盒内；
+--   件边长表 1,2,3,4,5,7（6 级边长 7）——_lib.SIDE_OF_TIER 的 NOTE（第 114/115 步、第 121 步量到）；7 级以上边长 side = 级+1 是猜的，语料里从未出现。
+-- 被件整只盖住的会动物件帧上看不见，渲染时从 cres 里去掉（它仍可能在世界里；这是抽象的公开缺口）。
+-- stepRules 不覆盖、返回 none 的（路线上一步都没有；规则只在 guard 管得到的地方主张）：
+--   （世界驳回现在覆盖了：棋盘不动、h_clicks 与 h_frozen 各 +1、预算按 budgetOf；h_frozen 是帧上可见事件的计数，不是推演出来的潜在量。）
+--   · ACTION7（撤销：要回到上一帧，状态里没有历史）；RESET（含 seq 349 那一次超时重发的 RESET，修订 R2.2）。
+--   · 同关内判死涂色的 28 条（samples_n 变化：状态里没有样板级别与需求容量，涂不涂说不出）。
+-- 规则之间的关系（照实）：pieces_merge_at_click 与 captured_piece_flung_ten 的 effect 逐字相同（都比件清单），只靠 guard 区分
+--   （前者：场上没有会动物件；后者：模拟里有咬）；mover_captures_piece（比容量）被 captured_piece_flung_ten 严格蕴含，没有独立检验力。
+
+-- ---------- 几何 ----------
+def side (t : Int) : Int := if t ≤ 5 then t else t + 1
+
+def clampX (w nx : Int) : Int := max 0 (min nx (64 - w))
+def clampY (h ny : Int) : Int := min (min (max 10 ny) 63) (64 - h)
+
+def inReach (px py ox oy w h : Int) : Bool :=
+  let qx := min (max px ox) (ox + w - 1)
+  let qy := min (max py oy) (oy + h - 1)
+  (px - qx) * (px - qx) + (py - qy) * (py - qy) ≤ 64
+
+def boxHit (ax ay aw ah bx bY bw bh : Int) : Bool :=
+  ax &lt; bx + bw &amp;&amp; bx &lt; ax + aw &amp;&amp; ay &lt; bY + bh &amp;&amp; bY &lt; ay + ah
+
+def step4 (d : Int) : Int := if d &gt; 0 then min 4 d else if d &lt; 0 then max (-4) d else 0
+def sgnStep (k d : Int) : Int := if d &gt; 0 then k else if d &lt; 0 then -k else 0
+
+-- a·√D ≤ b（整数精确比较）
+def sqrtLe (a b d : Int) : Bool :=
+  if a ≤ 0 then (if b ≥ 0 then true else a * a * d ≥ b * b) else (if b &lt; 0 then false else a * a * d ≤ b * b)
+
+def scanQ (num den d : Int) : Nat → Int → Int
+  | 0, q =&gt; q
+  | f + 1, q =&gt; if sqrtLe ((2 * q - 1) * den) (2 * num) d then q else scanQ num den d f (q - 1)
+
+-- 四舍五入 p + num / (den·√d)：q = 满足 q - 1/2 ≤ num/(den·√d) 的最大整数
+def roundAdd (p num den d : Int) : Int :=
+  if d ≤ 0 then p else p + scanQ num den d 40 20
+
+-- ---------- 对象 ----------
+structure Pc where
+  t : Int
+  x : Int
+  y : Int
+  sel : Bool
+  cap : Bool
+  cnt : Nat
+  sx : Int
+  sy : Int
+  dx : Int
+  dy : Int
+  dest : Bool
+  uid : Nat
+deriving Repr, Inhabited
+
+structure Cr where
+  k : Int
+  x : Int
+  y : Int
+  sel : Bool
+  dx : Int
+  dy : Int
+  stop : Bool
+deriving Repr, Inhabited
+
+structure W where
+  ps : List Pc
+  cs : List Cr
+  ref : Bool
+  ncap : Nat
+  nmerge : Nat
+deriving Repr
+
+def pcx (p : Pc) : Int := p.x + side p.t / 2
+def pcy (p : Pc) : Int := p.y + side p.t / 2
+def ccx (c : Cr) : Int := c.x + 2
+def ccy (c : Cr) : Int := c.y + 2
+def pcHitCr (c : Cr) (p : Pc) : Bool := boxHit c.x c.y 5 4 p.x p.y (side p.t) (side p.t)
+def pcHitPc (p q : Pc) : Bool := boxHit p.x p.y (side p.t) (side p.t) q.x q.y (side q.t) (side q.t)
+def crHitCr (a b : Cr) : Bool := boxHit a.x a.y 5 4 b.x b.y 5 4
+
+-- ---------- pieces_merge_at_click / mover14_pounces_when_close：选中者走向点击点 ----------
+def movePc (x y : Int) (p : Pc) : Pc :=
+  let s := side p.t
+  { p with x := clampX s (p.x + step4 (x - pcx p)), y := clampY s (p.y + step4 (y - pcy p)) }
+
+def moveCr (x y : Int) (c : Cr) : Cr :=
+  if c.k == 1 then
+    let d := c.dx * c.dx + c.dy * c.dy
+    { c with x := clampX 5 (roundAdd c.x (17 * c.dx) 5 d), y := clampY 4 (roundAdd c.y (17 * c.dy) 5 d) }
+  else
+    { c with x := clampX 5 (c.x + step4 (x - ccx c)), y := clampY 4 (c.y + step4 (y - ccy c)) }
+
+def moveSel (x y : Int) (w : W) : W :=
+  { w with ps := w.ps.map (fun p =&gt; if p.sel &amp;&amp; !p.cap then movePc x y p else p),
+           cs := w.cs.map (fun c =&gt; if c.sel then moveCr x y c else c) }
+
+-- ---------- captured_piece_flung_ten：停 3 子步，再降一级、一次甩出 10 格 ----------
+def flingOne (p : Pc) : Pc :=
+  if p.cnt &lt; 3 then { p with cnt := p.cnt + 1, cap := !(p.dest &amp;&amp; p.cnt + 1 ≥ 3) } else
+  let t&#x27; := p.t - 1
+  let s := side t&#x27;
+  let dd := p.dx * p.dx + p.dy * p.dy
+  { p with t := t&#x27;, x := clampX s (roundAdd p.sx (10 * p.dx) 1 dd), y := clampY s (roundAdd p.sy (10 * p.dy) 1 dd),
+           cnt := p.cnt + 1, cap := false }
+
+def fling (w : W) : W :=
+  let ps := w.ps.map (fun p =&gt; if p.cap then flingOne p else p)
+  { w with ps := ps.filter (fun p =&gt; !(p.dest &amp;&amp; !p.cap)) }
+
+-- ---------- mover_captures_piece：盒子压上就咬 ----------
+def bite (c : Cr) (p : Pc) : Pc :=
+  let dx0 := pcx p - ccx c
+  let dy0 := pcy p - ccy c
+  let z := dx0 == 0 &amp;&amp; dy0 == 0
+  { p with cap := true, cnt := 0, sx := p.x, sy := p.y, dx := (if z then 0 else dx0), dy := (if z then -1 else dy0),
+           dest := p.t ≤ 1 }
+
+def bitesBy (c : Cr) (ps : List Pc) : List Pc × Bool :=
+  ps.foldr (fun p (acc : List Pc × Bool) =&gt;
+    if !p.cap &amp;&amp; pcHitCr c p then (bite c p :: acc.1, true) else (p :: acc.1, acc.2)) ([], false)
+
+def biteAll (w : W) : W :=
+  let r := w.cs.foldl (fun (acc : List Pc × List Cr × Nat) c =&gt;
+    if c.sel || c.stop then (acc.1, acc.2.1 ++ [c], acc.2.2) else
+    let (ps&#x27;, hit) := bitesBy c acc.1
+    (ps&#x27;, acc.2.1 ++ [if hit then { c with stop := true } else c], acc.2.2 + (if hit then 1 else 0))) (w.ps, [], 0)
+  { w with ps := r.1, cs := r.2.1, ncap := w.ncap + r.2.2 }
+
+-- ---------- 并（同种/同级相交并成高一级；不同种/不同级相交 = 驳回）----------
+def relabel (hit : Nat → Nat → Bool) (n : Nat) (lab : List Nat) : List Nat :=
+  (List.range n).map (fun i =&gt;
+    (List.range n).foldl (fun m j =&gt; if hit i j &amp;&amp; lab.getD j j &lt; m then lab.getD j j else m) (lab.getD i i))
+
+def labelsOf (hit : Nat → Nat → Bool) (n : Nat) : Nat → List Nat → List Nat
+  | 0, lab =&gt; lab
+  | f + 1, lab =&gt; labelsOf hit n f (relabel hit n lab)
+
+def groupsOf (n : Nat) (lab : List Nat) : List (List Nat) :=
+  ((List.range n).filter (fun i =&gt; lab.getD i i == i)).map (fun r =&gt; (List.range n).filter (fun i =&gt; lab.getD i i == r))
+
+def creMerge (w : W) : W :=
+  let cs := w.cs
+  let n := cs.length
+  let hit := fun i j =&gt; i != j &amp;&amp; crHitCr (cs.getD i default) (cs.getD j default)
+  if n &lt; 2 then w else
+  if (List.range n).any (fun i =&gt; (List.range n).any (fun j =&gt; hit i j &amp;&amp; (cs.getD i default).k != (cs.getD j default).k))
+  then { w with ref := true } else
+  let gs := (groupsOf n (labelsOf hit n n (List.range n))).filter (fun g =&gt; g.length ≥ 2)
+  if gs.isEmpty then w else
+  let born := gs.filterMap (fun g =&gt;
+    let k := (cs.getD (g.headD 0) default).k
+    if k ≥ 3 then none else
+    let m : Int := g.length
+    let sx := (g.map (fun i =&gt; ccx (cs.getD i default))).foldl (· + ·) 0 / m
+    let sy := (g.map (fun i =&gt; ccy (cs.getD i default))).foldl (· + ·) 0 / m
+    some ({ k := k + 1, x := clampX 5 (sx - 2), y := clampY 4 (sy - 2), sel := false, dx := 0, dy := 0, stop := true } : Cr))
+  let gone := gs.foldl (· ++ ·) []
+  { w with cs := ((List.range n).filter (fun i =&gt; !gone.contains i)).map (fun i =&gt; cs.getD i default) ++ born,
+           nmerge := w.nmerge + gs.length }
+
+def pieceMerge (w : W) : W :=
+  let sel := w.ps.filter (·.sel)
+  let n := sel.length
+  let hit := fun i j =&gt; i != j &amp;&amp; pcHitPc (sel.getD i default) (sel.getD j default)
+  if n &lt; 2 then w else
+  if (List.range n).any (fun i =&gt; (List.range n).any (fun j =&gt; hit i j &amp;&amp; (sel.getD i default).t != (sel.getD j default).t))
+  then { w with ref := true } else
+  let gs := (groupsOf n (labelsOf hit n n (List.range n))).filter (fun g =&gt; g.length ≥ 2)
+  if gs.isEmpty then w else
+  let born := gs.map (fun g =&gt;
+    let t := (sel.getD (g.headD 0) default).t
+    let m : Int := g.length
+    let s := side (t + 1)
+    let sx := (g.map (fun i =&gt; pcx (sel.getD i default))).foldl (· + ·) 0 / m
+    let sy := (g.map (fun i =&gt; pcy (sel.getD i default))).foldl (· + ·) 0 / m
+    ({ t := t + 1, x := clampX s (sx - s / 2), y := clampY s (sy - s / 2), sel := false, cap := false, cnt := 0,
+       sx := 0, sy := 0, dx := 0, dy := 0, dest := false, uid := 0 } : Pc))
+  let goneU := (gs.foldl (· ++ ·) []).map (fun i =&gt; (sel.getD i default).uid)
+  { w with ps := w.ps.filter (fun p =&gt; !goneU.contains p.uid) ++ born }
+
+-- ---------- mover7_clamp_far_from_click_no_capture：没被选中的去追最近的件 ----------
+def nearest (c : Cr) (ps : List Pc) : Option Pc :=
+  (ps.foldl (fun (acc : Option (Int × Pc)) p =&gt;
+    let d := (pcx p - ccx c) * (pcx p - ccx c) + (pcy p - ccy c) * (pcy p - ccy c)
+    match acc with
+    | none =&gt; some (d, p)
+    | some (bd, _) =&gt; if d &lt; bd then some (d, p) else acc) none).map (·.2)
+
+def chaseOne (free : List Pc) (c : Cr) : Cr :=
+  match nearest c free with
+  | none =&gt; c
+  | some p =&gt;
+    let v := if c.k == 3 then 2 else 1
+    { c with x := clampX 5 (c.x + sgnStep v (pcx p - ccx c)), y := clampY 4 (c.y + sgnStep v (pcy p - ccy c)) }
+
+def chaseStep (xw : Nat) (w0 : W) : W :=
+  let w := if w0.ps.any (·.cap) then fling w0 else w0
+  if xw ≥ 4 || w.cs.isEmpty || w.ps.isEmpty then w else
+  let free := w.ps.filter (fun p =&gt; !p.cap)
+  let w := { w with cs := w.cs.map (fun c =&gt; if c.sel || c.stop then c else chaseOne free c) }
+  creMerge (biteAll w)
+
+def clickLoop (x y : Int) : Nat → Nat → Bool → W → W
+  | 0, _, _, w =&gt; w
+  | f + 1, xw, mg, w =&gt;
+    let w := chaseStep xw (moveSel x y w)
+    if w.ref then w else
+    let cont := xw + 1 &lt; 4 || w.ps.any (·.cap)
+    let w := if !mg &amp;&amp; xw + 1 ≥ 4 then (let w2 := creMerge w; if w2.ref then w2 else pieceMerge w2) else w
+    if w.ref then w else if cont then clickLoop x y f (xw + 1) (mg || xw + 1 ≥ 4) w else w
+
+-- ---------- 状态 ↔ 对象 ----------
+def decObj (v : Int) : Option (Int × Int × Int) := if v &lt; 0 then none else some (v / 4096, v / 64 % 64, v % 64)
+def pcsL (s : State) : List Int := [s.pcs_0, s.pcs_1, s.pcs_2, s.pcs_3, s.pcs_4, s.pcs_5, s.pcs_6, s.pcs_7, s.pcs_8]
+def cresL (s : State) : List Int := [s.cres_0, s.cres_1, s.cres_2, s.cres_3]
+
+def initW (s : State) (x y : Int) : W :=
+  let ps := ((pcsL s).filterMap decObj).zip (List.range 9) |&gt;.map (fun ((t, r, c), i) =&gt;
+    ({ t := t, x := c, y := r, sel := inReach x y c r (side t) (side t), cap := false, cnt := 0, sx := 0, sy := 0,
+       dx := 0, dy := 0, dest := false, uid := i + 1 } : Pc))
+  let cs := ((cresL s).filterMap decObj).map (fun (k, r, c) =&gt;
+    ({ k := k, x := c, y := r, sel := inReach x y c r 5 4, dx := x - (c + 2), dy := y - (r + 2), stop := false } : Cr))
+  { ps := ps, cs := cs, ref := false, ncap := 0, nmerge := 0 }
+
+def simClick (s : State) (x y : Int) : W := clickLoop x y 24 0 false (initW s x y)
+
+-- ---------- 渲染：帧上看得见的读数 ----------
+def insBy {α : Type} (key : α → Int) (a : α) : List α → List α
+  | [] =&gt; [a]
+  | b :: l =&gt; if key a ≤ key b then a :: b :: l else b :: insBy key a l
+def sortBy {α : Type} (key : α → Int) : List α → List α
+  | [] =&gt; []
+  | a :: l =&gt; insBy key a (sortBy key l)
+
+-- 形状掩码（行步长 64）：色7/色14/色13 的格，量法见 _lib.py（probe_shapes.py）
+def bitsOf (l : List Nat) : Nat := l.foldl (fun m b =&gt; m ||| (1 &lt;&lt;&lt; b)) 0
+def shapeBits (k : Int) : Nat :=
+  if k == 1 then bitsOf [2, 65, 67, 128, 132, 193, 194, 195]
+  else if k == 2 then bitsOf [2, 65, 67, 128, 130, 132, 193, 195]
+  else bitsOf [0, 2, 4, 65, 67, 128, 129, 130, 131, 132, 193, 194, 195]
+def crMask (c : Cr) : Nat := shapeBits c.k &lt;&lt;&lt; (c.y * 64 + c.x).toNat
+def pcMask (p : Pc) : Nat :=
+  let s := (side p.t).toNat
+  let row := ((1 &lt;&lt;&lt; s) - 1) &lt;&lt;&lt; p.x.toNat
+  (List.range s).foldl (fun m a =&gt; m ||| (row &lt;&lt;&lt; ((p.y.toNat + a) * 64))) 0
+def boardRows : Nat := ((1 &lt;&lt;&lt; (53 * 64)) - 1) &lt;&lt;&lt; 640
+def minus (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)
+def popc : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | f + 1, n =&gt; if n == 0 then 0 else 1 + popc f (n &amp;&amp;&amp; (n - 1))
+
+def encP (p : Pc) : Int := p.t * 4096 + p.y * 64 + p.x
+def encC (c : Cr) : Int := c.k * 4096 + c.y * 64 + c.x
+
+-- 同级件贴边或相交：帧上连成一块，原读数 pieces() 认不出它们
+def touching (p q : Pc) : Bool :=
+  let s := side p.t
+  let u := side q.t
+  let rowsOv := p.y &lt; q.y + u &amp;&amp; q.y &lt; p.y + s
+  let colsOv := p.x &lt; q.x + u &amp;&amp; q.x &lt; p.x + s
+  (rowsOv &amp;&amp; (p.x + s == q.x || q.x + u == p.x)) || (colsOv &amp;&amp; (p.y + s == q.y || q.y + u == p.y)) || (rowsOv &amp;&amp; colsOv)
+
+-- budget_cost_law：本关已扣步数 n = 棋盘点击数 + （第 1 关起）冻住点击数的平方，预算条 = ceil(max(0, T−n)·64/T)。
+-- 也就是第 1 关起连续冻住的第 k 次花 2k−1+… 即累计 k² 的额外步（seq 168–170、172、176，185–187、190、191，784、785、799、801、802）；
+-- 第 0 关冻住的点击一律只花 1 步。本语料全部 1803 个（帧, 侧）无反例（probe_budget.py → probe_budget2.out；式子由独立审计找到，
+-- 本人复算）。第 0 关例外没有独立依据，只是那一关的数据如此。
+def budgetOf (t clicks frozen level : Int) : Int :=
+  let n := clicks + (if level ≥ 1 then frozen * frozen else 0)
+  (max 0 (t - n) * 64 + t - 1) / t
+
+def render (s : State) (w : W) : Option State :=
+  let ps := sortBy (fun p =&gt; p.y * 64 + p.x) w.ps
+  let pm := ps.foldl (fun m p =&gt; m ||| pcMask p) 0
+  let vis := sortBy (fun c =&gt; c.y * 64 + c.x) (w.cs.filter (fun c =&gt; minus (crMask c) pm != 0))
+  if ps.length &gt; 9 || vis.length &gt; 4 then none else
+  let pl := ps.map encP
+  let cl := vis.map encC
+  let ix := ps.zip (List.range ps.length)
+  let iso := ix.filter (fun (p, i) =&gt; !(ix.any (fun (q, j) =&gt; i != j &amp;&amp; q.t == p.t &amp;&amp; touching p q)))
+  let c3 := iso.filter (fun (p, _) =&gt; p.t == 3 &amp;&amp; p.y + 2 ≤ 62)
+  let cur : Option (Int × Int) := match c3 with | [(p, _)] =&gt; some (p.y + 1, p.x + 1) | _ =&gt; none
+  let mv := minus (w.cs.foldl (fun m c =&gt; if c.k == 1 then m ||| crMask c else m) 0) pm &amp;&amp;&amp; boardRows
+  let kd := (s.k_dots.getD 0).toNat
+  let dots := minus kd pm
+  let n := s.h_clicks + 1
+  let same := pl == (pcsL s).filter (· ≥ 0) &amp;&amp; cl == (cresL s).filter (· ≥ 0)
+  let fz := s.h_frozen + (if same then 1 else 0)
+  some { s with
+    pcs_0 := pl.getD 0 (-1), pcs_1 := pl.getD 1 (-1), pcs_2 := pl.getD 2 (-1), pcs_3 := pl.getD 3 (-1),
+    pcs_4 := pl.getD 4 (-1), pcs_5 := pl.getD 5 (-1), pcs_6 := pl.getD 6 (-1), pcs_7 := pl.getD 7 (-1),
+    pcs_8 := pl.getD 8 (-1),
+    cres_0 := cl.getD 0 (-1), cres_1 := cl.getD 1 (-1), cres_2 := cl.getD 2 (-1), cres_3 := cl.getD 3 (-1),
+    pieces_n := iso.length,
+    cursor_r := cur.map (·.1), cursor_c := cur.map (·.2),
+    me_r := cur.map (·.1 - 1), me_c := cur.map (·.2 - 1),
+    mover_m := (if mv == 0 then none else some (mv : Int)), mover_n := (if mv == 0 then none else some (popc 64 mv : Int)),
+    hunters_n := (vis.filter (fun c =&gt; c.k == 1 || c.k == 2)).length,
+    diamonds_n := (vis.filter (fun c =&gt; c.k == 2)).length,
+    dot_cells_m := (dots : Int), dot_cells_n := (popc 64 dots : Int),
+    budget := budgetOf (s.k_T.getD 32) n fz s.level,
+    h_clicks := n,
+    h_frozen := fz }
+
+-- 超时重发（修订 R2）：本局唯一的重发点击 seq 66（ACTION6:42,42）预算只扣一步，件的结果与点一次相同
+-- （这一击点两次与点一次结果也相同，数据分不出应用了一次还是两次）；按一次处理。
+def baseAct : Act → Act
+  | Act.retried a =&gt; baseAct a
+  | a =&gt; a
+
+def boardClick (a : Act) : Option (Int × Int) :=
+  match baseAct a with
+  | Act.a6 x y =&gt; if 10 ≤ y &amp;&amp; y ≤ 62 then some ((x : Int), (y : Int)) else none
+  | _ =&gt; none
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match baseAct a with
+  | Act.a6 x y =&gt;
+    if y ≤ 9 || y ≥ 63 then some s else
+    let w := simClick s (x : Int) (y : Int)
+    -- 世界驳回：棋盘一格不动（对象照原样渲染），h_frozen 加一，预算按 budgetOf 扣
+    if w.ref then render s (initW s (x : Int) (y : Int)) else render s w
+  | _ =&gt; none
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+-- 第 9 关打完 = 整局 WIN（level 从 8 跳到 9）
+def isGoal (s : State) : Bool := s.level == 9
+
+-- ---------- 规则（每条对应一条概念；effect 只断言该概念主张的那一部分）----------
+-- 「世界接受了这次点击」：没换关、且点完第 10..62 行不是一格没动（h_frozen 没加）。概念的 SCOPE 都只管这一档。
+def accepted (s s&#x27; : State) : Bool := s&#x27;.level == s.level &amp;&amp; s&#x27;.h_frozen == s.h_frozen
+def capOf (l : List Int) : Int := (l.filterMap decObj).foldl (fun m (t, _, _) =&gt; m + 2 ^ (t - 1).toNat) 0
+def kindsAt (l : List Int) (k : Int) : List Int := l.filter (fun v =&gt; v ≥ 0 &amp;&amp; v / 4096 == k)
+def simP (w : W) : List Int := (sortBy (fun p =&gt; p.y * 64 + p.x) w.ps).map encP
+def simVisC (w : W) : List Int :=
+  let pm := w.ps.foldl (fun m p =&gt; m ||| pcMask p) 0
+  (sortBy (fun c =&gt; c.y * 64 + c.x) (w.cs.filter (fun c =&gt; minus (crMask c) pm != 0))).map encC
+-- 起手时每只没被选中的会动物件，最近的件唯一（并列时世界挑哪件帧上看不出，见 _lib.mover_target_ambiguous）
+def noTie (s : State) (x y : Int) : Bool :=
+  let w := initW s x y
+  w.cs.all (fun c =&gt; c.sel ||
+    let ds := w.ps.map (fun p =&gt; (pcx p - ccx c) * (pcx p - ccx c) + (pcy p - ccy c) * (pcy p - ccy c))
+    let m := ds.foldl min (ds.headD 0)
+    (ds.filter (· == m)).length ≤ 1)
+-- 起手帧上会动物件一只都没藏：可见「质量」（色7 记 1、色14 记 2、色13 记 4，并不改质量）等于本关常数 k_mass
+-- （hidden_hunter_revealed_by_its_bite：藏在件底下的那只帧上看不见，它的并与咬说不出来）。
+-- 可见质量只在有物件被件整只盖住时下降，露出或撤销时回升，从不超过 k_mass（语料里 12 次下降、8 次回升：
+-- 点击后露出 seq 150、500、502，撤销 seq 188、504、729、731、745）。seq 184、219、797、812、903 等处藏起的物件之后
+-- 再没露出，它们在件底下的位置没有任何检验。
+def visMass (s : State) : Int :=
+  ((cresL s).filterMap decObj).foldl (fun m (k, _, _) =&gt; m + (if k == 1 then 1 else if k == 2 then 2 else 4)) 0
+def noHide (s : State) : Bool := visMass s == s.k_mass.getD 0
+
+def rules : List Rule := [
+  { name := &quot;click_in_top_band_inert&quot;
+    guard := fun _ a =&gt; match baseAct a with | Act.a6 _ y =&gt; decide (y ≤ 9) | _ =&gt; false
+    effect := fun s _ s&#x27; =&gt; pcsL s&#x27; == pcsL s &amp;&amp; cresL s&#x27; == cresL s &amp;&amp; s&#x27;.budget == s.budget &amp;&amp; s&#x27;.level == s.level },
+  { name := &quot;budget_step_cost&quot;
+    guard := fun _ a =&gt; match baseAct a with | Act.a7 =&gt; true | Act.a6 _ y =&gt; decide (y ≤ 9) | _ =&gt; false
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level != s.level || s&#x27;.budget == s.budget },
+  { name := &quot;budget_cost_law&quot;
+    guard := fun s a =&gt; (boardClick a).isSome &amp;&amp; s.k_T.isSome
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level != s.level ||
+      (s&#x27;.budget == budgetOf (s.k_T.getD 32) s&#x27;.h_clicks s&#x27;.h_frozen s.level &amp;&amp; s&#x27;.h_clicks == s.h_clicks + 1) },
+  { name := &quot;capacity_drops_one_tier_at_most&quot;
+    guard := fun _ a =&gt; (boardClick a).isSome
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level != s.level ||
+      (let d := capOf (pcsL s) - capOf (pcsL s&#x27;); d == 0 || d == 1 || d == 2 || d == 4 || d == 8 || d == 16 || d == 32) },
+  { name := &quot;pieces_merge_at_click&quot;
+    guard := fun s a =&gt; s.cres_0 &lt; 0 &amp;&amp;
+      (match boardClick a with | some (x, y) =&gt; !(simClick s x y).ref | none =&gt; false)
+    effect := fun s a s&#x27; =&gt; !accepted s s&#x27; ||
+      (match boardClick a with | some (x, y) =&gt; (pcsL s&#x27;).filter (· ≥ 0) == simP (simClick s x y) | none =&gt; false) },
+  { name := &quot;click_two_tiers_refused&quot;
+    guard := fun s a =&gt; match boardClick a with | some (x, y) =&gt; (simClick s x y).ref | none =&gt; false
+    effect := fun s _ s&#x27; =&gt; pcsL s&#x27; == pcsL s &amp;&amp; cresL s&#x27; == cresL s &amp;&amp; s&#x27;.h_frozen == s.h_frozen + 1 },
+  { name := &quot;mover_captures_piece&quot;
+    guard := fun s a =&gt; s.cres_0 ≥ 0 &amp;&amp; (match boardClick a with
+      | some (x, y) =&gt; noTie s x y &amp;&amp; (let w := simClick s x y; !w.ref &amp;&amp; w.ncap &gt; 0) | none =&gt; false)
+    effect := fun s a s&#x27; =&gt; !accepted s s&#x27; ||
+      (match boardClick a with | some (x, y) =&gt; capOf (pcsL s&#x27;) == capOf (simP (simClick s x y)) | none =&gt; false) },
+  { name := &quot;captured_piece_flung_ten&quot;
+    guard := fun s a =&gt; s.cres_0 ≥ 0 &amp;&amp; (match boardClick a with
+      | some (x, y) =&gt; noTie s x y &amp;&amp; (let w := simClick s x y; !w.ref &amp;&amp; w.ncap &gt; 0) | none =&gt; false)
+    effect := fun s a s&#x27; =&gt; !accepted s s&#x27; ||
+      (match boardClick a with | some (x, y) =&gt; (pcsL s&#x27;).filter (· ≥ 0) == simP (simClick s x y) | none =&gt; false) },
+  { name := &quot;mover7_clamp_far_from_click_no_capture&quot;
+    guard := fun s a =&gt; s.cres_0 ≥ 0 &amp;&amp; noHide s &amp;&amp; (match boardClick a with
+      | some (x, y) =&gt; noTie s x y &amp;&amp; (let w := simClick s x y; !w.ref &amp;&amp; w.ncap == 0) | none =&gt; false)
+    effect := fun s a s&#x27; =&gt; !accepted s s&#x27; ||
+      (match boardClick a with | some (x, y) =&gt; kindsAt (cresL s&#x27;) 1 == kindsAt (simVisC (simClick s x y)) 1 | none =&gt; false) },
+  { name := &quot;mover14_pounces_when_close&quot;
+    guard := fun s a =&gt; match boardClick a with
+      | some (x, y) =&gt; noTie s x y &amp;&amp; (initW s x y).cs.any (fun c =&gt; c.sel &amp;&amp; c.k == 2) &amp;&amp; !(simClick s x y).ref
+      | none =&gt; false
+    effect := fun s a s&#x27; =&gt; !accepted s s&#x27; ||
+      (match boardClick a with | some (x, y) =&gt; kindsAt (cresL s&#x27;) 2 == kindsAt (simVisC (simClick s x y)) 2 | none =&gt; false) },
+  { name := &quot;movers_merge_on_immune_piece&quot;
+    guard := fun s a =&gt; s.cres_0 ≥ 0 &amp;&amp; noHide s &amp;&amp; (match boardClick a with
+      | some (x, y) =&gt; noTie s x y &amp;&amp; (let w := simClick s x y; !w.ref &amp;&amp; w.nmerge &gt; 0) | none =&gt; false)
+    effect := fun s a s&#x27; =&gt; !accepted s s&#x27; ||
+      (match boardClick a with
+       | some (x, y) =&gt; let v := simVisC (simClick s x y)
+         -- 逐种比个数（色7、色14、色13 各自多少只），只比帧上看得见的：并出来的新物件若整只落在件底下，两边都数不到它
+         (kindsAt (cresL s&#x27;) 1).length == (kindsAt v 1).length &amp;&amp; (kindsAt (cresL s&#x27;) 2).length == (kindsAt v 2).length
+           &amp;&amp; (kindsAt (cresL s&#x27;) 3).length == (kindsAt v 3).length
+       | none =&gt; false) },
+  { name := &quot;action7_undo_conserves&quot;
+    guard := fun _ a =&gt; baseAct a == Act.a7
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level != s.level || (s&#x27;.budget == s.budget &amp;&amp; capOf (pcsL s&#x27;) ≥ capOf (pcsL s)) }
+]
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。内核证明（decide +kernel）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println (&quot;GUARD_HITS &quot; ++ String.intercalate &quot;,&quot; (rules.map (fun r =&gt; r.name ++ &quot;=&quot; ++ toString (corpus.filter (fun t =&gt; r.guard t.s t.a)).length)))
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>su15 · UNIFY-REPORT</h1>
 <p>工作台：<code>ledger/games/su15/</code>（objects/ derive/ rule/ analysis/ lean2/ web/ + corpus.py paths.py run_rules.py）；
 临时探针：<code>runs/_wb-su15/</code>。每条读数都是真跑出来的，原始输出在 <code>runs/_wb-su15/final_*.txt</code>
 （由 <code>runs/_wb-su15/chain.py</code> 按固定顺序跑整条链，逐步单独取退出码：13 步全部 rc=0）。</p>

@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← cn04 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。开局时画面上看不见的那几位（沉睡件的真色和插头、笔的剧本），取自这一关录像里它们露出来的那一帧，定理自己核对由它们画出来的开局和录像的开局那一帧一致。</p><p class="result">6 关全部被证明可以打通，每关 13 到 94 步（另加过关那一步），逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分，261 步操作（<a href="https://arcprize.org/replay/a77739cf-b641-4162-aca3-7eeed867bbb6" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>Lean 模型在录像全部 745 步上逐步推演：对上 742 步，说错 0 步，另 3 步是整局重来，模型不描述。</li><li>同一批规则也用 Python 在画面上逐步检验，说错 2 次，全在转向那一条：那几步选中的是一支已经画完的笔，画面上它和普通件长得一样，Python 读不出「它是笔」这一位；Lean 模型带着这一位，这几步都对上。</li><li>过关规则在 Python 这一侧只核得到「看得见落单插头就不过关」这一半；「全部配上就过关」这一半，由每一关证明的最后一步核对。</li><li>把判断规则的源码故意改错 19 种，检验抓住了其中大部分；抓不住的 1 种改的是一段在这份录像里从未出现的情形。另造了 120 个错误的下一帧，全部被规则拒掉。</li><li>每一帧画面读出来的选中件，与 Lean 模型里的那一件逐帧对账：742 帧，对不上 0 帧。</li><li>证明里没有跳过任何一步，共 51 条定理，全部由 Lean 内核检查；一份故意写错的证明编译失败，失败在标出的第 21 行。</li></ul><h2>不进模型的规则：插头长在哪里</h2><p class="prose">另有 1 条关于插头长在哪里的规则，在录像上逐步检验，不在 Lean 模型里：模型把每件的插头逐格记着，用不着它。</p><div class="rules"><article class="rule"><h3>插头长在件的末端</h3><p>醒着那件的每个插头，四邻里正好有一格是它自己的实心（或笔头）。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">548/548 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 745 条记录，是同一局连着打的 4 遍：第一遍 42 步，边摸索边打；第二遍 260 步，打通了全部关；第三遍 181 步；第四遍 262 步（含开头的一次重来），是官方认证的那一遍，首页的截图和全部逐关证明都用它。四遍全部用来检验规则。</p><h2>适用范围</h2><ul class="lst"><li>「打不通」指不经过重来就打不通：模型的操作里没有重来这一项。</li><li>每关开局看不见的那几位取自这一关的录像；顶栏的每关预算由录像量出。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默（NA）</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>scope / C / E</dt><dd>规则管到的步数 / 说对的 / 说错的</dd><dt>可动件 / MOVER</dt><dd>选中的那一件；色 0 在官方渲染里是白色</dd><dt>MARK / WELD</dt><dd>插头（色 8，红）/ 两个插头叠在一格（色 3，灰）</dd><dt>paint / sleep</dt><dd>两种画法：选中件涂白 / 没选中的件涂成沉睡色（色 4，深色）</dd><dt>纤维见证</dt><dd>每关开局看不见的那几位，取自这一关录像里它们露出来的那一帧</dd><dt>ACTION1–4 / ACTION5 / ACTION6</dt><dd>上下左右 / 功能键 / 点屏幕</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">cn04 的<b>对象层</b>。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;cn04 的**对象层**。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← cn04 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。开局时画面上看不见的那几位（沉睡件的真色和插头、笔的剧本），取自这一关录像里它们露出来的那一帧，定理自己核对由它们画出来的开局和录像的开局那一帧一致。</p><p class="result">6 关全部被证明可以打通，每关 13 到 94 步（另加过关那一步），逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分，261 步操作（<a href="https://arcprize.org/replay/a77739cf-b641-4162-aca3-7eeed867bbb6" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>Lean 模型在录像全部 745 步上逐步推演：对上 742 步，说错 0 步，另 3 步是整局重来，模型不描述。</li><li>同一批规则也用 Python 在画面上逐步检验，说错 2 次，全在转向那一条：那几步选中的是一支已经画完的笔，画面上它和普通件长得一样，Python 读不出「它是笔」这一位；Lean 模型带着这一位，这几步都对上。</li><li>过关规则在 Python 这一侧只核得到「看得见落单插头就不过关」这一半；「全部配上就过关」这一半，由每一关证明的最后一步核对。</li><li>把判断规则的源码故意改错 19 种，检验抓住了其中大部分；抓不住的 1 种改的是一段在这份录像里从未出现的情形。另造了 120 个错误的下一帧，全部被规则拒掉。</li><li>每一帧画面读出来的选中件，与 Lean 模型里的那一件逐帧对账：742 帧，对不上 0 帧。</li><li>证明里没有跳过任何一步，共 51 条定理，全部由 Lean 内核检查；一份故意写错的证明编译失败，失败在标出的第 21 行。</li></ul><h2>不进模型的规则：插头长在哪里</h2><p class="prose">另有 1 条关于插头长在哪里的规则，在录像上逐步检验，不在 Lean 模型里：模型把每件的插头逐格记着，用不着它。</p><div class="rules"><article class="rule"><h3>插头长在件的末端</h3><p>醒着那件的每个插头，四邻里正好有一格是它自己的实心（或笔头）。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">548/548 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 745 条记录，是同一局连着打的 4 遍：第一遍 42 步，边摸索边打；第二遍 260 步，打通了全部关；第三遍 181 步；第四遍 262 步（含开头的一次重来），是官方认证的那一遍，首页的截图和全部逐关证明都用它。四遍全部用来检验规则。</p><h2>适用范围</h2><ul class="lst"><li>「打不通」指不经过重来就打不通：模型的操作里没有重来这一项。</li><li>每关开局看不见的那几位取自这一关的录像；顶栏的每关预算由录像量出。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默（NA）</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>scope / C / E</dt><dd>规则管到的步数 / 说对的 / 说错的</dd><dt>可动件 / MOVER</dt><dd>选中的那一件；色 0 在官方渲染里是白色</dd><dt>MARK / WELD</dt><dd>插头（色 8，红）/ 两个插头叠在一格（色 3，灰）</dd><dt>paint / sleep</dt><dd>两种画法：选中件涂白 / 没选中的件涂成沉睡色（色 4，深色）</dd><dt>纤维见证</dt><dd>每关开局看不见的那几位，取自这一关录像里它们露出来的那一帧</dd><dt>ACTION1–4 / ACTION5 / ACTION6</dt><dd>上下左右 / 功能键 / 点屏幕</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">cn04 的<b>对象层</b>。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;cn04 的**对象层**。一个文件一个类，按「它在这一帧里是什么」收进子文件夹。
 
     objects/
       parse.py          唯一碰像素的地方（留在根上，最该显眼）
@@ -5805,7 +5805,603 @@ def step (s : World) : Act → Res
   | .click x y =&gt; settle (pick s x y)
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>cn04 · 统一到「对象 → 规则 → 形式化 → 前端」的报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">cn04-20260909/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 21 条</span><span class="chip c-mute">路线 261 步，换关查表 6 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/cn04-20260909/_lib.py ; why=补整格颜色读数 cells、顶栏读数 hud_spent、隐藏记账（静置件格局记忆/按键计数/步数）与每关常数（开关布局、笔节表、顶栏预算），原聚合读数写不出下一步
+-- 由 world/formalize.py 生成于 2026-09-29T14:59:59+08:00；局 cn04；基于 run [&#x27;cn04-0907-1226&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 890 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+/-
+cn04 规则段（修复 2026-09-29）。
+抽象：cells_m_c&lt;色&gt; 是块网格里每种颜色的格集（格 (r,c) 在第 32r+c 位）；hud_spent 是顶栏已花格数。
+件以真色为身份（色 9/10/11/12/14/15）。不在上层的件（「静置层」）的格局 = 本关当过可动件的用 h_s/h_p 的记忆，
+否则用开关布局 k_s/k_p（游戏内容）。上层那个件（可动件）不存状态：它 = 帧上与静置层画法不同的格。
+动力学全部在这里算：平移 / 旋转 / 笔与伸缩件的节 / 点选换人与睡醒 / 画法（盖在最上层、插头重合显 3、沉睡件通体 4）/
+配光换关 / 顶栏。Python 读数只给这一帧看得见的格与颜色、以及记账式的隐藏量。
+
+【查表的账】除了 worldRows 的 6 个换关行，下面这些量是从帧上**抄来的游戏内容**，不是推出来的：
+  · 沉睡件的真色与插头位置（k_s/k_p，第 2~5 关）：取自该件本关第一次被点醒那一步自己的下一帧
+    （seq 106、111、145、146、147、193、194、195、244、245、246、247，共 12 步）。这些常数取自第 1 轮 run，
+    在后续轮次它们被点醒之前 Lean 就已经在用（例：第 2 关色 15 在 seq 375、381、535、563；第 3 关色 11 在 391、627，色 12 在 591）——
+    它们是上一轮学到的关卡内容，后续轮次（含路线）里的点醒对它们是样本外验证，那 12 步本身则是样本内。
+  · 第 0/1 关开关时选中件的真色 k_sel（2 个值）：取自第一次换人那一步的下一帧。
+  · 笔（色 11，第 4/5 关）与伸缩件（色 15，第 5 关）的各节布局 k_a11/k_a15（主会话按复审更正：解码后色 11 两张表各 5 节与 6 节、色 15 一张表 4 节，共 15 个节布局；此前写的「12」是 4+5+3 的步数和）：
+    是「按第 n 次之后整个下一布局」的表，**stepRules 用它逐步重放（查表）**；pen_step 规则不用它，只断言概念原文的结构。
+  · 顶栏预算 k_budget（每关一个，共 6 关，5 种取值 75/100/125/150/200）。
+【未检验的分支】（stepRules 里有写法，但语料里从没走到，或没有任何概念规则管）：
+  · 平移出界：shiftI 不做边界处理（语料里可动件从没出过网格，no_block 的范围说明同此）。
+  · 选中色画法下点在底色 / 可动件自己 / 插头格上；沉睡画法下有可动件时点在底色上。
+  · 无可动件时按 ACTION1–5（seq 102、103 这类：stepRules 只让步数加一），没有概念规则管这一支。
+  · 「点可动件让它睡回去」（seq 101、107、470 等）由 swap_sleep 规则的扩展分支管（原概念对此返回 NA，见该规则注释）。
+-/
+
+def PC : List Nat := [9, 10, 11, 12, 14, 15]
+
+def nat (i : Int) : Nat := i.toNat
+def optN (o : Option Int) : Nat := (o.getD 0).toNat
+def andNot (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)
+def lowBit (m : Nat) : Nat := m ^^^ (m &amp;&amp;&amp; (m - 1))
+def bitAt (i : Nat) : Nat := 1 &lt;&lt;&lt; i
+def popc : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | f+1, m =&gt; if m == 0 then 0 else 1 + popc f (m &amp;&amp;&amp; (m - 1))
+def shiftI (m : Nat) (d : Int) : Nat := if 0 ≤ d then m &lt;&lt;&lt; d.toNat else m &gt;&gt;&gt; (-d).toNat
+def sub (a b : Nat) : Bool := andNot a b == 0
+
+-- ---- 帧：十种颜色的格集 ----
+structure Frame where
+  c0 : Nat
+  c3 : Nat
+  c4 : Nat
+  c8 : Nat
+  c9 : Nat
+  c10 : Nat
+  c11 : Nat
+  c12 : Nat
+  c14 : Nat
+  c15 : Nat
+
+def Frame.zero : Frame := ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0⟩
+def Frame.get (f : Frame) (c : Nat) : Nat :=
+  match c with
+  | 0 =&gt; f.c0 | 3 =&gt; f.c3 | 4 =&gt; f.c4 | 8 =&gt; f.c8 | 9 =&gt; f.c9
+  | 10 =&gt; f.c10 | 11 =&gt; f.c11 | 12 =&gt; f.c12 | 14 =&gt; f.c14 | 15 =&gt; f.c15 | _ =&gt; 0
+def Frame.orC (f : Frame) (c m : Nat) : Frame :=
+  match c with
+  | 0 =&gt; { f with c0 := f.c0 ||| m } | 3 =&gt; { f with c3 := f.c3 ||| m }
+  | 4 =&gt; { f with c4 := f.c4 ||| m } | 8 =&gt; { f with c8 := f.c8 ||| m }
+  | 9 =&gt; { f with c9 := f.c9 ||| m } | 10 =&gt; { f with c10 := f.c10 ||| m }
+  | 11 =&gt; { f with c11 := f.c11 ||| m } | 12 =&gt; { f with c12 := f.c12 ||| m }
+  | 14 =&gt; { f with c14 := f.c14 ||| m } | 15 =&gt; { f with c15 := f.c15 ||| m } | _ =&gt; f
+def Frame.clear (f : Frame) (m : Nat) : Frame :=
+  ⟨andNot f.c0 m, andNot f.c3 m, andNot f.c4 m, andNot f.c8 m, andNot f.c9 m,
+   andNot f.c10 m, andNot f.c11 m, andNot f.c12 m, andNot f.c14 m, andNot f.c15 m⟩
+def Frame.all (f : Frame) : Nat :=
+  f.c0 ||| f.c3 ||| f.c4 ||| f.c8 ||| f.c9 ||| f.c10 ||| f.c11 ||| f.c12 ||| f.c14 ||| f.c15
+def Frame.xor (f g : Frame) : Nat :=
+  (f.c0 ^^^ g.c0) ||| (f.c3 ^^^ g.c3) ||| (f.c4 ^^^ g.c4) ||| (f.c8 ^^^ g.c8) ||| (f.c9 ^^^ g.c9) |||
+  (f.c10 ^^^ g.c10) ||| (f.c11 ^^^ g.c11) ||| (f.c12 ^^^ g.c12) ||| (f.c14 ^^^ g.c14) ||| (f.c15 ^^^ g.c15)
+
+def visFrame (s : State) : Frame :=
+  ⟨nat s.cells_m_c0, nat s.cells_m_c3, nat s.cells_m_c4, nat s.cells_m_c8, nat s.cells_m_c9,
+   nat s.cells_m_c10, nat s.cells_m_c11, nat s.cells_m_c12, nat s.cells_m_c14, nat s.cells_m_c15⟩
+def vis (s : State) (c : Nat) : Nat := (visFrame s).get c
+-- 帧 f 恰好就是状态 t 的画面（十种颜色逐格相同）
+def frameIs (f : Frame) (t : State) : Bool := Frame.xor f (visFrame t) == 0
+
+-- ---- 静置层 ----
+structure Pc where
+  col : Nat
+  sol : Nat
+  plg : Nat
+
+def hS (s : State) (c : Nat) : Nat :=
+  match c with
+  | 9 =&gt; nat s.h_s9 | 10 =&gt; nat s.h_s10 | 11 =&gt; nat s.h_s11 | 12 =&gt; nat s.h_s12 | 14 =&gt; nat s.h_s14 | 15 =&gt; nat s.h_s15 | _ =&gt; 0
+def hP (s : State) (c : Nat) : Nat :=
+  match c with
+  | 9 =&gt; nat s.h_p9 | 10 =&gt; nat s.h_p10 | 11 =&gt; nat s.h_p11 | 12 =&gt; nat s.h_p12 | 14 =&gt; nat s.h_p14 | 15 =&gt; nat s.h_p15 | _ =&gt; 0
+def kS (s : State) (c : Nat) : Nat :=
+  match c with
+  | 9 =&gt; optN s.k_s9 | 10 =&gt; optN s.k_s10 | 11 =&gt; optN s.k_s11 | 12 =&gt; optN s.k_s12 | 14 =&gt; optN s.k_s14 | 15 =&gt; optN s.k_s15 | _ =&gt; 0
+def kP (s : State) (c : Nat) : Nat :=
+  match c with
+  | 9 =&gt; optN s.k_p9 | 10 =&gt; optN s.k_p10 | 11 =&gt; optN s.k_p11 | 12 =&gt; optN s.k_p12 | 14 =&gt; optN s.k_p14 | 15 =&gt; optN s.k_p15 | _ =&gt; 0
+def hN (s : State) (c : Nat) : Nat :=
+  match c with
+  | 9 =&gt; nat s.h_n9 | 10 =&gt; nat s.h_n10 | 11 =&gt; nat s.h_n11 | 12 =&gt; nat s.h_n12 | 14 =&gt; nat s.h_n14 | 15 =&gt; nat s.h_n15 | _ =&gt; 0
+def kL (s : State) (c : Nat) : Nat := if c == 11 then optN s.k_L11 else if c == 15 then optN s.k_L15 else 0
+def kA (s : State) (c : Nat) : Nat := if c == 11 then optN s.k_a11 else if c == 15 then optN s.k_a15 else 0
+
+def sleepy (s : State) : Bool := s.k_sleep == some 1
+def statOf (s : State) (c : Nat) : Pc :=
+  if (nat s.h_has &gt;&gt;&gt; c) % 2 == 1 then ⟨c, hS s c, hP s c⟩ else ⟨c, kS s c, kP s c⟩
+def statics (s : State) : List Pc := PC.map (statOf s)
+def upd (st : List Pc) (c so pl : Nat) : List Pc := st.map fun p =&gt; if p.col == c then ⟨c, so, pl⟩ else p
+
+-- 插头重数：(至少一个插头的格, 至少两个插头的格)
+def plugCount (ps : List Nat) : Nat × Nat := ps.foldl (fun acc p =&gt; (acc.1 ||| p, acc.2 ||| (acc.1 &amp;&amp;&amp; p))) (0, 0)
+
+-- ---- 件的格局 ----
+structure Lay where
+  sol : Nat
+  plg : Nat
+  head : Nat
+def Lay.all (l : Lay) : Nat := l.sol ||| l.plg ||| l.head
+def Lay.shift (l : Lay) (d : Int) : Lay := ⟨shiftI l.sol d, shiftI l.plg d, shiftI l.head d⟩
+
+/-- 画法（dock_weld / overlap_draws_over / swap_selection / swap_sleep 的共同画法）：
+    静置层：选中色画法下各件显真色、插头显 8、两个插头重合显 3；沉睡画法下静置件连插头通体显 4。
+    上层件盖在最上面：实心显它的画色（选中色画法 0，沉睡画法真色），笔头显 0，插头落在静置插头上显 3、否则显 8。 -/
+def render (sl : Bool) (st : List Pc) (act : Option (Lay × Nat)) : Frame :=
+  let oc := plugCount (st.map (·.plg))
+  let base : Frame :=
+    if sl then Frame.zero.orC 4 (st.foldl (fun m p =&gt; m ||| p.sol ||| p.plg) 0)
+    else
+      let f := st.foldl (fun f p =&gt; f.orC p.col (andNot p.sol oc.1)) Frame.zero
+      (f.orC 8 (andNot oc.1 oc.2)).orC 3 oc.2
+  match act with
+  | none =&gt; base
+  | some (l, col) =&gt;
+    let f := base.clear l.all
+    let f := f.orC (if sl then col else 0) l.sol
+    let f := f.orC 0 l.head
+    let f := f.orC 3 (l.plg &amp;&amp;&amp; oc.1)
+    f.orC 8 (andNot l.plg oc.1)
+
+/-- 上层件：帧上与静置层画法不一致的格。选中色画法下真色记在 h_sel（-1 = 开关时那个，见 k_sel）。 -/
+def activeOf (s : State) : Option (Lay × Nat) :=
+  let sl := sleepy s
+  let v := visFrame s
+  let d := Frame.xor v (render sl (statics s) none) &amp;&amp;&amp; nat s.cells_m
+  if d == 0 then none else
+  let plg := d &amp;&amp;&amp; (v.c8 ||| v.c3)
+  let head := if sl then d &amp;&amp;&amp; v.c0 else 0
+  let sol := andNot d (plg ||| head)
+  let col := if sl then (PC.find? (fun c =&gt; (v.get c &amp;&amp;&amp; sol) != 0)).getD 0
+             else if 0 ≤ s.h_sel then nat s.h_sel else optN s.k_sel
+  some (⟨sol, plg, head⟩, col)
+
+-- ---- 几何 ----
+def colProj : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | f+1, m =&gt; if m == 0 then 0 else (m &amp;&amp;&amp; 1048575) ||| colProj f (m &gt;&gt;&gt; 32)
+/-- 外框：(最上行, 最左列, 最下行) -/
+def bbox (m : Nat) : Nat × Nat × Nat :=
+  (Nat.log2 (lowBit m) / 32, Nat.log2 (lowBit (colProj 20 m)), Nat.log2 m / 32)
+
+def rotBits (r0 c0 h : Nat) : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | f+1, m =&gt;
+    if m == 0 then 0 else
+    let i := Nat.log2 (lowBit m)
+    let r := i / 32
+    let c := i % 32
+    bitAt ((r0 + (c - c0)) * 32 + (c0 + (h - 1) - (r - r0))) ||| rotBits r0 c0 h f (m &amp;&amp;&amp; (m - 1))
+/-- rot_cw：绕整件（实心 + 插头）外框左上角顺时针转 90°，左上角不动。 -/
+def Lay.rot (l : Lay) : Lay :=
+  let b := bbox l.all
+  let h := b.2.2 + 1 - b.1
+  ⟨rotBits b.1 b.2.1 h 400 l.sol, rotBits b.1 b.2.1 h 400 l.plg, rotBits b.1 b.2.1 h 400 l.head⟩
+
+-- ---- 笔 / 伸缩件的节（节表是 k_a&lt;色&gt;，见 _lib.LEVEL_CONST 的编码说明）----
+def addCode (d : Nat) (l : Lay) : Lay :=
+  let k := d / 1024
+  let b := bitAt (d % 1024)
+  if k == 1 then { l with sol := l.sol ||| b } else if k == 2 then { l with plg := l.plg ||| b } else { l with head := l.head ||| b }
+def stageGo : Nat → Nat → Nat → Lay → Lay
+  | 0, _, _, acc =&gt; acc
+  | f+1, tab, i, acc =&gt;
+    if tab == 0 then acc else
+    let d := tab % 4096
+    let rest := tab / 4096
+    if d == 0 then (if i == 0 then acc else stageGo f rest (i - 1) acc)
+    else if i == 0 then stageGo f rest 0 (addCode d acc) else stageGo f rest i acc
+def stageLay (tab i : Nat) : Lay := stageGo 400 tab i ⟨0, 0, 0⟩
+/-- 按了 n 次之后在第几节：走到最后一节就折返（三角波）。 -/
+def tri (n L : Nat) : Nat := if L == 0 then 0 else if n % (2 * L) ≤ L then n % (2 * L) else 2 * L - n % (2 * L)
+/-- 把格集 src 平移到外框左上角与 dst 对齐所需的位移（位下标差）。 -/
+def offTo (src dst : Nat) : Int :=
+  let a := bbox dst
+  let b := bbox src
+  ((a.1 : Int) - b.1) * 32 + ((a.2.1 : Int) - b.2.1)
+def isAnim (s : State) (c : Nat) : Bool := sleepy s &amp;&amp; kL s c &gt; 0
+/-- stepRules 用的笔 / 伸缩件前进：第 n 次按 ACTION5 之后该件的格局 = 节表 k_a 的第 tri(n+1) 节，放在它当前所在的位置。
+    **这是查表**（节表逐字是动作后果，取自帧），只给 faithful 重放用；pen_step 规则不引用它。 -/
+def penNext (s : State) (l : Lay) (col : Nat) : Lay :=
+  let n := hN s col
+  let L := kL s col
+  let a0 := stageLay (kA s col) (tri n L)
+  (stageLay (kA s col) (tri (n + 1) L)).shift (offTo a0.all l.all)
+
+-- ---- 点选 ----
+def clickBit (x y : Nat) : Nat :=
+  if x &lt; 2 || y &lt; 2 then 0 else
+  if (y - 2) / 3 &lt; 20 &amp;&amp; (x - 2) / 3 &lt; 20 then bitAt ((y - 2) / 3 * 32 + (x - 2) / 3) else 0
+/-- 点中的静置件：先看实心，再看插头；几件都中取色号最小的（语料只有 seq 425 一例，那一格是两件插头重合）。 -/
+def hitCol (st : List Pc) (b : Nat) : Option Pc :=
+  match st.filter (fun p =&gt; (p.sol &amp;&amp;&amp; b) != 0) with
+  | p :: _ =&gt; some p
+  | [] =&gt; (st.filter (fun p =&gt; (p.plg &amp;&amp;&amp; b) != 0)).head?
+/-- 被点醒（或被选中）的件回到上层时的格局：普通件就是它静置时的格局；笔 / 伸缩件按它的节数画。 -/
+def wakeLay (s : State) (q : Pc) : Lay :=
+  if isAnim s q.col then
+    let a0 := stageLay (kA s q.col) (tri (hN s q.col) (kL s q.col))
+    a0.shift (offTo a0.all (q.sol ||| q.plg))
+  else ⟨q.sol, q.plg, 0⟩
+
+-- ---- 隐藏量的记账（与 _lib.hidden_step 同一件事，这里独立地由规则算出）----
+def setHS (s : State) (c : Nat) (so pl : Nat) : State :=
+  match c with
+  | 9 =&gt; { s with h_s9 := so, h_p9 := pl } | 10 =&gt; { s with h_s10 := so, h_p10 := pl }
+  | 11 =&gt; { s with h_s11 := so, h_p11 := pl } | 12 =&gt; { s with h_s12 := so, h_p12 := pl }
+  | 14 =&gt; { s with h_s14 := so, h_p14 := pl } | 15 =&gt; { s with h_s15 := so, h_p15 := pl } | _ =&gt; s
+def recordH (s : State) (c so pl : Nat) : State :=
+  let s1 := setHS s c so pl
+  { s1 with h_has := ((nat s.h_has ||| bitAt c : Nat) : Int) }
+def incN (s : State) (c : Nat) : State :=
+  match c with
+  | 9 =&gt; { s with h_n9 := s.h_n9 + 1 } | 10 =&gt; { s with h_n10 := s.h_n10 + 1 }
+  | 11 =&gt; { s with h_n11 := s.h_n11 + 1 } | 12 =&gt; { s with h_n12 := s.h_n12 + 1 }
+  | 14 =&gt; { s with h_n14 := s.h_n14 + 1 } | 15 =&gt; { s with h_n15 := s.h_n15 + 1 } | _ =&gt; s
+
+-- ---- 一步的结果（换关之前）----
+structure Out where
+  st : List Pc
+  act : Option (Lay × Nat)
+  s1 : State
+
+def moveD : Act → Option Int
+  | .a1 =&gt; some (-32) | .a2 =&gt; some 32 | .a3 =&gt; some (-1) | .a4 =&gt; some 1 | _ =&gt; none
+
+/-- 换人：原上层件回静置层（记下它此刻的格局），被点中的件 q 上到最上层。 -/
+def switchTo (s0 : State) (st : List Pc) (ac : Option (Lay × Nat)) (q : Pc) : Out :=
+  let p1 : List Pc × State := match ac with
+    | some (l, col) =&gt; (upd st col (l.sol ||| l.head) l.plg, recordH s0 col (l.sol ||| l.head) l.plg)
+    | none =&gt; (st, s0)
+  let s2 := recordH p1.2 q.col 0 0
+  let s3 := if sleepy s0 then s2 else { s2 with h_sel := (q.col : Int) }
+  ⟨upd p1.1 q.col 0 0, some (wakeLay s0 q, q.col), s3⟩
+
+def predict (s : State) (a : Act) : Option Out :=
+  let st := statics s
+  let ac := activeOf s
+  let s0 := { s with h_steps := s.h_steps + 1 }
+  match a with
+  | .a6 x y =&gt;
+    let b := clickBit x y
+    let self : Bool := match ac with | some (l, _) =&gt; b != 0 &amp;&amp; (l.all &amp;&amp;&amp; b) != 0 | none =&gt; false
+    if self then
+      match ac with
+      | some (l, col) =&gt;
+        if sleepy s then some ⟨upd st col (l.sol ||| l.head) l.plg, none, recordH s0 col (l.sol ||| l.head) l.plg⟩
+        else none
+      | none =&gt; none
+    else
+      match hitCol st b with
+      | some q =&gt; some (switchTo s0 st ac q)
+      | none =&gt; some ⟨st, ac, s0⟩
+  | .a5 =&gt;
+    match ac with
+    | none =&gt; some ⟨st, none, s0⟩
+    | some (l, col) =&gt;
+      let s1 := if sleepy s then incN s0 col else s0
+      if isAnim s col then some ⟨st, some (penNext s l col, col), s1⟩
+      else some ⟨st, some (l.rot, col), s1⟩
+  | a&#x27; =&gt;
+    match moveD a&#x27; with
+    | some d =&gt; some ⟨st, ac.map (fun p =&gt; (p.1.shift d, p.2)), s0⟩
+    | none =&gt; none
+
+/-- goal_dock_wins / goal_needs_dock 的判据：这一步之后全场（静置层 + 上层件）没有落单的插头。 -/
+def paired (o : Out) : Bool :=
+  let ps := o.st.map (·.plg) ++ (match o.act with | some (l, _) =&gt; [l.plg] | none =&gt; [])
+  let oc := plugCount ps
+  andNot oc.1 oc.2 == 0
+
+/-- hud_rate：顶栏花格 = floor(本关步数·32/budget + 1/2)。 -/
+def spent (n b : Nat) : Nat := (64 * n + b) / (2 * b)
+
+def settle (s : State) (o : Out) : State :=
+  let f := render (sleepy s) o.st o.act
+  let t := o.s1
+  { t with cells_m_c0 := f.c0, cells_m_c3 := f.c3, cells_m_c4 := f.c4, cells_m_c8 := f.c8,
+           cells_m_c9 := f.c9, cells_m_c10 := f.c10, cells_m_c11 := f.c11, cells_m_c12 := f.c12,
+           cells_m_c14 := f.c14, cells_m_c15 := f.c15, cells_m := f.all, cells_n := popc 400 f.all,
+           hud_spent := spent (nat t.h_steps) (optN s.k_budget) }
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match predict s a with
+  | some o =&gt; if paired o then none else some (settle s o)
+  | none =&gt; none
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+def isGoal (s : State) : Bool := s.level == 6
+
+-- ---- 各条概念 ----
+def isMove (a : Act) : Bool := (moveD a).isSome
+def inLevel (s : State) (a : Act) : Bool := match predict s a with | some o =&gt; !paired o | none =&gt; false
+def hasAct (s : State) : Bool := (activeOf s).isSome
+def drawCol (s : State) (col : Nat) : Nat := if sleepy s then col else 0
+def sleeperCells (s : State) : Nat := (render true (statics s) none).c4
+def nb (m : Nat) : List Nat := [m &lt;&lt;&lt; 1, m &gt;&gt;&gt; 1, m &lt;&lt;&lt; 32, m &gt;&gt;&gt; 32]
+/-- 格集 m 里 4-邻接度恰为 1 的格 / 度至少 2 的格 -/
+def degs (m : Nat) : Nat × Nat :=
+  let oc := plugCount ((nb m).map (· &amp;&amp;&amp; m))
+  (m &amp;&amp;&amp; andNot oc.1 oc.2, m &amp;&amp;&amp; oc.2)
+
+/-- move_*：可动件整体平移一格，别的件不动，按画法重画。 -/
+def moveClaim (d : Int) (s s&#x27; : State) : Bool :=
+  match activeOf s with
+  | some (l, col) =&gt; s&#x27;.level == s.level &amp;&amp; frameIs (render (sleepy s) (statics s) (some (l.shift d, col))) s&#x27;
+  | none =&gt; false
+def moveGuard (a0 : Act) (s : State) (a : Act) : Bool := a == a0 &amp;&amp; hasAct s &amp;&amp; inLevel s a
+
+def ruleMoveUp : Rule := { name := &quot;move_up&quot;, guard := moveGuard .a1, effect := fun s _ s&#x27; =&gt; moveClaim (-32) s s&#x27; }
+def ruleMoveDown : Rule := { name := &quot;move_down&quot;, guard := moveGuard .a2, effect := fun s _ s&#x27; =&gt; moveClaim 32 s s&#x27; }
+def ruleMoveLeft : Rule := { name := &quot;move_left&quot;, guard := moveGuard .a3, effect := fun s _ s&#x27; =&gt; moveClaim (-1) s s&#x27; }
+def ruleMoveRight : Rule := { name := &quot;move_right&quot;, guard := moveGuard .a4, effect := fun s _ s&#x27; =&gt; moveClaim 1 s s&#x27; }
+
+/-- no_block：ACTION1-4 在有可动件时一定改变帧。 -/
+def ruleNoBlock : Rule :=
+  { name := &quot;no_block&quot;, guard := fun s a =&gt; isMove a &amp;&amp; hasAct s &amp;&amp; inLevel s a,
+    effect := fun s _ s&#x27; =&gt; Frame.xor (visFrame s) (visFrame s&#x27;) != 0 }
+
+/-- overlap_draws_over：平移后可动件每个实心块的落点都显它的画色，不管底下原来是什么。 -/
+def ruleOverlap : Rule :=
+  { name := &quot;overlap_draws_over&quot;, guard := fun s a =&gt; isMove a &amp;&amp; hasAct s &amp;&amp; inLevel s a,
+    effect := fun s a s&#x27; =&gt;
+      match activeOf s, moveD a with
+      | some (l, col), some d =&gt; sub (shiftI l.sol d) (vis s&#x27; (drawCol s col))
+      | _, _ =&gt; false }
+
+/-- rot_cw：普通件按 ACTION5 绕外框左上角顺时针转 90°，外框左上角不变，别的件不动。 -/
+def ruleRot : Rule :=
+  { name := &quot;rot_cw&quot;,
+    guard := fun s a =&gt; a == .a5 &amp;&amp; inLevel s a &amp;&amp; (match activeOf s with | some (_, c) =&gt; !isAnim s c | none =&gt; false),
+    effect := fun s _ s&#x27; =&gt;
+      match activeOf s with
+      | some (l, col) =&gt;
+        let r := l.rot
+        (bbox r.all).1 == (bbox l.all).1 &amp;&amp; (bbox r.all).2.1 == (bbox l.all).2.1 &amp;&amp;
+        frameIs (render (sleepy s) (statics s) (some (r, col))) s&#x27;
+      | none =&gt; false }
+
+/-- 从种子 seed 出发、在 region 里 4-连通地长满（种子本身总算在内）。 -/
+def grow (region : Nat) : Nat → Nat → Nat
+  | 0, m =&gt; m
+  | f+1, m =&gt;
+    let m&#x27; := (m ||| ((nb m).foldl (· ||| ·) 0 &amp;&amp;&amp; region))
+    if m&#x27; == m then m else grow region f m&#x27;
+/-- 帧上「非底色、非 4」的格：笔所在的那一团只在这里面长。 -/
+def awakeRegion (t : State) : Nat := andNot (nat t.cells_m) (vis t 4)
+/-- 笔头那一团：从笔头出发在 awakeRegion 里长满。 -/
+def penComp (t : State) (h : Nat) : Nat := grow (awakeRegion t) 40 h
+/-- 那一团里（除笔头、插头外）唯一的实心色。 -/
+def penCol (s : State) (comp h : Nat) : Option Nat :=
+  let body := andNot comp (h ||| vis s 8 ||| vis s 3)
+  match PC.filter (fun c =&gt; (vis s c &amp;&amp;&amp; body) != 0) with
+  | [c] =&gt; some c
+  | _ =&gt; none
+
+/-- pen_step（概念原文的结构断言，不用节表）：prev 帧上恰有一个笔头（色 0 的格）时按 ACTION5——
+    ① 原笔头那格下一帧显该件实心色或底色；② 全帧至多一个笔头；
+    ③ 新笔头若在、原笔头那格又没变底色，两者在下一帧属于同一团；④ 该件的格数一定改变；
+    ⑤ 两团之外的格一格不变；另有记账：该件按键计数加一。**新笔头落在哪、画出什么，本条不说。** -/
+def rulePen : Rule :=
+  { name := &quot;pen_step&quot;,
+    guard := fun s a =&gt; a == .a5 &amp;&amp; popc 400 (vis s 0) == 1 &amp;&amp;
+      (penCol s (penComp s (vis s 0)) (vis s 0)).isSome,
+    effect := fun s _ s&#x27; =&gt;
+      let h := vis s 0
+      let comp := penComp s h
+      match penCol s comp h with
+      | some col =&gt;
+        let nh := vis s&#x27; 0
+        let hBg := (nat s&#x27;.cells_m &amp;&amp;&amp; h) == 0
+        let ncomp := if popc 400 nh == 1 then penComp s&#x27; nh else penComp s&#x27; h
+        s&#x27;.level == s.level &amp;&amp;
+        (hBg || (vis s&#x27; col &amp;&amp;&amp; h) != 0) &amp;&amp;
+        popc 400 nh ≤ 1 &amp;&amp;
+        (popc 400 nh != 1 || hBg || (sub h ncomp &amp;&amp; sub nh ncomp)) &amp;&amp;
+        popc 400 ncomp != popc 400 comp &amp;&amp;
+        sub (Frame.xor (visFrame s) (visFrame s&#x27;)) (comp ||| ncomp) &amp;&amp;
+        hN s&#x27; col == hN s col + 1
+      | none =&gt; false }
+
+def clickHit (s : State) (a : Act) : Option Pc :=
+  match a with
+  | .a6 x y =&gt;
+    let b := clickBit x y
+    let self := match activeOf s with | some (l, _) =&gt; (l.all &amp;&amp;&amp; b) != 0 | none =&gt; false
+    if b == 0 || self then none else hitCol (statics s) b
+  | _ =&gt; none
+
+/-- select_click：选中色画法下点中一个件的实心，它整件变成色 0（插头照旧），原来的色 0 件露出真色，谁都不动。 -/
+def ruleSelect : Rule :=
+  { name := &quot;select_click&quot;,
+    guard := fun s a =&gt; !sleepy s &amp;&amp; hasAct s &amp;&amp; (clickHit s a).isSome,
+    effect := fun s a s&#x27; =&gt;
+      match clickHit s a, activeOf s with
+      | some q, some (l, col) =&gt;
+        let st := upd (upd (statics s) col (l.sol ||| l.head) l.plg) q.col 0 0
+        vis s&#x27; 0 == q.sol &amp;&amp;
+        frameIs (render false st (some (⟨q.sol, q.plg, 0⟩, q.col))) s&#x27;
+      | _, _ =&gt; false }
+
+/-- swap_selection：点选是身份交换——非底色格集一格不变，变了颜色的格全在这两件上。 -/
+def ruleSwapSel : Rule :=
+  { name := &quot;swap_selection&quot;,
+    guard := fun s a =&gt; !sleepy s &amp;&amp; hasAct s &amp;&amp; (clickHit s a).isSome,
+    effect := fun s a s&#x27; =&gt;
+      match clickHit s a, activeOf s with
+      | some q, some (l, _) =&gt;
+        s&#x27;.cells_m == s.cells_m &amp;&amp; sub (Frame.xor (visFrame s) (visFrame s&#x27;)) (l.all ||| q.sol ||| q.plg)
+      | _, _ =&gt; false }
+
+/-- sleep_wake：沉睡画法下点中沉睡件：非底色格集一格不变，被点的那格不再是 4。 -/
+def ruleSleepWake : Rule :=
+  { name := &quot;sleep_wake&quot;,
+    guard := fun s a =&gt; sleepy s &amp;&amp; (clickHit s a).isSome,
+    effect := fun s a s&#x27; =&gt;
+      match a with
+      | .a6 x y =&gt; s&#x27;.cells_m == s.cells_m &amp;&amp; (vis s&#x27; 4 &amp;&amp;&amp; clickBit x y) == 0
+      | _ =&gt; false }
+
+/-- 沉睡画法下点在可动件自己身上。 -/
+def clickSelf (s : State) (a : Act) : Bool :=
+  match a, activeOf s with
+  | .a6 x y, some (l, _) =&gt; clickBit x y != 0 &amp;&amp; (l.all &amp;&amp;&amp; clickBit x y) != 0
+  | _, _ =&gt; false
+
+/-- swap_sleep：被点中的件整件醒来（真色 + 插头），原来醒着的件整件沉成 4，两件一格没挪，别的格子不变。
+    **扩展分支**（原概念对此返回 NA，因为点完没有醒着的件）：点在醒着的件自己身上时，只剩后半句——
+    它整件沉成 4、一格不挪，别的格子不变，场上不再有醒着的件（seq 101、107、470 等）。 -/
+def ruleSwapSleep : Rule :=
+  { name := &quot;swap_sleep&quot;,
+    guard := fun s a =&gt; sleepy s &amp;&amp; ((clickHit s a).isSome || clickSelf s a),
+    effect := fun s a s&#x27; =&gt;
+      let st1 := match activeOf s with
+        | some (l, col) =&gt; upd (statics s) col (l.sol ||| l.head) l.plg
+        | none =&gt; statics s
+      match clickHit s a with
+      | some q =&gt; frameIs (render true (upd st1 q.col 0 0) (some (wakeLay s q, q.col))) s&#x27;
+      | none =&gt; frameIs (render true st1 none) s&#x27; &amp;&amp; (activeOf s&#x27;).isNone }
+
+/-- wake_plugs：点醒的件醒来后显 8 的自由插头，全都落在它自己格集里 4-邻接度为 1 的格上。 -/
+def ruleWakePlugs : Rule :=
+  { name := &quot;wake_plugs&quot;,
+    guard := fun s a =&gt; sleepy s &amp;&amp; (clickHit s a).isSome,
+    effect := fun s a s&#x27; =&gt;
+      match clickHit s a with
+      | some q =&gt; let w := (wakeLay s q).all; sub (vis s&#x27; 8 &amp;&amp;&amp; w) (degs w).1
+      | none =&gt; false }
+
+/-- plug_at_deg1：醒着的件恰有 2 个度 1 格、也恰有 2 个可见插头时，插头正好在那两格上。 -/
+def rulePlugDeg1 : Rule :=
+  { name := &quot;plug_at_deg1&quot;,
+    guard := fun s _ =&gt;
+      (match activeOf s with
+       | some (l, _) =&gt; popc 400 (degs l.all).1 == 2 &amp;&amp; popc 400 l.plg == 2
+       | none =&gt; false),
+    effect := fun s _ _ =&gt;
+      match activeOf s with
+      | some (l, _) =&gt; l.plg == (degs l.all).1
+      | none =&gt; false }
+
+/-- plug_near_sleeper：平移后插头落在贴着沉睡件（没压上）、又不是自己上一帧占着的格上，那一格显 8。 -/
+def nearSleeper (s : State) (a : Act) : Nat :=
+  match activeOf s, moveD a with
+  | some (l, _), some d =&gt;
+    let sc := sleeperCells s
+    let adj := (nb sc).foldl (· ||| ·) 0
+    andNot (andNot (shiftI l.plg d) sc) l.all &amp;&amp;&amp; adj
+  | _, _ =&gt; 0
+def rulePlugNear : Rule :=
+  { name := &quot;plug_near_sleeper&quot;,
+    guard := fun s a =&gt; sleepy s &amp;&amp; isMove a &amp;&amp; inLevel s a &amp;&amp; nearSleeper s a != 0,
+    effect := fun s a s&#x27; =&gt; sub (nearSleeper s a) (vis s&#x27; 8) }
+
+/-- sleep_overlay：平移后落在沉睡件格上的实心显可动件真色；落在沉睡件度 ≥ 2 的格上的插头显 8。 -/
+def ruleSleepOverlay : Rule :=
+  { name := &quot;sleep_overlay&quot;,
+    guard := fun s a =&gt; sleepy s &amp;&amp; isMove a &amp;&amp; inLevel s a &amp;&amp;
+      (match activeOf s, moveD a with
+       | some (l, _), some d =&gt; (shiftI l.all d &amp;&amp;&amp; sleeperCells s) != 0
+       | _, _ =&gt; false),
+    effect := fun s a s&#x27; =&gt;
+      match activeOf s, moveD a with
+      | some (l, col), some d =&gt;
+        let sc := sleeperCells s
+        let n := l.shift d
+        sub (n.sol &amp;&amp;&amp; sc) (vis s&#x27; col) &amp;&amp; sub (n.plg &amp;&amp;&amp; (degs sc).2) (vis s&#x27; 8)
+      | _, _ =&gt; false }
+
+/-- uncover：沉睡画法下可动件平移让出的格，下一帧只显底色或 4。 -/
+def ruleUncover : Rule :=
+  { name := &quot;uncover&quot;,
+    guard := fun s a =&gt; sleepy s &amp;&amp; isMove a &amp;&amp; hasAct s &amp;&amp; inLevel s a,
+    effect := fun s a s&#x27; =&gt;
+      match activeOf s, moveD a with
+      | some (l, _), some d =&gt; sub (andNot l.all (shiftI l.all d) &amp;&amp;&amp; nat s&#x27;.cells_m) (vis s&#x27; 4)
+      | _, _ =&gt; false }
+
+/-- dock_weld：插头只重合不消耗——ACTION1–5 前后，帧上 8 的个数加 3 的个数的两倍相等。
+    按原概念的 NA 条件闭嘴：换关；不是 ACTION1–5；没有可动件；笔 / 伸缩件的 ACTION5（它造节撤节）；
+    可动件前后任一帧有插头被它的实心盖住（看得见的插头少了，世界里的没少）；
+    沉睡画法下可动件前后任一帧碰到沉睡件的格（sleeper_touch：隐藏插头会显形成 3）；
+    prev 帧上有贴着沉睡件的焊格（_weld_with_hidden：撕开后隐藏插头回到不可见）。
+    （主会话按复审补注）与原概念并不完全相同：① 「前后任一帧」查 touchesSleeper / hiddenPlug 比原文（只查落位 new）更严，
+    使原概念判 TRUE 的 seq 581、582、640 三行漏判（3/354）；② 原概念另两个 NA——插头归属含糊（mover_plug_ambiguous）与让出格贴沉睡件——
+    Lean 没写、照判，多判 60 行（21 + 39），语料上 0 失败，是多说不是少说。 -/
+def plugTotal (t : State) : Nat := popc 400 (vis t 8) + 2 * popc 400 (vis t 3)
+def hiddenPlug (s : State) : Bool :=
+  match activeOf s with
+  | some (l, _) =&gt; ((plugCount ((statics s).map (·.plg))).1 &amp;&amp;&amp; (l.sol ||| l.head)) != 0
+  | none =&gt; false
+def touchesSleeper (s : State) : Bool :=
+  sleepy s &amp;&amp; (match activeOf s with | some (l, _) =&gt; (l.all &amp;&amp;&amp; sleeperCells s) != 0 | none =&gt; false)
+def weldNearSleeper (s : State) : Bool :=
+  sleepy s &amp;&amp; (vis s 3 &amp;&amp;&amp; (nb (vis s 4)).foldl (· ||| ·) 0) != 0
+def isKey (a : Act) : Bool := isMove a || a == .a5
+def ruleDockWeld : Rule :=
+  { name := &quot;dock_weld&quot;,
+    guard := fun s a =&gt; isKey a &amp;&amp; hasAct s &amp;&amp; inLevel s a &amp;&amp;
+      !(a == .a5 &amp;&amp; (match activeOf s with | some (_, c) =&gt; isAnim s c | none =&gt; false)) &amp;&amp;
+      !hiddenPlug s &amp;&amp; !touchesSleeper s &amp;&amp; !weldNearSleeper s &amp;&amp;
+      (match stepRules s a with | some t =&gt; !hiddenPlug t &amp;&amp; !touchesSleeper t | none =&gt; false),
+    effect := fun s _ s&#x27; =&gt; plugTotal s&#x27; == plugTotal s }
+
+/-- goal_dock_wins：这一步之后全场没有落单插头，就换关。 -/
+def ruleGoalWins : Rule :=
+  { name := &quot;goal_dock_wins&quot;,
+    guard := fun s a =&gt; match predict s a with | some o =&gt; paired o | none =&gt; false,
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level == s.level + 1 }
+
+/-- goal_needs_dock：这一步之后还有落单插头，就绝不换关。 -/
+def ruleGoalNeeds : Rule :=
+  { name := &quot;goal_needs_dock&quot;,
+    guard := fun s a =&gt; inLevel s a,
+    effect := fun s _ s&#x27; =&gt; s&#x27;.level == s.level }
+
+/-- hud_rate：关内每步顶栏花格 = floor(步数·32/budget + 1/2)（所以每步至多多花一格）；
+    换关那步顶栏续满（花格 0），但通关整局那一步照普通步走。
+    **只验了花格计数**：读数 hud_spent 只存色 0 的个数，「0 连续在左、4 在右」这个排布结构本条不验；
+    花满 32 格（溢出）的分支语料里没走到过。 -/
+def ruleHud : Rule :=
+  { name := &quot;hud_rate&quot;,
+    guard := fun s a =&gt; (predict s a).isSome,
+    effect := fun s _ s&#x27; =&gt;
+      let n := spent (nat s.h_steps + 1) (optN s.k_budget)
+      if s&#x27;.level == s.level then s&#x27;.hud_spent == (n : Int) &amp;&amp; s&#x27;.h_steps == s.h_steps + 1
+      else if s&#x27;.level &lt; 6 then s&#x27;.hud_spent == 0
+      else s&#x27;.hud_spent == (n : Int) }
+
+def rules : List Rule :=
+  [ruleMoveUp, ruleMoveDown, ruleMoveLeft, ruleMoveRight, ruleNoBlock, ruleOverlap, ruleRot, rulePen,
+   ruleSelect, ruleSwapSel, ruleSleepWake, ruleSwapSleep, ruleWakePlugs, rulePlugDeg1, rulePlugNear,
+   ruleSleepOverlay, ruleUncover, ruleDockWeld, ruleGoalWins, ruleGoalNeeds, ruleHud]
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。用 decide +kernel。
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 0 in
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 0 in
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println (&quot;GUARD_HITS &quot; ++ String.intercalate &quot;,&quot; (rules.map (fun r =&gt; r.name ++ &quot;=&quot; ++ toString (corpus.filter (fun t =&gt; r.guard t.s t.a)).length)))
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>cn04 · 统一到「对象 → 规则 → 形式化 → 前端」的报告</h1>
 <p>语料：<code>python ledger/trace_source.py cn04</code> → 封存局 cn04-20260909，run cn04-0907-1226，分 100.0，6/6，
 <code>runs/cn04-0907-1226/transitions.jsonl</code> 745 行（与任务书一致）。四段（guid）拼在一起，成绩单只认证段 3
 （a77739cf，seq 484–745），逐关步数 [14,31,34,95,46,41] 与成绩单逐关对上（<code>python corpus.py</code>，落盘 <code>analysis/corpus.json</code>）。

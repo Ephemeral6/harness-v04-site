@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← wa30 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演官方认证那一遍的真实操作，每一步都和录像逐帧比对，最后一步由规则判定过关；整个过程由 Lean 的内核检查。鼹鼠的先后次序、谁驮着哪颗货、这一关已经用了几步，画面上读不出来，由模型自己一路记着。</p><p class="result">9 关全部被证明可以打通，每关 28 到 144 步，逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：9/9 关，100 分（<a href="https://arcprize.org/replay/092d3f35-abaf-4c7b-99be-1914f60f74b2" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作，共 649 步。</li><li>7 条规则和 2 条推论，在录像除重开以外的全部 1515 步上逐步检验，0 次说错。</li><li>把模型故意改错 14 种（找路的方向次序换一种、贼先于帮手行动、预算多一步、围栏不让货进等），每一种都让整关推演与录像分家（14 种）；逐步检验直接抓住其中 13 种，剩下那一种改的是「鼹鼠同时贴着两颗货时挑哪一颗」，只有整关推演测得到。</li><li>另造 120 份篡改过的记录（结果张冠李戴、该变的没变、换了前提等），检验拒收 120 份。</li><li>Python 和 Lean 各写了一份模型，互不引用；两份在录像的 21 段连续游玩上逐帧对账，0 处不一致。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>只在录像上检验的规则</h2><p class="prose">另有 1 条规则在录像上逐步检验，不写进 Lean 模型：「这一关开局长什么样」是历史，当前画面上读不出来。官方认证那一遍中途没有重开，证明用不到它。</p><div class="rules"><article class="rule"><h3>重开之后，回到这一关开局的那一帧</h3><p>按重开键之后的画面，就是第一次进这一关时看到的那一帧。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">6/6 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 1521 条记录，来自最后一次上机的两遍。第一遍按已经学到的说法自动规划，打到半途；第二遍换一张新的记分卡，从第 1 关起把此前录下的每关最短的一段干净通关逐字重走，649 步通关，是官方认证的那一遍，首页的截图和全部证明都用它。规则的逐步检验用两遍的全部记录。</p><h2>适用范围</h2><ul class="lst"><li>官方认证的那一遍是复盘：每关的操作取自此前录下的真实通关，逐字重走。证明说的是这套规则足以走通这条路线上的每一关。</li><li>模型从每一关的开局帧起算；重开之后的画面由上面那条单独检验的规则负责，不在证明里。</li><li>盘外那一片录像里从没被撞过，模型按挡住处理；有一关的步数预算，录像区分不开相邻的两个取值，模型取较小的那个。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>胶囊 / socket / capsule</dt><dd>早期对容器的叫法</dd><dt>环 0 / 3 / 4 / 5</dt><dd>甜甜圈外圈的颜色：攥在手里 / 在正前方 / 自由 / 被鼹鼠驮着</dd><dt>皮 12 / 皮 15</dt><dd>帮手 / 贼</dd><dt>命</dt><dd>两次重开或结束之间的一段连续游玩</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个对象一个文件，按「它在这一帧里是什么」归进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个对象一个文件，按「它在这一帧里是什么」归进子文件夹。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← wa30 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">规则被写成 Lean 4 里的定义。对每一关，Lean 从开局出发，照规则推演官方认证那一遍的真实操作，每一步都和录像逐帧比对，最后一步由规则判定过关；整个过程由 Lean 的内核检查。鼹鼠的先后次序、谁驮着哪颗货、这一关已经用了几步，画面上读不出来，由模型自己一路记着。</p><p class="result">9 关全部被证明可以打通，每关 28 到 144 步，逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：9/9 关，100 分（<a href="https://arcprize.org/replay/092d3f35-abaf-4c7b-99be-1914f60f74b2" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作，共 649 步。</li><li>7 条规则和 2 条推论，在录像除重开以外的全部 1515 步上逐步检验，0 次说错。</li><li>把模型故意改错 14 种（找路的方向次序换一种、贼先于帮手行动、预算多一步、围栏不让货进等），每一种都让整关推演与录像分家（14 种）；逐步检验直接抓住其中 13 种，剩下那一种改的是「鼹鼠同时贴着两颗货时挑哪一颗」，只有整关推演测得到。</li><li>另造 120 份篡改过的记录（结果张冠李戴、该变的没变、换了前提等），检验拒收 120 份。</li><li>Python 和 Lean 各写了一份模型，互不引用；两份在录像的 21 段连续游玩上逐帧对账，0 处不一致。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>只在录像上检验的规则</h2><p class="prose">另有 1 条规则在录像上逐步检验，不写进 Lean 模型：「这一关开局长什么样」是历史，当前画面上读不出来。官方认证那一遍中途没有重开，证明用不到它。</p><div class="rules"><article class="rule"><h3>重开之后，回到这一关开局的那一帧</h3><p>按重开键之后的画面，就是第一次进这一关时看到的那一帧。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">6/6 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 1521 条记录，来自最后一次上机的两遍。第一遍按已经学到的说法自动规划，打到半途；第二遍换一张新的记分卡，从第 1 关起把此前录下的每关最短的一段干净通关逐字重走，649 步通关，是官方认证的那一遍，首页的截图和全部证明都用它。规则的逐步检验用两遍的全部记录。</p><h2>适用范围</h2><ul class="lst"><li>官方认证的那一遍是复盘：每关的操作取自此前录下的真实通关，逐字重走。证明说的是这套规则足以走通这条路线上的每一关。</li><li>模型从每一关的开局帧起算；重开之后的画面由上面那条单独检验的规则负责，不在证明里。</li><li>盘外那一片录像里从没被撞过，模型按挡住处理；有一关的步数预算，录像区分不开相邻的两个取值，模型取较小的那个。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>胶囊 / socket / capsule</dt><dd>早期对容器的叫法</dd><dt>环 0 / 3 / 4 / 5</dt><dd>甜甜圈外圈的颜色：攥在手里 / 在正前方 / 自由 / 被鼹鼠驮着</dd><dt>皮 12 / 皮 15</dt><dd>帮手 / 贼</dd><dt>命</dt><dd>两次重开或结束之间的一段连续游玩</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个对象一个文件，按「它在这一帧里是什么」归进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个对象一个文件，按「它在这一帧里是什么」归进子文件夹。
 
     objects/
       parse.py      唯一碰像素的地方（留在根上：它最该显眼）
@@ -5856,7 +5856,611 @@ def step (b : Board) (s : St) (a : Act) : Res :=
   if a = .reset then .na else settle b (afterStep b s a)
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>wa30 · 统一到对象-规则-形式化-前端那条链：报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><p class="prose">这一局内核检查需要的内存超出本机上限，编译在另一台机器上完成（退出码 0，文件哈希 <code>926da853d232…</code> 与本机核对一致）；之后只改过注释。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">wa30-20260920/formal/Game.lean</span></div><div class="top"><span class="chip c-gap">本机内核内存不够</span><span class="chip c-lv">远端编译通过 · 412.9 s · 峰值 25.72 GB</span><span class="chip c-mute">规则 30 条</span><span class="chip c-mute">路线 649 步，换关查表 9 步</span><span class="chip c-mute">公理：propext, sorryAx</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/wa30-20260920/_lib.py ; why=补读数 pl / dn / ml（玩家格与朝向、每颗货的格与环色、每只鼹鼠的格与皮码），每关常数（墙 / 围栏 / 容器 / 巢 位掩码与计时预算 B），隐藏量（本关步数 n、鼹鼠身份槽与扛货归属 m0..m3）；原读数除 timer_px 外全部退出状态
+-- 由 world/formalize.py 生成于 2026-09-29T17:02:33+08:00；局 wa30；基于 run [&#x27;wa30-0915-1537&#x27;, &#x27;wa30-0920-0516&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 4196 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 规则段（wa30 修复，2026-09-29）。格号 p = 行*16 + 列（16x16 格，每格 4x4 像素）。
+-- 状态：可见读数 pl（玩家格与朝向）、dn（甜甜圈：格 + 256*环色 0/3/4/5）、ml（鼹鼠：格 + 256*皮码）、timer_px；
+-- 每关常数 k_*（墙 / 围栏 / 容器 / 巢 位掩码，计时预算 B）；隐藏量 h_n（本关步数）、h_m0..3（鼹鼠身份槽：格 + 256*皮 + 512*货向）。
+-- 一步之内的次序（全部在这里推，读数里没有任何「动作后果」）：
+--   ① 玩家相：四向键走一格或被挡（拖着货时货跟着、头不转）；A5 松手 / 抓地上货 / 从帮手手里拿回正对的货 /
+--      对着贼扛的货按住它（那只贼本步不动）/ 清除正对的贼（它扛的货落地）。
+--   ② 鼹鼠相：先皮12（帮手）后皮15（贼），同皮按槽号；每只：
+--      扛着货 → 货在目标地形（帮手：容器；贼：巢）上就放下，否则整对（鼹鼠 + 货，偏移不变）沿最短路往「货落在空的目标格」挪一格；
+--      空手的贼 → 先看贴着没有「本步开头就被帮手扛着」的货，有就夺过来（本回合不动）；
+--      空手 → 贴着目标货（帮手：不在容器上的地上货；贼：不在巢上的地上货或玩家攥着的货）就偷（原地不动，货留在原格），
+--             偷了之后同皮的下一只本步跳过；否则沿最短路往「贴着目标货的格」挪一格（贼也追帮手扛着的货）。
+--      最短路按格做广度优先（位掩码逐层扩），下坡时邻格次序 左 右 上 下；鼹鼠不进墙、不进围栏，
+--      也不进被货 / 别的鼹鼠 / 玩家 / 攥着的货占着的格。
+--   ③ 渲染：玩家正对的那颗货（地上的或被扛的）画环3，其余地上货环4、攥着的环0、被扛的环5；
+--      正对着玩家的贼外圈画警觉色（皮码2）；计时条 = 64 - round(n*64/B)。
+-- 换关那一步查 worldRows（新关布局是游戏内容）；关内每一步由 stepRules 算。
+--
+-- ======== 公示（审计 2026-09-29 要求写进规则段）========
+-- 【检验范围】consistent 的 30 条规则里，只有 thief_patrol_next 一条的 effect 引用 stepRules（第 8 关、贼恰一只时，
+--   s&#x27; 的贼格集合 = stepRules 预测的贼格集合；这是全文唯一在 consistent 里检验鼹鼠追货的地方）。其余鼹鼠动力学只在
+--   faithful 的路线 640 条关内步上受检。路线外语料 4725 条关内转移里，Python 镜像有 19 条不符（15 条可见字段错、
+--   4 条只错 h 字段），Lean 不问这 19 条；其中 0915 run seq 970–976 共 7 行，是同一个盲区（被玩家正对着的地上货被偷走时
+--   画面仍是环3，hidden_step 看不出）的级联，折合约 13 个独立事件。
+--   （主会话按复审补）19 条里另有 7 行（0915 seq 1254、1463、1470、1478、2001、2834、2967）不属于挑货次序也不属于上述级联，原因未分析。
+-- 【LEVEL_CONST 是事后取值】地形掩码取自各关全部帧的并集，不是走到那一步时已经看见的东西：
+--   路线 649 步里有 482 步查询到此前还没露出来过的格（共 1547 个「步 × 格」），其中 278 步里被查的格正被没露出的物件占着、
+--   而且掩码不是地板。11 个非地板格要到路线后段才第一次露出：第 2 关围栏 (3,8) 第 5 步、(8,8) 第 54 步；
+--   第 5 关容器 (4,7) 第 5 步、巢 (7,14) 第 40 步；第 7 关巢 (2,2) 第 49 步、(2,1) 第 79 步、(3,1) 第 105 步、(3,2) 第 130 步；
+--   第 8 关巢 (7,2) 第 3 步、(8,1) 第 47 步、(7,1) 第 54 步（步号从该关第一步数起）。
+--   第 8 关 (1,11) 从没露出来过，记作地板：它被一只帮手占了 890 步，处在没有货的口袋里，不影响任何算出来的步。
+--   第 9 关（WIN 画面）有 10 格从没露出来过，地形抄第 8 关。第 7、8 关 3x3 容器的中心格是纯2、没有 9 边，
+--   靠「与容器格四连通」这条启发式归成容器。
+-- 【本语料无反例 / 猜的】
+--   · 挑哪颗货：帮手 上下左右、贼 下上右左。实际错 5 行（0915 seq 1309、1440、3051 可见字段错；1252、2347 只错 h），
+--     都不在路线上。其中「左右」两项的相对次序在全语料里零分歧，完全是猜的。
+--   · 最短路下坡时「左右」的相对次序、帮手先于贼的处理次序、A5 按住贼扛的货（本步那只贼不动、同皮下一只跳过）：
+--     路线上都没有被检验到（没有分歧样本）。
+--   · hidden_step 在同一只鼹鼠有两颗新偷货可选时取格号最小的，stepRules 按上面的方向次序挑，两套次序不一致；
+--     路线上没有暴露。
+--   · 改错实验里 M3（被正对的货算放下）、M5（偷后不跳过）、M6（连本步新偷的也夺）基本没被数据约束。
+--     只靠 h 字段自证的路线步至少 14 步：selfcheck 数出的 11 步，加上 M4 暴露的 seq 1033、1313、1457。
+-- 【比概念更强】四条移动规则（给出精确落点：何时被挡）；win_needs_all_donuts_home 与 levelup_on_release_iff_all_seated
+--   （去掉「可见空位」「成片」等闭嘴条件，改用容器掩码；levelup 的 guard 放宽到任意 A5，语料 0 反例）；
+--   mole_drop_in_capsule、mole_drop_target_by_skin（落点用掩码判）；timer_bar_drains（加了精确公式与步数）；
+--   donut_push_activate；donut_grab_toggle（加了抓 / 松的去向）。
+--   （主会话按复审补）thief_patrol_next 换了主张：概念是「下一格 ∈ {巡逻表格, 原地}、与玩家无关、容器区 10 格不表态」，
+--   这里是「等于 stepRules 的预测」——依赖动作与玩家位置、覆盖全部格（388 命中里贼真动 366 步，「贼不动」基线会错 366 步）。
+-- 【比概念更弱】donut_enters_capsule 的 guard 多了「这一步没被挡」（去掉后语料 1 条反例）。
+--   thief_step_rule 已补成至多 4 只贼的全排列配对（与概念同范围；语料里至多 2 只）。
+set_option maxRecDepth 100000
+set_option maxHeartbeats 0
+
+-- ---------- 位掩码与格 ----------
+def ALLM : Nat := (1 &lt;&lt;&lt; 256) - 1
+def COL0 : Nat := ALLM / 65535                 -- 每行第 0 列那一位：Σ 2^(16r)
+def NOTC0 : Nat := ALLM ^^^ COL0
+def NOTC15 : Nat := ALLM ^^^ (COL0 &lt;&lt;&lt; 15)
+def NONE : Nat := 300                          -- 「没有这一格」（格号只到 255）
+def bitN (p : Nat) : Nat := if p &lt; 256 then 1 &lt;&lt;&lt; p else 0
+def hasN (m p : Nat) : Bool := p &lt; 256 &amp;&amp; Nat.testBit m p
+def andNot (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)
+def absd (x y : Nat) : Nat := if y ≤ x then x - y else y - x
+def distC (a b : Nat) : Nat := absd (a / 16) (b / 16) + absd (a % 16) (b % 16)
+def adjN (a b : Nat) : Bool := a &lt; 256 &amp;&amp; b &lt; 256 &amp;&amp; distC a b == 1
+
+-- 方向码 1 上 2 下 3 左 4 右
+def stepCell (p d : Nat) : Nat :=
+  if 256 ≤ p then NONE else
+  match d with
+  | 1 =&gt; if p &lt; 16 then NONE else p - 16
+  | 2 =&gt; if 256 ≤ p + 16 then NONE else p + 16
+  | 3 =&gt; if p % 16 == 0 then NONE else p - 1
+  | 4 =&gt; if p % 16 == 15 then NONE else p + 1
+  | _ =&gt; NONE
+def dirTo (p c : Nat) : Nat :=
+  if stepCell p 1 == c then 1 else if stepCell p 2 == c then 2
+  else if stepCell p 3 == c then 3 else if stepCell p 4 == c then 4 else 0
+
+-- 四邻并集；pre x d = {q : q 往 d 走一格落在 x 里}
+def nbrs (x : Nat) : Nat :=
+  ((x &lt;&lt;&lt; 16) ||| (x &gt;&gt;&gt; 16) ||| ((x &amp;&amp;&amp; NOTC15) &lt;&lt;&lt; 1) ||| ((x &amp;&amp;&amp; NOTC0) &gt;&gt;&gt; 1)) &amp;&amp;&amp; ALLM
+def pre (x d : Nat) : Nat :=
+  match d with
+  | 1 =&gt; (x &lt;&lt;&lt; 16) &amp;&amp;&amp; ALLM
+  | 2 =&gt; x &gt;&gt;&gt; 16
+  | 3 =&gt; ((x &amp;&amp;&amp; NOTC15) &lt;&lt;&lt; 1) &amp;&amp;&amp; ALLM
+  | _ =&gt; (x &amp;&amp;&amp; NOTC0) &gt;&gt;&gt; 1
+
+-- 最短路下坡一步：从 goals 往外逐层扩（只在 ok 里扩），扩到 pos 时取 pos 在上一层里的邻格（次序 左 右 上 下）。
+-- pos 就在 goals 里、或根本够不着 goals：原地。
+def pickIn (pos layer : Nat) : List Nat → Nat
+  | [] =&gt; pos
+  | d :: ds =&gt; if hasN layer (stepCell pos d) then stepCell pos d else pickIn pos layer ds
+def descendAux (pos ok : Nat) : Nat → Nat → Nat → Nat
+  | 0, _, _ =&gt; pos
+  | fuel + 1, layer, seen =&gt;
+    let nxt := andNot (nbrs layer &amp;&amp;&amp; ok) seen
+    if nxt == 0 then pos
+    else if hasN nxt pos then pickIn pos layer [3, 4, 1, 2]
+    else descendAux pos ok fuel nxt (seen ||| nxt)
+def descend (pos goals ok : Nat) : Nat :=
+  if hasN (goals &amp;&amp;&amp; ok) pos then pos else descendAux pos ok 256 (goals &amp;&amp;&amp; ok) (goals &amp;&amp;&amp; ok)
+
+-- 位掩码里的格，升序（逐次取最低位）
+def lowBits : Nat → Nat → List Nat
+  | 0, _ =&gt; []
+  | fuel + 1, x =&gt; if x == 0 then [] else
+      Nat.log2 (x ^^^ (x &amp;&amp;&amp; (x - 1))) :: lowBits fuel (x &amp;&amp;&amp; (x - 1))
+
+-- ---------- 从状态读出的量 ----------
+structure Wd where
+  wall : Nat
+  fence : Nat
+  sock : Nat
+  den : Nat
+  bud : Nat
+def world (s : State) : Wd := ⟨s.k_wall.toNat, s.k_fence.toNat, s.k_sock.toNat, s.k_den.toNat, s.k_B.toNat⟩
+def walkable (w : Wd) (p : Nat) : Bool := p &lt; 256 &amp;&amp; !hasN w.wall p &amp;&amp; !hasN w.fence p    -- 玩家能进：不是墙、不是围栏
+def donutOk (w : Wd) (p : Nat) : Bool := p &lt; 256 &amp;&amp; !hasN w.wall p                       -- 货能进：不是墙（围栏也进得去）
+def moleOkM (w : Wd) : Nat := andNot (andNot ALLM w.wall) w.fence                         -- 鼹鼠能站的格
+def donutOkM (w : Wd) : Nat := andNot ALLM w.wall
+
+def dnList (s : State) : List Int :=
+  [s.dn_0, s.dn_1, s.dn_2, s.dn_3, s.dn_4, s.dn_5, s.dn_6, s.dn_7, s.dn_8, s.dn_9, s.dn_10, s.dn_11, s.dn_12, s.dn_13]
+def mlList (s : State) : List Int := [s.ml_0, s.ml_1, s.ml_2, s.ml_3]
+def hmList (s : State) : List Int := [s.h_m0, s.h_m1, s.h_m2, s.h_m3]
+-- (格, 环色) / (格, 皮码)
+def dnC (s : State) : List (Nat × Nat) := (dnList s).filterMap (fun x =&gt; if x &lt; 0 then none else some (x.toNat % 256, x.toNat / 256))
+def mlC (s : State) : List (Nat × Nat) := (mlList s).filterMap (fun x =&gt; if x &lt; 0 then none else some (x.toNat % 256, x.toNat / 256))
+def isThiefK (k : Nat) : Bool := k == 1 || k == 2
+def ringAt (s : State) (p : Nat) : Nat := match (dnC s).find? (fun c =&gt; c.1 == p) with | some c =&gt; c.2 | none =&gt; NONE
+def hasDn (s : State) (p : Nat) : Bool := (dnC s).any (fun c =&gt; c.1 == p)
+def moleAt (s : State) (p : Nat) : Nat := match (mlC s).find? (fun c =&gt; c.1 == p) with | some c =&gt; c.2 | none =&gt; NONE
+def meC (s : State) : Nat := (s.pl_0 * 16 + s.pl_1).toNat
+def faceD (s : State) : Nat := s.pl_2.toNat + 1
+def facedC (s : State) : Nat := stepCell (meC s) (faceD s)
+def heldC (s : State) : Nat := match (dnC s).find? (fun c =&gt; c.2 == 0) with | some c =&gt; c.1 | none =&gt; NONE
+def lvChg (s s&#x27; : State) : Bool := s.level != s&#x27;.level
+def actN : Act → Nat
+  | .a1 =&gt; 1 | .a2 =&gt; 2 | .a3 =&gt; 3 | .a4 =&gt; 4 | .a5 =&gt; 5 | .reset =&gt; 9 | .other =&gt; 0
+def isMove (a : Act) : Bool := 1 ≤ actN a &amp;&amp; actN a ≤ 4
+
+-- 鼹鼠身份槽（关头一帧 h_m0 = -2：按读序现编）
+structure Mole where
+  slot : Nat
+  pos : Nat
+  skin : Nat      -- 0 帮手（皮12），1 贼（皮15）
+  cargo : Nat     -- 扛着的货所在格；NONE = 空手
+def slotCodes (s : State) : List Int :=
+  if s.h_m0 == -2 then
+    let cs := ((mlList s).filter (fun x =&gt; decide (0 ≤ x))).map
+      (fun x =&gt; x % 256 + 256 * (if x / 256 == 1 || x / 256 == 2 then 1 else 0))
+    cs ++ List.replicate (4 - cs.length) (-1)
+  else hmList s
+def decodeMoles (s : State) : List Mole :=
+  ((slotCodes s).zip (List.range 4)).filterMap (fun vi =&gt;
+    if vi.1 &lt; 0 then none else
+    let n := vi.1.toNat
+    some ⟨vi.2, n % 256, (n / 256) % 2, if n / 512 == 0 then NONE else stepCell (n % 256) (n / 512)⟩)
+def moleMask (ms : List Mole) : Nat := ms.foldl (fun m o =&gt; m ||| bitN o.pos) 0
+def cargoMask (ms : List Mole) : Nat := ms.foldl (fun m o =&gt; m ||| bitN o.cargo) 0
+def freeOf (s : State) (ms : List Mole) : Nat :=
+  (dnC s).foldl (fun m c =&gt; if c.2 != 0 &amp;&amp; !hasN (cargoMask ms) c.1 then m ||| bitN c.1 else m) 0
+def setMole (ms : List Mole) (o : Mole) : List Mole := ms.map (fun x =&gt; if x.slot == o.slot then o else x)
+
+-- 玩家这一步（方向键 d）会不会整步不走：目的格是墙 / 围栏 / 出界 / 有货有鼹鼠有扛着的货；拖着货时货的目的格同样查（货可进围栏）
+def blockedMove (s : State) (d : Nat) : Bool :=
+  let w := world s
+  let ms := decodeMoles s
+  let occ := freeOf s ms ||| moleMask ms ||| cargoMask ms
+  !(walkable w (stepCell (meC s) d)) || hasN occ (stepCell (meC s) d)
+    || (heldC s &lt; 256 &amp;&amp; (!(donutOk w (stepCell (heldC s) d)) || hasN occ (stepCell (heldC s) d)))
+
+-- ---------- 一步 ----------
+structure PS where
+  me : Nat
+  face : Nat
+  held : Nat          -- NONE = 空手
+  free : Nat          -- 地上货（不含攥着的、不含被扛的）
+  moles : List Mole
+  tug : Nat           -- 被玩家对着它的货按 A5 拉住的贼的槽号；NONE = 没有
+
+def playerPhase (w : Wd) (st : PS) (a : Nat) : PS :=
+  if 1 ≤ a &amp;&amp; a ≤ 4 then
+    let blk := st.free ||| moleMask st.moles ||| cargoMask st.moles
+    if st.held &lt; 256 then
+      if walkable w (stepCell st.me a) &amp;&amp; donutOk w (stepCell st.held a)
+          &amp;&amp; !hasN blk (stepCell st.me a) &amp;&amp; !hasN blk (stepCell st.held a)
+      then { st with me := stepCell st.me a, held := stepCell st.held a } else st
+    else
+      if walkable w (stepCell st.me a) &amp;&amp; !hasN blk (stepCell st.me a)
+      then { st with me := stepCell st.me a, face := a } else { st with face := a }
+  else if a == 5 then
+    let f := stepCell st.me st.face
+    if st.held &lt; 256 then { st with free := st.free ||| bitN st.held, held := NONE }
+    else if hasN st.free f then { st with free := andNot st.free (bitN f), held := f }
+    else if st.moles.any (fun o =&gt; o.skin == 0 &amp;&amp; o.cargo == f) then
+      { st with moles := st.moles.map (fun o =&gt; if o.skin == 0 &amp;&amp; o.cargo == f then { o with cargo := NONE } else o), held := f }
+    else match st.moles.find? (fun o =&gt; o.skin == 1 &amp;&amp; o.cargo == f) with
+      | some o =&gt; { st with tug := o.slot }
+      | none =&gt; match st.moles.find? (fun o =&gt; o.skin == 1 &amp;&amp; o.pos == f) with
+        | some o =&gt; { st with moles := st.moles.filter (fun x =&gt; x.slot != o.slot),
+                              free := if o.cargo &lt; 256 then st.free ||| bitN o.cargo else st.free }
+        | none =&gt; st
+  else st
+
+structure MS where
+  st : PS
+  skip0 : Bool
+  skip1 : Bool
+  carried0 : List Nat       -- 本步开头扛着货的帮手槽号
+
+def occOf (st : PS) (m : Mole) : Nat :=
+  st.free ||| cargoMask st.moles ||| moleMask (st.moles.filter (fun x =&gt; x.slot != m.slot)) ||| bitN st.me ||| bitN st.held
+
+-- 扛着货的一只：到了目标地形就放下；否则整对挪一格
+def carryTurn (w : Wd) (acc : MS) (m : Mole) : MS :=
+  let st := acc.st
+  let goal := if m.skin == 0 then w.sock else w.den
+  if hasN goal m.cargo then
+    { acc with st := { st with free := st.free ||| bitN m.cargo, moles := setMole st.moles { m with cargo := NONE } } }
+  else
+    let d := dirTo m.pos m.cargo
+    let occ2 := andNot (occOf st m) (bitN m.cargo)
+    let okm := (andNot (moleOkM w) occ2 &amp;&amp;&amp; pre (andNot (donutOkM w) occ2) d) ||| bitN m.pos
+    let np := descend m.pos (pre (andNot goal occ2) d) okm
+    if np == m.pos then acc
+    else { acc with st := { st with moles := setMole st.moles { m with pos := np, cargo := stepCell np d } } }
+
+-- 空手的贼：贴着「本步开头就被帮手扛着」的货就夺过来（次序 下 上 右 左）
+def robFind (acc : MS) (m : Mole) : List Nat → Option Mole
+  | [] =&gt; none
+  | d :: ds =&gt;
+    match acc.st.moles.find? (fun o =&gt; o.skin == 0 &amp;&amp; acc.carried0.contains o.slot &amp;&amp; o.cargo == stepCell m.pos d
+                                        &amp;&amp; stepCell m.pos d &lt; 256) with
+    | some v =&gt; some v
+    | none =&gt; robFind acc m ds
+
+def firstIn (pos tg : Nat) : List Nat → Nat
+  | [] =&gt; NONE
+  | d :: ds =&gt; if hasN tg (stepCell pos d) then stepCell pos d else firstIn pos tg ds
+
+def freeTurn (w : Wd) (acc : MS) (m : Mole) : MS :=
+  let st := acc.st
+  match (if m.skin == 1 then robFind acc m [2, 1, 4, 3] else none) with
+  | some v =&gt;
+    { acc with st := { st with moles := setMole (setMole st.moles { v with cargo := NONE }) { m with cargo := v.cargo } } }
+  | none =&gt;
+    let tg := if m.skin == 0 then andNot st.free w.sock else andNot (st.free ||| bitN st.held) w.den
+    let pk := firstIn m.pos tg (if m.skin == 0 then [1, 2, 3, 4] else [2, 1, 4, 3])
+    if pk &lt; 256 then
+      let st2 := if pk == st.held then { st with held := NONE } else { st with free := andNot st.free (bitN pk) }
+      { acc with st := { st2 with moles := setMole st2.moles { m with cargo := pk } },
+                 skip0 := acc.skip0 || m.skin == 0, skip1 := acc.skip1 || m.skin == 1 }
+    else
+      let chase := if m.skin == 1 then
+        (st.moles.filter (fun o =&gt; o.skin == 0 &amp;&amp; acc.carried0.contains o.slot)).foldl (fun x o =&gt; x ||| bitN o.cargo) 0 else 0
+      let np := descend m.pos (nbrs (tg ||| chase)) (andNot (moleOkM w) (occOf st m) ||| bitN m.pos)
+      { acc with st := { st with moles := setMole st.moles { m with pos := np } } }
+
+def moleTurn (w : Wd) (acc : MS) (i : Nat) : MS :=
+  match acc.st.moles.find? (fun x =&gt; x.slot == i) with
+  | none =&gt; acc
+  | some m =&gt;
+    if m.skin == 0 &amp;&amp; acc.skip0 then { acc with skip0 := false }
+    else if m.skin == 1 &amp;&amp; acc.skip1 then { acc with skip1 := false }
+    else if acc.st.tug == m.slot then { acc with skip0 := acc.skip0 || m.skin == 0, skip1 := acc.skip1 || m.skin == 1 }
+    else if m.cargo &lt; 256 then carryTurn w acc m
+    else freeTurn w acc m
+
+def molePhase (w : Wd) (st : PS) : PS :=
+  let order := (st.moles.filter (fun o =&gt; o.skin == 0)).map (·.slot) ++ (st.moles.filter (fun o =&gt; o.skin == 1)).map (·.slot)
+  let c0 := (st.moles.filter (fun o =&gt; o.skin == 0 &amp;&amp; o.cargo &lt; 256)).map (·.slot)
+  (order.foldl (moleTurn w) ⟨st, false, false, c0⟩).st
+
+-- ---------- 渲染回状态 ----------
+def padTo (n : Nat) (l : List Int) : List Int := l ++ List.replicate (n - l.length) (-1)
+def ringOf (st : PS) (f p : Nat) : Nat :=
+  if p == st.held then 0 else if hasN (cargoMask st.moles) p then (if p == f then 3 else 5) else (if p == f then 3 else 4)
+def slotCode (ms : List Mole) (i : Nat) : Int :=
+  match ms.find? (fun o =&gt; o.slot == i) with
+  | some o =&gt; Int.ofNat (o.pos + 256 * o.skin + 512 * (if o.cargo &lt; 256 then dirTo o.pos o.cargo else 0))
+  | none =&gt; -1
+def moleKind (st : PS) (f p : Nat) : Nat :=
+  match st.moles.find? (fun o =&gt; o.pos == p) with
+  | some o =&gt; if o.skin == 0 then 0 else if p == f then 2 else 1
+  | none =&gt; 0
+
+def render (s : State) (st : PS) : State :=
+  let f := stepCell st.me st.face
+  let ds := padTo 14 ((lowBits 20 (st.free ||| bitN st.held ||| cargoMask st.moles)).map (fun p =&gt; Int.ofNat (p + 256 * ringOf st f p)))
+  let mk := padTo 4 ((lowBits 8 (moleMask st.moles)).map (fun p =&gt; Int.ofNat (p + 256 * moleKind st f p)))
+  let n := s.h_n + 1
+  let b := s.k_B.toNat
+  { s with
+    dn_0 := ds.getD 0 (-1), dn_1 := ds.getD 1 (-1), dn_2 := ds.getD 2 (-1), dn_3 := ds.getD 3 (-1),
+    dn_4 := ds.getD 4 (-1), dn_5 := ds.getD 5 (-1), dn_6 := ds.getD 6 (-1), dn_7 := ds.getD 7 (-1),
+    dn_8 := ds.getD 8 (-1), dn_9 := ds.getD 9 (-1), dn_10 := ds.getD 10 (-1), dn_11 := ds.getD 11 (-1),
+    dn_12 := ds.getD 12 (-1), dn_13 := ds.getD 13 (-1),
+    ml_0 := mk.getD 0 (-1), ml_1 := mk.getD 1 (-1), ml_2 := mk.getD 2 (-1), ml_3 := mk.getD 3 (-1),
+    h_m0 := slotCode st.moles 0, h_m1 := slotCode st.moles 1, h_m2 := slotCode st.moles 2, h_m3 := slotCode st.moles 3,
+    h_n := n,
+    timer_px := if b == 0 then 64 else Int.ofNat (64 - (n.toNat * 128 + b) / (2 * b)),
+    pl_0 := Int.ofNat (st.me / 16), pl_1 := Int.ofNat (st.me % 16), pl_2 := Int.ofNat (st.face - 1) }
+
+def initPS (s : State) : PS :=
+  let ms := decodeMoles s
+  ⟨meC s, faceD s, heldC s, freeOf s ms, ms, NONE⟩
+
+def stepRules (s : State) (a : Act) : Option State :=
+  if 1 ≤ actN a &amp;&amp; actN a ≤ 5 then
+    let w := world s
+    some (render s (molePhase w (playerPhase w (initPS s) (actN a))))
+  else none
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+-- 第 8 关之后是通关画面（level 9 = WIN）
+def isGoal (s : State) : Bool := s.level == 9
+
+-- ---------- 概念规则（每条对应 concepts/ 里同名的一条；guard = 概念开口的局面，effect = 概念的断言）----------
+
+-- action1_up … action4_right：方向键让玩家整块往那边走恰好一格，或整块不动；不动恰好是被挡的时候
+-- （墙 / 围栏 / 出界 / 目的格有货、鼹鼠或被扛的货；拖着货时货的目的格同样查，货进得去围栏）。
+def moveRule (nm : String) (d : Nat) : Rule :=
+  { name := nm
+    guard := fun _ a =&gt; actN a == d
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || meC s&#x27; == (if blockedMove s d then meC s else stepCell (meC s) d) }
+
+-- head_faces_last_move：头朝最后按的方向键（走没走成都转）；拖着货时、以及 A5 时头不转
+def headRule : Rule :=
+  { name := &quot;head_faces_last_move&quot;
+    guard := fun _ a =&gt; 1 ≤ actN a &amp;&amp; actN a ≤ 5
+    effect := fun s a s&#x27; =&gt; lvChg s s&#x27; ||
+      (if heldC s &lt; 256 || actN a == 5 then s&#x27;.pl_2 == s.pl_2 else faceD s&#x27; == actN a) }
+
+-- capsule_walkable：第 0/1 关玩家走得进容器格（2 芯）；第 2 关走不进含 2 的格（那一关只有围栏柱挡人）。
+-- 只看目的格是容器或围栏、上面没有物件、手上没攥货的方向键。
+def capsuleRule : Rule :=
+  { name := &quot;capsule_walkable&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; s.level ≤ 2 &amp;&amp; heldC s == NONE &amp;&amp;
+      (let t := stepCell (meC s) (actN a)
+       let ms := decodeMoles s
+       hasN (s.k_sock.toNat ||| s.k_fence.toNat) t &amp;&amp; !hasN (freeOf s ms ||| moleMask ms ||| cargoMask ms) t)
+    effect := fun s a s&#x27; =&gt; lvChg s s&#x27; ||
+      (if s.level ≤ 1 then meC s&#x27; == stepCell (meC s) (actN a) else meC s&#x27; != stepCell (meC s) (actN a)) }
+
+-- donut_drag_follows：拖着的货随玩家走，货减人的偏移不变
+def dragRule : Rule :=
+  { name := &quot;donut_drag_follows&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; heldC s &lt; 256
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || heldC s&#x27; == NONE ||
+      (Int.ofNat (heldC s&#x27;) - Int.ofNat (meC s&#x27;) == Int.ofNat (heldC s) - Int.ofNat (meC s)) }
+
+-- donut_drop_on_leave：玩家走开那一步，松手态（环3）的货原格落成环4；贴着鼹鼠的那颗不表态
+def dropLeaveRule : Rule :=
+  { name := &quot;donut_drop_on_leave&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; (dnC s).any (fun c =&gt; c.2 == 3)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || meC s&#x27; == meC s ||
+      (dnC s).all (fun c =&gt; c.2 != 3 || (mlC s).any (fun m =&gt; m.1 == c.1 || adjN m.1 c.1) || ringAt s&#x27; c.1 == 4) }
+
+-- donut_enters_capsule：拖着的货进得去容器 / 围栏格（玩家自己的目的格不含 2、这一步没被挡时）
+def entersRule : Rule :=
+  { name := &quot;donut_enters_capsule&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; heldC s &lt; 256 &amp;&amp;
+      !hasN (s.k_sock.toNat ||| s.k_fence.toNat ||| s.k_den.toNat) (stepCell (meC s) (actN a)) &amp;&amp;
+      hasN (s.k_sock.toNat ||| s.k_fence.toNat) (stepCell (heldC s) (actN a)) &amp;&amp; !blockedMove s (actN a)
+    effect := fun s a s&#x27; =&gt; lvChg s s&#x27; || heldC s&#x27; == stepCell (heldC s) (actN a) }
+
+-- donut_grab_toggle：A5 抓 / 松都在原格；攥着就松成原格环3，没攥着而正前方是地上货（不是谁扛着的）就抓成环0
+def grabRule : Rule :=
+  { name := &quot;donut_grab_toggle&quot;
+    guard := fun _ a =&gt; actN a == 5
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      ((dnC s).all (fun c =&gt; !((c.2 == 3 &amp;&amp; ringAt s&#x27; c.1 == 0) || (c.2 == 0 &amp;&amp; ringAt s&#x27; c.1 == 3)) || hasDn s&#x27; c.1) &amp;&amp;
+       (if heldC s &lt; 256 then ringAt s&#x27; (heldC s) == 3
+        else !hasN (freeOf s (decodeMoles s)) (facedC s) || ringAt s&#x27; (facedC s) == 0)) }
+
+-- donut_push_activate：环4→3 只发生在走完之后玩家正对的那一格上（顶住或走到紧邻）
+def pushRule : Rule :=
+  { name := &quot;donut_push_activate&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; !(dnC s).isEmpty
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (dnC s).all (fun c =&gt; !(c.2 == 4 &amp;&amp; ringAt s&#x27; c.1 == 3) || c.1 == facedC s&#x27;) }
+
+-- donut_take_back_from_mole：方向键之后，玩家正前方若坐着一颗刚从搬运里来的货（上一帧是环5，或贴着一颗环5），它这一帧是环3
+def takeBackRule : Rule :=
+  { name := &quot;donut_take_back_from_mole&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; heldC s == NONE &amp;&amp; (dnC s).any (fun c =&gt; c.2 == 5)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (let t := facedC s&#x27;
+       t ≥ 256 || (hasDn s t &amp;&amp; ringAt s t != 5) ||
+       !((dnC s).any (fun c =&gt; c.2 == 5 &amp;&amp; (c.1 == t || adjN c.1 t))) ||
+       !hasDn s&#x27; t || ringAt s&#x27; t == 3) }
+
+-- drag_released_by_thief_block：拖着的货的目的格被鼹鼠或被扛的货挡住（玩家自己的目的格没挡）：
+-- 挡路的是贼 → 就地脱手（不再攥着、原格仍有货）；是帮手或被扛的货 → 仍攥在原格
+def thiefBlockRule : Rule :=
+  { name := &quot;drag_released_by_thief_block&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; heldC s &lt; 256 &amp;&amp;
+      (let bl := fun p =&gt; (mlC s).any (fun m =&gt; m.1 == p) || (dnC s).any (fun c =&gt; c.2 == 5 &amp;&amp; c.1 == p)
+       !bl (stepCell (meC s) (actN a)) &amp;&amp; bl (stepCell (heldC s) (actN a)))
+    effect := fun s a s&#x27; =&gt; lvChg s s&#x27; ||
+      (if isThiefK (moleAt s (stepCell (heldC s) (actN a))) then heldC s&#x27; == NONE &amp;&amp; hasDn s&#x27; (heldC s)
+       else heldC s&#x27; == heldC s) }
+
+-- grab_refused_by_still_thief：A5 去抓唯一一颗贴着玩家的环3，而它贴着贼：抓到 ⟺ 贴着的贼这一步都挪了窝
+def grabRefusedRule : Rule :=
+  { name := &quot;grab_refused_by_still_thief&quot;
+    guard := fun s a =&gt; actN a == 5 &amp;&amp; heldC s == NONE &amp;&amp;
+      (let adj3 := (dnC s).filter (fun c =&gt; c.2 == 3 &amp;&amp; adjN c.1 (meC s))
+       adj3.length == 1 &amp;&amp; (mlC s).any (fun m =&gt; isThiefK m.2 &amp;&amp; adj3.any (fun c =&gt; adjN m.1 c.1)))
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (let cell := ((dnC s).filter (fun c =&gt; c.2 == 3 &amp;&amp; adjN c.1 (meC s))).head?.elim NONE (·.1)
+       let thieves := (mlC s).filter (fun m =&gt; isThiefK m.2 &amp;&amp; adjN m.1 cell)
+       let stayed := thieves.any (fun m =&gt; (mlC s&#x27;).any (fun m2 =&gt; isThiefK m2.2 &amp;&amp; m2.1 == m.1))
+       (ringAt s&#x27; cell == 0) == !stayed) }
+
+-- killed_mole_drops_cargo：A5 清掉正对的贼时，它扛着的那颗（与它相邻的唯一环5）原格变环4
+def killRule : Rule :=
+  { name := &quot;killed_mole_drops_cargo&quot;
+    guard := fun s a =&gt; actN a == 5 &amp;&amp; isThiefK (moleAt s (facedC s)) &amp;&amp;
+      ((dnC s).filter (fun c =&gt; c.2 == 5 &amp;&amp; adjN c.1 (facedC s))).length == 1
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || moleAt s&#x27; (facedC s) != NONE ||
+      (((dnC s).filter (fun c =&gt; c.2 == 5 &amp;&amp; adjN c.1 (facedC s))).all (fun c =&gt; ringAt s&#x27; c.1 == 4)) }
+
+-- action5_vanishes_adjacent_mole：有鼹鼠贴着玩家时按 A5：正对的若是贼，它从场上消失；按皮点名数，只少那一只
+def vanishRule : Rule :=
+  { name := &quot;action5_vanishes_adjacent_mole&quot;
+    guard := fun s a =&gt; actN a == 5 &amp;&amp; (mlC s).any (fun m =&gt; adjN m.1 (meC s))
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (let doomed := isThiefK (moleAt s (facedC s))
+       let cnt := fun (t : State) (th : Bool) =&gt; ((mlC t).filter (fun m =&gt; isThiefK m.2 == th)).length
+       (!doomed || moleAt s&#x27; (facedC s) == NONE) &amp;&amp;
+       cnt s&#x27; false == cnt s false &amp;&amp; cnt s&#x27; true + (if doomed then 1 else 0) == cnt s true) }
+
+-- action5_inert_without_target：手空、四邻没有环3 / 环5 / 鼹鼠、正前方不是货时按 A5：玩家不动不转，也没抓起任何东西
+def inertRule : Rule :=
+  { name := &quot;action5_inert_without_target&quot;
+    guard := fun s a =&gt; actN a == 5 &amp;&amp; heldC s == NONE &amp;&amp; !hasDn s (facedC s) &amp;&amp;
+      !((dnC s).any (fun c =&gt; (c.2 == 3 || c.2 == 5) &amp;&amp; adjN c.1 (meC s))) &amp;&amp; !((mlC s).any (fun m =&gt; adjN m.1 (meC s)))
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || (meC s&#x27; == meC s &amp;&amp; s&#x27;.pl_2 == s.pl_2 &amp;&amp; heldC s&#x27; == NONE) }
+
+-- levelup_on_release_iff_all_seated：场上没有环5 时按 A5：换关 ⟺ 按之前每一颗（含攥着的）都坐在容器格上
+def levelupRule : Rule :=
+  { name := &quot;levelup_on_release_iff_all_seated&quot;
+    guard := fun s a =&gt; actN a == 5 &amp;&amp; !(dnC s).any (fun c =&gt; c.2 == 5) &amp;&amp; !(dnC s).isEmpty
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; == (dnC s).all (fun c =&gt; hasN s.k_sock.toNat c.1) }
+
+-- win_needs_all_donuts_home：还有不被扛着的货（环0/3/4）不在容器格上，这一步就不换关
+def winRule : Rule :=
+  { name := &quot;win_needs_all_donuts_home&quot;
+    guard := fun s a =&gt; actN a != 9 &amp;&amp; (dnC s).any (fun c =&gt; c.2 != 5 &amp;&amp; !hasN s.k_sock.toNat c.1)
+    effect := fun s _ s&#x27; =&gt; !lvChg s s&#x27; }
+
+-- mole_alert_ring_when_adjacent：一只鼹鼠外圈是警觉色 ⟺ 它是贼、且正好在玩家头朝的那一格上
+def alertRule : Rule :=
+  { name := &quot;mole_alert_ring_when_adjacent&quot;
+    guard := fun _ a =&gt; actN a != 9
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (mlC s&#x27;).all (fun m =&gt; (m.2 == 2 || m.2 == 3) == (isThiefK m.2 &amp;&amp; m.1 == facedC s&#x27;)) }
+
+-- mole_blocks_move：玩家或所拖货的目的格上蹲着鼹鼠：玩家停在原格，拖着的那颗仍在原格（攥没攥住不管）
+def moleBlockRule : Rule :=
+  { name := &quot;mole_blocks_move&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp;
+      ((mlC s).any (fun m =&gt; m.1 == stepCell (meC s) (actN a)) ||
+       (heldC s &lt; 256 &amp;&amp; (mlC s).any (fun m =&gt; m.1 == stepCell (heldC s) (actN a))))
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || (meC s&#x27; == meC s &amp;&amp; (heldC s == NONE || hasDn s&#x27; (heldC s))) }
+
+-- 平移一格（dr, dc ∈ {-1,0,1}）；出界回 NONE
+def shiftC (p : Nat) (dr dc : Int) : Nat :=
+  let r := Int.ofNat (p / 16) + dr
+  let c := Int.ofNat (p % 16) + dc
+  if r &lt; 0 || r &gt; 15 || c &lt; 0 || c &gt; 15 then NONE else (r * 16 + c).toNat
+
+-- mole_carry_above：每颗环5 都随某只鼹鼠（这一步至多走一格）平移同样的位移；脱离搬运（原格或随行后那格变环3/4）的跳过
+def carryRule : Rule :=
+  { name := &quot;mole_carry_above&quot;
+    guard := fun s a =&gt; actN a != 9 &amp;&amp; (dnC s).any (fun c =&gt; c.2 == 5)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (!(mlC s&#x27;).isEmpty &amp;&amp;
+       (let deltas := (mlC s).foldl (fun acc m =&gt; acc ++ ((mlC s&#x27;).filter (fun n =&gt; distC m.1 n.1 ≤ 1)).map
+                          (fun n =&gt; (Int.ofNat (n.1 / 16) - Int.ofNat (m.1 / 16), Int.ofNat (n.1 % 16) - Int.ofNat (m.1 % 16)))) []
+        (dnC s).all (fun c =&gt; c.2 != 5 ||
+          (ringAt s&#x27; c.1 != 5 &amp;&amp; ((0, 0) :: deltas).any (fun dd =&gt; let q := ringAt s&#x27; (shiftC c.1 dd.1 dd.2); q == 3 || q == 4)) ||
+          deltas.any (fun dd =&gt; ringAt s&#x27; (shiftC c.1 dd.1 dd.2) == 5)))) }
+
+-- mole_drop_in_capsule：环5 全部消失的那一步（没有鼹鼠被清掉、不是落到玩家正前方成环3）：
+-- 第一颗在原格落地、有鼹鼠这一步没动，且落点是目标地形（容器或巢）
+def dropCapRule : Rule :=
+  { name := &quot;mole_drop_in_capsule&quot;
+    guard := fun s a =&gt; actN a != 9 &amp;&amp; (dnC s).any (fun c =&gt; c.2 == 5)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || (dnC s&#x27;).any (fun c =&gt; c.2 == 5) || (mlC s&#x27;).length &lt; (mlC s).length ||
+      (let p := (((dnC s).filter (fun c =&gt; c.2 == 5)).map (·.1)).foldl min 255
+       let fr := facedC s&#x27;
+       (fr &lt; 256 &amp;&amp; (fr == p || adjN fr p) &amp;&amp; ringAt s&#x27; fr == 3) ||
+       (hasDn s&#x27; p &amp;&amp; (mlC s).any (fun m =&gt; (mlC s&#x27;).any (fun n =&gt; n.1 == m.1)) &amp;&amp;
+        hasN (s.k_sock.toNat ||| s.k_den.toNat) p)) }
+
+-- mole_drop_target_by_skin：投放（环5 原格变环4，投放者是原地没动、同皮、与落点相邻的唯一一只）：帮手落在容器，贼落在巢
+def dropSkinRule : Rule :=
+  { name := &quot;mole_drop_target_by_skin&quot;
+    guard := fun s a =&gt; actN a != 9 &amp;&amp; (dnC s).any (fun c =&gt; c.2 == 5)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (dnC s).all (fun c =&gt; c.2 != 5 || ringAt s&#x27; c.1 != 4 ||
+        (let cands := (mlC s&#x27;).filter (fun n =&gt; (mlC s).any (fun m =&gt; m.1 == n.1 &amp;&amp; isThiefK m.2 == isThiefK n.2) &amp;&amp; adjN n.1 c.1)
+         cands.length != 1 ||
+         (match cands.head? with
+          | some n =&gt; if isThiefK n.2 then hasN s.k_den.toNat c.1 else hasN s.k_sock.toNat c.1
+          | none =&gt; true))) }
+
+-- mole_steal_on_block：环4 原格变环5（被偷）时，存在一只这一步没动、与它相邻的鼹鼠
+def stealRule : Rule :=
+  { name := &quot;mole_steal_on_block&quot;
+    guard := fun s a =&gt; actN a != 9 &amp;&amp; (dnC s).any (fun c =&gt; c.2 == 4 &amp;&amp; (mlC s).any (fun m =&gt; adjN m.1 c.1))
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (dnC s).all (fun c =&gt; !(c.2 == 4 &amp;&amp; ringAt s&#x27; c.1 == 5) ||
+        (mlC s).any (fun m =&gt; adjN m.1 c.1 &amp;&amp; (mlC s&#x27;).any (fun n =&gt; n.1 == m.1))) }
+
+-- stolen_donut_blocks_move：玩家或所拖货的目的格上是环5：玩家与拖着的货都不动
+def stolenBlockRule : Rule :=
+  { name := &quot;stolen_donut_blocks_move&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp;
+      ((dnC s).any (fun c =&gt; c.2 == 5 &amp;&amp; (c.1 == stepCell (meC s) (actN a) ||
+                                          (heldC s &lt; 256 &amp;&amp; c.1 == stepCell (heldC s) (actN a)))))
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; || (meC s&#x27; == meC s &amp;&amp; heldC s&#x27; == heldC s) }
+
+-- 一一配对：A 的每只按次序在 B 里挑一只距离 ≤1 的、没被挑过的（回溯，至多 4 只）
+def matchLe1 : List Nat → List Nat → Bool
+  | [], _ =&gt; true
+  | a :: as, bs =&gt; bs.any (fun b =&gt; distC a b ≤ 1 &amp;&amp; matchLe1 as (bs.erase b))
+
+-- thief_step_rule：贼数不变（1~4 只）时，存在一一配对使每只贼至多挪一格
+def thiefStepRule : Rule :=
+  { name := &quot;thief_step_rule&quot;
+    guard := fun s a =&gt; actN a != 9 &amp;&amp; (mlC s).any (fun m =&gt; isThiefK m.2)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (let A := ((mlC s).filter (fun m =&gt; isThiefK m.2)).map (·.1)
+       let B := ((mlC s&#x27;).filter (fun m =&gt; isThiefK m.2)).map (·.1)
+       A.length != B.length || A.length &gt; 4 || matchLe1 A B) }
+
+def thiefCells (t : State) : List Nat := ((mlC t).filter (fun m =&gt; isThiefK m.2)).map (·.1)
+
+-- thief_patrol_next：第 8 关贼只有一只时，它下一拍的格由当前局面决定、与玩家的意图无关——
+-- 不抄巡逻表，而是说：s&#x27; 的贼格集合 = stepRules 从 s 推出的贼格集合（追货最短路 + 偷 / 放 / 夺 / 被清除）
+def patrolRule : Rule :=
+  { name := &quot;thief_patrol_next&quot;
+    guard := fun s a =&gt; s.level == 8 &amp;&amp; 1 ≤ actN a &amp;&amp; actN a ≤ 5 &amp;&amp; (thiefCells s).length == 1
+    effect := fun s a s&#x27; =&gt; lvChg s s&#x27; ||
+      (match stepRules s a with
+       | some p =&gt; thiefCells p == thiefCells s&#x27;
+       | none =&gt; false) }
+
+-- thief_strips_drag：拖着货走、落点旁边有贼：货脱手 ⟺ 落点旁边那只贼这一步留在原格
+def stripRule : Rule :=
+  { name := &quot;thief_strips_drag&quot;
+    guard := fun s a =&gt; isMove a &amp;&amp; heldC s &lt; 256 &amp;&amp; (mlC s).any (fun m =&gt; isThiefK m.2)
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      (let after := (mlC s&#x27;).filter (fun m =&gt; isThiefK m.2)
+       let pc := meC s&#x27;
+       let loose := (dnC s&#x27;).filter (fun c =&gt; c.2 == 3)
+       let pick := loose.foldl (fun b c =&gt; if b == NONE || distC c.1 pc &lt; distC b pc || (distC c.1 pc == distC b pc &amp;&amp; c.1 &lt; b) then c.1 else b) NONE
+       let cell := if heldC s&#x27; &lt; 256 then heldC s&#x27; else pick
+       after.isEmpty || cell == NONE ||
+       (let touching := after.filter (fun m =&gt; distC cell m.1 ≤ 1)
+        touching.isEmpty ||
+        (touching.any (fun m =&gt; (mlC s).any (fun n =&gt; isThiefK n.2 &amp;&amp; n.1 == m.1)) == !(heldC s&#x27; &lt; 256)))) }
+
+-- timer_bar_drains：同一关内每一步计时条缩 0 或 1 像素；加强：长度 = 64 - round(本关步数*64/B)，步数加一
+def timerRule : Rule :=
+  { name := &quot;timer_bar_drains&quot;
+    guard := fun _ a =&gt; actN a != 9
+    effect := fun s _ s&#x27; =&gt; lvChg s s&#x27; ||
+      ((s&#x27;.timer_px == s.timer_px || s&#x27;.timer_px == s.timer_px - 1) &amp;&amp; s&#x27;.h_n == s.h_n + 1 &amp;&amp;
+       decide (0 &lt; s.k_B) &amp;&amp; s&#x27;.timer_px == 64 - ((s.h_n + 1) * 128 + s.k_B) / (2 * s.k_B)) }
+
+def rules : List Rule :=
+  [moveRule &quot;action1_up&quot; 1, moveRule &quot;action2_down&quot; 2, moveRule &quot;action3_left&quot; 3, moveRule &quot;action4_right&quot; 4,
+   headRule, capsuleRule, dragRule, dropLeaveRule, entersRule, grabRule, pushRule, takeBackRule,
+   thiefBlockRule, grabRefusedRule, killRule, vanishRule, inertRule, levelupRule, winRule, alertRule,
+   moleBlockRule, carryRule, dropCapRule, dropSkinRule, stealRule, stolenBlockRule, thiefStepRule, stripRule, timerRule,
+   patrolRule]
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+-- 规则与全部观测一致。证明用 decide +kernel（内核求值，不依赖 Lean.ofReduceBool）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 逐步重算整条路线。它换掉了旧的 solvable —— 那条只看末态 isGoal，中间几百步一步不查，
+-- 「直接把目标字段拍成真」的 step 照样能过。faithful 每一步都要对上观测，规则段没写完之前编不过，那正是要求。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println (&quot;GUARD_HITS &quot; ++ String.intercalate &quot;,&quot; (rules.map (fun r =&gt; r.name ++ &quot;=&quot; ++ toString (corpus.filter (fun t =&gt; r.guard t.s t.a)).length)))
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>wa30 · 统一到对象-规则-形式化-前端那条链：报告</h1>
 <p>语料：封存局 <code>wa30-20260920</code>，run <code>wa30-0920-0516</code>，<code>runs/wa30-0920-0516/transitions.jsonl</code> 1521 行（本机实测）。
 全部数字都是真跑出来的；命令与关键输出行照贴。没有「待跑」项。</p>
 <h2>册子中途恢复（先说这件事）</h2>

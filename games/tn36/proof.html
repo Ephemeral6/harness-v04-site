@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← tn36 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从这一关的开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">7/7 关全部被证明可以从开局打通，每关 6 到 50 步，逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：7/7 关，100 分，125 步（<a href="https://arcprize.org/replay/6ba95b5b-74b5-4070-832d-621269da9287" target="_blank" rel="noopener">官方记录 ↗</a>）。逐关证明用的就是这一遍的操作。</li><li>模型在录像全部 292 步上逐行核对：Lean 里一条定理对每一行从观测到的那一帧算一步，与下一帧比对，0 行对不上。过关的那几行核的是模型也判过关；重来那一行核的是模型不给下一帧，这一行交给重来的规则检验。</li><li>Python 与 Lean 两份独立写成的推演逐行对账：292 行，0 处不同。</li><li>全部 7 条规则在录像上逐条检验，一共说错 0 次；每一步都至少有一条规则表了态。</li><li>把规则故意改错 19 种，检验抓住了 13 种；没抓住的那几种，改动都落在录像里从没出现过的情形上，例如只见过一个方向的旋转、点击全点在开关正中。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>不进模型的规则</h2><p class="prose">另有 3 条规则在录像上逐步检验，不在 Lean 模型里：版面在模型里是每一关的输入，不是会变的状态；新一关的开局、重来之后的画面由关卡设计决定，不由当前这一帧决定。</p><div class="rules"><article class="rule"><h3>同一关里，版面不变</h3><p>棋盘、墙、插槽、底栏的框和大圆整关固定。模型把版面当作这一关的输入，不当作会变的状态。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">277/277 步</span></div></article><article class="rule"><h3>进入新的一关，顶栏满格、面板全亮</h3><p>换关那一下之后，下一帧顶栏满格，面板上一个暗着的开关都没有。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">12/12 步</span></div></article><article class="rule"><h3>重来之后回到第一关，顶栏满格</h3><p>重来那一下之后，画面是第一关的开局。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 292 条记录，是两遍完整通关：第一遍 166 条；第二遍 126 条，开头一条是重来，是官方认证的那一遍，首页的截图和全部逐关证明都用它。早期说法是在更早的游玩里写下的，那些游玩不在这份录像里；首页的规则全部在这份录像上重新检验过。</p><h2>适用范围</h2><ul class="lst"><li>每一关开局时「这一下免不免费」从画面上读不出，模型取每关第一下免费；「打得通」只说不经过重来、顶栏不见底的走法；逐关证明里的花格取这一关所有帧的并集。</li><li>最后一关那块带记号的棋盘上，交卷何时作废有三种读法，在这份录像的每一次交卷上判决都相同；模型取了其中条件最少的一种。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默（N）</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>scope / C / E</dt><dd>规则管到的步数 / 其中说对的 / 说错的</dd><dt>大圆 / disc</dt><dd>交卷键</dd><dt>空腔 / cavity</dt><dd>插槽围出来的那块空地，件要填进去</dd><dt>密码本 / OP_CODE</dt><dd>开关的明暗组合到指令的对照表</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个对象，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个对象，按「它在这一帧里是什么」收进子文件夹。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← tn36 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从这一关的开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">7/7 关全部被证明可以从开局打通，每关 6 到 50 步，逐步和录像一致。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：7/7 关，100 分，125 步（<a href="https://arcprize.org/replay/6ba95b5b-74b5-4070-832d-621269da9287" target="_blank" rel="noopener">官方记录 ↗</a>）。逐关证明用的就是这一遍的操作。</li><li>模型在录像全部 292 步上逐行核对：Lean 里一条定理对每一行从观测到的那一帧算一步，与下一帧比对，0 行对不上。过关的那几行核的是模型也判过关；重来那一行核的是模型不给下一帧，这一行交给重来的规则检验。</li><li>Python 与 Lean 两份独立写成的推演逐行对账：292 行，0 处不同。</li><li>全部 7 条规则在录像上逐条检验，一共说错 0 次；每一步都至少有一条规则表了态。</li><li>把规则故意改错 19 种，检验抓住了 13 种；没抓住的那几种，改动都落在录像里从没出现过的情形上，例如只见过一个方向的旋转、点击全点在开关正中。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>不进模型的规则</h2><p class="prose">另有 3 条规则在录像上逐步检验，不在 Lean 模型里：版面在模型里是每一关的输入，不是会变的状态；新一关的开局、重来之后的画面由关卡设计决定，不由当前这一帧决定。</p><div class="rules"><article class="rule"><h3>同一关里，版面不变</h3><p>棋盘、墙、插槽、底栏的框和大圆整关固定。模型把版面当作这一关的输入，不当作会变的状态。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">277/277 步</span></div></article><article class="rule"><h3>进入新的一关，顶栏满格、面板全亮</h3><p>换关那一下之后，下一帧顶栏满格，面板上一个暗着的开关都没有。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">12/12 步</span></div></article><article class="rule"><h3>重来之后回到第一关，顶栏满格</h3><p>重来那一下之后，画面是第一关的开局。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 292 条记录，是两遍完整通关：第一遍 166 条；第二遍 126 条，开头一条是重来，是官方认证的那一遍，首页的截图和全部逐关证明都用它。早期说法是在更早的游玩里写下的，那些游玩不在这份录像里；首页的规则全部在这份录像上重新检验过。</p><h2>适用范围</h2><ul class="lst"><li>每一关开局时「这一下免不免费」从画面上读不出，模型取每关第一下免费；「打得通」只说不经过重来、顶栏不见底的走法；逐关证明里的花格取这一关所有帧的并集。</li><li>最后一关那块带记号的棋盘上，交卷何时作废有三种读法，在这份录像的每一次交卷上判决都相同；模型取了其中条件最少的一种。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默（N）</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>scope / C / E</dt><dd>规则管到的步数 / 其中说对的 / 说错的</dd><dt>大圆 / disc</dt><dd>交卷键</dd><dt>空腔 / cavity</dt><dd>插槽围出来的那块空地，件要填进去</dd><dt>密码本 / OP_CODE</dt><dd>开关的明暗组合到指令的对照表</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个对象，按「它在这一帧里是什么」收进子文件夹。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个对象，按「它在这一帧里是什么」收进子文件夹。
 
 契约（装置按名字找）：`World`、`parse(frame) -&gt; World`、`ParseError`。
 
@@ -3353,7 +3353,529 @@ def step (L : Layout) (w : World) : Act → Res
         | t =&gt; .ok { upkeep L w with panel := panelAfter w t, piece := pieceAfter L w t }
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>tn36 · 统一到对象-规则-形式化-前端框架 · 报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">tn36-20260911-2/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 18 条</span><span class="chip c-mute">路线 125 步，换关查表 7 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/tn36-20260911-2/_lib.py ; why=原数据段缺面板灯位、墙、花格、件形状、空腔、第 0 关棋盘与隐藏量，写不出下一步，且 keyEq 按 unpredicted 排除了 5 个字段（R1.2 不许）；补纯感知读数 + 隐藏奇偶 + 每关常数后重新生成，路线取整局到 WIN
+-- 由 world/formalize.py 生成于 2026-10-01T18:55:58+08:00；局 tn36；基于 run [&#x27;tn36-0911-0956&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+set_option maxHeartbeats 0
+set_option maxRecDepth 100000
+-- （数据段 466 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 把 concepts/*.py 里每条在册概念译成一条 Rule（guard := assert_ 不返回 NA；effect := apply 或 assert_ 本身），
+-- 写 step（规则合起来的前向函数）与 isGoal（L5 的终止条件）。写完把下面三个 stub 换掉。
+-- 三件事先知道：① 规则名必须是概念文件名，现编的名字判红（R6 不是两道门的后门）；
+--   ② 每条规则的 guard 至少要在语料上命中一条，永不触发的规则判红；
+--   ③ 要查观测只能用 worldRows（先在 formal/WORLD.json 里按 tid 声明并写明理由），
+--      规则段里出现 corpus / obsAt / start / route 一律判红。
+--
+-- 修复（2026-10-01）：数据段按 meta/repair-20260928/lib/tn36-20260911-2/_lib.py 重新生成（见文件第一行）。
+-- 状态里补的量（全部来自那份 _lib.py，原读数一个没删）：
+--   读数（这一帧看得见的东西）：rpanel_bits 右下面板每盏灯暗不暗（第 k 槽第 gi 组 kind -&gt; 位 6k+2gi+kind）；
+--     rpanel_geom_0..11 面板几何（横条行×3、竖杆首行×3、槽中心列×6，缺位 -1）；l0_panel_bits 第 0 关 10 盏灯；
+--     board_walls_bits / board_pads_bits 墙格、看得见的花格（格 (i,j) -&gt; 位 8i+j）；piece_scale / piece_notch 件的倍数与缺口；
+--     cavity_form_0..3 插槽空腔的格行、格列、倍数、缺口；l0_board_sum 第 0 关棋盘区（行 9..40 × 列 14..49）的像素粗指纹
+--     （Σ 色 × 区内序号，只给 board_frozen 当比较对象；第 1 关起为 none）。
+--   隐藏量（修订 R1）：h_acts 本关已发生的 ACTION6 个数的奇偶（只数动作串，不推演看不见的量）。
+--   每关常数（修订 R1）：k_pay 顶栏每几个动作扣一格（第 0-4 关 1、第 5/6 关 2）；
+--     k_pads 本关花格总数（含件压着、看不见的那一格；第 5 关 3、第 6 关 4；第 0-4 关件没在关内挪过，不写）。
+-- 动力学全在下面的 Lean 里：点灯命中盒、码本解码、跳过读法的逐格走（按件盖住的 s×s 格核墙与出界）、
+-- 不核墙的 run_program（缩放锚左上、旋转对合）、记号盘的作废边界、终点花格判定、花格露出、顶栏计价。
+-- Python 读数只给灯色、位置、形状；hidden_step 只数动作串里的 ACTION6。
+-- 换关与 RESET 那一步（新关布局是游戏内容）走 step 里的 worldRows 查表（路线 125 步里 7 步），关卡内每一步由 stepRules 算。
+--
+-- ---------- 公示 ----------
+-- · 语料：runs/ 下现在只剩 run tn36-0911-0956（tn36-0910-2343 只剩 reports/），重新生成的语料是 249 条去重转移
+--   （原始步序 292 条），原封存是两个 run 的 764 条。（审计核算）原 764 条里 515 条的 tid 不在新语料：第 0 关 186 条关内点击、
+--   3 条 panel_all_off 变化、5 次 RESET；第 1 关 1 次 RESET；第 3/4 关底栏点框 5 条；第 6 关 2 次 RESET、118 条惰性点击、
+--   31 条程序变化；第 5 关 1 条件移动。新语料是原语料的子集，现存只剩 1 次 RESET（第 7 关通关后那一次）。
+--   （主会话按复审补）以上类别合计 352 条；其余 163 条是第 1–5 关关内转移（第 1 关 50、第 2 关 14、第 3/4 关 60、第 5 关 39，按 tid 去重），未逐类核。
+-- · 每关常数是回溯取值，不是预测：k_pay 在关内 277 个 ACTION6 上用到，其中 14 步用到时本次进关还没露出过周期
+--   （每次进关的第 1 个关内动作：seq 1,8,17,26,48,64,89,168,175,184,193,206,222,242；路线上 7 步 seq 168/175/184/193/206/222/242）。
+--   k_pads 在件挪窝的 6 步上用到，其中 4 步（seq 77、98、230、264；路线上 230、264）用到时它还只能由挪完之后那一帧得知
+--   （第 5 关 k_pads=3「起点下面没有花格」也是挪完才知道；第 6 关 98、264 用到的花格 (6,2) 此前从没露出过）。
+-- · `_m` 位掩码字段全是 none：原读数 program_result 在 seq 150、279 读出负坐标（审计核），生成器的全局 CELL_STRIDE 因此为 0；
+--   这是继承原文件的，修复没有改原读数。不在状态里的还有：左半边（示范画布、对照面板、底栏框）、整帧 frozen_frame；
+--   第 0 关棋盘只有粗指纹 l0_board_sum。审计核过：在本语料上除顶栏外关内像素变化只落在灯格与棋盘上，没丢信息。
+-- · 两条定理不覆盖关内全部转移：consistent 只核规则的 guard→effect，faithful 只走路线 125 步。
+--   「语料关内 237 条 stepRules 全对」是 #eval 诊断读数（_scratch/tn36-20260911-2/work/Diag.lean），不是定理。
+--   五个作废分支（四连、码少且久留、终点非花格、四框关卡非平移码、压墙）各只有 1–3 条转移支撑，去掉其中多数两条定理仍过。
+--   五条作废规则的 effect 都是 boardSame（逐字相同），区别只在 guard——guard 是 Lean 由原语各自算的，不是读数里的分类码。
+-- · 规则与概念：写了 18 条（见 rules）。没写的 6 条：
+--     click_offslot_inert（语料 0 次命中；行为在 stepRules 里：第 0 关槽外点击只扣顶栏）；
+--     dead_click_inert（0 次命中；状态里没有底栏框的位置，stepRules 遇到这类点击返回 none）；
+--     l1_reset_restores（新语料没有第 1 关 RESET）；l1_toolbox_snap、box_click_keeps_right、dict_demo_agrees（新语料没有点框）；
+--     原文件有、这里没有的：click_offslot_inert、l1_reset_restores（理由同上）。
+--   比原文件多：disc_runs_program、offpad_end_voids、four_in_a_row_voids、few_ops_and_dwell_voids、allblank_voids_program、
+--     piece_footprint_blocks、blank_slot_is_nop、disc_fit_clears_level、counter_pays_every_other、panel_click_toggles、
+--     stem/top_click_toggles、board_frozen。
+--   比原文强（只能说本语料无反例）：counter_pays_every_other 推广到第 0-4 关（周期 1），起点表换成 k_pay + h_acts；
+--     stepRules 断言第 0-4 关关内交卷也扣一格（seq 38，原 counter_spends 对按大圆闭嘴）。
+--   论域改了（主会话按复审更正，原写在「比原文强」下）：reset_refills 原文只管第 0 关内的 RESET，这里 guard 是「第 0 关或第 7 关（通关后）」。
+--     第 0 关内 RESET 语料 0 次（原 5 次随缩水丢失），原论域现无证据；唯一 1 次命中是第 7 关通关后的 RESET，只验顶栏满、面板 165（暗亮暗亮亮）、非全暗。
+--     RESET 在 stepRules 里不预测、只走查表，路线上没有 RESET，所以这条只在 consistent 的这 1 行上受检。
+--   board_frozen（主会话按复审补）：第 0 关命中 6 次，全是面板灯点击（棋盘区像素差 0）；点在棋盘区本身、槽外点击都是 0 次，
+--     原 186 条第 0 关关内点击已随缩水丢失。粗指纹实测：随机改棋盘区 2–6 像素 10 万次中 6 次加权和不变（正负差抵消）。
+--   比原文弱：作废类 effect 只断言关卡、件、倍数、缺口、花格、面板不变，不是逐像素整帧；even_slots_keep_parity 判同一块盘用关卡号；
+--     board_frozen 比的是棋盘区的粗指纹，不是逐格。
+-- · 语料没走到的分支（审计消融后语料上零差别，猜的，未检验）：出界判定；入位时缺口朝向相等（poseEq 的 nt 项）；
+--   旋转的具体映射（只检验了「不是恒等」，换成 (nt+1)%4 不会被发现）；奇数倍再缩；fewDwell 的「倍数为 1」；nopFits 的「非四方向框」；
+--   第 0 关面板不全暗时点大圆、第 0 关槽外点击。
+--   stepRules 返回 none（不预测）的分支：第 1 关起面板与大圆以外的点击（框、工具栏、对照面板）；记号盘上 markTrouble 但不落在
+--   四条作废里的程序；非平移码既不入位、不压墙、也不在四方向框关卡；第 1-4 关件挪窝（k_pads 缺）；under ∉ {0,1}；
+--   第 7 关之后的动作与任何 RESET（RESET 只走查表）。
+-- · 本局没有客户端超时重发步（修订 R2），路线没有关内 RESET（修订 R3）。没读官方游戏源码。
+
+-- ---------- 基本量 ----------
+def kv (o : Option Int) : Int := o.getD (-1)
+def kn (o : Option Int) : Nat := (o.getD 0).toNat
+def bit (k : Nat) : Nat := 1 &lt;&lt;&lt; k
+def popc : Nat → Nat → Nat
+  | 0, _ =&gt; 0
+  | f + 1, m =&gt; if m == 0 then 0 else m % 2 + popc f (m / 2)
+def cellOn (m : Nat) (i j : Int) : Bool := 0 ≤ i &amp;&amp; 0 ≤ j &amp;&amp; j &lt; 8 &amp;&amp; m.testBit (8 * i + j).toNat
+def cellBitOf (i j : Int) : Nat := bit (8 * i + j).toNat
+def FULL : Int := 61                                   -- 顶栏 61 格（_lib.COUNTER_COLS）
+
+/-- 动作落在哪一格：`ACTION6:x,y` 的 x 是列、y 是行（_lib.click_rc）。 -/
+def clickRC : Act → Option (Int × Int)
+  | Act.a6 x y =&gt; some ((y : Int), (x : Int))
+  | _ =&gt; none
+
+/-- 大圆的包围盒（_lib.disc_box，第 0 关就是那个色 9 的圆）。 -/
+def onDisc (s : State) (r c : Int) : Bool :=
+  s.disc_box_0 ≤ r &amp;&amp; r ≤ s.disc_box_1 &amp;&amp; s.disc_box_2 ≤ c &amp;&amp; c ≤ s.disc_box_3
+def onDiscA (s : State) (a : Act) : Bool :=
+  match clickRC a with
+  | some (r, c) =&gt; onDisc s r c
+  | none =&gt; false
+
+-- ---------- 面板命中盒 ----------
+def findCol (c : Int) : List Int → Nat → Option Nat
+  | [], _ =&gt; none
+  | col :: rest, k =&gt; if 0 ≤ col &amp;&amp; (c - col).natAbs ≤ 2 then some k else findCol c rest (k + 1)
+
+/-- 第 0 关面板：槽中心列 21/26/31/36/41 ±2；行 41-43 命中横条（位 k），行 44-47 命中竖杆（位 5+k）。
+    这些版面常数承自原 _lib.slot_of（PANEL_SLOT_COLS、SLOT_HALFWIDTH、TOP_BOX_ROWS、STEM_BOX_ROWS），不是从帧上现量的。 -/
+def l0Hit (r c : Int) : Option Nat :=
+  match findCol c [21, 26, 31, 36, 41] 0 with
+  | some k =&gt; if 41 ≤ r &amp;&amp; r ≤ 43 then some k else if 44 ≤ r &amp;&amp; r ≤ 47 then some (5 + k) else none
+  | none =&gt; none
+
+def rpGroups (s : State) : List (Int × Int) :=
+  [(kv s.rpanel_geom_0, kv s.rpanel_geom_3), (kv s.rpanel_geom_1, kv s.rpanel_geom_4),
+   (kv s.rpanel_geom_2, kv s.rpanel_geom_5)]
+def rpCols (s : State) : List Int :=
+  [kv s.rpanel_geom_6, kv s.rpanel_geom_7, kv s.rpanel_geom_8, kv s.rpanel_geom_9,
+   kv s.rpanel_geom_10, kv s.rpanel_geom_11]
+def nSlots (s : State) : Nat := (rpCols s).countP (fun c =&gt; decide (0 ≤ c))
+
+/-- _lib.panel_slot_at 的行：横条行 ±1 算横条、竖杆那三行算竖杆，后一组覆盖前一组。返回 2·组号 + kind。 -/
+def rowHit (r : Int) : List (Int × Int) → Nat → Option Nat → Option Nat
+  | [], _, acc =&gt; acc
+  | (b, st) :: rest, i, acc =&gt;
+    let acc1 := if 0 ≤ b &amp;&amp; (r - b).natAbs ≤ 1 then some (2 * i) else acc
+    let acc2 := if 0 ≤ st &amp;&amp; st ≤ r &amp;&amp; r ≤ st + 2 then some (2 * i + 1) else acc1
+    rowHit r rest (i + 1) acc2
+
+/-- 右下面板命中哪盏灯：位号 6·槽 + 2·组 + kind。 -/
+def rHit (s : State) (r c : Int) : Option Nat :=
+  match rowHit r (rpGroups s) 0 none, findCol c (rpCols s) 0 with
+  | some rb, some k =&gt; some (6 * k + rb)
+  | _, _ =&gt; none
+
+-- ---------- 码本（_lib.OP_CODE + CODE_ALIAS）----------
+-- 一槽的码 = 这一竖列暗着的灯：横条 A=1 竖杆 A=2 横条 B=4 竖杆 B=8 横条 C=16 竖杆 C=32。
+-- 指令：0=北 1=东 2=南 3=西（与缺口码同序）4=放大 5=缩小 6=旋转 7=六排全暗。
+def opOf (code : Nat) : Option Nat :=
+  if code == 33 then some 0 else if code == 2 then some 1 else if code == 3 then some 2
+  else if code == 34 || code == 1 then some 3 else if code == 8 then some 4 else if code == 9 then some 5
+  else if code == 5 then some 6 else if code == 63 then some 7 else none
+def slotCode (bits k : Nat) : Nat := (bits &gt;&gt;&gt; (6 * k)) &amp;&amp;&amp; 63
+def decodeOps (bits : Nat) : Nat → Nat → Option (List Nat)
+  | 0, _ =&gt; some []
+  | n + 1, k =&gt;
+    match opOf (slotCode bits k), decodeOps bits n (k + 1) with
+    | some o, some rest =&gt; some (o :: rest)
+    | _, _ =&gt; none
+/-- _lib.panel_ops：从左到右逐槽解码；空槽或认不出的码整串读不出。 -/
+def panelOps (s : State) : Option (List Nat) :=
+  match s.rpanel_bits with
+  | some b =&gt; decodeOps b.toNat (nSlots s) 0
+  | none =&gt; none
+def isMove (o : Nat) : Bool := o &lt; 4
+
+-- ---------- 件的形态与 run_program（不核墙）----------
+structure Pose where
+  i : Int
+  j : Int
+  sc : Nat
+  nt : Nat
+
+def poseEq (p q : Pose) : Bool := p.i == q.i &amp;&amp; p.j == q.j &amp;&amp; p.sc == q.sc &amp;&amp; p.nt == q.nt
+def dI (o : Nat) : Int := if o == 0 then -1 else if o == 2 then 1 else 0
+def dJ (o : Nat) : Int := if o == 1 then 1 else if o == 3 then -1 else 0
+/-- 一条指令：平移一格；放大 ×2、缩小 ÷2（左上角不动，奇数倍缩不了）；旋转 南↔东、北↔西（对合，码 3−n）；六排全暗什么都不做。 -/
+def stepPose (p : Pose) (o : Nat) : Option Pose :=
+  if o &lt; 4 then some { p with i := p.i + dI o, j := p.j + dJ o }
+  else if o == 4 then some { p with sc := 2 * p.sc }
+  else if o == 5 then (if p.sc % 2 == 1 then none else some { p with sc := p.sc / 2 })
+  else if o == 6 then some { p with nt := 3 - p.nt }
+  else some p
+def runFree : Pose → List Nat → Option Pose
+  | p, [] =&gt; some p
+  | p, o :: rest =&gt;
+    match stepPose p o with
+    | some q =&gt; runFree q rest
+    | none =&gt; none
+def scaleRun : Nat → List Nat → Option Nat
+  | sc, [] =&gt; some sc
+  | sc, o :: rest =&gt;
+    if o == 4 then scaleRun (2 * sc) rest
+    else if o == 5 then (if sc % 2 == 1 then none else scaleRun (sc / 2) rest)
+    else scaleRun sc rest
+/-- _lib.program_result 的格数：件 4s×4s 缺 2s×s，14·s² 格。 -/
+def progResultN (s : State) : Option Int :=
+  match panelOps s, s.piece_scale with
+  | some os, some sc =&gt; (scaleRun sc.toNat os).map (fun z =&gt; 14 * (z : Int) * (z : Int))
+  | _, _ =&gt; none
+
+def piecePose (s : State) : Option Pose :=
+  match s.piece_cell_r, s.piece_cell_c, s.piece_scale, s.piece_notch with
+  | some r, some c, some sc, some nt =&gt; some ⟨r, c, sc.toNat, nt.toNat⟩
+  | _, _, _, _ =&gt; none
+def cavPose (s : State) : Option Pose :=
+  match s.cavity_form_0, s.cavity_form_1, s.cavity_form_2, s.cavity_form_3 with
+  | some r, some c, some sc, some nt =&gt; some ⟨r, c, sc.toNat, nt.toNat⟩
+  | _, _, _, _ =&gt; none
+
+-- ---------- 棋盘：墙、出界、跳过读法 ----------
+/-- 左上角在格 (i,j)、倍数 sc 的件盖住的 sc×sc 格里有一格出界或是墙（_lib.piece_footprint + board_walls）。 -/
+def blocked (s : State) (sc : Nat) (i j : Int) : Bool :=
+  let w := kn s.board_walls_bits
+  let nr := kv s.board_geom_2
+  let nc := kv s.board_geom_3
+  (List.range sc).any (fun di =&gt; (List.range sc).any (fun dj =&gt;
+    let a := i + (di : Int)
+    let b := j + (dj : Int)
+    !(0 ≤ a &amp;&amp; a &lt; nr &amp;&amp; 0 ≤ b &amp;&amp; b &lt; nc) || cellOn w a b))
+
+/-- _lib.walk_path_skip：逐条平移，走不通的那一条跳过、后面照走；返回真走到的格（不含起点）。 -/
+def walkSkip (s : State) (sc : Nat) : Int × Int → List Nat → List (Int × Int)
+  | _, [] =&gt; []
+  | (i, j), o :: rest =&gt;
+    let ni := i + dI o
+    let nj := j + dJ o
+    if blocked s sc ni nj then walkSkip s sc (i, j) rest else (ni, nj) :: walkSkip s sc (ni, nj) rest
+def lastOr (p : Int × Int) : List (Int × Int) → Int × Int
+  | [] =&gt; p
+  | q :: rest =&gt; lastOr q rest
+
+/-- _lib.program_trace + piece_footprint_blocks：不跳过、逐条走，有一步件盖住的格压墙或出界返回 some true；
+    中途缩不了（奇数倍再缩）返回 none（整串做不完，那一条不管）。 -/
+def traceBlocked (s : State) : Pose → List Nat → Option Bool
+  | _, [] =&gt; some false
+  | p, o :: rest =&gt;
+    match stepPose p o with
+    | none =&gt; none
+    | some q =&gt;
+      match traceBlocked s q rest with
+      | none =&gt; none
+      | some t =&gt; some (t || blocked s q.sc q.i q.j)
+
+-- ---------- 记号盘（色 14）----------
+def marked (s : State) : Bool := match s.marked_cells_n with | some n =&gt; decide (0 &lt; n) | none =&gt; false
+def markRow (s : State) (i : Int) : Bool := s.marked_cells_0_r == some i || s.marked_cells_1_r == some i
+def maxRunAux : Option Nat → Nat → Nat → List Nat → Nat
+  | _, _, best, [] =&gt; best
+  | prev, cur, best, o :: rest =&gt;
+    let c := if prev == some o then cur + 1 else 1
+    maxRunAux (some o) c (max best c) rest
+def maxRun (os : List Nat) : Nat := maxRunAux none 0 0 os
+def distinctN (os : List Nat) : Nat := ([0, 1, 2, 3].filter (fun d =&gt; os.contains d)).length
+def dwell (s : State) (path : List (Int × Int)) : Nat := (path.filter (fun p =&gt; markRow s p.1)).length
+
+-- ---------- 一道全平移程序交上去（disc_runs_program 一族）----------
+def movesOf (s : State) : Option (List Nat × Pose) :=
+  match panelOps s, piecePose s with
+  | some os, some p =&gt; if 0 &lt; os.length &amp;&amp; os.all isMove then some (os, p) else none
+  | _, _ =&gt; none
+def pathOf (s : State) (os : List Nat) (p : Pose) : List (Int × Int) := walkSkip s p.sc (p.i, p.j) os
+def endOf (s : State) (os : List Nat) (p : Pose) : Int × Int := lastOr (p.i, p.j) (pathOf s os p)
+def isPad (s : State) (e : Int × Int) : Bool := cellOn (kn s.board_pads_bits) e.1 e.2
+def endFits (s : State) (os : List Nat) (p : Pose) : Bool :=
+  match cavPose s with
+  | some cv =&gt; let e := endOf s os p; poseEq { p with i := e.1, j := e.2 } cv
+  | none =&gt; false
+/-- 记号盘上连四以上（four_in_a_row_voids）。 -/
+def runsVoid (s : State) (os : List Nat) : Bool := marked s &amp;&amp; decide (4 ≤ maxRun os)
+/-- 记号盘上 marked_prog_class ≠ &#x27;ok&#x27;：连四、码少于三种、或路径在记号行落两步以上。 -/
+def markTrouble (s : State) (os : List Nat) (p : Pose) : Bool :=
+  marked s &amp;&amp; (decide (4 ≤ maxRun os) || decide (distinctN os &lt; 3) || decide (1 &lt; dwell s (pathOf s os p)))
+/-- few_ops_and_dwell_voids：记号盘、1 倍件、不连四、码少于三种且记号行落两步以上。 -/
+def fewDwell (s : State) (os : List Nat) (p : Pose) : Bool :=
+  marked s &amp;&amp; p.sc == 1 &amp;&amp; !runsVoid s os &amp;&amp; decide (distinctN os &lt; 3) &amp;&amp; decide (1 &lt; dwell s (pathOf s os p))
+/-- disc_runs_program 管的那一片：不在记号盘的麻烦区、算出来不入位、终点是花格。返回终点格。 -/
+def moveTarget (s : State) : Option (Int × Int) :=
+  match movesOf s with
+  | some (os, p) =&gt;
+    if markTrouble s os p || endFits s os p || !isPad s (endOf s os p) then none else some (endOf s os p)
+  | none =&gt; none
+/-- offpad_end_voids 管的那一片：不连四（记号盘）、不入位、终点不是花格。 -/
+def offPad (s : State) : Bool :=
+  match movesOf s with
+  | some (os, p) =&gt; !runsVoid s os &amp;&amp; !endFits s os p &amp;&amp; !isPad s (endOf s os p)
+  | none =&gt; false
+
+-- ---------- 带非平移码的程序 ----------
+/-- allblank_voids_program：四方向框关卡、面板读得出、有一槽不是平移码（空槽、全暗、或别的码）。 -/
+def allblankVoid (s : State) : Bool :=
+  s.four_dir_boxes &amp;&amp; s.rpanel_bits.isSome &amp;&amp; 0 &lt; nSlots s &amp;&amp;
+    (match panelOps s with | some os =&gt; !os.all isMove | none =&gt; true)
+def footprintVoid (s : State) : Bool :=
+  match panelOps s, piecePose s with
+  | some os, some p =&gt; 0 &lt; os.length &amp;&amp; !os.all isMove &amp;&amp; traceBlocked s p os == some true
+  | _, _ =&gt; false
+
+/-- _lib.submit_fits：不核墙的 run_program 算出来是否恰好填满空腔；读不出件或空腔返回 none。 -/
+def submitFits (s : State) : Option Bool :=
+  match piecePose s, cavPose s with
+  | some p, some cv =&gt;
+    some (match panelOps s with
+      | some os =&gt; (match runFree p os with | some q =&gt; poseEq q cv | none =&gt; false)
+      | none =&gt; false)
+  | _, _ =&gt; none
+/-- disc_fit_clears_level._fits：全平移按跳过读法，其余按 submit_fits。 -/
+def discFits (s : State) : Option Bool :=
+  match submitFits s with
+  | none =&gt; none
+  | some base =&gt;
+    match movesOf s with
+    | some (os, p) =&gt; some (endFits s os p)
+    | none =&gt; some base
+/-- blank_slot_is_nop：五框关卡里把六排全暗的槽去掉、算出来恰好填满空腔。 -/
+def nopFits (s : State) : Bool :=
+  match panelOps s, piecePose s, cavPose s with
+  | some os, some p, some cv =&gt;
+    !s.four_dir_boxes &amp;&amp; os.contains 7 &amp;&amp;
+      (match runFree p (os.filter (fun o =&gt; o != 7)) with | some q =&gt; poseEq q cv | none =&gt; false)
+  | _, _, _ =&gt; false
+
+-- ---------- 交卷：件动不动、挪到哪 ----------
+/-- some none = 整帧不动；some (some e) = 件挪到 e；none = 规则说不出（入位过关查表，或册子闭嘴的那片）。 -/
+def discOutcome (s : State) : Option (Option (Int × Int)) :=
+  match movesOf s with
+  | some (os, p) =&gt;
+    if runsVoid s os then some none                              -- four_in_a_row_voids
+    else if fewDwell s os p then some none                       -- few_ops_and_dwell_voids
+    else if endFits s os p then none                             -- 入位：过关整屏重画，查表
+    else if !isPad s (endOf s os p) then some none               -- offpad_end_voids
+    else if markTrouble s os p then none                         -- &#x27;unsure&#x27; 那一片，册子闭嘴
+    else some (some (endOf s os p))                              -- disc_runs_program
+  | none =&gt;
+    if allblankVoid s then some none                             -- allblank_voids_program
+    else if footprintVoid s then some none                       -- piece_footprint_blocks
+    else none
+
+/-- 件挪走后：终点那格花格被压住看不见，起点那格露出来——是不是花格看本关花格总数 k_pads 减去看得见的。 -/
+def moved (s : State) (e : Int × Int) : Option State :=
+  match s.piece_cell_r, s.piece_cell_c, s.k_pads with
+  | some i, some j, some kp =&gt;
+    let vis := kn s.board_pads_bits
+    let under : Int := kp - (popc 64 vis : Int)
+    let eb := cellBitOf e.1 e.2
+    let vis1 := if vis.testBit (8 * e.1 + e.2).toNat then vis ^^^ eb else vis
+    if under == 0 || under == 1 then
+      let vis2 := if under == 1 then vis1 ||| cellBitOf i j else vis1
+      some { s with piece_cell_r := some e.1, piece_cell_c := some e.2,
+                    board_pads_bits := some (vis2 : Int), board_pads_n := some (popc 64 vis2 : Int) }
+    else none
+  | _, _, _ =&gt; none
+
+-- ---------- 顶栏与点灯 ----------
+/-- 每个 ACTION6：本关周期 k_pay 为 1 时扣一格；为 2 时本关第偶数个动作（h_acts = 1）扣一格。h_acts 翻一次。 -/
+def payOf (s : State) : Int := if s.k_pay == some 1 || s.h_acts == 1 then 1 else 0
+def payCounter (s : State) : State :=
+  { s with counter_left := s.counter_left - payOf s, counter_head := s.counter_head - payOf s,
+           h_acts := (s.h_acts + 1) % 2 }
+def withL0 (s : State) (b : Nat) : State :=
+  let m := kn s.l0_panel_bits ^^^ bit b
+  { s with l0_panel_bits := some (m : Int), panel_all_off := m == 1023 }
+def withPanel (s : State) (b : Nat) : State :=
+  let s1 := { s with rpanel_bits := some ((kn s.rpanel_bits ^^^ bit b : Nat) : Int) }
+  { s1 with panel_ops_n := (panelOps s1).map (fun os =&gt; (os.length : Int)), program_result_n := progResultN s1 }
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match clickRC a, s.k_pay with
+  | some (r, c), some _ =&gt;
+    let s1 := payCounter s
+    if s.level == 0 then
+      match l0Hit r c with
+      | some b =&gt; some (withL0 s1 b)
+      | none =&gt; if onDisc s r c &amp;&amp; s.panel_all_off then none else some s1
+    else
+      match rHit s r c with
+      | some b =&gt; some (withPanel s1 b)
+      | none =&gt;
+        if onDisc s r c then
+          match discOutcome s with
+          | some none =&gt; some s1
+          | some (some e) =&gt; moved s1 e
+          | none =&gt; none
+        else none
+  | _, _ =&gt; none
+
+-- ---------- 规则：一条概念一条 Rule ----------
+/-- 除顶栏外整帧不动：关卡、件、花格、面板灯都不变。 -/
+def boardSame (s s&#x27; : State) : Bool :=
+  s&#x27;.level == s.level &amp;&amp; s&#x27;.piece_cell_r == s.piece_cell_r &amp;&amp; s&#x27;.piece_cell_c == s.piece_cell_c
+    &amp;&amp; s&#x27;.piece_scale == s.piece_scale &amp;&amp; s&#x27;.piece_notch == s.piece_notch
+    &amp;&amp; s&#x27;.board_pads_bits == s.board_pads_bits &amp;&amp; s&#x27;.rpanel_bits == s.rpanel_bits
+
+def l0HitA (a : Act) : Option Nat := match clickRC a with | some (r, c) =&gt; l0Hit r c | none =&gt; none
+def rHitA (s : State) (a : Act) : Option Nat := match clickRC a with | some (r, c) =&gt; rHit s r c | none =&gt; none
+def isA6 (a : Act) : Bool := (clickRC a).isSome
+
+def gStem (s : State) (a : Act) : Bool := s.level == 0 &amp;&amp; (match l0HitA a with | some b =&gt; decide (5 ≤ b) | none =&gt; false)
+/-- 竖杆那一位翻转，其余 9 盏不动。 -/
+def eStem (s : State) (a : Act) (s&#x27; : State) : Bool :=
+  match l0HitA a with
+  | some b =&gt; s&#x27;.level == 0 &amp;&amp; s&#x27;.l0_panel_bits == some ((kn s.l0_panel_bits ^^^ bit b : Nat) : Int)
+  | none =&gt; false
+
+def gTop (s : State) (a : Act) : Bool := s.level == 0 &amp;&amp; (match l0HitA a with | some b =&gt; decide (b &lt; 5) | none =&gt; false)
+/-- 横条那一位翻转，其余 9 盏不动。 -/
+def eTop (s : State) (a : Act) (s&#x27; : State) : Bool :=
+  match l0HitA a with
+  | some b =&gt; s&#x27;.level == 0 &amp;&amp; kn s&#x27;.l0_panel_bits ^^^ kn s.l0_panel_bits == bit b &amp;&amp; s&#x27;.l0_panel_bits.isSome
+  | none =&gt; false
+
+def gLevel0Win (s : State) (a : Act) : Bool := s.level == 0 &amp;&amp; onDiscA s a &amp;&amp; decide (1 ≤ s.counter_head)
+/-- 面板全暗：过关、顶栏满 61；否则只掉一格。 -/
+def eLevel0Win (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  if s.panel_all_off then s&#x27;.level == 1 &amp;&amp; s&#x27;.counter_left == FULL
+  else s&#x27;.level == 0 &amp;&amp; s&#x27;.counter_left == s.counter_left - 1
+
+def gPanelToggle (s : State) (a : Act) : Bool := s.level != 0 &amp;&amp; s.rpanel_bits.isSome &amp;&amp; (rHitA s a).isSome
+/-- 命中的那盏灯翻转、别的灯与棋盘不动。 -/
+def ePanelToggle (s : State) (a : Act) (s&#x27; : State) : Bool :=
+  match rHitA s a with
+  | some b =&gt; s&#x27;.level == s.level &amp;&amp; s&#x27;.rpanel_bits == some ((kn s.rpanel_bits ^^^ bit b : Nat) : Int)
+      &amp;&amp; s&#x27;.piece_cell_r == s.piece_cell_r &amp;&amp; s&#x27;.piece_cell_c == s.piece_cell_c &amp;&amp; s&#x27;.board_pads_bits == s.board_pads_bits
+  | none =&gt; false
+
+def gCounterSpends (s : State) (a : Act) : Bool := isA6 a &amp;&amp; !onDiscA s a &amp;&amp; decide (1 ≤ s.counter_head)
+/-- 同一关之内顶栏最多掉最右端那一格。 -/
+def eCounterSpends (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  if s&#x27;.level != s.level then true
+  else (s.counter_left - s&#x27;.counter_left == 0 || s.counter_left - s&#x27;.counter_left == 1)
+    &amp;&amp; s.counter_head - s&#x27;.counter_head == s.counter_left - s&#x27;.counter_left
+
+def gPaysEveryOther (s : State) (a : Act) : Bool := isA6 a &amp;&amp; s.k_pay.isSome &amp;&amp; decide (1 ≤ s.counter_head)
+/-- 本关周期 k_pay：为 2 时本关第 1、3、5… 个动作不扣、第 2、4、6… 个扣一格；为 1 时每个都扣。换关那一步不管。 -/
+def ePaysEveryOther (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  if s&#x27;.level != s.level then true
+  else s&#x27;.counter_left == s.counter_left - payOf s &amp;&amp; s&#x27;.h_acts == (s.h_acts + 1) % 2
+
+def gClearRefills (s : State) (a : Act) : Bool := onDiscA s a
+/-- 真换关（不是通关）那一步，顶栏刷回满 61 格。 -/
+def eClearRefills (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  if s&#x27;.level != s.level &amp;&amp; s&#x27;.level &lt; 7 then s&#x27;.counter_left == FULL &amp;&amp; s&#x27;.counter_head == FULL else true
+
+def gDiscFit (s : State) (a : Act) : Bool := onDiscA s a &amp;&amp; discFits s == some false
+/-- 算出来填不满空腔就不过关。 -/
+def eDiscFit (s : State) (_a : Act) (s&#x27; : State) : Bool := s&#x27;.level == s.level
+
+def gRunsProgram (s : State) (a : Act) : Bool := onDiscA s a &amp;&amp; (moveTarget s).isSome
+/-- 件挪到跳过读法算出的终点格；终点那格花格被压住；起点那格露出来的是底色或一格花格，别的花格不变。 -/
+def eRunsProgram (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  match moveTarget s, s.piece_cell_r, s.piece_cell_c with
+  | some e, some i, some j =&gt;
+    let vis := kn s.board_pads_bits
+    let vis1 := if vis.testBit (8 * e.1 + e.2).toNat then vis ^^^ cellBitOf e.1 e.2 else vis
+    s&#x27;.level == s.level &amp;&amp; s&#x27;.piece_cell_r == some e.1 &amp;&amp; s&#x27;.piece_cell_c == some e.2
+      &amp;&amp; (kn s&#x27;.board_pads_bits ||| cellBitOf i j) == (vis1 ||| cellBitOf i j)
+  | _, _, _ =&gt; false
+
+def gOffpad (s : State) (a : Act) : Bool := onDiscA s a &amp;&amp; offPad s
+def eOffpad (s : State) (_a : Act) (s&#x27; : State) : Bool := boardSame s s&#x27;
+
+def gFourInRow (s : State) (a : Act) : Bool :=
+  onDiscA s a &amp;&amp; (match movesOf s with | some (os, _) =&gt; runsVoid s os | none =&gt; false)
+def eFourInRow (s : State) (_a : Act) (s&#x27; : State) : Bool := boardSame s s&#x27;
+
+def gFewDwell (s : State) (a : Act) : Bool :=
+  onDiscA s a &amp;&amp; (match movesOf s with | some (os, p) =&gt; fewDwell s os p | none =&gt; false)
+def eFewDwell (s : State) (_a : Act) (s&#x27; : State) : Bool := boardSame s s&#x27;
+
+def gAllblank (s : State) (a : Act) : Bool := onDiscA s a &amp;&amp; allblankVoid s
+def eAllblank (s : State) (_a : Act) (s&#x27; : State) : Bool := boardSame s s&#x27;
+
+def gFootprint (s : State) (a : Act) : Bool := onDiscA s a &amp;&amp; footprintVoid s
+def eFootprint (s : State) (_a : Act) (s&#x27; : State) : Bool := boardSame s s&#x27;
+
+def gBlankNop (s : State) (a : Act) : Bool := onDiscA s a &amp;&amp; nopFits s
+/-- 去掉全暗槽后正好填满，这一下就过关。 -/
+def eBlankNop (s : State) (_a : Act) (s&#x27; : State) : Bool := s&#x27;.level == s.level + 1
+
+def gEvenSlots (s : State) (a : Act) : Bool :=
+  isA6 a &amp;&amp; s.four_dir_boxes &amp;&amp; s.rpanel_bits.isSome &amp;&amp; nSlots s % 2 == 0 &amp;&amp; (piecePose s).isSome
+/-- 同一块盘上（关卡没换），件所在格「行+列」的奇偶不变。 -/
+def eEvenSlots (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  if s&#x27;.level != s.level then true
+  else
+    match s.piece_cell_r, s.piece_cell_c, s&#x27;.piece_cell_r, s&#x27;.piece_cell_c with
+    | some a, some b, some c, some d =&gt; (a + b) % 2 == (c + d) % 2
+    | _, _, _, _ =&gt; false
+
+def gBoardFrozen (s : State) (a : Act) : Bool := s.level == 0 &amp;&amp; !(onDiscA s a &amp;&amp; s.panel_all_off)
+/-- 第 0 关之内（「全暗时点大圆」那一下除外）棋盘区一格不变：比的是那块像素的粗指纹 l0_board_sum。 -/
+def eBoardFrozen (s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  s&#x27;.level == 0 &amp;&amp; s&#x27;.l0_board_sum.isSome &amp;&amp; s&#x27;.l0_board_sum == s.l0_board_sum
+
+def gResetRefills (s : State) (a : Act) : Bool := a == Act.reset &amp;&amp; (s.level == 0 || s.level == 7)
+/-- RESET（第 0 关之内，或通关之后）：回到第 0 关，顶栏 61 格刷满，面板复原成开局态 暗亮暗亮亮
+    （横条与竖杆同色：第 1、3 槽暗 -&gt; 位 0、2、5、7 = 165），不是全暗。 -/
+def eResetRefills (_s : State) (_a : Act) (s&#x27; : State) : Bool :=
+  s&#x27;.level == 0 &amp;&amp; s&#x27;.counter_left == FULL &amp;&amp; s&#x27;.counter_head == FULL
+    &amp;&amp; s&#x27;.l0_panel_bits == some 165 &amp;&amp; !s&#x27;.panel_all_off
+
+def rules : List Rule :=
+  [ { name := &quot;stem_click_toggles&quot;,       guard := gStem,           effect := eStem }
+  , { name := &quot;top_click_toggles&quot;,        guard := gTop,            effect := eTop }
+  , { name := &quot;level0_win&quot;,               guard := gLevel0Win,      effect := eLevel0Win }
+  , { name := &quot;panel_click_toggles&quot;,      guard := gPanelToggle,    effect := ePanelToggle }
+  , { name := &quot;counter_spends&quot;,           guard := gCounterSpends,  effect := eCounterSpends }
+  , { name := &quot;counter_pays_every_other&quot;, guard := gPaysEveryOther, effect := ePaysEveryOther }
+  , { name := &quot;clear_refills_counter&quot;,    guard := gClearRefills,   effect := eClearRefills }
+  , { name := &quot;disc_fit_clears_level&quot;,    guard := gDiscFit,        effect := eDiscFit }
+  , { name := &quot;disc_runs_program&quot;,        guard := gRunsProgram,    effect := eRunsProgram }
+  , { name := &quot;offpad_end_voids&quot;,         guard := gOffpad,         effect := eOffpad }
+  , { name := &quot;four_in_a_row_voids&quot;,      guard := gFourInRow,      effect := eFourInRow }
+  , { name := &quot;few_ops_and_dwell_voids&quot;,  guard := gFewDwell,       effect := eFewDwell }
+  , { name := &quot;allblank_voids_program&quot;,   guard := gAllblank,       effect := eAllblank }
+  , { name := &quot;piece_footprint_blocks&quot;,   guard := gFootprint,      effect := eFootprint }
+  , { name := &quot;blank_slot_is_nop&quot;,        guard := gBlankNop,       effect := eBlankNop }
+  , { name := &quot;even_slots_keep_parity&quot;,   guard := gEvenSlots,      effect := eEvenSlots }
+  , { name := &quot;board_frozen&quot;,             guard := gBoardFrozen,    effect := eBoardFrozen }
+  , { name := &quot;reset_refills&quot;,            guard := gResetRefills,   effect := eResetRefills } ]
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+/-- 第 6 关（第七块盘）过关那一下关卡号到 7、状态 WIN；此后只有 RESET。 -/
+def isGoal (s : State) : Bool := s.level == 7
+-- ==== 规则段 END ====
+
+-- ==== 定理段（脚本生成）====
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel
+
+-- 每条规则的 guard 在语料上命中多少条。checkRules 是 `!guard || effect`，guard 恒 false 就**空真**——
+-- 一条永不触发的规则能让 consistent 无条件成立。verify 读这一行，有 0 就判红。
+#eval IO.println (&quot;GUARD_HITS &quot; ++ String.intercalate &quot;,&quot; (rules.map (fun r =&gt; r.name ++ &quot;=&quot; ++ toString (corpus.filter (fun t =&gt; r.guard t.s t.a)).length)))
+</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>tn36 · 统一到对象-规则-形式化-前端框架 · 报告</h1>
 <p>工作台：<code>ledger/games/tn36/</code>（objects/ derive/ rule/ analysis/ lean2/ web/ + 驱动脚本）。
 最终一跑：<code>python rebuild.py</code>（整条链按固定顺序重跑，每步输出与退出码在 <code>runs/_wb-tn36/final/</code>，
 <code>rc.json</code> 15 步全 0）。另单跑 <code>python lean2/mutate.py</code>（Lean 突变体，5 分 39 秒，退出码 0）。

@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← cd82 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从官方认证那一局的开局出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通。每关沿录像核对 4 到 15 步，每一帧都和录像一致，再加上完成目标图的最后一步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分，共 70 步（<a href="https://arcprize.org/replay/929c52bc-188c-416a-bac1-647dc00487f2" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一局的操作。</li><li>Python 规则在录像全部 661 步上逐步检验，0 次说错。Lean 里的模型逐步推演：657 步与录像一致，0 步说错，4 步不表态（新开一局的那几步，下一帧已是另一局的版面）。</li><li>把 Python 规则故意改错 17 种；没被抓住的都改在「同一关里版面不变」这一条上，而录像里版面在一关之内从来没变过，改了也打不到。把 Lean 模型故意改错 9 种，抓住了 9 种。</li><li>全部 81 条定理都查过依赖，只用到 Lean 自带的基础；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>版面不变：只在录像上检验</h2><p class="prose">另有 1 条规则只在录像上检验，不进模型：Lean 模型把每一关的目标图和色板当作输入，一步操作的结果里没有位置放一张新版面，所以「这一步版面变没变」在模型里写不出来。它在录像上是这样检验的：</p><div class="rules"><article class="rule"><h3>同一关里，目标图和色板一格不变</h3><p>重来也不变；换关时整张换掉。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">635/635 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 661 步，来自同一次运行里的 5 局：前几局边摸索边打，规则就是在这几局里写出来的；最后一局是官方认证的通关，Lean 的逐关证明和首页的截图都用它。</p><h2>适用范围</h2><ul class="lst"><li>每一关的目标图和色板是模型的输入；换关之后下一关长什么样来自录像，不由模型算出。</li><li>两条「打不通」的定理说的都是：不按重来就赢不了。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>工位</dt><dd>大杯绕容器的八个位置</dd><dt>色环 / 芯色</dt><dd>色板上的一个色块 / 它的颜色</dd><dt>倾倒 / 盖章</dt><dd>ACTION5 / 点小杯的描边</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个对象，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个对象，按子文件夹归类。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← cd82 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从官方认证那一局的开局出发，照规则推演真实操作，逐帧和录像比对，直到过关；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通。每关沿录像核对 4 到 15 步，每一帧都和录像一致，再加上完成目标图的最后一步。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分，共 70 步（<a href="https://arcprize.org/replay/929c52bc-188c-416a-bac1-647dc00487f2" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一局的操作。</li><li>Python 规则在录像全部 661 步上逐步检验，0 次说错。Lean 里的模型逐步推演：657 步与录像一致，0 步说错，4 步不表态（新开一局的那几步，下一帧已是另一局的版面）。</li><li>把 Python 规则故意改错 17 种；没被抓住的都改在「同一关里版面不变」这一条上，而录像里版面在一关之内从来没变过，改了也打不到。把 Lean 模型故意改错 9 种，抓住了 9 种。</li><li>全部 81 条定理都查过依赖，只用到 Lean 自带的基础；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>版面不变：只在录像上检验</h2><p class="prose">另有 1 条规则只在录像上检验，不进模型：Lean 模型把每一关的目标图和色板当作输入，一步操作的结果里没有位置放一张新版面，所以「这一步版面变没变」在模型里写不出来。它在录像上是这样检验的：</p><div class="rules"><article class="rule"><h3>同一关里，目标图和色板一格不变</h3><p>重来也不变；换关时整张换掉。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">635/635 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 661 步，来自同一次运行里的 5 局：前几局边摸索边打，规则就是在这几局里写出来的；最后一局是官方认证的通关，Lean 的逐关证明和首页的截图都用它。</p><h2>适用范围</h2><ul class="lst"><li>每一关的目标图和色板是模型的输入；换关之后下一关长什么样来自录像，不由模型算出。</li><li>两条「打不通」的定理说的都是：不按重来就赢不了。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>工位</dt><dd>大杯绕容器的八个位置</dd><dt>色环 / 芯色</dt><dd>色板上的一个色块 / 它的颜色</dd><dt>倾倒 / 盖章</dt><dd>ACTION5 / 点小杯的描边</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个对象，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个对象，按子文件夹归类。
 
     objects/
       parse.py          唯一碰像素的地方（留在根上，它最该显眼）
@@ -3681,7 +3681,645 @@ def step (b : Board) (s : St) : Act → Res
     else .ok { act b s a with clock := s.clock + 1 }
 
 end Game
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>cd82 · 统一到 object-rules 链的报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">cd82-20260912/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 30 条</span><span class="chip c-mute">路线 70 步，换关查表 6 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/cd82-20260912/_lib.py ; why=原状态把色板压成计数、预算钟无读数，补 ring_code（色环位置与芯色）、panel_cells（面板逐格颜色）、vessel_cells（容器逐格颜色）与隐藏状态 h_k（自最近归零以来的步数），路线取整局（第 0 关到 WIN）
+-- 由 world/formalize.py 生成于 2026-09-29T14:26:05+08:00；局 cd82；基于 run [&#x27;cd82-0905-1311&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 748 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复版规则段（meta/repair-20260928）。原则：
+--   * 关卡内每一步由 stepRules 从当前状态真算出来：姿势、第二只小杯、倾倒、盖章、选色、下划线、预算钟。
+--   * 会不会过关由 levelup_needs_target_pic 判定；过关后的新关（面板、色板、目标图）是游戏内容，查 worldRows。
+--   * 位掩码一律转成 Nat 用 ||| &amp;&amp;&amp; ^^^ &lt;&lt;&lt; &gt;&gt;&gt; 做（内核有 GMP 加速），不逐格扫 4096 位。
+--   * 31 条概念里写进 30 条；budget_zero_gameover 没写，理由见 rules 列表前的注释。
+
+-- ---------------- 动作与方向（_lib.KEY_DIR / turn / DIR_VEC） ----------------
+def isA5 (a : Act) : Bool := match a with | Act.a5 =&gt; true | _ =&gt; false
+def isA6 (a : Act) : Bool := match a with | Act.a6 _ _ =&gt; true | _ =&gt; false
+def isReset (a : Act) : Bool := match a with | Act.reset =&gt; true | _ =&gt; false
+
+-- 四个键 = 屏幕四方向：A1 北(2) / A2 南(6) / A3 西(4) / A4 东(0)
+def keyDir (a : Act) : Option Int :=
+  match a with
+  | Act.a1 =&gt; some 2
+  | Act.a2 =&gt; some 6
+  | Act.a3 =&gt; some 4
+  | Act.a4 =&gt; some 0
+  | _ =&gt; none
+
+def isKey (a : Act) : Bool := (keyDir a).isSome
+
+-- ACTION6:x,y -&gt; (行 y, 列 x)
+def clickOf (a : Act) : Option (Int × Int) :=
+  match a with
+  | Act.a6 x y =&gt; some (Int.ofNat y, Int.ofNat x)
+  | _ =&gt; none
+
+def offset8 (a b : Int) : Int := (a - b + 4) % 8 - 4
+
+-- _lib.turn：开口转离键方向 45 度；夹角 45/90 度才转得动，否则 none（死键）
+def turn8 (d k : Int) : Option Int :=
+  let o := offset8 d k
+  if o == 1 || o == 2 then some ((d + 1) % 8)
+  else if o == -1 || o == -2 then some ((d + 7) % 8)
+  else none
+
+def turnOf (s : State) (a : Act) : Option Int :=
+  match keyDir a with
+  | some k =&gt; turn8 s.open_dir k
+  | none =&gt; none
+
+def dirVec (d : Int) : Int × Int :=
+  if d == 0 then (0, 1) else if d == 1 then (-1, 1) else if d == 2 then (-1, 0)
+  else if d == 3 then (-1, -1) else if d == 4 then (0, -1) else if d == 5 then (1, -1)
+  else if d == 6 then (1, 0) else (1, 1)
+
+-- _lib.tilt：只给开口南 / 东南 / 西南三个姿势命名
+def tiltOf (d : Int) : Option Int :=
+  if d == 6 then some 0 else if d == 7 then some 1 else if d == 5 then some (-1) else none
+
+-- bar_rule 的闭式：自最近一次归零以来走了 k 步，色 4 格数 = 64 - round(64k/100)（半数向上）
+def barAt (k : Int) : Int := 64 - (64 * k + 50) / 100
+
+-- ---------------- 位掩码（格 (r,c) 占第 r*64+c 位；Nat 上做位运算） ----------------
+def M (x : Int) : Nat := x.toNat
+def bitOf (r c : Int) : Nat := (r * 64 + c).toNat
+-- 计数与质心用 SWAR：4096 位按行切成 64 个 64 位「格道」，一次大数运算同时处理 64 行。
+-- 逐位循环（带累加器）在内核里会把未求值的累加式越堆越深，实测 consistent 吃到 10 GB 以上被杀。
+def W64 : Nat := (1 &lt;&lt;&lt; 64) - 1
+def rep64 (n : Nat) : Nat := ((1 &lt;&lt;&lt; (64 * n)) - 1) / W64          -- 每 64 位放一个 1、共 n 个
+def lanes (w : Nat) : Nat := rep64 64 * w                            -- 64 位字 w 复制到 64 个格道
+-- 每个格道（= 每一行）里 1 的个数，落在该格道的低字节
+def rowCnt (x : Nat) : Nat :=
+  let x1 := x - ((x &gt;&gt;&gt; 1) &amp;&amp;&amp; lanes (W64 / 3))
+  let x2 := (x1 &amp;&amp;&amp; lanes (W64 / 5)) + ((x1 &gt;&gt;&gt; 2) &amp;&amp;&amp; lanes (W64 / 5))
+  let x3 := (x2 + (x2 &gt;&gt;&gt; 4)) &amp;&amp;&amp; lanes (W64 / 17)
+  let x4 := x3 + (x3 &gt;&gt;&gt; 8)
+  let x5 := x4 + (x4 &gt;&gt;&gt; 16)
+  let x6 := x5 + (x5 &gt;&gt;&gt; 32)
+  x6 &amp;&amp;&amp; lanes 255
+-- 64 个格道的值加总（乘以全 1 格道模板后取第 63 格道）
+def laneSum (y : Nat) : Nat := ((y * rep64 64) &gt;&gt;&gt; (64 * 63)) &amp;&amp;&amp; W64
+def popN (x : Nat) : Nat := laneSum (rowCnt x)
+def pop (n : Nat) : Int := Int.ofNat (popN n)
+def minus (a b : Nat) : Nat := a ^^^ (a &amp;&amp;&amp; b)
+def within (a b : Nat) : Bool := a &amp;&amp;&amp; b == a
+
+-- 一行里的一段列 [a, b] -&gt; 掩码（一次移位）
+def rowRun (r a b : Int) : Nat := if a ≤ b then ((1 &lt;&lt;&lt; (b - a + 1).toNat) - 1) &lt;&lt;&lt; bitOf r a else 0
+-- 同一行或同一列上的一段格（端点顺序任意）-&gt; 掩码，常数次大数运算，不逐格
+def segMask (r0 c0 r1 c1 : Int) : Nat :=
+  let ra := min r0 r1
+  let rb := max r0 r1
+  let ca := min c0 c1
+  let cb := max c0 c1
+  if ra == rb then rowRun ra ca cb else rep64 (rb - ra + 1).toNat &lt;&lt;&lt; bitOf ra ca
+
+-- floor(x / 2)，不依赖 Int 除法的取整约定
+def fdiv2 (x : Int) : Int := if 0 ≤ x then x / 2 else -((1 - x) / 2)
+
+-- ---------------- 容器（vessel bbox 在状态里）与轨道中心 ----------------
+def hr2 (s : State) : Int := s.vessel_0 + s.vessel_1      -- 容器中心行 x2
+def hc2 (s : State) : Int := s.vessel_2 + s.vessel_3      -- 容器中心列 x2
+
+def vrect (s : State) : Nat :=
+  (rep64 (s.vessel_1 - s.vessel_0 + 1).toNat * ((1 &lt;&lt;&lt; (s.vessel_3 - s.vessel_2 + 1).toNat) - 1))
+    &lt;&lt;&lt; bitOf s.vessel_0 s.vessel_2
+def vesIn (s : State) (m : Int) : Nat := M m &amp;&amp;&amp; vrect s
+
+-- a5_paints_cup_side（_lib.side_halfplane）：法向 u = DIR_VEC[(d+4)%8]、过 bbox 中心，含界线：
+--   u.1*(2i-(h-1)) + u.2*(2j-(h-1)) &gt;= 0（i, j 为容器内相对行列）。逐行解出 j 的区间，一行一次移位。
+def halfPlane (s : State) (d : Int) : Nat :=
+  let h := s.vessel_1 - s.vessel_0 + 1
+  let w := s.vessel_3 - s.vessel_2 + 1
+  let u := dirVec ((d + 4) % 8)
+  (List.range h.toNat).foldl (fun m i =&gt;
+    let A := u.1 * (2 * Int.ofNat i - (h - 1))
+    let lo : Int := if u.2 == 1 then max 0 (-(fdiv2 (A - (h - 1)))) else 0
+    let hi : Int := if u.2 == -1 then min (w - 1) (fdiv2 (h - 1 + A))
+                    else if u.2 == 0 &amp;&amp; A &lt; 0 then -1 else w - 1
+    m ||| rowRun (s.vessel_0 + Int.ofNat i) (s.vessel_2 + lo) (s.vessel_2 + hi)) 0
+
+-- a5_fill_halfplane 的三档（它自己的 _halfplane：tilt 0 为行 &lt;= (top+bot)/2；-1 为 j &gt;= i 的右上三角；
+-- +1 为 j &lt;= (w-1)-i 的左上三角）
+def halfPlane3 (s : State) (tl : Int) : Nat :=
+  let h := s.vessel_1 - s.vessel_0 + 1
+  let w := s.vessel_3 - s.vessel_2 + 1
+  let mid := (s.vessel_0 + s.vessel_1) / 2
+  (List.range h.toNat).foldl (fun m i =&gt;
+    let r := s.vessel_0 + Int.ofNat i
+    let lo : Int := if tl == -1 then Int.ofNat i else 0
+    let hi : Int := if tl == 0 then (if r ≤ mid then w - 1 else -1)
+                    else if tl == -1 then w - 1 else w - 1 - Int.ofNat i
+    m ||| rowRun r (s.vessel_2 + lo) (s.vessel_2 + hi)) 0
+
+-- 容器里被涂成颜料色 pc 的格 m：fill_m 只记色 15，所以 pc=15 时并进去，否则从色 15 里减掉
+def paintInto (v m : Nat) (pc : Int) : Nat := if pc == 15 then v ||| m else minus v m
+
+-- ---------------- 大杯的八个姿势（rot8_apply） ----------------
+-- 姿势 6（开口南）= _lib.start_cup()，即 _shape(START_POSE)；姿势 7 = rot8_apply 从姿势 6 沿边 6 转一格
+-- （枢轴 hub+(1.5,-3.5)）的重画结果。两张都是 _lib 几何算出来的（生成脚本 _scratch/cd82-20260912/consts.py），
+-- 不是逐帧抄的；但 START_POSE 与 EDGE_OFFSET 本身是早期对帧拟合出的游戏内容常数，栅格化（_shape）在 Python 里做。rot8_apply 的「相隔 90 度的两条边互为绕 hub 的 90 度旋转」让其余六个姿势 = 这两张绕容器中心整格转。
+def pose6InkRuns : List (Int × Int × Int) :=
+  [(24,25,38), (25,25,25), (25,38,38), (26,25,25), (26,38,38), (27,25,25), (27,38,38), (28,25,25), (28,38,38),
+   (29,25,25), (29,38,38), (30,25,25), (30,38,38), (31,25,25), (31,38,38), (32,25,25), (32,38,38)]
+def pose6LiqRuns : List (Int × Int × Int) :=
+  [(25,26,37), (26,26,37), (27,26,37), (28,26,37), (29,26,37), (30,26,37), (31,26,37)]
+def pose7InkRuns : List (Int × Int × Int) :=
+  [(21,24,24), (22,23,25), (23,22,23), (23,25,26), (24,21,22), (24,26,27), (25,20,21), (25,27,28), (26,19,20),
+   (26,28,29), (27,18,19), (27,29,30), (28,17,18), (29,16,17), (30,15,16), (31,14,15), (32,15,16), (33,16,17),
+   (34,17,18), (35,18,19), (36,19,20), (37,20,20)]
+def pose7LiqRuns : List (Int × Int × Int) :=
+  [(23,24,24), (24,23,25), (25,22,26), (26,21,27), (27,20,28), (28,19,28), (29,18,27), (30,17,26), (31,16,25),
+   (32,17,24), (33,18,23), (34,19,22), (35,20,21)]
+
+-- 双倍相对坐标下的 90 度转：逆时针 (dr,dc)-&gt;(-dc,dr)（开口下标 +2），顺时针 (dr,dc)-&gt;(dc,-dr)
+def ccwRel : Nat → Int × Int → Int × Int
+  | 0, p =&gt; p
+  | n + 1, p =&gt; ccwRel n (-p.2, p.1)
+def cwRel : Nat → Int × Int → Int × Int
+  | 0, p =&gt; p
+  | n + 1, p =&gt; cwRel n (p.2, -p.1)
+
+-- 格 (r,c) 绕容器中心逆时针转 q 个直角（中心在半格上，双倍坐标下精确）
+def rotPt (s : State) (q : Nat) (r c : Int) : Int × Int :=
+  let x := ccwRel q (2 * r - hr2 s, 2 * c - hc2 s)
+  ((hr2 s + x.1) / 2, (hc2 s + x.2) / 2)
+
+-- 行段表整体绕容器中心转 q 个直角：每段两个端点转过去，仍是一段（横段转成竖段），一段一次运算
+def runsRot (s : State) (q : Nat) (rs : List (Int × Int × Int)) : Nat :=
+  rs.foldl (fun m t =&gt;
+    let a := rotPt s q t.1 t.2.1
+    let b := rotPt s q t.1 t.2.2
+    m ||| segMask a.1 a.2 b.1 b.2) 0
+
+def poseInk (s : State) (d : Int) : Nat :=
+  if d % 2 == 0 then runsRot s ((d - 6) % 8 / 2).toNat pose6InkRuns
+  else runsRot s ((d - 7) % 8 / 2).toNat pose7InkRuns
+def poseLiq (s : State) (d : Int) : Nat :=
+  if d % 2 == 0 then runsRot s ((d - 6) % 8 / 2).toNat pose6LiqRuns
+  else runsRot s ((d - 7) % 8 / 2).toNat pose7LiqRuns
+
+-- ---------------- 第二只小杯（secondcup_returns_where 的 HOPPER_REL，开口南时量的双倍相对偏移） ----------------
+-- HOPPER_REL 的 28 格按角色拆成横 / 竖段（双倍相对坐标，相邻格差 2）：(起行, 起列, 止行, 止列)
+def rimSegs : List (Int × Int × Int × Int) :=
+  [(-41,-3,-41,3), (-39,-5,-39,-3), (-39,3,-39,5), (-37,-5,-33,-5), (-37,5,-33,5)]     -- 14 格描边
+def neckSegs : List (Int × Int × Int × Int) := [(-39,-1,-39,1)]                         -- 2 格颈
+def cavSegs : List (Int × Int × Int × Int) :=
+  [(-37,-3,-37,3), (-35,-3,-35,3), (-33,-3,-33,3)]                                       -- 12 格腔
+-- a6_spout_rim_stamps 的落点带（_lib.after_stamp 在开口南时：容器近边往里 3 行 x 腔的 4 列）
+def stampSegs : List (Int × Int × Int × Int) :=
+  [(-9,-3,-9,3), (-7,-3,-7,3), (-5,-3,-5,3)]
+
+-- 摊在容器中心上，再绕容器中心顺时针转 (6 - d)/2 个直角
+def placeSegs (s : State) (d : Int) (sg : List (Int × Int × Int × Int)) : Nat :=
+  let q := ((6 - d) % 8 / 2).toNat
+  sg.foldl (fun m t =&gt;
+    let a := cwRel q (t.1, t.2.1)
+    let b := cwRel q (t.2.2.1, t.2.2.2)
+    m ||| segMask ((hr2 s + a.1) / 2) ((hc2 s + a.2) / 2) ((hr2 s + b.1) / 2) ((hc2 s + b.2) / 2)) 0
+
+-- 这一关有没有小杯：横带色环数 &gt;= 7（secondcup_returns_where 第四句）；只在正向工位露面（secondcup_only_cardinal）
+def spoutHere (s : State) (d : Int) : Bool := 7 ≤ s.swatches_n &amp;&amp; d % 2 == 0
+def rimM (s : State) (d : Int) : Nat := if spoutHere s d then placeSegs s d rimSegs else 0
+def neckM (s : State) (d : Int) : Nat := if spoutHere s d then placeSegs s d neckSegs else 0
+def cavM (s : State) (d : Int) : Nat := if spoutHere s d then placeSegs s d cavSegs else 0
+
+def inGrid64 (r c : Int) : Bool := 0 ≤ r &amp;&amp; 0 ≤ c &amp;&amp; c &lt; 64
+def onRim (s : State) (r c : Int) : Bool := inGrid64 r c &amp;&amp; Nat.testBit (rimM s s.open_dir) (bitOf r c)
+
+-- ---------------- 色板（ring_code：每环 (上边行, 左列, 芯色)，空槽 -1） ----------------
+def rings (s : State) : List (Int × Int × Int) :=
+  [(s.ring_code_0, s.ring_code_1, s.ring_code_2), (s.ring_code_3, s.ring_code_4, s.ring_code_5),
+   (s.ring_code_6, s.ring_code_7, s.ring_code_8), (s.ring_code_9, s.ring_code_10, s.ring_code_11),
+   (s.ring_code_12, s.ring_code_13, s.ring_code_14), (s.ring_code_15, s.ring_code_16, s.ring_code_17),
+   (s.ring_code_18, s.ring_code_19, s.ring_code_20)].filter (fun q =&gt; 0 ≤ q.2.1)
+
+-- 点在哪个环的 5x5 里（含色 4 边框）：返回 (左列, 芯色)
+def ringHit (s : State) (r c : Int) : Option (Int × Int) :=
+  ((rings s).find? (fun q =&gt; q.1 ≤ r &amp;&amp; r ≤ q.1 + 4 &amp;&amp; q.2.1 ≤ c &amp;&amp; c ≤ q.2.1 + 4)).map (fun q =&gt; (q.2.1, q.2.2))
+
+-- 芯色为 col 的那些环的左列
+def ringLeftsOf (s : State) (col : Int) : List Int := ((rings s).filter (fun q =&gt; q.2.2 == col)).map (fun q =&gt; q.2.1)
+
+-- ---------------- 容器逐格颜色（vessel_cells 读数，生成器按颜色拆成掩码） ----------------
+def vesCols : List Int := [0, 8, 9, 11, 12, 14, 15]
+def vesOf (s : State) (col : Int) : Nat :=
+  if col == 0 then M s.vessel_cells_m_c0 else if col == 8 then M s.vessel_cells_m_c8
+  else if col == 9 then M s.vessel_cells_m_c9 else if col == 11 then M s.vessel_cells_m_c11
+  else if col == 12 then M s.vessel_cells_m_c12 else if col == 14 then M s.vessel_cells_m_c14
+  else if col == 15 then M s.vessel_cells_m_c15 else 0
+-- 把区域 m 涂成颜料色 pc 之后，颜色 col 那张掩码
+def paintCol (s : State) (m : Nat) (pc col : Int) : Nat :=
+  if col == pc then vesOf s col ||| m else minus (vesOf s col) m
+-- t 的容器逐色等于「s 的容器把 m 涂成 pc」
+def vesPainted (s t : State) (m : Nat) (pc : Int) : Bool :=
+  vesCols.all (fun col =&gt; vesOf t col == paintCol s m pc col)
+
+def panelOf (s : State) (col : Int) : Nat :=
+  if col == 0 then M s.panel_cells_m_c0 else if col == 8 then M s.panel_cells_m_c8
+  else if col == 9 then M s.panel_cells_m_c9 else if col == 11 then M s.panel_cells_m_c11
+  else if col == 12 then M s.panel_cells_m_c12 else if col == 14 then M s.panel_cells_m_c14
+  else if col == 15 then M s.panel_cells_m_c15 else 0
+-- 面板目标图 _lib.PANEL_TGT = 行 3..12 x 列 3..12
+-- （主会话补注，审计要求）这是从观测反推的位置常数：每关面板图案落在 4/5 色边框内的这块区域，规则里不从像素定位它；
+-- 每关的图案内容则是从面板像素 panel_cells 逐关读的（跨关会变——概念原文「面板整局一格没变」不准确）。
+def picRect : Nat := (rep64 10 * ((1 &lt;&lt;&lt; 10) - 1)) &lt;&lt;&lt; bitOf 3 3
+def squareVessel (s : State) : Bool :=
+  s.vessel_1 - s.vessel_0 == s.vessel_3 - s.vessel_2 &amp;&amp; s.vessel_1 - s.vessel_0 == 9
+-- levelup_needs_target_pic：容器把 m 涂成 pc 之后，逐格等于面板目标图（容器 (r,c) 对面板 (r-上+3, c-左+3)）。
+-- 逐色比：容器的 100 格全落在 vesCols 里（vessel_frozen：实心），每色对上就是逐格相等。
+def hitsPic (s : State) (m : Nat) (pc : Int) : Bool :=
+  vesCols.all (fun col =&gt; paintCol s m pc col &gt;&gt;&gt; bitOf (s.vessel_0 - 3) (s.vessel_2 - 3) == panelOf s col &amp;&amp;&amp; picRect)
+
+-- 这一步涂进容器的区域（涂成当前颜料色）：A5 = a5_paints_cup_side 的半平面；点小杯描边 = 盖章带；其余为空
+def paintRegion (s : State) (a : Act) : Nat :=
+  match a with
+  | Act.a5 =&gt; halfPlane s s.open_dir
+  | Act.a6 x y =&gt;
+    if (ringHit s (Int.ofNat y) (Int.ofNat x)).isNone &amp;&amp; onRim s (Int.ofNat y) (Int.ofNat x)
+    then placeSegs s s.open_dir stampSegs else 0
+  | _ =&gt; 0
+
+-- ---------------- 由 (开口, 颜料, 钟, 涂色区域, 下划线) 算出全部可比字段 ----------------
+-- pm：这一步用颜料 pc 涂进容器的区域（0 = 容器不动）
+-- （主会话补注，审计要求）after_pour_* 是 halfPlane(open_dir, paint_color, 容器) 的函数，是冗余量：
+-- 它在 keyEq 里占 9 个字段，但这些字段的匹配不构成独立验证；涂色的实证在 vessel_cells_m_* 的逐色比对。
+def mkNext (s : State) (d pc k : Int) (pm : Nat) (u1 u2 : Int) : State :=
+  let ves15 := paintCol s pm pc 15
+  let ink := poseInk s d
+  let liq := poseLiq s d
+  let rim := rimM s d
+  let neck := neckM s d
+  let cav := cavM s d
+  let sp := rim ||| neck ||| cav
+  let cupLiq := liq ||| cav ||| (if pc == 0 then neck else 0)
+  let inkAll := ink ||| rim
+  let obj := ink ||| liq
+  let pcells := vrect s ||| liq ||| cav ||| neck
+  let fill := ves15 ||| (if pc == 15 then liq ||| cav else 0)
+  let hp := halfPlane s d
+  { s with
+    open_dir := d, paint_color := pc, tilt := tiltOf d, h_k := k, bar := barAt k,
+    underline_1 := u1, underline_2 := u2,
+    cup_ink_m := Int.ofNat ink, cup_ink_n := pop ink,
+    liquid_m := Int.ofNat liq, liquid_n := pop liq,
+    cup_liquid_m := Int.ofNat cupLiq, cup_liquid_n := pop cupLiq,
+    ink_m := Int.ofNat inkAll, ink_n := pop inkAll,
+    obj_m := Int.ofNat obj, obj_n := pop obj,
+    spout_m := Int.ofNat sp, spout_n := pop sp,
+    paint_cells_m := Int.ofNat pcells, paint_cells_n := pop pcells,
+    fill_m := Int.ofNat fill, fill_n := pop fill,
+    vessel_cells_m_c0 := Int.ofNat (paintCol s pm pc 0), vessel_cells_m_c8 := Int.ofNat (paintCol s pm pc 8),
+    vessel_cells_m_c9 := Int.ofNat (paintCol s pm pc 9), vessel_cells_m_c11 := Int.ofNat (paintCol s pm pc 11),
+    vessel_cells_m_c12 := Int.ofNat (paintCol s pm pc 12), vessel_cells_m_c14 := Int.ofNat (paintCol s pm pc 14),
+    vessel_cells_m_c15 := Int.ofNat ves15,
+    cup_blobs_n := if sp == 0 then 1 else 2,
+    after_pour_m := Int.ofNat hp, after_pour_n := pop hp,
+    after_pour_m_c0 := if pc == 0 then Int.ofNat hp else 0,
+    after_pour_m_c8 := if pc == 8 then Int.ofNat hp else 0,
+    after_pour_m_c9 := if pc == 9 then Int.ofNat hp else 0,
+    after_pour_m_c11 := if pc == 11 then Int.ofNat hp else 0,
+    after_pour_m_c12 := if pc == 12 then Int.ofNat hp else 0,
+    after_pour_m_c14 := if pc == 14 then Int.ofNat hp else 0,
+    after_pour_m_c15 := if pc == 15 then Int.ofNat hp else 0 }
+
+-- 关卡内一步：
+--   A1..A4  orbit_turn_rule 给新开口（死键不转），rot8_apply 给新姿势，小杯随工位出没；
+--   A5      a5_paints_cup_side 的半平面涂进容器；
+--   A6      点环 -&gt; a6_swatch_sets_paint 换颜料 + underline_relocates_on_recolor 挪下划线；
+--           点小杯描边 -&gt; a6_spout_rim_stamps 盖章；其余 -&gt; a6_dead_outside_swatches 死键；
+--   每一步 bar_rule 的钟 h_k 加一。
+--   levelup_needs_target_pic 判定这一步会过关（涂完的容器 == 面板目标图）时返回 none：
+--   过关后新关的面板、色板是游戏内容，只能查 worldRows；所以路线上每个关卡内步都由 Lean 判定「不过关」。
+--   RESET 不在这里算（路线上没有 RESET）。
+def stepRules (s : State) (a : Act) : Option State :=
+  let k := s.h_k + 1
+  let d := s.open_dir
+  let pc := s.paint_color
+  let pm := paintRegion s a
+  if hitsPic s pm pc then none else
+  match a with
+  | Act.a5 =&gt; some (mkNext s d pc k pm s.underline_1 s.underline_2)
+  | Act.a6 x y =&gt;
+    match ringHit s (Int.ofNat y) (Int.ofNat x) with
+    | some rc =&gt; some (mkNext s d rc.2 k 0 rc.1 (rc.1 + 4))
+    | none =&gt; some (mkNext s d pc k pm s.underline_1 s.underline_2)
+  | Act.reset =&gt; none
+  | Act.other =&gt; none
+  | _ =&gt;
+    match turnOf s a with
+    | some nd =&gt; some (mkNext s nd pc k 0 s.underline_1 s.underline_2)
+    | none =&gt; some (mkNext s d pc k 0 s.underline_1 s.underline_2)
+
+-- ---------------- 规则用的判据小件 ----------------
+def sameLv (s t : State) : Bool := s.level == t.level
+
+-- 两张掩码只在容器矩形里不同
+def sameOutside (s : State) (a b : Int) : Bool := within (M a ^^^ M b) (vrect s)
+
+def panelEq (s t : State) : Bool :=
+  s.panel_cells_m == t.panel_cells_m &amp;&amp; s.panel_cells_m_c0 == t.panel_cells_m_c0
+  &amp;&amp; s.panel_cells_m_c4 == t.panel_cells_m_c4 &amp;&amp; s.panel_cells_m_c5 == t.panel_cells_m_c5
+  &amp;&amp; s.panel_cells_m_c8 == t.panel_cells_m_c8 &amp;&amp; s.panel_cells_m_c9 == t.panel_cells_m_c9
+  &amp;&amp; s.panel_cells_m_c11 == t.panel_cells_m_c11 &amp;&amp; s.panel_cells_m_c12 == t.panel_cells_m_c12
+  &amp;&amp; s.panel_cells_m_c14 == t.panel_cells_m_c14 &amp;&amp; s.panel_cells_m_c15 == t.panel_cells_m_c15
+
+def ringEq (s t : State) : Bool :=
+  rings s == rings t &amp;&amp; s.swatches_n == t.swatches_n &amp;&amp; s.paints_n == t.paints_n
+
+-- 舞台上「所有杯」占的格：描边（含小杯）+ 大杯 + 小杯 + 各杯里的颜料
+def cupsOf (s : State) : Nat := M s.ink_m ||| M s.obj_m ||| M s.spout_m ||| M s.cup_liquid_m
+
+-- 除预算条（bar 与它的钟）之外，全部可比字段不变
+def stillExceptBar (s t : State) : Bool := keyEq { t with bar := s.bar, h_k := s.h_k } s
+
+-- 下划线恰好在「芯色 == 颜料色」的唯一那个环下
+def underlineOk (g : State) : Bool :=
+  match ringLeftsOf g g.paint_color with
+  | [l] =&gt; g.underline_1 == l &amp;&amp; g.underline_2 == l + 4
+  | _ =&gt; false
+
+-- 杯质心要的 (行和, 列和, 格数)：
+--   行和 = Σ 行号 x 该行格数：各行格数（rowCnt）乘以「第 k 格道放 k」的模板，第 63 格道得 Σ (63 - 行号) x 格数；
+--   列和 = Σ_j 2^j x #{格 : 列号第 j 位为 1}（按列号二进制位拆开数）。
+def rampLanes : Nat := (List.range 64).foldl (fun a k =&gt; a ||| (k &lt;&lt;&lt; (64 * k))) 0
+def colBit (j : Nat) : Nat :=      -- 64 位字里「下标第 j 位为 1」的那些位
+  if j == 0 then 2 * (W64 / 3) else if j == 1 then 4 * (W64 / 5) else if j == 2 then 16 * (W64 / 17)
+  else if j == 3 then (W64 / 257) &lt;&lt;&lt; 8 else if j == 4 then (W64 / 65537) &lt;&lt;&lt; 16 else (W64 / ((1 &lt;&lt;&lt; 32) + 1)) &lt;&lt;&lt; 32
+def cen (m : Int) : Int × Int × Int :=
+  let x := M m
+  let y := rowCnt x
+  let n := laneSum y
+  let rs := 63 * n - (((y * rampLanes) &gt;&gt;&gt; (64 * 63)) &amp;&amp;&amp; W64)
+  let cs := (List.range 6).foldl (fun a j =&gt; a + (1 &lt;&lt;&lt; j) * popN (x &amp;&amp;&amp; lanes (colBit j))) 0
+  (Int.ofNat rs, Int.ofNat cs, Int.ofNat n)
+
+-- 与向量夹角最小的八方向（_lib.dir8）：比较带符号的 (dot/|u|)^2，两边乘 2 全是整数
+def sgnSq (x : Int) : Int := if x &lt; 0 then -(x * x) else x * x
+def dirScore (v : Int × Int) (d : Int) : Int :=
+  let u := dirVec d
+  let dot := v.1 * u.1 + v.2 * u.2
+  if u.1 != 0 &amp;&amp; u.2 != 0 then sgnSq dot else 2 * sgnSq dot
+def best8 (v : Int × Int) : Int :=
+  [1, 2, 3, 4, 5, 6, 7].foldl (fun b i =&gt; if dirScore v b &lt; dirScore v i then i else b) 0
+
+-- open_faces_vessel：从杯质心指向容器中心的八方向 == 开口方向（乘 2n 去分母）
+def facesHub (g : State) : Bool :=
+  let q := cen g.obj_m
+  q.2.2 == 0 || best8 (q.2.2 * hr2 g - 2 * q.1, q.2.2 * hc2 g - 2 * q.2.1) == g.open_dir
+
+-- keys_are_screen_dirs：质心位移（乘 n1*n2 去分母）的主分量方向；两分量等长返回 (0,0)
+def mainDir (s t : State) : Int × Int :=
+  let p := cen s.obj_m
+  let q := cen t.obj_m
+  let dr := q.1 * p.2.2 - p.1 * q.2.2
+  let dc := q.2.1 * p.2.2 - p.2.1 * q.2.2
+  let adr := if dr &lt; 0 then -dr else dr
+  let adc := if dc &lt; 0 then -dc else dc
+  if adr &lt; adc then (0, if 0 &lt; dc then 1 else -1)
+  else if adc &lt; adr then (if 0 &lt; dr then 1 else -1, 0)
+  else (0, 0)
+
+-- ---------------- 30 条在册概念 ----------------
+-- 没写进来的一条：
+--   budget_zero_gameover：它断言的是引擎给的 state（NOT_FINISHED -&gt; GAME_OVER），State 里没有这个量，
+--     帧上也读不出（概念自己就说「不从像素读终局」）。写进来只能是空话，所以不写。
+-- 其余每条的 guard 取 assert_ 不返回 NA 的那部分动作；换关（sameLv 为假）时概念返回 NA，effect 相应放行。
+def rules : List Rule := [
+  { name := &quot;a12_only_cup&quot;,
+    guard := fun _ a =&gt; match a with | Act.a1 =&gt; true | Act.a2 =&gt; true | _ =&gt; false,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (within (M s.paint_cells_m ^^^ M t.paint_cells_m) (cupsOf s ||| cupsOf t)
+        &amp;&amp; within (M s.ink_m ^^^ M t.ink_m) (cupsOf s ||| cupsOf t)
+        &amp;&amp; within (M s.fill_m ^^^ M t.fill_m) (cupsOf s ||| cupsOf t)
+        &amp;&amp; vesPainted s t 0 s.paint_color
+        &amp;&amp; panelEq s t &amp;&amp; ringEq s t &amp;&amp; t.underline_1 == s.underline_1 &amp;&amp; t.underline_2 == s.underline_2) },
+
+  { name := &quot;a5_fill_halfplane&quot;,
+    guard := fun s a =&gt; isA5 a &amp;&amp; s.tilt.isSome,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (match s.tilt with
+       | some tl =&gt; vesPainted s t (halfPlane3 s tl) s.paint_color
+       | none =&gt; false) },
+
+  { name := &quot;a5_paints_cup_side&quot;,
+    guard := fun _ a =&gt; isA5 a,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (squareVessel s &amp;&amp; vesPainted s t (halfPlane s s.open_dir) s.paint_color) },
+
+  { name := &quot;a5_pours_into_vessel&quot;,
+    guard := fun _ a =&gt; isA5 a,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (sameOutside s s.ink_m t.ink_m &amp;&amp; sameOutside s s.cup_ink_m t.cup_ink_m
+        &amp;&amp; sameOutside s s.liquid_m t.liquid_m &amp;&amp; sameOutside s s.cup_liquid_m t.cup_liquid_m
+        &amp;&amp; sameOutside s s.spout_m t.spout_m &amp;&amp; sameOutside s s.obj_m t.obj_m
+        &amp;&amp; sameOutside s s.paint_cells_m t.paint_cells_m &amp;&amp; sameOutside s s.fill_m t.fill_m
+        -- 容器里变了的格一律变成当前颜料色：除颜料色之外，每种颜色的格只减不增
+        &amp;&amp; vesCols.all (fun col =&gt; col == s.paint_color || within (vesOf t col) (vesOf s col))) },
+
+  { name := &quot;a6_dead_outside_swatches&quot;,
+    guard := fun s a =&gt; match clickOf a with
+      | some p =&gt; (ringHit s p.1 p.2).isNone &amp;&amp; !onRim s p.1 p.2
+      | none =&gt; false,
+    effect := fun s _ t =&gt; !sameLv s t || stillExceptBar s t },
+
+  { name := &quot;a6_spout_rim_stamps&quot;,
+    guard := fun s a =&gt; match clickOf a with
+      | some p =&gt; onRim s p.1 p.2
+      | none =&gt; false,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (vesPainted s t (placeSegs s s.open_dir stampSegs) s.paint_color &amp;&amp; t.spout_m == s.spout_m) },
+
+  { name := &quot;a6_swatch_sets_paint&quot;,
+    guard := fun s a =&gt; match clickOf a with
+      | some p =&gt; (ringHit s p.1 p.2).isSome
+      | none =&gt; false,
+    effect := fun s a t =&gt; !sameLv s t ||
+      (match clickOf a with
+       | some p =&gt;
+         (match ringHit s p.1 p.2 with
+          | some rc =&gt;
+            t.paint_color == rc.2 &amp;&amp; t.liquid_m == s.liquid_m &amp;&amp; t.ink_m == s.ink_m &amp;&amp; t.spout_m == s.spout_m
+              &amp;&amp; vesPainted s t 0 s.paint_color
+              &amp;&amp; minus (M t.fill_m) (vrect s) == (if rc.2 == 15 then M s.cup_liquid_m else 0)
+          | none =&gt; false)
+       | none =&gt; false) },
+
+  { name := &quot;bar_prefix_shrink&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s a t =&gt; !sameLv s t ||
+      (s.bar_is_prefix &amp;&amp; t.bar_is_prefix
+        &amp;&amp; (if isReset a then t.bar == 64 else (s.bar - t.bar == 0 || s.bar - t.bar == 1))) },
+
+  { name := &quot;bar_rule&quot;,
+    guard := fun _ a =&gt; !isReset a,
+    effect := fun s _ t =&gt; !sameLv s t || (t.h_k == s.h_k + 1 &amp;&amp; t.bar == barAt (s.h_k + 1)) },
+
+  { name := &quot;cup_frozen_within_tilt&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t || s.open_dir != t.open_dir
+      || (t.ink_m == s.ink_m &amp;&amp; t.liquid_m == s.liquid_m) },
+
+  { name := &quot;key_dead_by_open_angle&quot;,
+    guard := fun _ a =&gt; isKey a,
+    effect := fun s a t =&gt; !sameLv s t ||
+      (match turnOf s a with
+       | none =&gt; stillExceptBar s t
+       | some _ =&gt; t.obj_m != s.obj_m) },
+
+  { name := &quot;keys_are_screen_dirs&quot;,
+    guard := fun _ a =&gt; isKey a,
+    effect := fun s a t =&gt; !sameLv s t || t.obj_m == s.obj_m ||
+      (match keyDir a with
+       | some k =&gt; mainDir s t == dirVec k
+       | none =&gt; false) },
+
+  { name := &quot;levelup_resets_stage&quot;,
+    guard := fun _ a =&gt; !isReset a,
+    -- 过关且还有下一关（第 6 关 = 通关，state 变 WIN，舞台不重置）
+    effect := fun s _ t =&gt; t.level != s.level + 1 || t.level == 6 ||
+      (vesOf t 0 == vrect t &amp;&amp; t.bar == 64
+        &amp;&amp; t.cup_ink_m == Int.ofNat (poseInk t 6) &amp;&amp; t.liquid_m == Int.ofNat (poseLiq t 6)) },
+
+  { name := &quot;levelup_needs_target_pic&quot;,
+    guard := fun _ a =&gt; !isReset a,
+    -- 过关 ⟺ 这一步之后的容器（A5 = 倾倒半平面、点小杯描边 = 盖章带、其余 = 原样，都涂当前颜料色）
+    -- 逐格等于面板目标图。关卡号变小（不会在非 RESET 上发生）与非正方容器时概念返回 NA。
+    effect := fun s a t =&gt; t.level &lt; s.level || !squareVessel s ||
+      ((s.level &lt; t.level) == hitsPic s (paintRegion s a) s.paint_color) },
+
+  { name := &quot;levelup_sets_paint&quot;,
+    guard := fun _ a =&gt; !isReset a,
+    effect := fun s _ t =&gt; t.level != s.level + 1 || t.level == 6 || t.paint_color == 15 },
+
+  { name := &quot;open_faces_vessel&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t || (facesHub s &amp;&amp; facesHub t) },
+
+  { name := &quot;orbit_turn_rule&quot;,
+    guard := fun s a =&gt; (turnOf s a).isSome,
+    effect := fun s a t =&gt; !sameLv s t || t.obj_m == s.obj_m || some t.open_dir == turnOf s a },
+
+  { name := &quot;panel_static&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t || (panelEq s t &amp;&amp; ringEq s t) },
+
+  { name := &quot;reset_sets_state&quot;,
+    guard := fun _ a =&gt; isReset a,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (t.tilt == some 0 &amp;&amp; t.paint_color == 15 &amp;&amp; t.bar == 64
+        &amp;&amp; t.cup_ink_m == Int.ofNat (poseInk s 6) &amp;&amp; t.liquid_m == Int.ofNat (poseLiq s 6)
+        &amp;&amp; vesOf t 0 == vrect t) },
+
+  { name := &quot;reset_wipes_stage&quot;,
+    guard := fun _ a =&gt; isReset a,
+    -- 不设换关守卫：不管哪一种重开，舞台只剩容器（整块色 0）+ 开局姿势的杯（液色 15），底行补满
+    effect := fun s _ t =&gt;
+      t.bar == 64 &amp;&amp; t.spout_m == 0 &amp;&amp; vesOf t 0 == vrect s
+        &amp;&amp; t.ink_m == Int.ofNat (poseInk s 6) &amp;&amp; t.liquid_m == Int.ofNat (poseLiq s 6)
+        &amp;&amp; t.paint_cells_m == Int.ofNat (vrect s ||| poseLiq s 6)
+        &amp;&amp; t.fill_m == Int.ofNat (poseLiq s 6) },
+
+  { name := &quot;rot8_apply&quot;,
+    guard := fun _ a =&gt; isKey a,
+    effect := fun s a t =&gt; !sameLv s t ||
+      (match turnOf s a with
+       | none =&gt; t.obj_m == s.obj_m &amp;&amp; t.open_dir == s.open_dir
+       | some nd =&gt; t.open_dir == nd &amp;&amp; t.cup_ink_m == Int.ofNat (poseInk s nd)
+                    &amp;&amp; t.liquid_m == Int.ofNat (poseLiq s nd)) },
+
+  { name := &quot;rot_apply&quot;,
+    guard := fun s a =&gt; (match a with | Act.a3 =&gt; true | Act.a4 =&gt; true | _ =&gt; false)
+      &amp;&amp; s.tilt.isSome &amp;&amp; (match turnOf s a with | some nd =&gt; (tiltOf nd).isSome | none =&gt; false),
+    effect := fun s a t =&gt; !sameLv s t ||
+      (match turnOf s a with
+       | some nd =&gt; t.cup_ink_m == Int.ofNat (poseInk s nd) &amp;&amp; t.liquid_m == Int.ofNat (poseLiq s nd)
+       | none =&gt; false) },
+
+  { name := &quot;secondcup_at_level2_cardinals&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt;
+      (s.level != 2 || s.open_dir % 2 != 0 || s.spout_m != 0)
+        &amp;&amp; (t.level != 2 || t.open_dir % 2 != 0 || t.spout_m != 0) },
+
+  { name := &quot;secondcup_only_cardinal&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t || (s.spout_m == 0 &amp;&amp; t.spout_m == 0) ||
+      ((s.spout_m == 0 || s.open_dir % 2 == 0) &amp;&amp; (t.spout_m == 0 || t.open_dir % 2 == 0)
+        &amp;&amp; (s.spout_m == 0 || t.spout_m == 0 || s.open_dir != t.open_dir || s.spout_m == t.spout_m)
+        &amp;&amp; (s.spout_m == 0 || t.spout_m != 0 || M s.spout_m &amp;&amp;&amp; (M t.paint_cells_m ||| M t.ink_m) == 0)) },
+
+  { name := &quot;secondcup_returns_where&quot;,
+    guard := fun s a =&gt; isKey a &amp;&amp; s.open_dir % 2 == 1 &amp;&amp; (turnOf s a).isSome,
+    effect := fun s a t =&gt; !sameLv s t ||
+      (match turnOf s a with
+       | some nd =&gt;
+         let rim := placeSegs s nd rimSegs
+         let neck := placeSegs s nd neckSegs
+         let cav := placeSegs s nd cavSegs
+         if 7 ≤ s.swatches_n then
+           M t.spout_m == (rim ||| neck ||| cav) &amp;&amp; within rim (M t.ink_m) &amp;&amp; within cav (M t.cup_liquid_m)
+             &amp;&amp; within neck (M t.paint_cells_m) &amp;&amp; (neck &amp;&amp;&amp; M t.cup_liquid_m == 0 || t.paint_color == 0)
+         else t.spout_m == 0 &amp;&amp; (rim ||| neck ||| cav) &amp;&amp;&amp; (M t.paint_cells_m ||| M t.ink_m) == 0
+       | none =&gt; false) },
+
+  { name := &quot;target_panel_static&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t || (panelEq s t &amp;&amp; t.panel_pic_n == s.panel_pic_n) },
+
+  { name := &quot;underline_marks_paint&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t || (underlineOk s &amp;&amp; underlineOk t) },
+
+  { name := &quot;underline_relocates_on_recolor&quot;,
+    guard := fun s a =&gt; isReset a || (match clickOf a with
+      | some p =&gt; (ringHit s p.1 p.2).isSome
+      | none =&gt; false),
+    effect := fun s a t =&gt; !sameLv s t ||
+      (let col : Int := if isReset a then 15 else
+         (match clickOf a with
+          | some p =&gt; (match ringHit s p.1 p.2 with | some rc =&gt; rc.2 | none =&gt; -1)
+          | none =&gt; -1)
+       match ringLeftsOf s col with
+       | [l] =&gt; t.underline_1 == l &amp;&amp; t.underline_2 == l + 4
+       | _ =&gt; false) },
+
+  { name := &quot;vessel_frozen&quot;,
+    guard := fun _ _ =&gt; true,
+    effect := fun s _ t =&gt; !sameLv s t ||
+      (t.vessel_0 == s.vessel_0 &amp;&amp; t.vessel_1 == s.vessel_1 &amp;&amp; t.vessel_2 == s.vessel_2 &amp;&amp; t.vessel_3 == s.vessel_3
+        &amp;&amp; within (vrect t) (M t.paint_cells_m) &amp;&amp; vrect t &amp;&amp;&amp; M t.ink_m == 0) },
+
+  { name := &quot;win_no_repaint&quot;,
+    guard := fun s a =&gt; s.level == 5 &amp;&amp; !isReset a,
+    -- 通关（第 5 关 -&gt; 第 6 关，state 变 WIN）那一步：容器 bbox 与底行之外一格不动
+    effect := fun s _ t =&gt; t.level != 6 ||
+      (sameOutside s s.ink_m t.ink_m &amp;&amp; sameOutside s s.liquid_m t.liquid_m
+        &amp;&amp; sameOutside s s.cup_liquid_m t.cup_liquid_m &amp;&amp; sameOutside s s.spout_m t.spout_m
+        &amp;&amp; sameOutside s s.obj_m t.obj_m &amp;&amp; sameOutside s s.paint_cells_m t.paint_cells_m
+        &amp;&amp; sameOutside s s.fill_m t.fill_m &amp;&amp; panelEq s t &amp;&amp; ringEq s t
+        &amp;&amp; t.underline_1 == s.underline_1 &amp;&amp; t.underline_2 == s.underline_2
+        &amp;&amp; t.open_dir == s.open_dir &amp;&amp; t.paint_color == s.paint_color) }
+]
+
+def isGoal (s : State) : Bool := s.level == 6
+
+-- 先查换关表（worldRows 只有换关那几步），查不到交给 stepRules
+def step (s : State) (a : Act) : Option State :=
+  match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with
+  | some w =&gt; some w.s&#x27;
+  | none =&gt; stepRules s a
+-- ==== 规则段 END ====
+
+-- ==== 定理段 ====
+-- 规则与全部观测一致（内核判定）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 从第 0 关开局逐步重算整条路线，每一步都在 keyEq 的全部变化字段上等于观测，末步到达 WIN。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>cd82 · 统一到 object-rules 链的报告</h1>
 <p>所有读数都是 2026-09-24 在本机真实跑出来的（命令与关键输出行照贴）。没跑过的标「待跑」——本报告里没有待跑项。</p>
 <h2>卡 00 · 认领语料：<strong>次选认领</strong></h2>
 <pre><code>$ python ledger/trace_source.py --available cd82

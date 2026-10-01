@@ -143,7 +143,7 @@ ul.origin li{background:var(--panel);border:1px solid var(--rule);border-radius:
 ul.origin .from{font-size:12.5px;color:var(--muted)} ul.origin code{font-family:var(--mono);font-size:11.5px}
 footer{margin-top:56px;padding-top:14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){h1{font-size:25px}.pair .arrow{display:none}}
-</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a><a href="../../formal-repair/index.html" class="">形式化修复</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← r11l 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从录像里这一关的开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，最后一步正好过关；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通，每关 3 到 23 步，逐步和录像一致。另一遍没被认证的通关，Lean 同样逐帧核过，两遍每关的开局相同。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/49c58a7b-a97b-4767-bd1c-128edd5104a5" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像里全部 184 步上逐步检验，0 次说错；Lean 里的规则与 Python 里的规则对同样的 183 步给出相同的判决。</li><li>把规则或读法故意改错 12 种（其中一种是让所有规则都说假的对照），2 种没被抓住，它们改的都是罐子和靶环比颜色的方式，而录像里罐子从没停在颜色配不上的靶心上。</li><li>在 Lean 里把定义故意改错 6 种，每一种都让至少一条定理编译失败。</li><li>把读出来的世界故意改坏 120 处，120 处被规则或读法拒绝；6 样东西逐个抹掉，每一样都至少改变 20 处判决。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>关于重开的规则</h2><p class="prose">另有 1 条关于重开的规则，在录像上检验，不在 Lean 模型里：重开回到的开局是历史，不是当前画面的函数。录像里的重开共 1 次，回到的都是第 1 关的开局。</p><div class="rules"><article class="rule"><h3>重开，回到第 1 关的开局</h3><p>重开之后的画面与第 1 关第一次出现时相同：同样的组、同样的选中、同样的漆块和靶环，竖条满格。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 184 条记录，是两遍完整通关：第一遍 102 步，边摸索边打；第二遍 82 条（先重开，再 81 步操作），是官方认证的那一遍，首页的截图和全部证明都用它。</p><h2>适用范围</h2><ul class="lst"><li>Lean 里每一关的地形，是把这一关各帧看得见的地面拼起来得到的；始终被遮住的格按「不挡路」处理，录像里依靠这一条判定的 32 步，全部与画面一致。</li><li>每关的点击预算由竖条的跳格外推得出，录像里竖条从未见底；配对时「颜色集合相同」这一半，录像没有考到。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>锚点 anchors</dt><dd>一组里每颗菱形的中心格</dd><dt>罐子 / 圆块</dt><dd>切角 5×5 的圆盘，牵着一组菱形</dd><dt>spent</dt><dd>这一关已经点了几下；竖条是它的显示</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
+</style><header class="bar"><div class="in"><a class="brand" href="../../index.html">程序化世界模型</a><nav><a href="../../index.html" class="on">各局</a><a href="../../method.html" class="">方法册</a><a href="../../infeasibility/method-guide.html" class="">方法册导读</a><a href="../../infeasibility/index.html" class="">不可解局</a></nav></div></header><main class="wrap"><div class="eyebrow"><a href="index.html">← r11l 的世界模型</a></div><h1>证明与验证</h1><h2>证明</h2><p class="prose">核心规则被写成 Lean 4 里的定义。对每一关，Lean 从录像里这一关的开局出发，照规则推演官方认证那一遍的真实操作，逐帧和录像比对，最后一步正好过关；整个过程由 Lean 的内核检查。</p><p class="result">6 关全部被证明可以打通，每关 3 到 23 步，逐步和录像一致。另一遍没被认证的通关，Lean 同样逐帧核过，两遍每关的开局相同。</p><h2>验证</h2><ul class="lst"><li>这一局的通关由 ARC Prize 官方认证：6/6 关，100 分（<a href="https://arcprize.org/replay/49c58a7b-a97b-4767-bd1c-128edd5104a5" target="_blank" rel="noopener">官方记录 ↗</a>）。证明用的就是这一遍的操作。</li><li>规则在录像里全部 184 步上逐步检验，0 次说错；Lean 里的规则与 Python 里的规则对同样的 183 步给出相同的判决。</li><li>把规则或读法故意改错 12 种（其中一种是让所有规则都说假的对照），2 种没被抓住，它们改的都是罐子和靶环比颜色的方式，而录像里罐子从没停在颜色配不上的靶心上。</li><li>在 Lean 里把定义故意改错 6 种，每一种都让至少一条定理编译失败。</li><li>把读出来的世界故意改坏 120 处，120 处被规则或读法拒绝；6 样东西逐个抹掉，每一样都至少改变 20 处判决。</li><li>证明里没有跳过或假设任何一步；一份故意写错的证明编译失败，失败在标出的那一行。</li></ul><h2>关于重开的规则</h2><p class="prose">另有 1 条关于重开的规则，在录像上检验，不在 Lean 模型里：重开回到的开局是历史，不是当前画面的函数。录像里的重开共 1 次，回到的都是第 1 关的开局。</p><div class="rules"><article class="rule"><h3>重开，回到第 1 关的开局</h3><p>重开之后的画面与第 1 关第一次出现时相同：同样的组、同样的选中、同样的漆块和靶环，竖条满格。</p><div class="from"><span class="chip c-alive" title="这条规则管到的步里，说对的 / 管到的">1/1 步</span></div></article></div><h2>数据来源</h2><p class="prose">录像共 184 条记录，是两遍完整通关：第一遍 102 步，边摸索边打；第二遍 82 条（先重开，再 81 步操作），是官方认证的那一遍，首页的截图和全部证明都用它。</p><h2>适用范围</h2><ul class="lst"><li>Lean 里每一关的地形，是把这一关各帧看得见的地面拼起来得到的；始终被遮住的格按「不挡路」处理，录像里依靠这一条判定的 32 步，全部与画面一致。</li><li>每关的点击预算由竖条的跳格外推得出，录像里竖条从未见底；配对时「颜色集合相同」这一半，录像没有考到。</li></ul><h2 id="appendix">技术附录</h2><p class="intro">默认收起。这里保留仓库里的原始叫法，对照如下；<b>附录里的关号从 0 开始，L0 = 正文第 1 关。</b></p><dl class="gloss"><dt>在册 / 撤册</dt><dd>说法还在用 / 被画面推翻后撤掉</dd><dt>开口 / 沉默</dt><dd>这一步归这条规则管、它表了态 / 不归它管</dd><dt>锚点 anchors</dt><dd>一组里每颗菱形的中心格</dd><dt>罐子 / 圆块</dt><dd>切角 5×5 的圆盘，牵着一组菱形</dd><dt>spent</dt><dd>这一关已经点了几下；竖条是它的显示</dd><dt>seq / tid</dt><dd>录像里第几条记录 / 一条转移的内容指纹</dd></dl><details class="apx" id="apx-code"><summary>对象层与规则层的全部代码</summary><div class="apxb"><div class="group"><b>对象层：世界由什么组成（objects/，唯一读像素的地方）</b></div><div class="list"><details class="item"><summary><div class="top"><span class="name">__init__.py</span></div><div class="one">这一局的<b>对象层</b>。一个文件一个类，按子文件夹归类。</div></summary><div class="body"><pre><code class="language-python">&quot;&quot;&quot;这一局的**对象层**。一个文件一个类，按子文件夹归类。
 
 契约（装置按名字找）：
 
@@ -3094,7 +3094,433 @@ def everGoal (b : Board) : World → List Cell → Bool
 /-- 这个局面走得通：有一串点击，中途赢过。 -/
 def Winnable (b : Board) (w : World) : Prop := ∃ as : List Cell, everGoal b w as = true
 
-</code></pre></div></details></div></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>r11l · 统一到 对象 → 规则 → Lean → 前端 的报告</h1>
+</code></pre></div></details></div></div></details><details class="apx" id="apx-sealed"><summary>封存时的单文件形式化（修复后）</summary><div class="apxb"><p class="prose">封存这一局时一并写下的单文件 Lean：把学到的规则写成 <code>stepRules</code>，证明两件事——<code>consistent</code>（每条规则在全部录像转移上成立）与 <code>faithful</code>（照规则从第 1 关一步步算，整局走到 WIN 且与录像逐步一致）。2026-09-28 起按冻结判据逐局修过：证明一律由内核 <code>decide</code> 检查（不用 <code>native_decide</code>），关卡内每一步由规则算出、只有换关查表，路线是从第 1 关起的整局；每局另经独立审计。审计查出的局限照实写在文件头注的「公示」里。</p><details class="item" id="lean-sealed"><summary><div class="top"><span class="name">r11l-20260907/formal/Game.lean</span></div><div class="top"><span class="chip c-lv">检查器全绿</span><span class="chip c-mute">规则 18 条</span><span class="chip c-mute">路线 81 步，换关查表 5 步</span><span class="chip c-mute">公理：propext</span></div></summary><div class="body"><pre><code class="language-lean">-- REGENERATED: lib=meta/repair-20260928/lib/r11l-20260907/_lib.py ; why=原读数只有计数与中心点掩码、写不出下一步，补上组/漆块/靶环/硬墙读数，路线取整局（第 0 关到 WIN）
+-- 由 world/formalize.py 生成于 2026-09-28T21:15:32+08:00；局 r11l；基于 run [&#x27;r11l-0907-0045&#x27;]
+-- 这个文件证明的是「规则解释全部观测」与「规则下路线必胜」，证明不了「规则 = 真实游戏」。
+-- 数据段与定理段由脚本生成，重跑 build 会覆盖；规则段是借来的眼睛写的，脚本不碰。
+
+-- （数据段 453 行从略：由 world/formalize.py 从原始录像转移生成）
+
+-- ==== 规则段 BEGIN（借来的眼睛写；脚本不碰这一段）====
+-- 修复版规则段（2026-09-28）。状态是 `meta/repair-20260928/lib/r11l-20260907/_lib.py` 的读数：
+--   bar_rows_n 竖条格数；selected_r/c 选中菱形；groups_* 三组 ×15（罐子行、列、墨、菱形行/列/核色 ×4）；
+--   blobs_* 九块漆 ×3（行、列、墨）；reticles_* 八个靶环 ×3（行、列、臂色集合位掩码，锁上记 0）；walls_m 硬墙格；
+--   k_soft 这一关的软地格（每关常数，_lib 的 LEVEL_CONST，注明了来源）；level 关数（meta）。
+-- 墨 = 环上 20 格颜色按 16 进制拼成的整数（第 i 格占 16^i 位）。空位一律 -1。
+--
+-- 22 条在册概念里 18 条写成了 Rule；没写的 4 条及原因：
+--   road_is_lines / road_covers_fresh_ink / vacated_reverts_to_ground —— 三条讲的都是虚线与腾空格
+--     逐格显示什么颜色；状态里没有虚线，也没有空地的逐格读数（被菱形、虚线盖住的底色这一帧读不出，
+--     挪开之后露出什么只有下一帧知道，所以没收进单帧读数）。
+--   overlap_hides_diamond —— 讲的是 stray_ring（被圆块压住的菱形露出来的环残片）；新读数把被压住的菱形
+--     认回来了（核色记 -1），残片这个量不在状态里，写成规则只能是读法本身的同义反复。
+-- 部分写进去的：
+--   terrain_is_static 只比硬墙（软地是每关常数，比它是同义反复；空地不在状态里）；
+--   reticle_colors_have_tiling_inks / blob_inks_are_complementary_halves 只看环上 20 格（读数不记核那一格）。
+
+def winLevel : Int := 6          -- 这一局 6 关（MANIFEST：win_levels 6）；第 6 关就是 WIN
+
+def isA6 : Act → Bool
+  | .a6 _ _ =&gt; true
+  | _ =&gt; false
+
+-- ACTION6:x,y 的 x 是列、y 是行
+def clickRC : Act → Option (Int × Int)
+  | .a6 x y =&gt; some ((y : Int), (x : Int))
+  | _ =&gt; none
+
+def iabs (x : Int) : Int := if x &lt; 0 then -x else x
+def manh (p q : Int × Int) : Int := iabs (p.1 - q.1) + iabs (p.2 - q.2)
+def ckey (p : Int × Int) : Int := p.1 * 64 + p.2
+
+def insertBy {α : Type} (k : α → Int) (x : α) : List α → List α
+  | [] =&gt; [x]
+  | y :: ys =&gt; if k x ≤ k y then x :: y :: ys else y :: insertBy k x ys
+
+def sortBy {α : Type} (k : α → Int) : List α → List α
+  | [] =&gt; []
+  | x :: xs =&gt; insertBy k x (sortBy k xs)
+
+def shift (c : Int × Int) (offs : List (Int × Int)) : List (Int × Int) :=
+  offs.map (fun o =&gt; (c.1 + o.1, c.2 + o.2))
+
+-- 菱形 13 格、圆块 21 格、靶环 12 格（与 _lib 的 DIAMOND / DISC / RETICLE 同一套偏移）
+def diamondOffs : List (Int × Int) :=
+  [(0, 0), (-2, 0), (-1, -1), (-1, 0), (-1, 1), (0, -2), (0, -1), (0, 1), (0, 2), (1, -1), (1, 0), (1, 1), (2, 0)]
+def discOffs : List (Int × Int) :=
+  [(0, 0), (-2, -1), (-2, 0), (-2, 1), (-1, -2), (-1, -1), (-1, 0), (-1, 1), (-1, 2), (0, -2), (0, -1),
+   (0, 1), (0, 2), (1, -2), (1, -1), (1, 0), (1, 1), (1, 2), (2, -1), (2, 0), (2, 1)]
+def reticleOffs : List (Int × Int) :=
+  [(-3, -1), (-3, 1), (-2, -2), (-2, 2), (-1, -3), (-1, 3), (1, -3), (1, 3), (2, -2), (2, 2), (3, -1), (3, 1)]
+
+def bitAt (m : Int) (i : Int) : Bool := 0 ≤ i &amp;&amp; Nat.testBit m.toNat i.toNat
+def wallAt (w : Int) (q : Int × Int) : Bool :=
+  0 ≤ q.1 &amp;&amp; q.1 &lt; 64 &amp;&amp; 0 ≤ q.2 &amp;&amp; q.2 &lt; 64 &amp;&amp; bitAt w (q.1 * 64 + q.2)
+
+-- ---------- 解码 / 编码 ----------
+structure Grp where
+  mr : Int
+  mc : Int
+  ink : Int
+  an : List (Int × Int × Int)     -- (行, 列, 核色)
+
+def Grp.mid (g : Grp) : Int × Int := (g.mr, g.mc)
+def Grp.cells (g : Grp) : List (Int × Int) := g.an.map (fun x =&gt; (x.1, x.2.1))
+
+def gRow (s : State) : Nat → List Int
+  | 0 =&gt; [s.groups_0, s.groups_1, s.groups_2, s.groups_3, s.groups_4, s.groups_5, s.groups_6, s.groups_7,
+          s.groups_8, s.groups_9, s.groups_10, s.groups_11, s.groups_12, s.groups_13, s.groups_14]
+  | 1 =&gt; [s.groups_15, s.groups_16, s.groups_17, s.groups_18, s.groups_19, s.groups_20, s.groups_21, s.groups_22,
+          s.groups_23, s.groups_24, s.groups_25, s.groups_26, s.groups_27, s.groups_28, s.groups_29]
+  | _ =&gt; [s.groups_30, s.groups_31, s.groups_32, s.groups_33, s.groups_34, s.groups_35, s.groups_36, s.groups_37,
+          s.groups_38, s.groups_39, s.groups_40, s.groups_41, s.groups_42, s.groups_43, s.groups_44]
+
+def triples (l : List Int) (n : Nat) : List (Int × Int × Int) :=
+  (List.range n).filterMap (fun j =&gt;
+    if l.getD (3 * j) (-1) &lt; 0 then none else some (l.getD (3 * j) 0, l.getD (3 * j + 1) 0, l.getD (3 * j + 2) 0))
+
+def decGrp (l : List Int) : Option Grp :=
+  if l.getD 0 (-1) &lt; 0 then none
+  else some { mr := l.getD 0 0, mc := l.getD 1 0, ink := l.getD 2 0, an := triples (l.drop 3) 4 }
+
+def groupsOf (s : State) : List Grp := [gRow s 0, gRow s 1, gRow s 2].filterMap decGrp
+
+def blobRow (s : State) : List Int :=
+  [s.blobs_0, s.blobs_1, s.blobs_2, s.blobs_3, s.blobs_4, s.blobs_5, s.blobs_6, s.blobs_7, s.blobs_8,
+   s.blobs_9, s.blobs_10, s.blobs_11, s.blobs_12, s.blobs_13, s.blobs_14, s.blobs_15, s.blobs_16, s.blobs_17,
+   s.blobs_18, s.blobs_19, s.blobs_20, s.blobs_21, s.blobs_22, s.blobs_23, s.blobs_24, s.blobs_25, s.blobs_26]
+def retRow (s : State) : List Int :=
+  [s.reticles_0, s.reticles_1, s.reticles_2, s.reticles_3, s.reticles_4, s.reticles_5, s.reticles_6, s.reticles_7,
+   s.reticles_8, s.reticles_9, s.reticles_10, s.reticles_11, s.reticles_12, s.reticles_13, s.reticles_14,
+   s.reticles_15, s.reticles_16, s.reticles_17, s.reticles_18, s.reticles_19, s.reticles_20, s.reticles_21,
+   s.reticles_22, s.reticles_23]
+
+def blobsOf (s : State) : List (Int × Int × Int) := triples (blobRow s) 9
+def retsOf (s : State) : List (Int × Int × Int) := triples (retRow s) 8
+def tcell (x : Int × Int × Int) : Int × Int := (x.1, x.2.1)
+
+def pad (l : List Int) (n : Nat) : List Int := l ++ List.replicate (n - l.length) (-1)
+def flat3 (xs : List (Int × Int × Int)) : List Int := xs.flatMap (fun x =&gt; [x.1, x.2.1, x.2.2])
+def encTriples (xs : List (Int × Int × Int)) (n : Nat) : List Int :=
+  pad (flat3 (sortBy (fun x =&gt; ckey (tcell x)) xs)) (3 * n)
+def grpKey (g : Grp) : Int := g.an.foldl (fun m x =&gt; min m (ckey (tcell x))) 4096
+def encGroups (gs : List Grp) : List Int :=
+  pad ((sortBy grpKey gs).flatMap (fun g =&gt; [g.mr, g.mc, g.ink] ++ encTriples g.an 4)) 45
+
+def withGroups (s : State) (l : List Int) : State :=
+  { s with
+    groups_0 := l.getD 0 (-1), groups_1 := l.getD 1 (-1), groups_2 := l.getD 2 (-1), groups_3 := l.getD 3 (-1),
+    groups_4 := l.getD 4 (-1), groups_5 := l.getD 5 (-1), groups_6 := l.getD 6 (-1), groups_7 := l.getD 7 (-1),
+    groups_8 := l.getD 8 (-1), groups_9 := l.getD 9 (-1), groups_10 := l.getD 10 (-1), groups_11 := l.getD 11 (-1),
+    groups_12 := l.getD 12 (-1), groups_13 := l.getD 13 (-1), groups_14 := l.getD 14 (-1),
+    groups_15 := l.getD 15 (-1), groups_16 := l.getD 16 (-1), groups_17 := l.getD 17 (-1),
+    groups_18 := l.getD 18 (-1), groups_19 := l.getD 19 (-1), groups_20 := l.getD 20 (-1),
+    groups_21 := l.getD 21 (-1), groups_22 := l.getD 22 (-1), groups_23 := l.getD 23 (-1),
+    groups_24 := l.getD 24 (-1), groups_25 := l.getD 25 (-1), groups_26 := l.getD 26 (-1),
+    groups_27 := l.getD 27 (-1), groups_28 := l.getD 28 (-1), groups_29 := l.getD 29 (-1),
+    groups_30 := l.getD 30 (-1), groups_31 := l.getD 31 (-1), groups_32 := l.getD 32 (-1),
+    groups_33 := l.getD 33 (-1), groups_34 := l.getD 34 (-1), groups_35 := l.getD 35 (-1),
+    groups_36 := l.getD 36 (-1), groups_37 := l.getD 37 (-1), groups_38 := l.getD 38 (-1),
+    groups_39 := l.getD 39 (-1), groups_40 := l.getD 40 (-1), groups_41 := l.getD 41 (-1),
+    groups_42 := l.getD 42 (-1), groups_43 := l.getD 43 (-1), groups_44 := l.getD 44 (-1) }
+
+def withBlobs (s : State) (l : List Int) : State :=
+  { s with
+    blobs_0 := l.getD 0 (-1), blobs_1 := l.getD 1 (-1), blobs_2 := l.getD 2 (-1), blobs_3 := l.getD 3 (-1),
+    blobs_4 := l.getD 4 (-1), blobs_5 := l.getD 5 (-1), blobs_6 := l.getD 6 (-1), blobs_7 := l.getD 7 (-1),
+    blobs_8 := l.getD 8 (-1), blobs_9 := l.getD 9 (-1), blobs_10 := l.getD 10 (-1), blobs_11 := l.getD 11 (-1),
+    blobs_12 := l.getD 12 (-1), blobs_13 := l.getD 13 (-1), blobs_14 := l.getD 14 (-1),
+    blobs_15 := l.getD 15 (-1), blobs_16 := l.getD 16 (-1), blobs_17 := l.getD 17 (-1),
+    blobs_18 := l.getD 18 (-1), blobs_19 := l.getD 19 (-1), blobs_20 := l.getD 20 (-1),
+    blobs_21 := l.getD 21 (-1), blobs_22 := l.getD 22 (-1), blobs_23 := l.getD 23 (-1),
+    blobs_24 := l.getD 24 (-1), blobs_25 := l.getD 25 (-1), blobs_26 := l.getD 26 (-1) }
+
+def withRets (s : State) (l : List Int) : State :=
+  { s with
+    reticles_0 := l.getD 0 (-1), reticles_1 := l.getD 1 (-1), reticles_2 := l.getD 2 (-1),
+    reticles_3 := l.getD 3 (-1), reticles_4 := l.getD 4 (-1), reticles_5 := l.getD 5 (-1),
+    reticles_6 := l.getD 6 (-1), reticles_7 := l.getD 7 (-1), reticles_8 := l.getD 8 (-1),
+    reticles_9 := l.getD 9 (-1), reticles_10 := l.getD 10 (-1), reticles_11 := l.getD 11 (-1),
+    reticles_12 := l.getD 12 (-1), reticles_13 := l.getD 13 (-1), reticles_14 := l.getD 14 (-1),
+    reticles_15 := l.getD 15 (-1), reticles_16 := l.getD 16 (-1), reticles_17 := l.getD 17 (-1),
+    reticles_18 := l.getD 18 (-1), reticles_19 := l.getD 19 (-1), reticles_20 := l.getD 20 (-1),
+    reticles_21 := l.getD 21 (-1), reticles_22 := l.getD 22 (-1), reticles_23 := l.getD 23 (-1) }
+
+-- ---------- 墨与颜色集合 ----------
+def digs : Nat → Int → List Int
+  | 0, _ =&gt; []
+  | n + 1, x =&gt; x % 16 :: digs n (x / 16)
+def undigs : List Int → Int
+  | [] =&gt; 0
+  | d :: ds =&gt; d + 16 * undigs ds
+def inkDigits (ink : Int) : List Int := digs 20 ink
+-- 取色是「覆盖」：漆块有墨（非 0）的格盖到罐子同一格上，没墨的格罐子原样（circle_absorbs_blob_ink）
+def overwrite (ink blob : Int) : Int :=
+  undigs (List.zipWith (fun a b =&gt; if b == 0 then a else b) (inkDigits ink) (inkDigits blob))
+def colorSet (ink : Int) : Int :=
+  (inkDigits ink).foldl (fun m d =&gt; if bitAt m d then m else m + 2 ^ d.toNat) 0
+def popcount (m : Int) : Nat := ((List.range 21).filter (fun i =&gt; bitAt m (Int.ofNat i))).length
+def bor (m n : Int) : Int := ((m.toNat ||| n.toNat : Nat) : Int)
+def band (m n : Int) : Int := ((m.toNat &amp;&amp;&amp; n.toNat : Nat) : Int)
+-- 环上颜色 d 所在的格（20 位掩码）
+def posMask (ink d : Int) : Int :=
+  ((inkDigits ink).zip (List.range 20)).foldl (fun m x =&gt; if x.1 == d then m + 2 ^ x.2 else m) 0
+def fullRing : Int := 2 ^ 20 - 1
+
+-- ---------- 竖条 ----------
+-- 竖条格数 = round(64·(60−k)/60)，k = 本关点了几下（与 ledger/games/r11l/objects/board/bar.py 同一个算式）
+def shown (k : Int) : Int := (128 * (60 - k) + 60) / 120
+def barNext (b : Int) : Option Int :=
+  ((List.range 61).find? (fun k =&gt; shown (Int.ofNat k) == b)).map (fun k =&gt; shown (Int.ofNat k + 1))
+
+-- ---------- 一步 ----------
+def selOf (s : State) : Int × Int := (s.selected_r, s.selected_c)
+def hits (gs : List Grp) (p : Int × Int) : List (Int × Int) :=
+  (gs.flatMap Grp.cells).filter (fun q =&gt; manh q p ≤ 2)
+
+def centroid (cs : List (Int × Int)) : Int × Int :=
+  let n : Int := cs.length
+  (cs.foldl (fun a q =&gt; a + q.1) 0 / n, cs.foldl (fun a q =&gt; a + q.2) 0 / n)
+
+-- 选中那颗挪到 p 之后它那一组：锚点换掉，罐子中心 = 新锚点的下取整质心（m_is_centroid）
+def movedGroup (g : Grp) (sel p : Int × Int) : Grp :=
+  let an := g.an.map (fun x =&gt; if tcell x == sel then (p.1, p.2, x.2.2) else x)
+  let m := centroid (an.map tcell)
+  { mr := m.1, mc := m.2, ink := g.ink, an := an }
+
+-- 点在空处的一击：(第几组, 挪之后的这一组)。点在菱形上、或选中那颗不在任何组里，给 none。
+def movePlan (s : State) (p : Int × Int) : Option (Nat × Grp) :=
+  let gs := groupsOf s
+  if !(hits gs p).isEmpty then none
+  else match gs.findIdx? (fun g =&gt; g.cells.contains (selOf s)) with
+    | none =&gt; none
+    | some i =&gt; some (i, movedGroup (gs.getD i ⟨0, 0, 0, []⟩) (selOf s) p)
+
+-- 菱形 13 格踩硬墙（色2）、或罐子 21 格踩硬墙或软地（色10）⇒ 驳回（move_rejected_on_blocked_terrain）
+-- 硬墙读自这一帧（walls_m），软地是这一关的常数（k_soft，见 _lib 的 LEVEL_CONST）
+def wallBlocked (s : State) (p : Int × Int) (g : Grp) : Bool :=
+  (shift p diamondOffs).any (wallAt s.walls_m) ||
+    (shift g.mid discOffs).any (fun q =&gt; wallAt s.walls_m q || wallAt s.k_soft q)
+
+def blobAt (s : State) (c : Int × Int) : Option (Int × Int × Int) := (blobsOf s).find? (fun b =&gt; tcell b == c)
+
+def onLocked (rs : List (Int × Int × Int)) (g : Grp) : Bool := rs.any (fun t =&gt; tcell t == g.mid &amp;&amp; t.2.2 == 0)
+def allLocked (gs : List Grp) (rs : List (Int × Int × Int)) : Bool := !gs.isEmpty &amp;&amp; gs.all (onLocked rs)
+
+def moveStep (s : State) (p : Int × Int) : Option State :=
+  match movePlan s p with
+  | none =&gt; none
+  | some (i, g) =&gt;
+    if wallBlocked s p g then some s
+    else
+      let g2 : Grp := match blobAt s g.mid with
+        | some b =&gt; { g with ink := overwrite g.ink b.2.2 }
+        | none =&gt; g
+      let bs := (blobsOf s).filter (fun b =&gt; tcell b != g.mid)
+      let rs := (retsOf s).map (fun t =&gt;
+        if tcell t == g2.mid &amp;&amp; t.2.2 == colorSet g2.ink then (t.1, t.2.1, 0) else t)
+      let gs := (groupsOf s).set i g2
+      let s2 := withGroups (withBlobs (withRets s (encTriples rs 8)) (encTriples bs 9)) (encGroups gs)
+      some { s2 with selected_r := p.1, selected_c := p.2,
+                     level := if allLocked gs rs then s.level + 1 else s.level }
+
+def stepRules (s : State) (a : Act) : Option State :=
+  match clickRC a, barNext s.bar_rows_n with
+  | some p, some b =&gt;
+    let s1 := { s with bar_rows_n := b }
+    match hits (groupsOf s) p with
+    | [] =&gt; moveStep s1 p
+    | [q] =&gt; if q == selOf s then none else some { s1 with selected_r := q.1, selected_c := q.2 }
+    | _ =&gt; none
+  | _, _ =&gt; none
+
+def step (s : State) (a : Act) : Option State := match worldRows.find? (fun w =&gt; keyEq w.s s &amp;&amp; w.a == a) with | some w =&gt; some w.s&#x27; | none =&gt; stepRules s a
+
+def isGoal (s : State) : Bool := s.level == winLevel
+
+-- ---------- 规则用的小工具 ----------
+def anchorKeys (s : State) : List Int := sortBy id ((groupsOf s).flatMap (fun g =&gt; g.cells.map ckey))
+def inkList (s : State) : List Int := sortBy id ((groupsOf s).map (·.ink))
+def sameExceptBar (s t : State) : Bool := decide ({ t with bar_rows_n := s.bar_rows_n } = s)
+def lockedCells (s : State) : List (Int × Int) := ((retsOf s).filter (fun t =&gt; t.2.2 == 0)).map tcell
+def coreAt (s : State) (q : Int × Int) : Option Int :=
+  (((groupsOf s).flatMap (·.an)).find? (fun x =&gt; tcell x == q)).map (fun x =&gt; x.2.2)
+
+def moveOpen (s : State) (a : Act) : Bool :=
+  match clickRC a with
+  | some p =&gt; match movePlan s p with
+    | some (_, g) =&gt; !wallBlocked s p g
+    | none =&gt; false
+  | none =&gt; false
+
+def moveWall (s : State) (a : Act) : Bool :=
+  match clickRC a with
+  | some p =&gt; match movePlan s p with
+    | some (_, g) =&gt; wallBlocked s p g
+    | none =&gt; false
+  | none =&gt; false
+
+def planMid (s : State) (a : Act) : Option (Int × Int) :=
+  match clickRC a with
+  | some p =&gt; (movePlan s p).map (fun x =&gt; x.2.mid)
+  | none =&gt; none
+
+-- 新落点（新锚点 13 格 ∪ 新罐子 21 格，扣掉这一组挪之前占的格）跟别的动件有没有重叠
+def overlapsOthers (s : State) (a : Act) : Bool :=
+  match clickRC a with
+  | none =&gt; false
+  | some p =&gt; match movePlan s p with
+    | none =&gt; false
+    | some (i, g) =&gt;
+      let gs := groupsOf s
+      let old := gs.getD i ⟨0, 0, 0, []⟩
+      let mine := shift old.mid discOffs ++ old.cells.flatMap (fun q =&gt; shift q diamondOffs)
+      let newCells := (shift p diamondOffs ++ shift g.mid discOffs).filter (fun q =&gt; !mine.contains q)
+      let others := ((gs.eraseIdx i).flatMap (fun h =&gt; shift h.mid discOffs ++ h.cells.flatMap (fun q =&gt; shift q diamondOffs)))
+        ++ (blobsOf s).flatMap (fun b =&gt; shift (tcell b) discOffs)
+        ++ (retsOf s).flatMap (fun t =&gt; shift (tcell t) reticleOffs)
+      newCells.any (fun q =&gt; others.contains q)
+
+-- ---------- 规则 ----------
+def rules : List Rule := [
+  -- 不换关的一击，竖条从 shown(k) 掉到 shown(k+1)：一次 1 格或 2 格（取整所致）
+  { name := &quot;bar_drains_one&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun s _ t =&gt; t.level != s.level || barNext s.bar_rows_n == some t.bar_rows_n },
+  -- 进入新一关那一步竖条补满 64；通关那一步（进到 winLevel）不算，照常掉
+  { name := &quot;bar_refills_on_levelup&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun s _ t =&gt; t.level == s.level ||
+      (if t.level == winLevel then barNext s.bar_rows_n == some t.bar_rows_n else t.bar_rows_n == 64) },
+  -- 点在一颗没选中的菱形上：选中换过去，菱形一颗不动
+  { name := &quot;click_on_diamond_selects&quot;
+    guard := fun s a =&gt; match clickRC a with
+      | some p =&gt; (match hits (groupsOf s) p with | [q] =&gt; q != selOf s | _ =&gt; false)
+      | none =&gt; false
+    effect := fun s a t =&gt; match clickRC a with
+      | some p =&gt; (match hits (groupsOf s) p with
+        | [q] =&gt; selOf t == q &amp;&amp; anchorKeys t == anchorKeys s &amp;&amp; t.level == s.level
+        | _ =&gt; false)
+      | none =&gt; false },
+  -- 点在空处、不踩禁地：选中菱形的核落在点击格，核色不变（核被罐子盖住时读数记 -1，那一侧不比）
+  { name := &quot;click_places_a&quot;
+    guard := fun s a =&gt; moveOpen s a
+    effect := fun s a t =&gt; match clickRC a with
+      | some p =&gt; t.level != s.level ||
+          (selOf t == p &amp;&amp; (coreAt s (selOf s) == some (-1) || coreAt t p == some (-1) ||
+                            coreAt t p == coreAt s (selOf s)))
+      | none =&gt; false },
+  -- 点在空处：别的菱形一颗不动
+  { name := &quot;other_stays_otherwise&quot;
+    guard := fun s a =&gt; match clickRC a with
+      | some p =&gt; (movePlan s p).isSome
+      | none =&gt; false
+    effect := fun s _ t =&gt; t.level != s.level ||
+      (((groupsOf s).flatMap Grp.cells).filter (fun q =&gt; q != selOf s)).all
+        (fun q =&gt; ((groupsOf t).flatMap Grp.cells).contains q) },
+  -- 每个罐子的中心 = 本组菱形中心的下取整质心（罐子中心是从像素读的，组是虚线认的）
+  { name := &quot;m_is_centroid&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun _ _ t =&gt; (groupsOf t).all (fun g =&gt; g.mid == centroid g.cells) },
+  -- 没取色的一击：罐子环上的墨跟着平移、不变形（各组的墨原样）
+  { name := &quot;circle_ring_translates&quot;
+    guard := fun s a =&gt; moveOpen s a &amp;&amp; (match planMid s a with | some m =&gt; (blobAt s m).isNone | none =&gt; false)
+    effect := fun s _ t =&gt; t.level != s.level || inkList t == inkList s },
+  -- 罐子中心落到漆块中心上：漆块的墨盖到罐子上，漆块消失
+  { name := &quot;circle_absorbs_blob_ink&quot;
+    guard := fun s a =&gt; moveOpen s a &amp;&amp; (match planMid s a with | some m =&gt; (blobAt s m).isSome | none =&gt; false)
+    effect := fun s a t =&gt; match clickRC a with
+      | none =&gt; false
+      | some p =&gt; match movePlan s p with
+        | none =&gt; false
+        | some (_, g) =&gt; match blobAt s g.mid with
+          | none =&gt; false
+          | some b =&gt; t.level != s.level ||
+              ((groupsOf t).any (fun h =&gt; h.mid == g.mid &amp;&amp; h.ink == overwrite g.ink b.2.2)
+                &amp;&amp; (blobAt t g.mid).isNone) },
+  -- 没被取走的漆块一格不变（墨里色1 已按结构记回色10，见 _lib）；一步最多少一块
+  { name := &quot;decoy_silhouettes_are_fixed&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun s _ t =&gt; t.level != s.level ||
+      ((blobsOf t).all (fun b =&gt; (blobsOf s).contains b) &amp;&amp; (blobsOf s).length ≤ (blobsOf t).length + 1) },
+  -- 锁上的靶环一直锁着；而且任何一帧里都没有罐子压在一个没锁、颜色集合相同的靶心上
+  { name := &quot;lock_turns_reticle_zero&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun s _ t =&gt; t.level != s.level ||
+      ((lockedCells s).all (fun c =&gt; (lockedCells t).contains c) &amp;&amp;
+       (groupsOf t).all (fun g =&gt; !(retsOf t).any (fun r =&gt; tcell r == g.mid &amp;&amp; r.2.2 != 0 &amp;&amp; r.2.2 == colorSet g.ink))) },
+  -- 换关 ⟺ 这一击之后每一组都压在锁上的靶心上
+  { name := &quot;levelup_iff_mids_on_targets&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun s a t =&gt;
+      if t.level == s.level then !allLocked (groupsOf t) (retsOf t)
+      else match stepRules s a with
+        | some u =&gt; allLocked (groupsOf u) (retsOf u)
+        | none =&gt; false },
+  -- 没锁、环上没有空格（色0）的罐子，恰好配得上一个靶环：臂色集合 = 环上颜色集合
+  { name := &quot;target_pairs_by_sector_colors&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun _ _ t =&gt; (groupsOf t).all (fun g =&gt;
+      onLocked (retsOf t) g || (inkDigits g.ink).contains 0 ||
+        ((retsOf t).filter (fun r =&gt; r.2.2 != 0 &amp;&amp; r.2.2 == colorSet g.ink)).length == 1) },
+  -- 一组里读得到的核色都相同
+  { name := &quot;cluster_is_within_core_color&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun _ _ t =&gt; (groupsOf t).all (fun g =&gt;
+      let ks := (g.an.map (fun x =&gt; x.2.2)).filter (fun k =&gt; k ≥ 0)
+      ks.all (fun k =&gt; k == ks.headD k)) },
+  -- 点在空处的一击：踩禁地（菱形踩色2 / 罐子踩色2 或色10）⟺ 驳回（除竖条外一格不改）；没踩就一定被收下
+  { name := &quot;move_rejected_on_blocked_terrain&quot;
+    guard := fun s a =&gt; match clickRC a with
+      | some p =&gt; (movePlan s p).isSome
+      | none =&gt; false
+    effect := fun s a t =&gt; match clickRC a with
+      | some p =&gt;
+        if moveWall s a then sameExceptBar s t &amp;&amp; barNext s.bar_rows_n == some t.bar_rows_n
+        else t.level != s.level || selOf t == p
+      | none =&gt; false },
+  -- 新落点跟别的动件几何重叠、又没踩禁地：照样被收下
+  { name := &quot;object_overlap_does_not_reject_move&quot;
+    guard := fun s a =&gt; moveOpen s a &amp;&amp; overlapsOthers s a
+    effect := fun s a t =&gt; match clickRC a with
+      | some p =&gt; t.level != s.level || selOf t == p
+      | none =&gt; false },
+  -- 一关之内硬墙不变（软地是每关常数、空地不在状态里，只比得出硬墙这一层）
+  { name := &quot;terrain_is_static&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun s _ t =&gt; t.level != s.level || t.walls_m == s.walls_m },
+  -- 扇区色 ≥ 2 的靶环，若每种扇区色恰好有一块漆带它，这几块漆的墨色格并起来铺满环上 20 格
+  { name := &quot;reticle_colors_have_tiling_inks&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun _ _ t =&gt; (retsOf t).all (fun r =&gt;
+      let cols := ((List.range 16).map Int.ofNat).filter (fun c =&gt; bitAt r.2.2 c)
+      let who := cols.map (fun c =&gt; (c, (blobsOf t).filter (fun b =&gt; c != 0 &amp;&amp; (inkDigits b.2.2).contains c)))
+      r.2.2 == 0 || cols.length &lt; 2 || !(who.all (fun x =&gt; x.2.length == 1)) ||
+        who.foldl (fun m x =&gt; bor m (posMask ((x.2.headD (0, 0, 0)).2.2) x.1)) 0 == fullRing) },
+  -- 两墨盘（有漆块、靶环 ≤ 2 色、罐子 ≤ 2 种非空色）：环上的色块形状只有互补的两半（各 10 格）或整圈
+  { name := &quot;blob_inks_are_complementary_halves&quot;
+    guard := fun _ a =&gt; isA6 a
+    effect := fun _ _ t =&gt;
+      let inks := (blobsOf t).map (fun b =&gt; b.2.2) ++ (groupsOf t).map (·.ink)
+      let colorsOf := fun (ink : Int) =&gt; ((List.range 16).map Int.ofNat).filter (fun c =&gt; (inkDigits ink).contains c)
+      let shapes := inks.flatMap (fun ink =&gt; (colorsOf ink).map (posMask ink))
+      let halves := (shapes.filter (· != fullRing)).eraseDups
+      (blobsOf t).isEmpty || (retsOf t).any (fun r =&gt; popcount r.2.2 &gt; 2) ||
+        (groupsOf t).any (fun g =&gt; ((colorsOf g.ink).filter (· != 0)).length &gt; 2) ||
+        (match halves with
+         | [] =&gt; true
+         | [h] =&gt; popcount h == 10
+         | [h1, h2] =&gt; band h1 h2 == 0 &amp;&amp; bor h1 h2 == fullRing
+         | _ =&gt; false) }
+]
+-- ==== 规则段 END ====
+
+-- ==== 定理段 ====
+-- 规则与全部观测一致（内核判定）。
+theorem consistent : checkRules rules corpus = true := by decide +kernel
+
+-- 从第 0 关开局逐步重算整条路线，每一步都在 keyEq 的全部变化字段上等于观测，末步到达 WIN。
+theorem faithful : (faithfulRun step start routeObs).map isGoal = some true := by decide +kernel</code></pre></div></details></div></details><details class="apx"><summary>完整验收日志</summary><div class="apxb md"><h1>r11l · 统一到 对象 → 规则 → Lean → 前端 的报告</h1>
 <p>工作台：<code>ledger/games/r11l/</code>（objects/ derive/ rule/ analysis/ lean2/ web/ + 驱动脚本 corpus.py、run_rules.py、ablate_sub.py、paths.py）；
 临时探针：<code>runs/_wb-r11l/</code>。起点册子 <code>concepts/</code>、旧形式化 <code>formal/</code> 未动。未做第 12 步（归档）、未跑任何 git 写命令。</p>
 <p>下面每一个数都是本会话真实跑出来的；命令在工作台根目录（<code>ledger/games/r11l/</code>）下执行，退出码单独取。
